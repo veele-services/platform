@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
+import { submitFixtureReport } from './work-order-report-fixture.mjs';
 
 test("Customer 360 uses persistent sources, guarded relationships and exact revisions", async (t) => {
   const local = JSON.parse(
@@ -50,6 +51,7 @@ test("Customer 360 uses persistent sources, guarded relationships and exact revi
       ]);
       const r = await db.query(sql, args);
       await db.query("reset role");
+      await db.query("select set_config('request.jwt.claims','{}',true)");
       await db.query("release savepoint customer_test");
       return r.rows;
     } catch (e) {
@@ -111,7 +113,7 @@ test("Customer 360 uses persistent sources, guarded relationships and exact revi
         [id, `customer-${id}`],
       );
       await db.query(
-        "insert into public.tenant_settings(tenant_id,enabled_services) values($1,array['planning','finance','rapportage'])",
+        "insert into public.tenant_settings(tenant_id,enabled_services,signature_required_default) values($1,array['planning','personeel','finance','rapportage'],false)",
         [id],
       );
     }
@@ -413,8 +415,8 @@ test("Customer 360 uses persistent sources, guarded relationships and exact revi
       "shared customer documents require live explicit bindings; no internal fields or files leak",
       async () => {
         await db.query(
-          "insert into public.object_customer_bindings(tenant_id,object_id,user_id,active) values($1,$2,$3,true)",
-          [tenant, object, portal],
+          "insert into public.object_customer_bindings(tenant_id,object_id,user_id,active,created_by) values($1,$2,$3,true,$4)",
+          [tenant, object, portal, manager],
         );
         const portalData = () =>
           call(
@@ -590,6 +592,7 @@ test("Customer 360 uses persistent sources, guarded relationships and exact revi
           "update public.work_orders set status='completed' where id=$1",
           [order],
         );
+        await submitFixtureReport(db,call,{tenant,order,staff,manager});
         await call("select public.review_work_order($1,'approved',null)", [
           order,
         ]);

@@ -98,6 +98,10 @@ jobs:
         run: scripts/write-runtime-env.sh
       - name: Activate the exact staging release
         run: scripts/deploy-local.sh
+      - name: Verify work-order persistence and access with rollback-only staging fixtures
+        env:
+          FIELDGRID_STAGING_SMOKE: "1"
+        run: node --test scripts/test-work-orders.mjs scripts/test-work-order-reports.mjs scripts/test-work-order-lineage.mjs
       - name: Check the existing staging reminder timer (read-only)
         run: |
           if systemctl is-active --quiet fieldgrid-worker@staging.timer; then

@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
+import { submitFixtureReport } from './work-order-report-fixture.mjs';
 
 test("Dossier 360: shared sources, approval, partial allocation and current access", async t => {
  const local=JSON.parse(execFileSync("pnpm",["supabase","status","-o","json"],{encoding:"utf8",stdio:["ignore","pipe","ignore"]}));
@@ -16,7 +17,7 @@ test("Dossier 360: shared sources, approval, partial allocation and current acce
  let agreement,agreementLine,request,proposal,extraTask,invoice;
  try {
   for(const u of users){await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())",[u,`${u}@dossier.test`]);await db.query("insert into auth.sessions(id,user_id,created_at,updated_at) values($1,$2,now(),now())",[sessions[u],u]);}
-  for(const id of [tenant,other]){await db.query("insert into public.tenants(id,slug,name) values($1,$2,'Fictitious Dossier 360')",[id,`alignment-${id}`]);await db.query("insert into public.tenant_settings(tenant_id,enabled_services) values($1,array['planning','personeel','finance','rapportage'])",[id]);await db.query("insert into public.tenant_branding(tenant_id) values($1)",[id]);}
+  for(const id of [tenant,other]){await db.query("insert into public.tenants(id,slug,name) values($1,$2,'Fictitious Dossier 360')",[id,`alignment-${id}`]);await db.query("insert into public.tenant_settings(tenant_id,enabled_services,signature_required_default) values($1,array['planning','personeel','finance','rapportage'],false)",[id]);await db.query("insert into public.tenant_branding(tenant_id) values($1)",[id]);}
   await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,array['tenant_admin','management','hr','finance','planner']::public.app_role[],'active'),($1,$3,array['staff']::public.app_role[],'active'),($1,$4,array['planner']::public.app_role[],'active')",[tenant,manager,staff,planner]);
   for(const id of [customer,secondCustomer])await db.query("insert into public.customers(id,tenant_id,customer_number,name) values($1,$2,$3,'Fictitious customer')",[id,tenant,`C-${id}`]);
   for(const id of [object,secondObject])await db.query("insert into public.objects(id,tenant_id,customer_id,object_number,name,address) values($1,$2,$3,$4,'Original object','{\"street\":\"Teststraat 1\"}')",[id,tenant,id===object?customer:secondCustomer,`O-${id}`]);
@@ -78,6 +79,7 @@ test("Dossier 360: shared sources, approval, partial allocation and current acce
    assert.deepEqual((await db.query("select executed_quantity,execution_state,execution_version,completion_note from public.work_order_tasks where id=$1",[task])).rows[0],partialBefore);
    await assert.rejects(call("select public.record_task_execution($1,$2,1,'completed',3,'Stale update')",[tenant,task],staff),e=>e.code==="40001");
    await db.query("update public.work_orders set status='completed' where id=$1",[order]);
+   await submitFixtureReport(db,call,{tenant,order,staff,manager});
    await call("select public.review_work_order($1,'approved',null)",[order]);
    assert.equal((await db.query("select extra_work_status from public.work_order_tasks where id=$1",[extraTask])).rows[0].extra_work_status,'approved');
    const key=randomUUID();const create=()=>call("select (public.create_execution_invoice($1,$2,$3)).*",[tenant,key,JSON.stringify([{taskId:task,quantity:1},{taskId:extraTask,quantity:2}])]);
@@ -117,12 +119,10 @@ test("Dossier 360: shared sources, approval, partial allocation and current acce
    assert.equal((await call("select * from public.current_event_recipients($1)",[ev],manager,"service_role")).length,0);
   });
  } finally { try {
-  for(const table of ["invoice_lines","invoices","review_decisions","object_request_proposals","object_visit_requests","object_instruction_receipts","object_documents","object_records","object_customer_bindings","personnel_documents","personnel_dossier_history","customer_agreement_lines","customer_agreements","customer_documents","object_history","audit_events"]) {
-   if(table==="customer_agreement_lines")await db.query("update public.work_order_tasks set agreement_line_id=null where tenant_id=$1",[tenant]).catch(()=>{});
-   // Tasks refer to agreements: remove this test's work orders first, after invoice/request sources.
-   if(table==="customer_agreement_lines")await db.query("delete from public.work_orders where tenant_id=$1",[tenant]);
-   await db.query(`delete from public.${table} where tenant_id=$1`,[tenant]);
-  }
-  await db.query("delete from public.work_orders where tenant_id=$1",[tenant]);await db.query("delete from public.objects where tenant_id=$1",[tenant]);await db.query("delete from public.task_revisions where tenant_id=$1",[tenant]);await db.query("delete from public.customers where tenant_id=$1",[tenant]);await db.query("delete from public.tenants where id=any($1)",[[tenant,other]]);await db.query("delete from auth.users where id=any($1)",[users]);
+  // Remove only these random test tenants, including immutable report history.
+  await db.query('begin');await db.query("set local session_replication_role='replica'");
+  const tables=(await db.query("select table_schema,table_name from information_schema.columns where column_name='tenant_id' and table_schema in ('public','private')")).rows;
+  for(const {table_schema:s,table_name:n} of tables)await db.query(`delete from "${s}"."${n}" where tenant_id=any($1::uuid[])`,[[tenant,other]]);
+  await db.query("delete from public.tenants where id=any($1)",[[tenant,other]]);await db.query("delete from auth.sessions where user_id=any($1)",[users]);await db.query("delete from auth.users where id=any($1)",[users]);await db.query('commit');
  } finally { await db.end(); } }
 });

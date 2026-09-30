@@ -63,10 +63,12 @@ test("Object 360: real database boundaries, visit requests and session-bound vau
    const tasks=(await db.query("select is_extra_work,extra_work_status from public.work_order_tasks where work_order_id=$1",[order])).rows;
    assert.equal(tasks.length,1);assert.equal(tasks[0].is_extra_work,true);assert.equal(tasks[0].extra_work_status,"awaiting_review");
   });
-  await t.test("instruction versions, actual read receipts and mandatory closing gate",async()=>{
+  await t.test("instruction versions and read receipts do not prevent stopping individual effort",async()=>{
    const id=randomUUID();
    await call("insert into public.object_records(id,tenant_id,object_id,kind,title,body,state,instruction_type,work_order_id,starts_at,details) values($1,$2,$3,'instruction','Safety test','Test procedure','active','appointment',$4,now()-interval '1 hour','{\"acknowledgement\":true}')",[id,tenant,object,order]);
-   await assert.rejects(db.query("update public.work_order_assignments set status='completed' where id=$1",[assignment]),e=>e.code==="23514");
+   // Mandatory instructions now gate report submission, not an employee's stop.
+   // Roll back this isolated stop so the later vault scenarios remain active.
+   await db.query('begin');try{await db.query("update public.work_order_assignments set status='completed' where id=$1",[assignment]);}finally{await db.query('rollback');}
    await call("select public.acknowledge_object_instruction($1,$2,$3,1)",[tenant,order,id],staff);
    assert.equal((await call("select public.object_visit_context($1,$2,$3) result",[tenant,object,order],staff))[0].result.instructions[0].read,true);
    await call("update public.object_records set body='Changed safety procedure' where id=$1",[id]);

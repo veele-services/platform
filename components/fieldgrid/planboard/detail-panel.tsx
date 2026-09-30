@@ -61,6 +61,7 @@ export function PlanningDetail({
     (a) => a.start !== order.start || a.end !== order.end,
   );
   const [scope, setScope] = useState(different ? "shift" : "joint");
+  const [individualId, setIndividualId] = useState(order.assignments[0]?.id ?? "");
   const [fold, setFold] = useState<"" | "earlier" | "later">("");
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
@@ -90,6 +91,14 @@ export function PlanningDetail({
     setError("");
     try {
       const s = localToInstant(start, timezone, fold || undefined);
+      if (scope === "single") {
+        const e = localToInstant(end, timezone, fold || undefined);
+        if (Date.parse(e) <= Date.parse(s)) throw new Error("De eindtijd moet na de begintijd liggen.");
+        if (!order.assignments.some(a => a.id === individualId)) throw new Error("Kies een bestaande inzet.");
+        const assignments = order.assignments.map(a => a.id === individualId ? { personnelId: a.personnelId, start: s, end: e } : assignmentInput(a));
+        onSave({ ...initialProposal(order), start: assignments.reduce((v, a) => a.start < v ? a.start : v, assignments[0].start), end: assignments.reduce((v, a) => a.end > v ? a.end : v, assignments[0].end), assignments });
+        return;
+      }
       const delta = order.start ? Date.parse(s) - Date.parse(order.start) : 0;
       const e =
         scope === "shift" && order.end
@@ -251,13 +260,20 @@ export function PlanningDetail({
               </p>
             ) : (
               <>
-                {different && (
+                {(different || order.assignments.length > 1) && (
                   <label>
                     Omvang wijziging
                     <select
+                      aria-label="Omvang wijziging"
                       value={scope}
-                      onChange={(e) => setScope(e.target.value)}
+                      onChange={(e) => {
+                        setScope(e.target.value);
+                        const assignment = order.assignments.find(a => a.id === individualId);
+                        if (e.target.value === "single" && assignment) { setStart(localDateTime(assignment.start, timezone)); setEnd(localDateTime(assignment.end, timezone)); }
+                        else { setStart(order.start ? localDateTime(order.start, timezone) : `${day}T08:00`); setEnd(order.end ? localDateTime(order.end, timezone) : ""); }
+                      }}
                     >
+                      <option value="single">Alleen de gekozen inzet</option>
                       <option value="shift">
                         Individuele intervallen behouden en meeschuiven
                       </option>
@@ -267,11 +283,13 @@ export function PlanningDetail({
                     </select>
                   </label>
                 )}
+                {scope === "single" && <label>Medewerker voor deze wijziging<select aria-label="Medewerker voor deze wijziging" value={individualId} onChange={e => { setIndividualId(e.target.value); const a = order.assignments.find(a => a.id === e.target.value); if (a) { setStart(localDateTime(a.start, timezone)); setEnd(localDateTime(a.end, timezone)); } }}>{order.assignments.map(a => <option key={a.id} value={a.id}>{people.find(p => p.id === a.personnelId)?.name ?? "Medewerker"}</option>)}</select><small>De geplande intervallen van de andere medewerkers blijven behouden.</small></label>}
                 <div className="pb-form-grid">
                   <label>
                     Gewenste datum
                     <input
                       type="date"
+                      disabled={scope === "single"}
                       value={appointment.requestedDate ?? ""}
                       onChange={(e) =>
                         setAppointment((p) => ({
@@ -286,6 +304,7 @@ export function PlanningDetail({
                     <input
                       type="number"
                       min="1"
+                      disabled={scope === "single"}
                       max="100"
                       required
                       value={appointment.requiredPersonnel}
@@ -303,6 +322,7 @@ export function PlanningDetail({
                     Afgesproken venstertype
                     <select
                       value={appointment.windowKind}
+                      disabled={scope === "single"}
                       onChange={(e) =>
                         setAppointment((p) => ({
                           ...p,
@@ -325,6 +345,7 @@ export function PlanningDetail({
                   Instructies voor deze uitvoering
                   <textarea
                     rows={3}
+                    disabled={scope === "single"}
                     maxLength={2000}
                     value={appointment.instructions}
                     onChange={(e) =>
@@ -382,7 +403,7 @@ export function PlanningDetail({
                     </select>
                   </label>
                 </details>
-                <fieldset>
+                <fieldset disabled={scope === "single"}>
                   <legend>
                     Medewerkers · minimaal {appointment.requiredPersonnel}
                   </legend>

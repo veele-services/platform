@@ -1078,13 +1078,13 @@ isOneToOne: false
                   ]
                 },"objects": {
                   Row: {
-                    "access_instructions": string | null,"active": boolean,"address": NonNullable<Json>,"arrival_instruction": string,"arrival_location": Json | null,"created_at": string,"customer_id": string,"dossier_status": string,"id": string,"latitude": number | null,"location_description": string,"longitude": number | null,"name": string,"object_number": string,"object_type": string,"tenant_id": string,"travel_margin_minutes": number | null,"updated_at": string,"version": number
+                    "access_instructions": string | null,"active": boolean,"address": NonNullable<Json>,"arrival_instruction": string,"arrival_location": Json | null,"created_at": string,"customer_id": string,"dossier_status": string,"id": string,"latitude": number | null,"location_description": string,"longitude": number | null,"name": string,"object_number": string,"object_type": string,"signature_mode": string,"tenant_id": string,"travel_margin_minutes": number | null,"updated_at": string,"version": number
                   }
                   Insert: {
-                    "access_instructions"?: string | null,"active"?: boolean,"address": NonNullable<Json>,"arrival_instruction"?: string,"arrival_location"?: Json | null,"created_at"?: string,"customer_id": string,"dossier_status"?: string,"id"?: string,"latitude"?: number | null,"location_description"?: string,"longitude"?: number | null,"name": string,"object_number": string,"object_type"?: string,"tenant_id": string,"travel_margin_minutes"?: number | null,"updated_at"?: string,"version"?: number
+                    "access_instructions"?: string | null,"active"?: boolean,"address": NonNullable<Json>,"arrival_instruction"?: string,"arrival_location"?: Json | null,"created_at"?: string,"customer_id": string,"dossier_status"?: string,"id"?: string,"latitude"?: number | null,"location_description"?: string,"longitude"?: number | null,"name": string,"object_number": string,"object_type"?: string,"signature_mode"?: string,"tenant_id": string,"travel_margin_minutes"?: number | null,"updated_at"?: string,"version"?: number
                   }
                   Update: {
-                    "access_instructions"?: string | null,"active"?: boolean,"address"?: NonNullable<Json>,"arrival_instruction"?: string,"arrival_location"?: Json | null,"created_at"?: string,"customer_id"?: string,"dossier_status"?: string,"id"?: string,"latitude"?: number | null,"location_description"?: string,"longitude"?: number | null,"name"?: string,"object_number"?: string,"object_type"?: string,"tenant_id"?: string,"travel_margin_minutes"?: number | null,"updated_at"?: string,"version"?: number
+                    "access_instructions"?: string | null,"active"?: boolean,"address"?: NonNullable<Json>,"arrival_instruction"?: string,"arrival_location"?: Json | null,"created_at"?: string,"customer_id"?: string,"dossier_status"?: string,"id"?: string,"latitude"?: number | null,"location_description"?: string,"longitude"?: number | null,"name"?: string,"object_number"?: string,"object_type"?: string,"signature_mode"?: string,"tenant_id"?: string,"travel_margin_minutes"?: number | null,"updated_at"?: string,"version"?: number
                   }
                   Relationships: [
                     {
@@ -1759,16 +1759,22 @@ isOneToOne: false
                   ]
                 },"signatures": {
                   Row: {
-                    "captured_by": string,"id": string,"report_version": number,"revoked_at": string | null,"sha256": string,"signed_at": string,"signer_name": string,"storage_path": string,"tenant_id": string,"work_order_id": string
+                    "captured_by": string,"captured_by_name": string | null,"channel": string,"content_hash": string | null,"id": string,"report_id": string | null,"report_version": number,"revoked_at": string | null,"sha256": string,"signature_kind": string,"signed_at": string,"signer_capacity": string | null,"signer_name": string,"storage_path": string,"tenant_id": string,"work_order_id": string
                   }
                   Insert: {
-                    "captured_by": string,"id"?: string,"report_version": number,"revoked_at"?: string | null,"sha256": string,"signed_at"?: string,"signer_name": string,"storage_path": string,"tenant_id": string,"work_order_id": string
+                    "captured_by": string,"captured_by_name"?: string | null,"channel"?: string,"content_hash"?: string | null,"id"?: string,"report_id"?: string | null,"report_version": number,"revoked_at"?: string | null,"sha256": string,"signature_kind"?: string,"signed_at"?: string,"signer_capacity"?: string | null,"signer_name": string,"storage_path": string,"tenant_id": string,"work_order_id": string
                   }
                   Update: {
-                    "captured_by"?: string,"id"?: string,"report_version"?: number,"revoked_at"?: string | null,"sha256"?: string,"signed_at"?: string,"signer_name"?: string,"storage_path"?: string,"tenant_id"?: string,"work_order_id"?: string
+                    "captured_by"?: string,"captured_by_name"?: string | null,"channel"?: string,"content_hash"?: string | null,"id"?: string,"report_id"?: string | null,"report_version"?: number,"revoked_at"?: string | null,"sha256"?: string,"signature_kind"?: string,"signed_at"?: string,"signer_capacity"?: string | null,"signer_name"?: string,"storage_path"?: string,"tenant_id"?: string,"work_order_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "signatures_report_fk"
+      columns: ["tenant_id","report_id"]
+isOneToOne: false
+      referencedRelation: "work_order_report_versions"
+      referencedColumns: ["tenant_id","id"]
+    },{
       foreignKeyName: "signatures_tenant_id_work_order_id_fkey"
       columns: ["tenant_id","work_order_id"]
 isOneToOne: false
@@ -2094,13 +2100,13 @@ isOneToOne: false
                   ]
                 },"work_order_assignments": {
                   Row: {
-                    "actual_end_at": string | null,"actual_start_at": string | null,"created_at": string,"departed_at": string | null,"id": string,"personnel_id": string,"planned_end_at": string,"planned_start_at": string,"projected_end_at": string,"projected_start_at": string,"qualification_snapshot": NonNullable<Json>,"return_note": string | null,"return_reason_code": string | null,"status": string,"tenant_id": string,"updated_at": string,"version": number,"work_order_id": string
+                    "actual_end_at": string | null,"actual_start_at": string | null,"created_at": string,"departed_at": string | null,"id": string,"paused_at": string | null,"personnel_id": string,"planned_end_at": string,"planned_start_at": string,"projected_end_at": string,"projected_start_at": string,"qualification_snapshot": NonNullable<Json>,"return_note": string | null,"return_reason_code": string | null,"seen_at": string | null,"status": string,"tenant_id": string,"updated_at": string,"version": number,"work_order_id": string
                   }
                   Insert: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"created_at"?: string,"departed_at"?: string | null,"id"?: string,"personnel_id": string,"planned_end_at": string,"planned_start_at": string,"projected_end_at": string,"projected_start_at": string,"qualification_snapshot"?: NonNullable<Json>,"return_note"?: string | null,"return_reason_code"?: string | null,"status"?: string,"tenant_id": string,"updated_at"?: string,"version"?: number,"work_order_id": string
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"created_at"?: string,"departed_at"?: string | null,"id"?: string,"paused_at"?: string | null,"personnel_id": string,"planned_end_at": string,"planned_start_at": string,"projected_end_at": string,"projected_start_at": string,"qualification_snapshot"?: NonNullable<Json>,"return_note"?: string | null,"return_reason_code"?: string | null,"seen_at"?: string | null,"status"?: string,"tenant_id": string,"updated_at"?: string,"version"?: number,"work_order_id": string
                   }
                   Update: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"created_at"?: string,"departed_at"?: string | null,"id"?: string,"personnel_id"?: string,"planned_end_at"?: string,"planned_start_at"?: string,"projected_end_at"?: string,"projected_start_at"?: string,"qualification_snapshot"?: NonNullable<Json>,"return_note"?: string | null,"return_reason_code"?: string | null,"status"?: string,"tenant_id"?: string,"updated_at"?: string,"version"?: number,"work_order_id"?: string
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"created_at"?: string,"departed_at"?: string | null,"id"?: string,"paused_at"?: string | null,"personnel_id"?: string,"planned_end_at"?: string,"planned_start_at"?: string,"projected_end_at"?: string,"projected_start_at"?: string,"qualification_snapshot"?: NonNullable<Json>,"return_note"?: string | null,"return_reason_code"?: string | null,"seen_at"?: string | null,"status"?: string,"tenant_id"?: string,"updated_at"?: string,"version"?: number,"work_order_id"?: string
                   }
                   Relationships: [
                     {
@@ -2117,15 +2123,297 @@ isOneToOne: false
       referencedColumns: ["tenant_id","id"]
     }
                   ]
-                },"work_order_tasks": {
+                },"work_order_checklist_answers": {
                   Row: {
-                    "added_by": string | null,"agreement_line_id": string | null,"allowed_for_staff": boolean,"commercial_snapshot": NonNullable<Json>,"completed_at": string | null,"completion_note": string | null,"created_at": string,"duration_minutes": number,"executed_quantity": number | null,"execution_state": string,"execution_version": number,"extra_work_status": string | null,"id": string,"is_extra_work": boolean,"quantity": number,"task_code": string,"task_name": string,"task_revision_id": string | null,"tenant_id": string,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"work_order_id": string
+                    "attachment_id": string | null,"checklist_id": string,"id": string,"not_applicable": boolean,"question_id": string,"reason": string,"tenant_id": string,"updated_at": string,"updated_by": string,"value": Json | null,"version": number
                   }
                   Insert: {
-                    "added_by"?: string | null,"agreement_line_id"?: string | null,"allowed_for_staff"?: boolean,"commercial_snapshot"?: NonNullable<Json>,"completed_at"?: string | null,"completion_note"?: string | null,"created_at"?: string,"duration_minutes": number,"executed_quantity"?: number | null,"execution_state"?: string,"execution_version"?: number,"extra_work_status"?: string | null,"id"?: string,"is_extra_work"?: boolean,"quantity"?: number,"task_code": string,"task_name": string,"task_revision_id"?: string | null,"tenant_id": string,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"work_order_id": string
+                    "attachment_id"?: string | null,"checklist_id": string,"id"?: string,"not_applicable"?: boolean,"question_id": string,"reason"?: string,"tenant_id": string,"updated_at"?: string,"updated_by": string,"value"?: Json | null,"version"?: number
                   }
                   Update: {
-                    "added_by"?: string | null,"agreement_line_id"?: string | null,"allowed_for_staff"?: boolean,"commercial_snapshot"?: NonNullable<Json>,"completed_at"?: string | null,"completion_note"?: string | null,"created_at"?: string,"duration_minutes"?: number,"executed_quantity"?: number | null,"execution_state"?: string,"execution_version"?: number,"extra_work_status"?: string | null,"id"?: string,"is_extra_work"?: boolean,"quantity"?: number,"task_code"?: string,"task_name"?: string,"task_revision_id"?: string | null,"tenant_id"?: string,"unit"?: string,"unit_price_cents"?: number,"vat_basis_points"?: number,"work_order_id"?: string
+                    "attachment_id"?: string | null,"checklist_id"?: string,"id"?: string,"not_applicable"?: boolean,"question_id"?: string,"reason"?: string,"tenant_id"?: string,"updated_at"?: string,"updated_by"?: string,"value"?: Json | null,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_checklist_answers_tenant_id_attachment_id_fkey"
+      columns: ["tenant_id","attachment_id"]
+isOneToOne: false
+      referencedRelation: "attachments"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "work_order_checklist_answers_tenant_id_checklist_id_fkey"
+      columns: ["tenant_id","checklist_id"]
+isOneToOne: false
+      referencedRelation: "work_order_checklists"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_checklists": {
+                  Row: {
+                    "created_at": string,"definition": NonNullable<Json>,"id": string,"name": string,"template_revision_id": string,"tenant_id": string,"work_order_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"definition": NonNullable<Json>,"id"?: string,"name": string,"template_revision_id": string,"tenant_id": string,"work_order_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"definition"?: NonNullable<Json>,"id"?: string,"name"?: string,"template_revision_id"?: string,"tenant_id"?: string,"work_order_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_checklists_tenant_id_template_revision_id_fkey"
+      columns: ["tenant_id","template_revision_id"]
+isOneToOne: false
+      referencedRelation: "work_order_template_versions"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "work_order_checklists_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_contacts": {
+                  Row: {
+                    "contact_id": string,"id": string,"roles": (string)[],"snapshot": NonNullable<Json>,"tenant_id": string,"work_order_id": string
+                  }
+                  Insert: {
+                    "contact_id": string,"id"?: string,"roles": (string)[],"snapshot": NonNullable<Json>,"tenant_id": string,"work_order_id": string
+                  }
+                  Update: {
+                    "contact_id"?: string,"id"?: string,"roles"?: (string)[],"snapshot"?: NonNullable<Json>,"tenant_id"?: string,"work_order_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_contacts_tenant_id_contact_id_fkey"
+      columns: ["tenant_id","contact_id"]
+isOneToOne: false
+      referencedRelation: "customer_contacts"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "work_order_contacts_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_exceptions": {
+                  Row: {
+                    "attachment_id": string | null,"blocking": boolean,"created_at": string,"created_by": string,"description": string,"id": string,"kind": string,"owner_user_id": string | null,"resolution": string | null,"resolved_at": string | null,"resolved_by": string | null,"state": string,"tenant_id": string,"version": number,"work_order_id": string
+                  }
+                  Insert: {
+                    "attachment_id"?: string | null,"blocking"?: boolean,"created_at"?: string,"created_by": string,"description": string,"id": string,"kind": string,"owner_user_id"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"state"?: string,"tenant_id": string,"version"?: number,"work_order_id": string
+                  }
+                  Update: {
+                    "attachment_id"?: string | null,"blocking"?: boolean,"created_at"?: string,"created_by"?: string,"description"?: string,"id"?: string,"kind"?: string,"owner_user_id"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"state"?: string,"tenant_id"?: string,"version"?: number,"work_order_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_exceptions_tenant_id_attachment_id_fkey"
+      columns: ["tenant_id","attachment_id"]
+isOneToOne: false
+      referencedRelation: "attachments"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "work_order_exceptions_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_material_usage": {
+                  Row: {
+                    "created_at": string,"created_by": string,"customer_visible": boolean,"description": string,"id": string,"quantity": number,"task_id": string | null,"tenant_id": string,"unit": string,"work_order_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"customer_visible"?: boolean,"description": string,"id"?: string,"quantity": number,"task_id"?: string | null,"tenant_id": string,"unit": string,"work_order_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"customer_visible"?: boolean,"description"?: string,"id"?: string,"quantity"?: number,"task_id"?: string | null,"tenant_id"?: string,"unit"?: string,"work_order_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_material_usage_tenant_id_task_id_fkey"
+      columns: ["tenant_id","task_id"]
+isOneToOne: false
+      referencedRelation: "work_order_tasks"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "work_order_material_usage_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_occurrences": {
+                  Row: {
+                    "created_at": string,"generated_order_version": number | null,"occurrence_on": string,"reason": string,"series_id": string,"series_version": number,"state": string,"tenant_id": string,"work_order_id": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"generated_order_version"?: number | null,"occurrence_on": string,"reason"?: string,"series_id": string,"series_version": number,"state": string,"tenant_id": string,"work_order_id"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"generated_order_version"?: number | null,"occurrence_on"?: string,"reason"?: string,"series_id"?: string,"series_version"?: number,"state"?: string,"tenant_id"?: string,"work_order_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_occurrences_tenant_id_series_id_fkey"
+      columns: ["tenant_id","series_id"]
+isOneToOne: false
+      referencedRelation: "work_order_series"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "work_order_occurrences_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: true
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_relations": {
+                  Row: {
+                    "created_at": string,"created_by": string,"id": string,"kind": string,"reason": string,"source_order_id": string,"target_order_id": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"id"?: string,"kind": string,"reason"?: string,"source_order_id": string,"target_order_id": string,"tenant_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"id"?: string,"kind"?: string,"reason"?: string,"source_order_id"?: string,"target_order_id"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_relations_tenant_id_source_order_id_fkey"
+      columns: ["tenant_id","source_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "work_order_relations_tenant_id_target_order_id_fkey"
+      columns: ["tenant_id","target_order_id"]
+isOneToOne: true
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_report_versions": {
+                  Row: {
+                    "approved_at": string | null,"approved_by": string | null,"content_hash": string,"created_at": string,"created_by": string,"id": string,"signature_policy": NonNullable<Json>,"snapshot": NonNullable<Json>,"state": string,"submission_key": string,"tenant_id": string,"version": number,"work_order_id": string
+                  }
+                  Insert: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"content_hash": string,"created_at"?: string,"created_by": string,"id"?: string,"signature_policy": NonNullable<Json>,"snapshot": NonNullable<Json>,"state": string,"submission_key": string,"tenant_id": string,"version": number,"work_order_id": string
+                  }
+                  Update: {
+                    "approved_at"?: string | null,"approved_by"?: string | null,"content_hash"?: string,"created_at"?: string,"created_by"?: string,"id"?: string,"signature_policy"?: NonNullable<Json>,"snapshot"?: NonNullable<Json>,"state"?: string,"submission_key"?: string,"tenant_id"?: string,"version"?: number,"work_order_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_report_versions_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_scope_transfers": {
+                  Row: {
+                    "created_at": string,"created_by": string,"id": string,"quantity": number,"reason": string,"source_task_id": string,"target_order_id": string,"target_task_id": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"id"?: string,"quantity": number,"reason": string,"source_task_id": string,"target_order_id": string,"target_task_id": string,"tenant_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"id"?: string,"quantity"?: number,"reason"?: string,"source_task_id"?: string,"target_order_id"?: string,"target_task_id"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_scope_transfers_tenant_id_source_task_id_fkey"
+      columns: ["tenant_id","source_task_id"]
+isOneToOne: false
+      referencedRelation: "work_order_tasks"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "work_order_scope_transfers_tenant_id_target_order_id_fkey"
+      columns: ["tenant_id","target_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "work_order_scope_transfers_tenant_id_target_task_id_fkey"
+      columns: ["tenant_id","target_task_id"]
+isOneToOne: true
+      referencedRelation: "work_order_tasks"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_series": {
+                  Row: {
+                    "active": boolean,"created_at": string,"created_by": string,"definition": NonNullable<Json>,"id": string,"source_order_id": string,"tenant_id": string,"timezone": string,"title": string,"version": number
+                  }
+                  Insert: {
+                    "active"?: boolean,"created_at"?: string,"created_by": string,"definition": NonNullable<Json>,"id"?: string,"source_order_id": string,"tenant_id": string,"timezone": string,"title": string,"version"?: number
+                  }
+                  Update: {
+                    "active"?: boolean,"created_at"?: string,"created_by"?: string,"definition"?: NonNullable<Json>,"id"?: string,"source_order_id"?: string,"tenant_id"?: string,"timezone"?: string,"title"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_series_tenant_id_source_order_id_fkey"
+      columns: ["tenant_id","source_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_signature_waivers": {
+                  Row: {
+                    "actor_id": string,"created_at": string,"id": string,"reason": string,"report_id": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "actor_id": string,"created_at"?: string,"id"?: string,"reason": string,"report_id": string,"tenant_id": string
+                  }
+                  Update: {
+                    "actor_id"?: string,"created_at"?: string,"id"?: string,"reason"?: string,"report_id"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_signature_waivers_tenant_id_report_id_fkey"
+      columns: ["tenant_id","report_id"]
+isOneToOne: true
+      referencedRelation: "work_order_report_versions"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_task_contributions": {
+                  Row: {
+                    "actor_id": string,"execution_version": number,"from_quantity": number,"id": string,"note": string | null,"recorded_at": string,"result": string,"task_id": string,"tenant_id": string,"to_quantity": number
+                  }
+                  Insert: {
+                    "actor_id": string,"execution_version": number,"from_quantity": number,"id"?: string,"note"?: string | null,"recorded_at"?: string,"result": string,"task_id": string,"tenant_id": string,"to_quantity": number
+                  }
+                  Update: {
+                    "actor_id"?: string,"execution_version"?: number,"from_quantity"?: number,"id"?: string,"note"?: string | null,"recorded_at"?: string,"result"?: string,"task_id"?: string,"tenant_id"?: string,"to_quantity"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_task_contributions_tenant_id_task_id_fkey"
+      columns: ["tenant_id","task_id"]
+isOneToOne: false
+      referencedRelation: "work_order_tasks"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_tasks": {
+                  Row: {
+                    "added_by": string | null,"agreement_line_id": string | null,"allowed_for_staff": boolean,"assigned_personnel_id": string | null,"commercial_snapshot": NonNullable<Json>,"completed_at": string | null,"completion_note": string | null,"created_at": string,"duration_minutes": number,"executed_quantity": number | null,"execution_state": string,"execution_version": number,"extra_work_status": string | null,"id": string,"instructions": string,"is_extra_work": boolean,"quantity": number,"scope_root_task_id": string | null,"task_code": string,"task_name": string,"task_revision_id": string | null,"tenant_id": string,"transferred_quantity": number,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"withdrawn_quantity": number,"work_order_id": string
+                  }
+                  Insert: {
+                    "added_by"?: string | null,"agreement_line_id"?: string | null,"allowed_for_staff"?: boolean,"assigned_personnel_id"?: string | null,"commercial_snapshot"?: NonNullable<Json>,"completed_at"?: string | null,"completion_note"?: string | null,"created_at"?: string,"duration_minutes": number,"executed_quantity"?: number | null,"execution_state"?: string,"execution_version"?: number,"extra_work_status"?: string | null,"id"?: string,"instructions"?: string,"is_extra_work"?: boolean,"quantity"?: number,"scope_root_task_id"?: string | null,"task_code": string,"task_name": string,"task_revision_id"?: string | null,"tenant_id": string,"transferred_quantity"?: number,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"withdrawn_quantity"?: number,"work_order_id": string
+                  }
+                  Update: {
+                    "added_by"?: string | null,"agreement_line_id"?: string | null,"allowed_for_staff"?: boolean,"assigned_personnel_id"?: string | null,"commercial_snapshot"?: NonNullable<Json>,"completed_at"?: string | null,"completion_note"?: string | null,"created_at"?: string,"duration_minutes"?: number,"executed_quantity"?: number | null,"execution_state"?: string,"execution_version"?: number,"extra_work_status"?: string | null,"id"?: string,"instructions"?: string,"is_extra_work"?: boolean,"quantity"?: number,"scope_root_task_id"?: string | null,"task_code"?: string,"task_name"?: string,"task_revision_id"?: string | null,"tenant_id"?: string,"transferred_quantity"?: number,"unit"?: string,"unit_price_cents"?: number,"vat_basis_points"?: number,"withdrawn_quantity"?: number,"work_order_id"?: string
                   }
                   Relationships: [
                     {
@@ -2133,6 +2421,18 @@ isOneToOne: false
       columns: ["tenant_id","agreement_line_id"]
 isOneToOne: false
       referencedRelation: "customer_agreement_lines"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "work_order_scope_root_fk"
+      columns: ["tenant_id","scope_root_task_id"]
+isOneToOne: false
+      referencedRelation: "work_order_tasks"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "work_order_tasks_personnel_fk"
+      columns: ["tenant_id","assigned_personnel_id"]
+isOneToOne: false
+      referencedRelation: "personnel"
       referencedColumns: ["tenant_id","id"]
     },{
       foreignKeyName: "work_order_tasks_tenant_id_task_revision_id_fkey"
@@ -2148,18 +2448,62 @@ isOneToOne: false
       referencedColumns: ["tenant_id","id"]
     }
                   ]
-                },"work_orders": {
+                },"work_order_template_versions": {
                   Row: {
-                    "actual_end_at": string | null,"actual_start_at": string | null,"appointment_slot_id": string | null,"attention_reason": string | null,"bill_travel": boolean,"commercial_terms": NonNullable<Json>,"created_at": string,"created_by": string,"customer_id": string,"customer_window_kind": string,"day_instructions": string,"discipline": string,"id": string,"object_id": string,"object_snapshot": NonNullable<Json>,"planned_end_at": string | null,"planned_start_at": string | null,"projected_end_at": string | null,"projected_start_at": string | null,"quote_id": string | null,"report_version": number,"request_id": string | null,"requested_date": string | null,"required_personnel": number,"signature_required": boolean,"status": Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at": string,"version": number,"visit_kind": string,"work_order_number": string
+                    "created_at": string,"created_by": string,"definition": NonNullable<Json>,"edit_version": number,"id": string,"published_at": string | null,"state": string,"template_id": string,"tenant_id": string,"version": number
                   }
                   Insert: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"commercial_terms"?: NonNullable<Json>,"created_at"?: string,"created_by": string,"customer_id": string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline": string,"id"?: string,"object_id": string,"object_snapshot"?: NonNullable<Json>,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at"?: string,"version"?: number,"visit_kind"?: string,"work_order_number": string
+                    "created_at"?: string,"created_by": string,"definition"?: NonNullable<Json>,"edit_version"?: number,"id"?: string,"published_at"?: string | null,"state"?: string,"template_id": string,"tenant_id": string,"version": number
                   }
                   Update: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"commercial_terms"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline"?: string,"id"?: string,"object_id"?: string,"object_snapshot"?: NonNullable<Json>,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id"?: string,"updated_at"?: string,"version"?: number,"visit_kind"?: string,"work_order_number"?: string
+                    "created_at"?: string,"created_by"?: string,"definition"?: NonNullable<Json>,"edit_version"?: number,"id"?: string,"published_at"?: string | null,"state"?: string,"template_id"?: string,"tenant_id"?: string,"version"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "work_order_template_versions_tenant_id_template_id_fkey"
+      columns: ["tenant_id","template_id"]
+isOneToOne: false
+      referencedRelation: "work_order_templates"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"work_order_templates": {
+                  Row: {
+                    "created_at": string,"created_by": string,"id": string,"kind": string,"name": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"id"?: string,"kind": string,"name": string,"tenant_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"id"?: string,"kind"?: string,"name"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_order_templates_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"work_orders": {
+                  Row: {
+                    "actual_end_at": string | null,"actual_start_at": string | null,"appointment_slot_id": string | null,"archive_at": string | null,"attention_reason": string | null,"bill_travel": boolean,"budget_labor_minutes": number | null,"commercial_terms": NonNullable<Json>,"created_at": string,"created_by": string,"customer_id": string,"customer_window_kind": string,"day_instructions": string,"deadline": string | null,"description": string,"details": NonNullable<Json>,"discipline": string,"employee_signature_required": boolean,"id": string,"labels": (string)[],"lead_personnel_id": string | null,"object_id": string,"object_snapshot": NonNullable<Json>,"planned_end_at": string | null,"planned_start_at": string | null,"planner_user_id": string | null,"planning_state": string,"priority": string,"projected_end_at": string | null,"projected_start_at": string | null,"published_at": string | null,"quote_id": string | null,"report_state": string,"report_version": number,"request_id": string | null,"requested_date": string | null,"required_personnel": number,"signature_mode": string,"signature_policy_snapshot": Json | null,"signature_required": boolean,"source_kind": string,"status": Database["public"]['Enums']["work_order_status"],"template_snapshot": NonNullable<Json>,"tenant_id": string,"title": string,"updated_at": string,"version": number,"visit_kind": string,"work_order_number": string
+                  }
+                  Insert: {
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"archive_at"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"budget_labor_minutes"?: number | null,"commercial_terms"?: NonNullable<Json>,"created_at"?: string,"created_by": string,"customer_id": string,"customer_window_kind"?: string,"day_instructions"?: string,"deadline"?: string | null,"description"?: string,"details"?: NonNullable<Json>,"discipline": string,"employee_signature_required"?: boolean,"id"?: string,"labels"?: (string)[],"lead_personnel_id"?: string | null,"object_id": string,"object_snapshot"?: NonNullable<Json>,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"planner_user_id"?: string | null,"planning_state"?: string,"priority"?: string,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"published_at"?: string | null,"quote_id"?: string | null,"report_state"?: string,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_mode"?: string,"signature_policy_snapshot"?: Json | null,"signature_required"?: boolean,"source_kind"?: string,"status"?: Database["public"]['Enums']["work_order_status"],"template_snapshot"?: NonNullable<Json>,"tenant_id": string,"title"?: string,"updated_at"?: string,"version"?: number,"visit_kind"?: string,"work_order_number": string
+                  }
+                  Update: {
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"archive_at"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"budget_labor_minutes"?: number | null,"commercial_terms"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"customer_window_kind"?: string,"day_instructions"?: string,"deadline"?: string | null,"description"?: string,"details"?: NonNullable<Json>,"discipline"?: string,"employee_signature_required"?: boolean,"id"?: string,"labels"?: (string)[],"lead_personnel_id"?: string | null,"object_id"?: string,"object_snapshot"?: NonNullable<Json>,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"planner_user_id"?: string | null,"planning_state"?: string,"priority"?: string,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"published_at"?: string | null,"quote_id"?: string | null,"report_state"?: string,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_mode"?: string,"signature_policy_snapshot"?: Json | null,"signature_required"?: boolean,"source_kind"?: string,"status"?: Database["public"]['Enums']["work_order_status"],"template_snapshot"?: NonNullable<Json>,"tenant_id"?: string,"title"?: string,"updated_at"?: string,"version"?: number,"visit_kind"?: string,"work_order_number"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "work_orders_lead_fk"
+      columns: ["tenant_id","lead_personnel_id"]
+isOneToOne: false
+      referencedRelation: "personnel"
+      referencedColumns: ["tenant_id","id"]
+    },{
       foreignKeyName: "work_orders_tenant_id_appointment_slot_id_fkey"
       columns: ["tenant_id","appointment_slot_id"]
 isOneToOne: false
@@ -2217,6 +2561,7 @@ isOneToOne: false
               "added_by": string | null,
 "agreement_line_id": string | null,
 "allowed_for_staff": boolean,
+"assigned_personnel_id": string | null,
 "commercial_snapshot": NonNullable<Json>,
 "completed_at": string | null,
 "completion_note": string | null,
@@ -2227,15 +2572,19 @@ isOneToOne: false
 "execution_version": number,
 "extra_work_status": string | null,
 "id": string,
+"instructions": string,
 "is_extra_work": boolean,
 "quantity": number,
+"scope_root_task_id": string | null,
 "task_code": string,
 "task_name": string,
 "task_revision_id": string | null,
 "tenant_id": string,
+"transferred_quantity": number,
 "unit": string,
 "unit_price_cents": number,
 "vat_basis_points": number,
+"withdrawn_quantity": number,
 "work_order_id": string
             }
                           SetofOptions: {
@@ -2244,6 +2593,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"answer_work_order_checklist":
+{ Args: { "input": Json,"target_tenant": string }; Returns: Json
+                           },
 "apply_confirmed_provider_payment":
 { Args: { "provider_amount_cents": number,"provider_currency": string,"provider_payload": Json,"provider_payment_id": string,"provider_status": Database["public"]['Enums']["payment_status"],"target_payment_attempt_id": string }; Returns: {
               "amount_cents": number,
@@ -2270,6 +2622,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"assign_work_order_task":
+{ Args: { "expected_version": number,"personnel"?: string,"target_task": string,"target_tenant": string }; Returns: undefined
+                           },
 "attach_invoice_pdf":
 { Args: { "sha256": string,"storage_path": string,"target_invoice_id": string }; Returns: {
               "branding_snapshot": Json | null,
@@ -2325,6 +2680,9 @@ isOneToOne: false
       } },
 "change_work_order_planning":
 { Args: { "appointment_data"?: Json,"confirmed_warnings"?: (string)[],"expected_version": number,"mutation_id": string,"target_assignments": Json,"target_end": string,"target_start": string,"target_tenant": string,"target_work_order": string,"undo_change"?: string }; Returns: Json
+                           },
+"change_work_order_signature_policy":
+{ Args: { "employee_required": boolean,"expected_version": number,"mode": string,"mutation_id": string,"reason": string,"target_order": string }; Returns: undefined
                            },
 "claim_mail_delivery":
 { Args: { "target_idempotency_key": string,"target_recipient": string,"target_template": string,"target_tenant_id": string }; Returns: {
@@ -2437,6 +2795,7 @@ isOneToOne: false
               "added_by": string | null,
 "agreement_line_id": string | null,
 "allowed_for_staff": boolean,
+"assigned_personnel_id": string | null,
 "commercial_snapshot": NonNullable<Json>,
 "completed_at": string | null,
 "completion_note": string | null,
@@ -2447,15 +2806,19 @@ isOneToOne: false
 "execution_version": number,
 "extra_work_status": string | null,
 "id": string,
+"instructions": string,
 "is_extra_work": boolean,
 "quantity": number,
+"scope_root_task_id": string | null,
 "task_code": string,
 "task_name": string,
 "task_revision_id": string | null,
 "tenant_id": string,
+"transferred_quantity": number,
 "unit": string,
 "unit_price_cents": number,
 "vat_basis_points": number,
+"withdrawn_quantity": number,
 "work_order_id": string
             }
                           SetofOptions: {
@@ -2589,30 +2952,48 @@ isOneToOne: false
               "actual_end_at": string | null,
 "actual_start_at": string | null,
 "appointment_slot_id": string | null,
+"archive_at": string | null,
 "attention_reason": string | null,
 "bill_travel": boolean,
+"budget_labor_minutes": number | null,
 "commercial_terms": NonNullable<Json>,
 "created_at": string,
 "created_by": string,
 "customer_id": string,
 "customer_window_kind": string,
 "day_instructions": string,
+"deadline": string | null,
+"description": string,
+"details": NonNullable<Json>,
 "discipline": string,
+"employee_signature_required": boolean,
 "id": string,
+"labels": (string)[],
+"lead_personnel_id": string | null,
 "object_id": string,
 "object_snapshot": NonNullable<Json>,
 "planned_end_at": string | null,
 "planned_start_at": string | null,
+"planner_user_id": string | null,
+"planning_state": string,
+"priority": string,
 "projected_end_at": string | null,
 "projected_start_at": string | null,
+"published_at": string | null,
 "quote_id": string | null,
+"report_state": string,
 "report_version": number,
 "request_id": string | null,
 "requested_date": string | null,
 "required_personnel": number,
+"signature_mode": string,
+"signature_policy_snapshot": Json | null,
 "signature_required": boolean,
+"source_kind": string,
 "status": Database["public"]['Enums']["work_order_status"],
+"template_snapshot": NonNullable<Json>,
 "tenant_id": string,
+"title": string,
 "updated_at": string,
 "version": number,
 "visit_kind": string,
@@ -2626,6 +3007,11 @@ isOneToOne: false
       } },
 "dossier_chain":
 { Args: { "target_customer"?: string,"target_object"?: string,"target_order"?: string,"target_personnel"?: string,"target_tenant": string }; Returns: Json
+                           },
+"expired_work_order_signature_uploads":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "id": string,"storage_path": string
+            }[]
                            },
 "extend_object_access":
 { Args: { "reason": string,"target_assignment": string,"target_tenant": string,"until_time": string }; Returns: undefined
@@ -2663,6 +3049,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"finalize_work_order_signature":
+{ Args: { "image_hash": string,"target_intent": string }; Returns: Json
+                           },
 "get_object_document":
 { Args: { "target_document": string,"target_order"?: string,"target_tenant": string }; Returns: Json
                            },
@@ -2671,6 +3060,9 @@ isOneToOne: false
                            },
 "get_planboard_order":
 { Args: { "target_order": string,"target_tenant": string }; Returns: Json
+                           },
+"mutate_work_order":
+{ Args: { "input": Json,"target_tenant": string }; Returns: Json
                            },
 "object_agreement_options":
 { Args: { "target_object": string,"target_tenant": string }; Returns: {
@@ -2716,6 +3108,9 @@ isOneToOne: false
                            },
 "prepare_personnel_checklist":
 { Args: { "checklist_type": string,"target_personnel": string,"target_tenant": string }; Returns: number
+                           },
+"prepare_work_order_signature":
+{ Args: { "expected_hash": string,"idempotency_key": string,"signature_kind": string,"signer_capacity": string,"signer_name": string,"target_report_id": string,"target_work_order_id": string }; Returns: Json
                            },
 "process_customer_reminders":
 { Args: Record<PropertyKey, never>; Returns: number
@@ -2790,30 +3185,48 @@ isOneToOne: false
               "actual_end_at": string | null,
 "actual_start_at": string | null,
 "appointment_slot_id": string | null,
+"archive_at": string | null,
 "attention_reason": string | null,
 "bill_travel": boolean,
+"budget_labor_minutes": number | null,
 "commercial_terms": NonNullable<Json>,
 "created_at": string,
 "created_by": string,
 "customer_id": string,
 "customer_window_kind": string,
 "day_instructions": string,
+"deadline": string | null,
+"description": string,
+"details": NonNullable<Json>,
 "discipline": string,
+"employee_signature_required": boolean,
 "id": string,
+"labels": (string)[],
+"lead_personnel_id": string | null,
 "object_id": string,
 "object_snapshot": NonNullable<Json>,
 "planned_end_at": string | null,
 "planned_start_at": string | null,
+"planner_user_id": string | null,
+"planning_state": string,
+"priority": string,
 "projected_end_at": string | null,
 "projected_start_at": string | null,
+"published_at": string | null,
 "quote_id": string | null,
+"report_state": string,
 "report_version": number,
 "request_id": string | null,
 "requested_date": string | null,
 "required_personnel": number,
+"signature_mode": string,
+"signature_policy_snapshot": Json | null,
 "signature_required": boolean,
+"source_kind": string,
 "status": Database["public"]['Enums']["work_order_status"],
+"template_snapshot": NonNullable<Json>,
 "tenant_id": string,
+"title": string,
 "updated_at": string,
 "version": number,
 "visit_kind": string,
@@ -2838,30 +3251,106 @@ isOneToOne: false
               "actual_end_at": string | null,
 "actual_start_at": string | null,
 "appointment_slot_id": string | null,
+"archive_at": string | null,
 "attention_reason": string | null,
 "bill_travel": boolean,
+"budget_labor_minutes": number | null,
 "commercial_terms": NonNullable<Json>,
 "created_at": string,
 "created_by": string,
 "customer_id": string,
 "customer_window_kind": string,
 "day_instructions": string,
+"deadline": string | null,
+"description": string,
+"details": NonNullable<Json>,
 "discipline": string,
+"employee_signature_required": boolean,
 "id": string,
+"labels": (string)[],
+"lead_personnel_id": string | null,
 "object_id": string,
 "object_snapshot": NonNullable<Json>,
 "planned_end_at": string | null,
 "planned_start_at": string | null,
+"planner_user_id": string | null,
+"planning_state": string,
+"priority": string,
 "projected_end_at": string | null,
 "projected_start_at": string | null,
+"published_at": string | null,
 "quote_id": string | null,
+"report_state": string,
 "report_version": number,
 "request_id": string | null,
 "requested_date": string | null,
 "required_personnel": number,
+"signature_mode": string,
+"signature_policy_snapshot": Json | null,
 "signature_required": boolean,
+"source_kind": string,
 "status": Database["public"]['Enums']["work_order_status"],
+"template_snapshot": NonNullable<Json>,
 "tenant_id": string,
+"title": string,
+"updated_at": string,
+"version": number,
+"visit_kind": string,
+"work_order_number": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "work_orders"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"review_work_order_report":
+{ Args: { "decision": string,"reason"?: string,"target_report_id": string,"target_work_order_id": string }; Returns: {
+              "actual_end_at": string | null,
+"actual_start_at": string | null,
+"appointment_slot_id": string | null,
+"archive_at": string | null,
+"attention_reason": string | null,
+"bill_travel": boolean,
+"budget_labor_minutes": number | null,
+"commercial_terms": NonNullable<Json>,
+"created_at": string,
+"created_by": string,
+"customer_id": string,
+"customer_window_kind": string,
+"day_instructions": string,
+"deadline": string | null,
+"description": string,
+"details": NonNullable<Json>,
+"discipline": string,
+"employee_signature_required": boolean,
+"id": string,
+"labels": (string)[],
+"lead_personnel_id": string | null,
+"object_id": string,
+"object_snapshot": NonNullable<Json>,
+"planned_end_at": string | null,
+"planned_start_at": string | null,
+"planner_user_id": string | null,
+"planning_state": string,
+"priority": string,
+"projected_end_at": string | null,
+"projected_start_at": string | null,
+"published_at": string | null,
+"quote_id": string | null,
+"report_state": string,
+"report_version": number,
+"request_id": string | null,
+"requested_date": string | null,
+"required_personnel": number,
+"signature_mode": string,
+"signature_policy_snapshot": Json | null,
+"signature_required": boolean,
+"source_kind": string,
+"status": Database["public"]['Enums']["work_order_status"],
+"template_snapshot": NonNullable<Json>,
+"tenant_id": string,
+"title": string,
 "updated_at": string,
 "version": number,
 "visit_kind": string,
@@ -2906,11 +3395,20 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_work_order":
+{ Args: { "input": Json,"target_tenant": string }; Returns: Json
+                           },
+"staff_workspace":
+{ Args: { "target_tenant": string }; Returns: Json
+                           },
 "store_travel_estimates":
 { Args: { "actor"?: string,"legs": Json,"manual_action"?: string,"revision": number,"t": string }; Returns: boolean
                            },
 "submit_object_visit_request":
 { Args: { "input": Json,"request_id": string,"target_object": string,"target_order": string,"target_tenant": string }; Returns: string
+                           },
+"submit_work_order_report":
+{ Args: { "expected_version": number,"idempotency_key": string,"summary": string,"target_work_order_id": string }; Returns: Json
                            },
 "suggest_personnel_number":
 { Args: { "target_tenant_id": string }; Returns: string
@@ -2920,30 +3418,48 @@ isOneToOne: false
               "actual_end_at": string | null,
 "actual_start_at": string | null,
 "appointment_slot_id": string | null,
+"archive_at": string | null,
 "attention_reason": string | null,
 "bill_travel": boolean,
+"budget_labor_minutes": number | null,
 "commercial_terms": NonNullable<Json>,
 "created_at": string,
 "created_by": string,
 "customer_id": string,
 "customer_window_kind": string,
 "day_instructions": string,
+"deadline": string | null,
+"description": string,
+"details": NonNullable<Json>,
 "discipline": string,
+"employee_signature_required": boolean,
 "id": string,
+"labels": (string)[],
+"lead_personnel_id": string | null,
 "object_id": string,
 "object_snapshot": NonNullable<Json>,
 "planned_end_at": string | null,
 "planned_start_at": string | null,
+"planner_user_id": string | null,
+"planning_state": string,
+"priority": string,
 "projected_end_at": string | null,
 "projected_start_at": string | null,
+"published_at": string | null,
 "quote_id": string | null,
+"report_state": string,
 "report_version": number,
 "request_id": string | null,
 "requested_date": string | null,
 "required_personnel": number,
+"signature_mode": string,
+"signature_policy_snapshot": Json | null,
 "signature_required": boolean,
+"source_kind": string,
 "status": Database["public"]['Enums']["work_order_status"],
+"template_snapshot": NonNullable<Json>,
 "tenant_id": string,
+"title": string,
 "updated_at": string,
 "version": number,
 "visit_kind": string,
@@ -2967,8 +3483,59 @@ isOneToOne: false
 "update_object_visit_request":
 { Args: { "expected_version": number,"input": Json,"target_request": string,"target_tenant": string }; Returns: undefined
                            },
+"waive_work_order_signature":
+{ Args: { "reason": string,"target_report_id": string }; Returns: undefined
+                           },
 "withdraw_object_request":
 { Args: { "expected_version": number,"reason": string,"target_request": string,"target_tenant": string }; Returns: undefined
+                           },
+"work_order_communication":
+{ Args: { "input": Json,"target_tenant": string }; Returns: Json
+                           },
+"work_order_dossier":
+{ Args: { "target_order": string,"target_tenant": string }; Returns: Json
+                           },
+"work_order_exception_command":
+{ Args: { "input": Json,"target_tenant": string }; Returns: Json
+                           },
+"work_order_exceptions":
+{ Args: { "target_order": string,"target_tenant": string }; Returns: Json
+                           },
+"work_order_list":
+{ Args: { "filters"?: Json,"target_tenant": string }; Returns: Json
+                           },
+"work_order_operational_rows":
+{ Args: { "open_only"?: boolean,"page_offset"?: number,"page_size"?: number,"target_customer"?: string,"target_object"?: string,"target_tenant": string }; Returns: Json
+                           },
+"work_order_operational_task_data":
+{ Args: { "target_tenant": string }; Returns: Json
+                           },
+"work_order_options":
+{ Args: { "target_tenant": string }; Returns: Json
+                           },
+"work_order_related_command":
+{ Args: { "command": string,"command_id": string,"input": Json,"target_tenant": string }; Returns: Json
+                           },
+"work_order_related_context":
+{ Args: { "target_order": string,"target_tenant": string }; Returns: Json
+                           },
+"work_order_report":
+{ Args: { "target_work_order_id": string }; Returns: Json
+                           },
+"work_order_report_file":
+{ Args: { "asset_id"?: string,"target_report_id": string }; Returns: Json
+                           },
+"work_order_series_command":
+{ Args: { "command": string,"command_id": string,"input": Json,"target_tenant": string }; Returns: Json
+                           },
+"work_order_signature_settings":
+{ Args: { "input"?: Json,"target_object"?: string,"target_tenant": string }; Returns: Json
+                           },
+"work_order_task_context":
+{ Args: { "target_task": string,"target_tenant": string }; Returns: Json
+                           },
+"work_order_template_command":
+{ Args: { "command": string,"command_id": string,"input": Json,"target_tenant": string }; Returns: Json
                            }
           }
           Enums: {

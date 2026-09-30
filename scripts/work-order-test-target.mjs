@@ -1,0 +1,42 @@
+import { execFileSync } from "node:child_process";
+import pg from "pg";
+
+/** Remote use is deliberately restricted to the staging deploy job; never reads .env. */
+export function stagingWorkOrderTestUrl(env) {
+  const forbidden = "ckdtiuemeygrnujjibnw", expected = env.EXPECTED_SUPABASE_PROJECT_REF;
+  if (env.FIELDGRID_STAGING_SMOKE !== "1" || env.GITHUB_ACTIONS !== "true" || env.GITHUB_REF !== "refs/heads/staging" || env.DEPLOY_TARGET !== "staging" || env.APP_ENV !== "development" || env.APP_URL !== "https://staging.fieldgrid.nl" || env.FORBIDDEN_SUPABASE_PROJECT_REF !== forbidden || !/^[a-z0-9]{20}$/.test(expected || "") || expected === forbidden) throw new Error("Staging rooktest geweigerd: omgeving of projectguard ontbreekt.");
+  try {
+    const api = new URL(env.SUPABASE_URL), db = new URL(env.MIGRATION_DATABASE_URL);
+    if (api.protocol !== "https:" || api.hostname !== `${expected}.supabase.co` || !["postgres:", "postgresql:"].includes(db.protocol)) throw new Error();
+    // pg allows query parameters to override the authority (host/user/database).
+    // Only an explicit TLS mode is accepted; never let a validated staging URL
+    // resolve to a different project through encoded connection parameters.
+    if (db.hash || [...db.searchParams].some(([key, value]) => key !== "sslmode" || !["require", "verify-ca", "verify-full"].includes(value)) || db.searchParams.getAll("sslmode").length > 1) throw new Error();
+    const direct = db.hostname === `db.${expected}.supabase.co`;
+    const pool = /^aws-[a-z0-9-]+\.pooler\.supabase\.com$/.test(db.hostname) && decodeURIComponent(db.username) === `postgres.${expected}` && db.port === "5432";
+    if ((!direct && !pool) || decodeURIComponent(db.href).includes(forbidden) || (db.pathname !== "/postgres")) throw new Error();
+    return env.MIGRATION_DATABASE_URL;
+  } catch { throw new Error("Staging rooktest geweigerd: database is niet aantoonbaar het stagingproject."); }
+}
+
+export async function workOrderTestDatabase() {
+  let connectionString;
+  if (process.env.FIELDGRID_STAGING_SMOKE) connectionString = stagingWorkOrderTestUrl(process.env);
+  else {
+    const local = JSON.parse(execFileSync("pnpm", ["supabase", "status", "-o", "json"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
+    const url = new URL(local.DB_URL);
+    if (url.hostname !== "127.0.0.1" || url.port !== "59322") throw new Error("Werkbontests vereisen de afgeschermde lokale database.");
+    connectionString = local.DB_URL;
+  }
+  const client = new pg.Client({ connectionString, connectionTimeoutMillis: 10000, statement_timeout: 15000, idle_in_transaction_session_timeout: 60000 });
+  try { await client.connect(); } catch { throw new Error("Testdatabaseverbinding mislukt; credentials worden niet gelogd."); }
+  if (process.env.FIELDGRID_STAGING_SMOKE) {
+    const query = client.query.bind(client);
+    client.query = (...args) => {
+      const sql = typeof args[0] === "string" ? args[0] : args[0]?.text;
+      if (!sql || /\b(commit|end\s+transaction|prepare\s+transaction)\b/i.test(sql)) throw new Error("Staging rooktest mag zijn fictieve transactie nooit vastleggen.");
+      return query(...args);
+    };
+  }
+  return client;
+}

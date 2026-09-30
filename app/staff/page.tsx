@@ -9,7 +9,7 @@ export default async function StaffPage() {
   if (!context.tenant) redirect("/app");
   if (!context.tenant.enabledServices.includes("personeel")) redirect("/app");
   if (!context.tenant.roles.includes("staff")) redirect("/app");
-  const data = await getWorkspaceData(context.tenant.id);
+  const data = await getWorkspaceData(context.tenant.id, "staff");
   const personnel = data.personnel.find((item) => item.user_id === context.user.id);
   return <StaffApp context={{ ...context, tenant: context.tenant as TenantContext }} data={data} personnel={personnel ?? null}/>;
 }

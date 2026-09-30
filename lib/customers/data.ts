@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { CustomerData, CustomerDocument } from "./model";
 import type { DossierChain } from "@/lib/dossiers/model";
+import { operationalOrderRows } from "@/lib/work-orders/operational-data";
 
 async function all<T>(
   fetch: (
@@ -87,18 +88,7 @@ export async function getCustomerData(
           .order("id")
           .range(a, b),
       ),
-      all((a, b) =>
-        db
-          .from("work_orders")
-          .select(
-            "id,object_id,work_order_number,discipline,status,projected_start_at,projected_end_at,quote_id",
-          )
-          .eq("tenant_id", tenant)
-          .eq("customer_id", id)
-          .order("projected_start_at", { ascending: false })
-          .order("id")
-          .range(a, b),
-      ),
+      operationalOrderRows(db,tenant,{customerId:id,all:true}).then(result=>result.data),
       db.rpc("customer_owners", { target_tenant: tenant }),
       db.rpc("dossier_chain", { target_tenant: tenant, target_customer: id }),
       finance

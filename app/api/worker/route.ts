@@ -6,6 +6,7 @@ import { getServerEnv } from "@/lib/env/server";
 import type { Database } from "@/lib/database.types";
 import { renderTemplateText, templateDefinition, type TemplateValues } from "@/lib/communications/templates";
 import { processDossierReminders } from "@/lib/personnel/dossier-reminders";
+import { cleanupExpiredSignatureUploads } from "@/lib/work-orders/report-cleanup";
 
 type Event = Database["public"]["Tables"]["outbox_events"]["Row"];
 
@@ -46,6 +47,8 @@ async function notificationFor(event: Event) {
     };
   }
   if (event.event_type === "work_order.reviewed" && payload.decision === "returned") return { title: "Rapport teruggestuurd", body: "Je rapport heeft een correctie nodig. Open de beveiligde werkbon voor de toelichting.", target: `/staff?workOrder=${event.aggregate_id}`, personnelId: "" };
+  if (event.event_type === "work_order.report_submitted" && payload.state === "waiting_signature") return { title: "Rapport wacht op ondertekening", body: "De eigen uren zijn gestopt. Open de werkbon om de ontbrekende ondertekening te bekijken.", target: `/staff?workOrder=${event.aggregate_id}`, personnelId: "" };
+  if (event.event_type === "work_order.exception") return { title: "Uitvoeringsmelding", body: "Er is een uitvoeringsmelding bijgewerkt. Bekijk de werkbon voor de toelichting en opvolging.", target: `/app/werkbonnen/${event.aggregate_id}`, personnelId: "" };
   if (event.event_type === "announcement.published" && payload.send_push === true) return { title: "Nieuw bericht", body: "Er is een nieuw teambericht gepubliceerd.", target: "/staff?tab=nieuws", personnelId: "" };
   return null;
 }
@@ -106,5 +109,6 @@ export async function POST(request: Request) {
   if (objectReminders.error) throw new Error("Objectherinneringen konden niet worden verwerkt.");
   const customerReminders = await admin.rpc("process_customer_reminders");
   if (customerReminders.error) throw new Error("Klantherinneringen konden niet worden verwerkt.");
-  return NextResponse.json({ claimed: data?.length ?? 0, sent, failed, dossier, objectReminders: objectReminders.data, customerReminders: customerReminders.data });
+  const expiredSignatureUploads=await cleanupExpiredSignatureUploads();
+  return NextResponse.json({ claimed: data?.length ?? 0, sent, failed, dossier, objectReminders: objectReminders.data, customerReminders: customerReminders.data, expiredSignatureUploads });
 }

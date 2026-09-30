@@ -1,0 +1,118 @@
+"use client";
+
+import { useEffect, useState, useTransition, type FormEvent } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import type { TenantContext } from "@/lib/auth/context";
+import { followupReasons, type RelatedContext } from "@/lib/work-orders/lineage";
+import { recurrenceSchema, type Recurrence } from "@/lib/work-orders/recurrence";
+import { tenantToday } from "@/lib/planning/time";
+import { readWorkOrderRelated, createRelatedWorkOrder, changeWorkOrderSeries, recordWorkOrderMaterial } from "@/app/app/work-order-related-actions";
+import { ObjectForm } from "@/components/fieldgrid/objects/forms";
+import { WorkOrderDialog } from "./dialog";
+
+type Theme = Pick<TenantContext, "timezone" | "primaryColor" | "accentColor">;
+type RelatedKind = "split" | "followup" | "duplicate";
+const names: Record<RelatedKind, string> = { split: "Deelbon maken", followup: "Opvolgbon maken", duplicate: "Werkbon dupliceren" };
+
+export function WorkOrderRelatedActions({ orderId, tenant }: { orderId: string; tenant: Theme }) {
+  const [data, setData] = useState<RelatedContext | null>(null), [error, setError] = useState("");
+  const [revision, setRevision] = useState(0), [mode, setMode] = useState<RelatedKind | "series" | "material" | null>(null);
+  const [editingSeries, setEditingSeries] = useState<RelatedContext["series"][number] | null>(null);
+  useEffect(() => {
+    let active = true;
+    readWorkOrderRelated(orderId).then(result => { if (active) { if (result.ok) { setData(result.data); setError(""); } else setError(result.error); } }).catch(() => { if (active) setError("De gekoppelde werkbonnen konden niet worden geladen."); });
+    return () => { active = false; };
+  }, [orderId, revision]);
+  const refresh = () => { setMode(null); setEditingSeries(null); setRevision(value => value + 1); };
+  if (error) return <section className="dossier-card"><p role="alert">{error}</p><button className="secondary-button" onClick={() => setRevision(value => value + 1)}>Opnieuw laden</button></section>;
+  if (!data) return <p role="status">Gekoppelde werkzaamheden laden…</p>;
+  return <section className="dossier-card">
+    <h3>Gekoppelde werkzaamheden</h3>
+    {data.canManage && <div className="object-actions">{(["split", "followup", "duplicate"] as const).map(kind => <button className="secondary-button" key={kind} disabled={kind === "split" && !data.canSplit} onClick={() => setMode(kind)}>{names[kind]}</button>)}<button className="secondary-button" onClick={() => setMode("series")}>Terugkerend werk</button></div>}
+    {data.relations.length ? <ul>{data.relations.map(relation => <li key={`${relation.id}-${relation.kind}`}><Link className="text-link" href={`/app/werkbonnen/${relation.id}`}>{relation.number} · {relation.title}</Link> · {relation.direction === "source" ? "Bron" : "Vervolg"} · {relation.kind === "split" ? "Deelbon" : relation.kind === "duplicate" ? "Duplicaat" : relation.kind === "recurrence" ? "Reeks" : followupReasons[relation.reason as keyof typeof followupReasons] || "Opvolgbon"}</li>)}</ul> : <p className="dossier-muted">Geen gekoppelde werkbonnen.</p>}
+    {data.transfers.length > 0 && <><h4>Overgedragen scope</h4><ul>{data.transfers.map(transfer => <li key={transfer.id}>{transfer.sourceTask}: {transfer.quantity} {transfer.unit} naar <Link className="text-link" href={`/app/werkbonnen/${transfer.targetOrder}`}>{transfer.targetNumber}</Link></li>)}</ul></>}
+    {data.series.map(series => <SeriesCard key={series.id} series={series} canManage={data.canManage} onRefresh={refresh} onEdit={() => { setEditingSeries(series); setMode("series"); }}/>) }
+    <div className="object-section-title"><h4>Materiaalverbruik</h4>{data.canManage && <button className="secondary-button" onClick={() => setMode("material")}>Verbruik toevoegen</button>}</div>
+    {data.materials.length ? <ul>{data.materials.map(material => <li key={material.id}>{material.description} · {material.quantity} {material.unit}{data.canFinance && material.unitPriceCents != null && ` · € ${(material.unitPriceCents / 100).toFixed(2)} per ${material.unit}`}</li>)}</ul> : <p className="dossier-muted">Nog geen materiaalverbruik geregistreerd.</p>}
+    {mode && ["split", "followup", "duplicate"].includes(mode) && <RelatedWizard kind={mode as RelatedKind} data={data} tenant={tenant} onClose={refresh}/>}
+    {mode === "series" && <SeriesEditor data={data} tenant={tenant} series={editingSeries} onClose={refresh}/>}
+    {mode === "material" && <MaterialEditor data={data} tenant={tenant} onClose={refresh}/>}
+  </section>;
+}
+
+function RelatedWizard({ kind, data, tenant, onClose }: { kind: RelatedKind; data: RelatedContext; tenant: Theme; onClose: () => void }) {
+  const [step, setStep] = useState(1), [reason, setReason] = useState<keyof typeof followupReasons>("remainder");
+  const [quantities, setQuantities] = useState<Record<string, number>>({}), [title, setTitle] = useState(`${data.order.title} — ${kind === "split" ? "deelbon" : kind === "duplicate" ? "kopie" : "vervolg"}`);
+  const [instructions, setInstructions] = useState(""), [date, setDate] = useState(""), [quote, setQuote] = useState("");
+  const [copyTemplate, setCopyTemplate] = useState(true), [copyContacts, setCopyContacts] = useState(true), [copyPersonnel, setCopyPersonnel] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [key] = useState(() => crypto.randomUUID()), [error, setError] = useState(""), [pending, start] = useTransition();
+  const router = useRouter(), transferring = kind === "split" || kind === "followup" && reason === "remainder", paid = kind === "followup" && reason === "paid";
+  const tasks = data.tasks.filter(task => !transferring || task.available > 0);
+  const selected = Object.entries(quantities).filter(([, quantity]) => quantity > 0).map(([id, quantity]) => ({ id, quantity }));
+  const advance = () => { if (step === 1 && ((transferring && !selected.length) || (paid && !quote))) { setError(paid ? "Selecteer een afzonderlijke geaccepteerde offerte." : "Selecteer minstens één resterende taak."); return; } if (step === 1 && transferring && selected.some(item => item.quantity > (data.tasks.find(task => task.id === item.id)?.available || 0))) { setError("Selecteer niet meer dan de beschikbare resthoeveelheid."); return; } if (step === 2 && title.trim().length < 2) { setError("Vul een titel in."); return; } setError(""); setStep(value => value + 1); };
+  const submit = (event: FormEvent) => { event.preventDefault(); if (step !== 5 || !confirmed) return; setError(""); start(async () => { const result = await createRelatedWorkOrder(kind, { orderId: data.order.id, version: data.order.version, title, instructions, reason, requestedDate: date, tasks: selected, copyTemplate, copyContacts, copyPersonnel, acceptedQuoteId: quote }, key); if (!result.ok) { setError(result.error); return; } toast.success("Werkbon aangemaakt"); onClose(); router.push(`/app/werkbonnen/${result.id}`); router.refresh(); }); };
+  return <WorkOrderDialog tenant={tenant} title={names[kind]} description="Een nieuwe werkbon voor dezelfde klant en hetzelfde object." onClose={onClose} dirty={dirty} busy={pending}>
+    <ol className="dossier-steps">{["Werkzaamheden", "Titel en instructies", "Planning en bezetting", "Afspraak en oplevering", "Bevestigen"].map((label, index) => <li key={label} aria-current={step === index + 1 ? "step" : undefined}>{index + 1}. {label}</li>)}</ol>
+    <form className="dossier-form" onSubmit={submit} onChange={() => setDirty(true)}>
+      <fieldset hidden={step !== 1} className="dossier-form-fields"><legend>Scope kiezen</legend>
+        {kind === "followup" && <label className="wide">Reden<select value={reason} onChange={event => { setReason(event.target.value as keyof typeof followupReasons); setQuantities({}); }}>{Object.entries(followupReasons).map(([value, label]) => <option value={value} key={value} disabled={value === "paid" && !data.canFinance}>{label}</option>)}</select></label>}
+        {paid ? <label className="wide">Geaccepteerde offerte<select required value={quote} onChange={event => setQuote(event.target.value)}><option value="">Kies akkoord voor het aanvullende werk</option>{data.acceptedQuotes.map(item => <option key={item.id} value={item.id}>{item.number} · {item.title}</option>)}</select><span>De werkzaamheden en prijzen komen uit deze afzonderlijke offerte.</span></label> : tasks.map(task => <label className="wide" key={task.id}>{task.name} · {transferring ? `${task.available} ${task.unit} beschikbaar` : task.unit}<input aria-label={`Hoeveelheid ${task.name}`} type="number" min="0" max={transferring ? task.available : undefined} step="0.001" value={quantities[task.id] ?? 0} onChange={event => setQuantities(current => ({ ...current, [task.id]: Number(event.target.value) }))}/></label>)}
+        {transferring && !tasks.length && <p>Er is geen resterende scope om over te dragen.</p>}
+        {!transferring && !paid && <p className="dossier-notice wide">Deze bon begint zonder afzonderlijk te factureren prijs. Een nieuw prijsakkoord leg je vast via Aanvragen & offertes.</p>}
+      </fieldset>
+      <fieldset hidden={step !== 2} className="dossier-form-fields"><legend>Titel en werkinstructies</legend><label className="wide">Titel<input value={title} maxLength={180} required onChange={event => setTitle(event.target.value)}/></label><label className="wide">Instructies<textarea value={instructions} maxLength={2000} onChange={event => setInstructions(event.target.value)}/></label>
+        {!paid && <><label className="dossier-check wide"><input type="checkbox" checked={copyTemplate} onChange={event => setCopyTemplate(event.target.checked)}/>Template en lege checklists overnemen</label><label className="dossier-check wide"><input type="checkbox" checked={copyContacts} onChange={event => setCopyContacts(event.target.checked)}/>Contactpersonen overnemen</label></>}
+      </fieldset>
+      <fieldset hidden={step !== 3} className="dossier-form-fields"><legend>Planning en bezetting</legend><label>Gewenste datum<input type="date" value={date} onChange={event => setDate(event.target.value)}/></label><label>Status<select value="unassigned" disabled><option value="unassigned">In te delen</option></select></label><p className="dossier-notice wide">Deze bon wordt nog niet toegewezen of gepubliceerd. Plan de medewerkers met hun eigen tijden vanuit de nieuwe bon op het planbord.</p>{!paid && <label className="dossier-check wide"><input type="checkbox" checked={copyPersonnel} onChange={event => setCopyPersonnel(event.target.checked)}/>Actieve medewerkers uit de bronbon als planningsvoorstel bewaren</label>}</fieldset>
+      <fieldset hidden={step !== 4} className="dossier-form-fields"><legend>Commerciële gevolgen en oplevering</legend><p className="dossier-notice wide">{transferring ? "De oorspronkelijke afspraak blijft de financiële bron. Alleen de geselecteerde resthoeveelheid verhuist; reeds uitgevoerd of gefactureerd werk blijft op de bronbon. Samen kunnen bron en vervolg nooit meer dan de afgesproken prestatie factureren." : paid ? "De nieuwe geaccepteerde offerte levert de werkzaamheden en het afzonderlijke prijsakkoord. Het oorspronkelijke prijsakkoord wordt niet gekopieerd." : "Geen nieuw factuurrecht: de gekopieerde taken beginnen met prijs nul. Betaald aanvullend werk vereist een afzonderlijk akkoord."}</p><p className="wide">Ondertekenregel: {paid ? "volgens de nieuwe offerte en actuele object-/tenantinstelling" : ({ required: "verplicht", optional: "optioneel", none: "geen klantondertekening", inherit: "overnemen van object / tenant" }[data.order.signatureMode || "inherit"] || "overnemen van object / tenant")}{data.order.employeeSignatureRequired && !paid ? "; medewerkerhandtekening verplicht" : ""}. Ondertekenen gebeurt uitsluitend ter plaatse in de personeelsapp.</p><p className="wide">Uren, antwoorden, bijlagen, rapporten en handtekeningen worden niet gekopieerd.</p></fieldset>
+      <fieldset hidden={step !== 5} className="dossier-form-fields"><legend>Controleer en bevestig</legend><p className="wide"><strong>{title}</strong><br/>{date || "Geen gewenste datum"} · In te delen<br/>Bron: {data.order.number}</p>{paid ? <p className="wide">Afzonderlijke offerte: {data.acceptedQuotes.find(item => item.id === quote)?.number}</p> : <ul className="wide">{selected.map(item => <li key={item.id}>{data.tasks.find(task => task.id === item.id)?.name}: {item.quantity} {data.tasks.find(task => task.id === item.id)?.unit}</li>)}</ul>}<label className="dossier-check wide"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)}/>{transferring ? "Ik bevestig de eenmalige overdracht van deze resthoeveelheden." : "Ik bevestig de nieuwe werkbon en de beschreven commerciële gevolgen."}</label></fieldset>
+      {error && <p className="auth-message error" role="alert">{error}</p>}
+      <footer><button className="secondary-button" type="button" disabled={pending} onClick={() => { if (step > 1) setStep(value => value - 1); else if (!dirty || window.confirm("Je wijzigingen zijn nog niet opgeslagen. Wil je ze weggooien?")) onClose(); }}>{step === 1 ? "Annuleren" : "Vorige"}</button>{step < 5 ? <button className="primary-button" type="button" onClick={advance}>Volgende</button> : <button className="primary-button" disabled={pending || !confirmed}>{pending ? "Aanmaken…" : names[kind]}</button>}</footer>
+    </form>
+  </WorkOrderDialog>;
+}
+
+function SeriesEditor({ data, tenant, series, onClose }: { data: RelatedContext; tenant: Theme; series: RelatedContext["series"][number] | null; onClose: () => void }) {
+  const original = series?.definition as Partial<Recurrence> | undefined;
+  const [frequency, setFrequency] = useState(original?.frequency || "weekly"), [monthlyMode, setMonthlyMode] = useState(original?.monthlyMode || "date");
+  const [pending, start] = useTransition(), [error, setError] = useState(""), [key] = useState(() => crypto.randomUUID());
+  const [dirty, setDirty] = useState(false);
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); const values = new FormData(event.currentTarget); setError("");
+    const parsed = recurrenceSchema.safeParse({ startsOn: values.get("startsOn"), endsOn: values.get("endsOn"), frequency, interval: Number(values.get("interval")), weekdays: values.getAll("weekdays").map(Number), monthlyMode, monthDay: Number(values.get("monthDay")), monthPosition: Number(values.get("monthPosition")), monthWeekday: Number(values.get("monthWeekday")), startsAt: values.get("startsAt"), endsAt: values.get("endsAt"), requiredPersonnel: Number(values.get("requiredPersonnel")) });
+    if (!parsed.success) { setError(parsed.error.issues[0]?.message || "Controleer de reeks."); return; }
+    start(async () => { const result = await changeWorkOrderSeries(series ? "update" : "create", { orderId: data.order.id, seriesId: series?.id, version: series?.version ?? data.order.version, title: values.get("title"), definition: parsed.data, applyFuture: values.get("applyFuture") === "on" }, key); if (!result.ok) { setError(result.error); return; } toast.success("Reeks opgeslagen"); onClose(); });
+  };
+  return <WorkOrderDialog tenant={tenant} title={series ? "Reeks wijzigen" : "Terugkerend werk"} description="Concrete bonnen worden binnen de generatiehorizon klaargezet voor het planbord." onClose={onClose} dirty={dirty} busy={pending}><form className="dossier-form" onSubmit={submit} onChange={() => setDirty(true)}><div className="dossier-form-fields">
+    <label className="wide">Titel<input name="title" defaultValue={series?.title || data.order.title} required minLength={2} maxLength={180}/></label>
+    <label>Vanaf<input type="date" name="startsOn" defaultValue={original?.startsOn || tenantToday(tenant.timezone)} required/></label><label>Tot en met<input type="date" name="endsOn" defaultValue={original?.endsOn || ""}/></label>
+    <label>Herhaling<select value={frequency} onChange={event => setFrequency(event.target.value as Recurrence["frequency"])}><option value="daily">Dagelijks</option><option value="weekly">Wekelijks</option><option value="monthly">Maandelijks</option></select></label><label>Iedere hoeveel {frequency === "weekly" ? "weken" : frequency === "monthly" ? "maanden" : "dagen"}?<input type="number" name="interval" min="1" max="52" defaultValue={original?.interval || 1} required/></label>
+    <fieldset className="wide" hidden={frequency !== "weekly"}><legend>Weekdagen</legend>{["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"].map((day, index) => <label className="dossier-check" key={day}><input type="checkbox" name="weekdays" value={index + 1} defaultChecked={(original?.weekdays || [1]).includes(index + 1)}/>{day}</label>)}</fieldset>
+    <label hidden={frequency !== "monthly"}>Maandpatroon<select value={monthlyMode} onChange={event => setMonthlyMode(event.target.value as Recurrence["monthlyMode"])}><option value="date">Op datum</option><option value="weekday">Op weekdagpositie</option></select></label><label hidden={frequency !== "monthly" || monthlyMode !== "date"}>Dag van de maand<input name="monthDay" type="number" min="1" max="31" defaultValue={original?.monthDay || 1}/></label>
+    <label hidden={frequency !== "monthly" || monthlyMode !== "weekday"}>Positie<select name="monthPosition" defaultValue={original?.monthPosition || 1}>{[[1, "Eerste"], [2, "Tweede"], [3, "Derde"], [4, "Vierde"], [5, "Vijfde"], [-1, "Laatste"]].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label hidden={frequency !== "monthly" || monthlyMode !== "weekday"}>Weekdag<select name="monthWeekday" defaultValue={original?.monthWeekday || 1}>{["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"].map((label, index) => <option key={label} value={index + 1}>{label}</option>)}</select></label>
+    <label>Tijdvenster vanaf<input name="startsAt" type="time" defaultValue={original?.startsAt || "08:00"} required/></label><label>Tijdvenster tot<input name="endsAt" type="time" defaultValue={original?.endsAt || "10:00"} required/></label><label>Benodigde medewerkers<input name="requiredPersonnel" type="number" min="1" max="100" defaultValue={original?.requiredPersonnel || 1} required/></label>
+    {series && <label className="dossier-check wide"><input name="applyFuture" type="checkbox"/>Ook toekomstige, nog ongewijzigde bonnen bijwerken</label>}
+    <p className="dossier-notice wide">Tijdzone: {tenant.timezone}. Standaard zes weken vooruit. Een ontbrekende maanddatum wordt overgeslagen. Bij zomertijd wordt een niet bestaand tijdstip als uitzondering bewaard; bij wintertijd geldt de tweede keer. Handmatig aangepaste of gestarte bonnen blijven behouden.</p>
+    {error && <p className="auth-message error wide" role="alert">{error}</p>}
+  </div><footer><button className="secondary-button" type="button" disabled={pending} onClick={() => { if (!dirty || window.confirm("Je wijzigingen zijn nog niet opgeslagen. Wil je ze weggooien?")) onClose(); }}>Annuleren</button><button className="primary-button" disabled={pending}>{pending ? "Opslaan…" : "Reeks opslaan"}</button></footer></form></WorkOrderDialog>;
+}
+
+function SeriesCard({ series, canManage, onRefresh, onEdit }: { series: RelatedContext["series"][number]; canManage: boolean; onRefresh: () => void; onEdit: () => void }) {
+  const [error, setError] = useState(""), [pending, start] = useTransition(), [key, setKey] = useState(() => crypto.randomUUID());
+  const [skipping, setSkipping] = useState(false), [skipKey, setSkipKey] = useState(() => crypto.randomUUID());
+  const generate = () => start(async () => { const result = await changeWorkOrderSeries("generate", { seriesId: series.id, version: series.version }, key); if (!result.ok) { setError(result.error); return; } setKey(crypto.randomUUID()); toast.success(`${result.data.created || 0} bonnen klaargezet`); onRefresh(); });
+  return <article className="object-record"><h4>{series.title} · reeks {series.version}</h4>{canManage && <div className="object-actions"><button className="secondary-button" disabled={pending} onClick={generate}>Bonnen vooruit genereren</button><button className="secondary-button" onClick={onEdit}>Reeks wijzigen</button><button className="secondary-button" onClick={() => setSkipping(!skipping)}>Datum overslaan</button></div>}{error && <p role="alert">{error}</p>}
+    {skipping && <ObjectForm label="Datum overslaan" action={async form => { const result = await changeWorkOrderSeries("skip", { seriesId: series.id, version: series.version, day: form.get("day"), reason: form.get("reason") }, skipKey); return result.ok ? { ok: true } : result; }} onSuccess={() => { setSkipKey(crypto.randomUUID()); setSkipping(false); onRefresh(); }}><label>Datum<input type="date" name="day" required/></label><label className="wide">Reden<textarea name="reason" required minLength={3}/></label></ObjectForm>}
+    <details><summary>Gegenereerde afspraken en uitzonderingen ({series.occurrences.length})</summary>{series.occurrences.length ? <ul>{series.occurrences.map(occurrence => <li key={occurrence.day}>{occurrence.day} · {occurrence.state === "skipped" ? `Overgeslagen: ${occurrence.reason}` : <Link className="text-link" href={`/app/werkbonnen/${occurrence.orderId}`}>{occurrence.number}</Link>}</li>)}</ul> : <p>Nog geen bonnen gegenereerd.</p>}</details>
+  </article>;
+}
+
+function MaterialEditor({ data, tenant, onClose }: { data: RelatedContext; tenant: Theme; onClose: () => void }) {
+  const [key] = useState(() => crypto.randomUUID());
+  const [dirty, setDirty] = useState(false), [busy, setBusy] = useState(false);
+  return <WorkOrderDialog tenant={tenant} title="Materiaalverbruik registreren" description="Registreer verbruik voor deze uitvoering." onClose={onClose} dirty={dirty} busy={busy}><div onChangeCapture={() => setDirty(true)}><ObjectForm action={async form => { setBusy(true); try { return await recordWorkOrderMaterial(form); } finally { setBusy(false); } }} onSuccess={onClose}><input type="hidden" name="orderId" value={data.order.id}/><input type="hidden" name="version" value={data.order.version}/><input type="hidden" name="commandId" value={key}/><label className="wide">Artikel / omschrijving<input name="description" required minLength={2} maxLength={300}/></label><label>Hoeveelheid<input name="quantity" type="number" min="0.001" step="0.001" required/></label><label>Eenheid<input name="unit" required maxLength={40}/></label><label className="wide">Bij taak<select name="taskId"><option value="">Algemeen verbruik</option>{data.tasks.map(task => <option key={task.id} value={task.id}>{task.name}</option>)}</select></label>{data.canFinance && <><label>Kosten per eenheid (€)<input name="cost" type="number" min="0" step="0.01"/></label><label>Prijs per eenheid (€)<input name="price" type="number" min="0" step="0.01"/></label></>}<label className="dossier-check wide"><input name="customerVisible" type="checkbox"/>Omschrijving en hoeveelheid opnemen in het klantzichtbare rapport</label><p className="dossier-notice wide">Registratie geeft geen automatisch recht op aanvullende facturatie. Extra kosten vereisen de toepasselijke afspraak.</p></ObjectForm></div></WorkOrderDialog>;
+}

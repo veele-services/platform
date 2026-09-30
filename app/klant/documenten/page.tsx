@@ -21,6 +21,13 @@ type PortalData = {
     number: string;
     object: string;
   }>;
+  workReports?: Array<{
+    id: string;
+    version: number;
+    number: string;
+    object: string;
+    approvedAt: string;
+  }>;
   invoices: Array<{
     id: string;
     number: string;
@@ -94,6 +101,22 @@ export default async function CustomerDocuments() {
             </article>
           ))}
           {!data.documents.length && <p>Nog geen documenten met je gedeeld.</p>}
+        </section>
+        <section className="dossier-card">
+          <h2>Goedgekeurde werkbonrapporten</h2>
+          <p>De PDF bevat de vastgelegde uitvoering en ondertekening van die rapportversie.</p>
+          {(data.workReports ?? []).map((report) => (
+            <article className="dossier-event" key={report.id}>
+              <div>
+                <strong>{report.number} · {report.object}</strong>
+                <small>Versie {report.version} · goedgekeurd {commercialDate(report.approvedAt, tenant.timezone)}</small>
+              </div>
+              <a className="resource-action" href={`/api/files/work-order-report/${report.id}`} target="_blank" rel="noreferrer">
+                Open rapport PDF
+              </a>
+            </article>
+          ))}
+          {!data.workReports?.length && <p>Nog geen goedgekeurde werkbonrapporten beschikbaar.</p>}
         </section>
         <section className="dossier-card">
           <h2>Gedeelde rapporten</h2>

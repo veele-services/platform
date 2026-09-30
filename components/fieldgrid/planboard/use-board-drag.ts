@@ -35,6 +35,7 @@ type Drag = {
   grab: number;
   active: boolean;
   proposal?: Proposal;
+  singleProposal?: Proposal;
   error?: string;
   targetId?: string;
   list: boolean;
@@ -45,6 +46,7 @@ export type DragPreview = {
   error: string | null;
   order: PlanningOrder;
 };
+export type PlanningScopeChoice = { order: PlanningOrder; personnelId: string; single: Proposal; whole: Proposal };
 export function useBoardDrag({
   board,
   list,
@@ -54,6 +56,7 @@ export function useBoardDrag({
   onSave,
   onOpen,
   onStart,
+  onChooseScope,
 }: {
   board: RefObject<HTMLDivElement | null>;
   list: RefObject<HTMLDivElement | null>;
@@ -63,6 +66,7 @@ export function useBoardDrag({
   onSave: (proposal: Proposal) => void;
   onOpen: (order: PlanningOrder) => void;
   onStart: () => void;
+  onChooseScope: (choice: PlanningScopeChoice) => void;
 }) {
   const state = useRef<Drag | null>(null);
   const [preview, setPreview] = useState<DragPreview | null>(null);
@@ -73,10 +77,11 @@ export function useBoardDrag({
     onSave,
     onOpen,
     onStart,
+    onChooseScope,
   });
   useEffect(() => {
-    callbacks.current = { data, start, pxPerMinute, onSave, onOpen, onStart };
-  }, [data, start, pxPerMinute, onSave, onOpen, onStart]);
+    callbacks.current = { data, start, pxPerMinute, onSave, onOpen, onStart, onChooseScope };
+  }, [data, start, pxPerMinute, onSave, onOpen, onStart, onChooseScope]);
   useEffect(() => {
     let frame = 0;
     const calculate = () => {
@@ -99,6 +104,7 @@ export function useBoardDrag({
         ),
         person = props.data.people[index];
       drag.error = undefined;
+      drag.singleProposal = undefined;
       if (drag.list && drag.assignment) {
         drag.proposal = {
           ...initialProposal(drag.order),
@@ -140,6 +146,10 @@ export function useBoardDrag({
               end: desired,
             })),
           };
+          if (drag.assignment && drag.order.assignments.length > 1) {
+            const assignments = drag.order.assignments.map(a => ({ ...assignmentInput(a), end: a.id === drag.assignment!.id ? desired : a.end }));
+            drag.singleProposal = { ...initialProposal(drag.order), start: assignments.reduce((v, a) => a.start < v ? a.start : v, assignments[0].start), end: assignments.reduce((v, a) => a.end > v ? a.end : v, assignments[0].end), assignments };
+          }
           if (
             !drag.order.start ||
             Date.parse(desired) <= Date.parse(drag.order.start)
@@ -165,6 +175,10 @@ export function useBoardDrag({
             drag.order,
             new Date(Date.parse(drag.order.start!) + delta).toISOString(),
           );
+          if (drag.order.assignments.length > 1) {
+            const assignments = drag.order.assignments.map(a => a.id === drag.assignment!.id ? { personnelId: a.personnelId, start: desired, end: new Date(Date.parse(a.end) + delta).toISOString() } : assignmentInput(a));
+            drag.singleProposal = { ...initialProposal(drag.order), start: assignments.reduce((v, a) => a.start < v ? a.start : v, assignments[0].start), end: assignments.reduce((v, a) => a.end > v ? a.end : v, assignments[0].end), assignments };
+          }
         } else {
           const s =
             drag.order.assignments.length && drag.order.start
@@ -245,8 +259,9 @@ export function useBoardDrag({
       cancelAnimationFrame(frame);
       setPreview(null);
       if (!drag.active) callbacks.current.onOpen(drag.order);
-      else if (drag.proposal && !drag.error)
-        callbacks.current.onSave(drag.proposal);
+      else if (drag.proposal && drag.singleProposal && drag.assignment) {
+        callbacks.current.onChooseScope({ order: drag.order, personnelId: drag.assignment.personnelId, single: drag.singleProposal, whole: drag.proposal });
+      } else if (drag.proposal && !drag.error) callbacks.current.onSave(drag.proposal);
     };
     const cancel = () => {
       const drag = state.current;

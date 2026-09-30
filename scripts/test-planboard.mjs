@@ -36,7 +36,7 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
       await client.query("set local statement_timeout='10s'");
       await client.query("set local role authenticated");
       await client.query("select set_config('request.jwt.claims',$1,true)", [
-        JSON.stringify({ sub: actor, role: "authenticated" }),
+        JSON.stringify({ sub: actor, session_id: actor, role: "authenticated" }),
       ]);
       const result = await client.query(sql, args);
       await client.query("commit");
@@ -118,11 +118,13 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
     )[0].result;
   const sqlCode = (code) => (error) => error.code === code;
   try {
-    for (const id of [user, secondPlanner, staff])
+    for (const id of [user, secondPlanner, staff]) {
       await admin.query("insert into auth.users(id,email) values($1,$2)", [
         id,
         `${id}@fieldgrid.test`,
       ]);
+      await admin.query("insert into auth.sessions(id,user_id,created_at,updated_at) values($1,$1,now(),now())",[id]);
+    }
     for (const id of [tenant, otherTenant]) {
       await admin.query(
         "insert into public.tenants(id,slug,name) values($1,$2,'Planboard test')",
@@ -537,6 +539,12 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
           "update public.personnel set user_id=$2 where id=$1",
           [people[1], secondPlanner],
         );
+        // Planning rights alone intentionally cannot operate the staff app.
+        // This assigned crew member explicitly also holds the execution role.
+        await admin.query(
+          "update public.tenant_memberships set roles=array_append(roles,'staff'::public.app_role) where tenant_id=$1 and user_id=$2 and not ('staff'=any(roles))",
+          [tenant, secondPlanner],
+        );
         const now = new Date();
         now.setUTCSeconds(0, 0);
         const finish = new Date(now.getTime() + 90 * 60000);
@@ -584,7 +592,7 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
           "update public.work_order_tasks set completed_at=clock_timestamp() where work_order_id=$1",
           [id],
         );
-        await step("complete", staff);
+        await step("stop", staff);
         let w = (
           await admin.query(
             "select status,actual_end_at from public.work_orders where id=$1",
@@ -593,7 +601,7 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
         ).rows[0];
         assert.equal(w.status, "in_progress");
         assert.equal(w.actual_end_at, null);
-        await step("complete", secondPlanner);
+        await step("stop", secondPlanner);
         w = (
           await admin.query(
             "select status,actual_end_at from public.work_orders where id=$1",

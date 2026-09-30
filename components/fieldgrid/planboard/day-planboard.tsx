@@ -62,6 +62,7 @@ import {
   PERSONNEL_WIDTH,
   ROW_HEIGHT,
   useBoardDrag,
+  type PlanningScopeChoice,
 } from "./use-board-drag";
 
 type Preferences = {
@@ -147,6 +148,8 @@ export function DayPlanboard({
   const [filterOpen, setFilterOpen] = useState(false);
   const [menu, setMenu] = useState<string | null>(null);
   const [selected, setSelected] = useState<PlanningOrder | null>(null);
+  const [scopeChoice, setScopeChoice] = useState<PlanningScopeChoice | null>(null);
+  const scopeChoiceRef = useRef<PlanningScopeChoice | null>(null);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
   const [loadError, setLoadError] = useState("");
@@ -188,14 +191,15 @@ export function DayPlanboard({
     queryRef.current = query;
     selectedRef.current = selected;
     confirmationRef.current = confirmation;
-  }, [query, selected, confirmation]);
+    scopeChoiceRef.current = scopeChoice;
+  }, [query, selected, confirmation, scopeChoice]);
   const refresh = useCallback(async (q: PlanningQuery, quiet = false) => {
     const sequence = ++requestNumber.current;
     if (!quiet) setLoading(true);
     try {
       const fresh = await loadPlanboard(q);
       if (sequence === requestNumber.current) {
-        if (dragRef.current() || selectedRef.current || confirmationRef.current)
+        if (dragRef.current() || selectedRef.current || confirmationRef.current || scopeChoiceRef.current)
           deferredData.current = { sequence, data: fresh };
         else {
           setData(fresh);
@@ -362,6 +366,7 @@ export function DayPlanboard({
     pxPerMinute,
     onSave: save,
     onOpen: open,
+    onChooseScope: setScopeChoice,
     onStart: () => {
       setFilterOpen(false);
       setMenu(null);
@@ -372,18 +377,19 @@ export function DayPlanboard({
   });
   useEffect(() => {
     const pending = deferredData.current;
-    if (!busy && !selected && !confirmation && !drag.preview && pending) {
+    if (!busy && !selected && !confirmation && !scopeChoice && !drag.preview && pending) {
       deferredData.current = null;
       if (pending.sequence === requestNumber.current)
         queueMicrotask(() => setData(pending.data));
     }
-  }, [busy, selected, confirmation, drag.preview]);
+  }, [busy, selected, confirmation, scopeChoice, drag.preview]);
   useEffect(() => {
     const update = () => {
       if (
         !busyRef.current &&
         !selectedRef.current &&
         !confirmationRef.current &&
+        !scopeChoiceRef.current &&
         !dragRef.current() &&
         document.visibilityState === "visible"
       )
@@ -1360,6 +1366,14 @@ export function DayPlanboard({
             </Dialog.Close>
           </Dialog.Content>
         </Dialog.Portal>
+      </Dialog.Root>
+      <Dialog.Root open={Boolean(scopeChoice)} onOpenChange={open => { if (!open) setScopeChoice(null); }}>
+        <Dialog.Portal><Dialog.Overlay className="pb-confirm-overlay"/><Dialog.Content className="pb-confirm" style={theme}>
+          <Dialog.Title>Welke inzet wil je wijzigen?</Dialog.Title>
+          <Dialog.Description>Deze werkbon heeft meerdere medewerkers. Kies voor wie de nieuwe tijd geldt.</Dialog.Description>
+          {scopeChoice && <><div className="pb-comparison"><p><strong>{scopeChoice.order.number}</strong> · {scopeChoice.order.object}</p><p>Geselecteerd: {data.people.find(p => p.id === scopeChoice.personnelId)?.name ?? "Medewerker"}</p><p>Nieuwe inzet: {label(scopeChoice.single.assignments.find(a => a.personnelId === scopeChoice.personnelId)?.start ?? null, data.timezone)} – {label(scopeChoice.single.assignments.find(a => a.personnelId === scopeChoice.personnelId)?.end ?? null, data.timezone)}</p></div><div className="pb-form-actions"><button className="secondary-button" onClick={() => setScopeChoice(null)}>Annuleren</button><button className="secondary-button" onClick={() => { const proposal = scopeChoice.whole; setScopeChoice(null); void save(proposal); }}>Het hele bezoek</button><button className="primary-button" onClick={() => { const proposal = scopeChoice.single; setScopeChoice(null); void save(proposal); }}>Alleen deze inzet</button></div></>}
+          <Dialog.Close className="pb-close" aria-label="Keuze sluiten"><X size={18}/></Dialog.Close>
+        </Dialog.Content></Dialog.Portal>
       </Dialog.Root>
     </div>
   );

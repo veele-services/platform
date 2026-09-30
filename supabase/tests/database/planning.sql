@@ -23,24 +23,27 @@ insert into public.work_order_assignments (tenant_id, work_order_id, personnel_i
   ('e1000000-0000-4000-8000-000000000001', 'e5000000-0000-4000-8000-000000000002', 'e2000000-0000-4000-8000-000000000001', '2026-10-01 11:00+02', '2026-10-01 11:30+02', '2026-10-01 11:00+02', '2026-10-01 11:30+02');
 insert into public.availability (tenant_id, personnel_id, starts_at, ends_at, kind) values ('e1000000-0000-4000-8000-000000000001', 'e2000000-0000-4000-8000-000000000002', '2026-10-01 13:00+02', '2026-10-01 14:00+02', 'leave');
 
+insert into auth.sessions(id,user_id) values
+ ('e9000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000001'),
+ ('e9000000-0000-4000-8000-000000000002','e0000000-0000-4000-8000-000000000002');
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"e0000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"e0000000-0000-4000-8000-000000000001","session_id":"e9000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 select lives_ok(
-  $$select public.reschedule_work_order('e5000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000002','2026-10-01 10:17+02',(select version from public.work_orders where id='e5000000-0000-4000-8000-000000000001'))$$,
+  $$select public.reschedule_work_order('e5000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000002','2026-10-01 10:17+02',(public.work_order_dossier('e1000000-0000-4000-8000-000000000001','e5000000-0000-4000-8000-000000000001')->'order'->>'version')::bigint)$$,
   'planner moves a planned work order to the exact minute'
 );
 select is((select projected_start_at from public.work_order_assignments where work_order_id='e5000000-0000-4000-8000-000000000001' and status<>'cancelled'), '2026-10-01 10:17+02'::timestamptz, 'the exact minute is persisted; the old assignment is retained as history');
 select throws_ok(
-  $$select public.reschedule_work_order('e5000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000002','2026-10-01 13:10+02',(select version from public.work_orders where id='e5000000-0000-4000-8000-000000000001'))$$,
+  $$select public.reschedule_work_order('e5000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000002','2026-10-01 13:10+02',(public.work_order_dossier('e1000000-0000-4000-8000-000000000001','e5000000-0000-4000-8000-000000000001')->'order'->>'version')::bigint)$$,
   '23P01', null, 'leave blocks scheduling'
 );
 select throws_ok(
-  $$select public.reschedule_work_order('e5000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000001','2026-10-01 11:10+02',(select version from public.work_orders where id='e5000000-0000-4000-8000-000000000001'))$$,
+  $$select public.reschedule_work_order('e5000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000001','2026-10-01 11:10+02',(public.work_order_dossier('e1000000-0000-4000-8000-000000000001','e5000000-0000-4000-8000-000000000001')->'order'->>'version')::bigint)$$,
   '23P01', null, 'overlap blocks scheduling'
 );
-select set_config('request.jwt.claims', '{"sub":"e0000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"e0000000-0000-4000-8000-000000000002","session_id":"e9000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
 select throws_ok(
-  $$select public.reschedule_work_order('e5000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000001','2026-10-01 15:00+02',(select version from public.work_orders where id='e5000000-0000-4000-8000-000000000001'))$$,
+  $$select public.reschedule_work_order('e5000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000001','2026-10-01 15:00+02',1)$$,
   '42501', null, 'staff cannot reschedule work orders'
 );
 

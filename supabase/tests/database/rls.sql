@@ -87,7 +87,7 @@ select throws_ok(
 );
 
 select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
-select is((select count(*)::integer from public.work_orders), 1, 'staff sees only the dispatched assigned work order');
+select is((select count(*)::integer from public.work_orders), 0, 'staff must use the safe assigned-order projection instead of raw work orders');
 select is((select count(*)::integer from public.customers), 1, 'staff sees only the customer of an assigned work order');
 select is((select count(*)::integer from public.objects), 1, 'staff sees only the object of an assigned work order');
 select is((select count(*)::integer from public.invoices), 0, 'staff cannot read invoices');

@@ -36,6 +36,12 @@ jobs:
       - run: pnpm test
       - name: Start clean local Supabase
         run: pnpm supabase start
+      - name: Verify a forward work-order upgrade preserves historical evidence
+        run: |
+          pnpm supabase db reset --local --version 20260930142326 --yes
+          node scripts/test-work-orders-upgrade.mjs seed
+          pnpm supabase migration up --local
+          node scripts/test-work-orders-upgrade.mjs verify
       - run: pnpm db:reset
       - run: pnpm test:db
       - run: pnpm supabase db lint --local --level warning

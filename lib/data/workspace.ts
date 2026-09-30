@@ -2,6 +2,8 @@ import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/database.types";
+import { reportRpc } from "@/lib/work-orders/report-rpc";
+import { operationalOrderRows,operationalTaskData } from "@/lib/work-orders/operational-data";
 
 type Row<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"];
 
@@ -55,8 +57,24 @@ function rows<T>(result: { data: T[] | null; error: { message: string } | null }
   return result.data ?? [];
 }
 
-export async function getWorkspaceData(tenantId: string): Promise<WorkspaceData> {
+export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "staff" = "backoffice"): Promise<WorkspaceData> {
   const supabase = await createClient();
+  if (scope === "staff") {
+    const [projection, brandingResult] = await Promise.all([
+      reportRpc(supabase, "staff_workspace", { target_tenant: tenantId }),
+      supabase.from("tenant_branding").select("*").eq("tenant_id", tenantId).maybeSingle(),
+    ]);
+    if (brandingResult.error) throw new Error("Huisstijl niet beschikbaar");
+    const branding = brandingResult.data;
+    const logo = branding?.logo_path ? await supabase.storage.from("branding").createSignedUrl(branding.logo_path, 3600) : null;
+    return {
+      customers: [], contacts: [], customerNotes: [], customerDocuments: [], objects: [], requests: [], quotes: [], tasks: [], taskRevisions: [],
+      personnel: [], personnelFunctions: [], functions: [], qualifications: [], workOrders: [], assignments: [], workOrderTasks: [], dispatches: [], reports: [], attachments: [], signatures: [], reviews: [],
+      invoices: [], invoiceLines: [], payments: [], allocations: [], announcements: [], reminders: [], openShifts: [], shiftInterests: [], timeEntries: [], notifications: [], personnelDocuments: [], availability: [], announcementReads: [], extraWorkRules: [], allowedExtraWork: [], travelLegs: [], settings: null,
+      ...(projection as Partial<WorkspaceData>), branding, brandingLogoUrl: logo?.data?.signedUrl ?? null,
+    };
+  }
+  const taskProjection=operationalTaskData(supabase,tenantId);
   const results = await Promise.all([
     supabase.from("customers").select("*").eq("tenant_id", tenantId).order("name"),
     supabase.from("customer_contacts").select("*").eq("tenant_id", tenantId).order("full_name"),
@@ -64,13 +82,13 @@ export async function getWorkspaceData(tenantId: string): Promise<WorkspaceData>
     supabase.from("requests").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(250),
     supabase.from("quotes").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(250),
     supabase.from("task_catalog").select("*").eq("tenant_id", tenantId).order("code"),
-    supabase.from("task_revisions").select("*").eq("tenant_id", tenantId).order("revision", { ascending: false }),
+    taskProjection.then(p=>({data:p.taskRevisions,error:null})),
     supabase.from("personnel").select("id,tenant_id,user_id,employee_number,full_name,email,phone,status,start_date,end_date,emergency_contact,created_at,updated_at,version,standard_vehicle,departure_kind,departure_depot_id,return_to_departure").eq("tenant_id", tenantId).order("full_name"),
     supabase.from("function_catalog").select("*").eq("tenant_id", tenantId).order("name"),
     supabase.from("qualifications").select("*").eq("tenant_id", tenantId),
-    supabase.from("work_orders").select("*").eq("tenant_id", tenantId).order("projected_start_at", { ascending: false }).limit(500),
+    operationalOrderRows(supabase,tenantId),
     supabase.from("work_order_assignments").select("*").eq("tenant_id", tenantId).order("projected_start_at"),
-    supabase.from("work_order_tasks").select("*").eq("tenant_id", tenantId).order("created_at"),
+    taskProjection.then(p=>({data:p.workOrderTasks,error:null})),
     supabase.from("dispatches").select("*").eq("tenant_id", tenantId).order("dispatched_at", { ascending: false }),
     supabase.from("report_entries").select("*").eq("tenant_id", tenantId).is("deleted_at", null).order("created_at", { ascending: false }),
     supabase.from("attachments").select("*").eq("tenant_id", tenantId).is("deleted_at", null).order("created_at", { ascending: false }),

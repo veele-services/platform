@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { ObjectData } from "./model";
+import { operationalOrderRows,operationalTaskData } from "@/lib/work-orders/operational-data";
 
 export async function getObjectData(tenantId:string,id:string):Promise<ObjectData|null> {
  const db=await createClient();
@@ -10,14 +11,14 @@ export async function getObjectData(tenantId:string,id:string):Promise<ObjectDat
   db.from("customers").select("*").eq("tenant_id",tenantId).eq("id",object.customer_id).single(),
   db.from("object_nodes").select("*").eq("tenant_id",tenantId).eq("object_id",id).order("position").order("name"),
   db.from("object_records").select("*").eq("tenant_id",tenantId).eq("object_id",id).order("updated_at",{ascending:false}),
-  db.from("work_orders").select("*").eq("tenant_id",tenantId).eq("object_id",id).order("projected_start_at",{ascending:false}),
+  operationalOrderRows(db,tenantId,{objectId:id,all:true}),
   db.from("customer_contacts").select("*").eq("tenant_id",tenantId).eq("customer_id",object.customer_id),
   db.from("object_documents").select("*").eq("tenant_id",tenantId).eq("object_id",id).order("created_at",{ascending:false}),
   db.from("object_history").select("*").eq("tenant_id",tenantId).eq("object_id",id).order("created_at",{ascending:false}).limit(100),
   db.from("object_visit_requests").select("*").eq("tenant_id",tenantId).eq("object_id",id).order("created_at",{ascending:false}),
   db.from("object_request_proposals").select("*").eq("tenant_id",tenantId).eq("object_id",id).order("version",{ascending:false}),
   db.from("task_catalog").select("*").eq("tenant_id",tenantId).eq("active",true),
-  db.from("task_revisions").select("*").eq("tenant_id",tenantId).is("valid_until",null),
+  operationalTaskData(db,tenantId).then(p=>({data:p.taskRevisions.filter(r=>!r.valid_until),error:null})),
   db.from("personnel").select("id,full_name").eq("tenant_id",tenantId),
   db.rpc("object_dossier_owners",{target_tenant:tenantId}),
   db.from("object_customer_bindings").select("*").eq("tenant_id",tenantId).eq("object_id",id),

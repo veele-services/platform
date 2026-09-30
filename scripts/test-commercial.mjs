@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { randomUUID, createHash } from 'node:crypto';
 import test from 'node:test';
 import pg from 'pg';
+import { submitFixtureReport } from './work-order-report-fixture.mjs';
 
 test('Commercial workflow: persisted prices, revisions, scope and transactional decisions', async t => {
  const local=JSON.parse(execFileSync('pnpm',['supabase','status','-o','json'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}));
@@ -18,7 +19,7 @@ test('Commercial workflow: persisted prices, revisions, scope and transactional 
  const input={id:quote,version:0,request_id:request,customer_id:customer,object_id:object,contact_id:'',owner_id:manager,subject:'FICTITIOUS offer',work_kind:'once',price_basis:'once',lines:[line,{...line,id:randomUUID(),quantity:'2',vat_basis_points:2100}],terms:{scope:'FICTITIOUS work scope',discipline:'Test',conditions:'Test conditions',secret_code:'NEVER EXPOSE'},expires_at:new Date(Date.now()+86400000*14).toISOString(),followup_on:'2026-01-01'};
  try{
   for(const [id,s] of [[manager,session],[staff,staffSession]]){await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,`${id}@commercial.test`]);await db.query('insert into auth.sessions(id,user_id,created_at,updated_at) values($1,$2,now(),now())',[s,id]);}
-  for(const id of [tenant,other]){await db.query("insert into public.tenants(id,slug,name) values($1,$2,'FICTITIOUS commercial tenant')",[id,`commercial-${id}`]);await db.query("insert into public.tenant_settings(tenant_id,enabled_services) values($1,array['planning','finance','rapportage'])",[id]);await db.query('insert into public.tenant_branding(tenant_id) values($1)',[id]);}
+  for(const id of [tenant,other]){await db.query("insert into public.tenants(id,slug,name) values($1,$2,'FICTITIOUS commercial tenant')",[id,`commercial-${id}`]);await db.query("insert into public.tenant_settings(tenant_id,enabled_services,signature_required_default) values($1,array['planning','personeel','finance','rapportage'],false)",[id]);await db.query('insert into public.tenant_branding(tenant_id) values($1)',[id]);}
   await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,array['tenant_admin','management','finance']::public.app_role[],'active'),($1,$3,array['staff']::public.app_role[],'active')",[tenant,manager,staff]);
   for(const id of [customer,customer2])await db.query("insert into public.customers(id,tenant_id,customer_number,name,billing_email) values($1,$2,$3,'FICTITIOUS customer','customer@commercial.test')",[id,tenant,`C-${id}`]);
   for(const [id,c] of [[object,customer],[object2,customer2]])await db.query("insert into public.objects(id,tenant_id,customer_id,object_number,name,address,access_instructions) values($1,$2,$3,$4,'FICTITIOUS object','{\"street\":\"Teststraat 1\"}','PRIVATE DO NOT PUBLISH')",[id,tenant,c,`O-${id}`]);
@@ -149,7 +150,7 @@ test('Commercial workflow: persisted prices, revisions, scope and transactional 
    await assert.rejects(db.query('update public.work_order_tasks set unit_price_cents=unit_price_cents+1 where id=$1',[tasks[0].id]),e=>e.code==='23514');
    await db.query("update public.work_orders set planned_start_at=now()-interval '1 hour',planned_end_at=now()+interval '1 hour',projected_start_at=now()-interval '1 hour',projected_end_at=now()+interval '1 hour',status='in_progress' where id=$1",[w]);
    for(const task of tasks)await call("select public.record_task_execution($1,$2,1,'completed',$3,'Fictitious completed work')",[tenant,task.id,task.quantity]);
-   await db.query("update public.work_orders set status='completed' where id=$1",[w]);await call("select public.review_work_order($1,'approved',null)",[w]);
+   await db.query("update public.work_orders set status='completed' where id=$1",[w]);await submitFixtureReport(db,call,{tenant,order:w,staff,manager});await call("select public.review_work_order($1,'approved',null)",[w]);
    const invoice=(await call('select (public.create_execution_invoice($1,$2,$3)).*',[tenant,randomUUID(),JSON.stringify(tasks.map(t=>({taskId:t.id,quantity:t.quantity}))) ]))[0];
    assert.equal(Number(invoice.subtotal_cents),q.subtotal_cents);assert.equal(Number(invoice.vat_cents),q.vat_cents);assert.equal(Number(invoice.total_cents),q.total_cents);
    const billed=(await db.query('select description from public.invoice_lines where invoice_id=$1',[invoice.id])).rows;assert.ok(billed.every(l=>(l.description.match(/korting/g)||[]).length===1));
@@ -163,7 +164,7 @@ test('Commercial workflow: persisted prices, revisions, scope and transactional 
    const w=converted.operation_id;await db.query("update public.work_orders set planned_start_at='2026-08-01T08:00:00Z',planned_end_at='2026-08-01T14:00:00Z',projected_start_at='2026-08-01T08:00:00Z',projected_end_at='2026-08-01T14:00:00Z',status='in_progress' where id=$1",[w]);
    const tasks=(await db.query('select * from public.work_order_tasks where work_order_id=$1',[w])).rows;
    for(const task of tasks)await call("select public.record_task_execution($1,$2,1,'completed',$3,'Fictitious monthly work')",[tenant,task.id,task.quantity]);
-   await db.query("update public.work_orders set status='completed' where id=$1",[w]);await call("select public.review_work_order($1,'approved',null)",[w]);
+   await db.query("update public.work_orders set status='completed' where id=$1",[w]);await submitFixtureReport(db,call,{tenant,order:w,staff,manager});await call("select public.review_work_order($1,'approved',null)",[w]);
    await assert.rejects(call('select public.create_execution_invoice($1,$2,$3)',[tenant,randomUUID(),JSON.stringify(tasks.map(t=>({taskId:t.id,quantity:t.quantity})))]),e=>e.code==='23514');
    const create=()=>call('select (public.create_commercial_period_invoice($1,$2,$3,$4,true)).*',[tenant,id,'2026-08-01',randomUUID()]);
    const invoices=await Promise.all([create(),create()]);assert.equal(invoices[0][0].id,invoices[1][0].id);assert.equal(Number(invoices[0][0].total_cents),(await detail(id)).record.total_cents);

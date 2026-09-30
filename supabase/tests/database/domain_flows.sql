@@ -1,6 +1,6 @@
 begin;
 
-select plan(21);
+select plan(22);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -53,7 +53,6 @@ insert into public.work_order_assignments (
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000001","session_id":"30000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
-select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000001","session_id":"30000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 select lives_ok(
   $$select public.dispatch_work_order('c6000000-0000-4000-8000-000000000001', 'c1000000-0000-4000-8000-000000000001', (select version from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'dispatch-1')$$,
   'planner can dispatch an assigned work order'
@@ -67,30 +66,31 @@ select is((select count(*)::integer from public.dispatches where idempotency_key
 
 select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000002","session_id":"30000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
 select throws_ok(
-  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'start', (select version from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'early-start')$$,
-  '23514', null, 'staff cannot skip the seen and travelling states'
+  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'start', (public.staff_workspace('c0000000-0000-4000-8000-000000000001')->'workOrders'->0->>'version')::bigint, 'early-start')$$,
+  '23514', null, 'staff cannot start an unopened released work order'
 );
 select lives_ok(
-  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'open', (select version from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'open-1')$$,
+  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'open', (public.staff_workspace('c0000000-0000-4000-8000-000000000001')->'workOrders'->0->>'version')::bigint, 'open-1')$$,
   'opening a released work order succeeds'
 );
 select lives_ok(
   $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'open', 1, 'open-1')$$,
   'opening retry is idempotent even with a stale version'
 );
-select is((select status::text from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'seen', 'opening stores seen state');
+select is(public.staff_workspace('c0000000-0000-4000-8000-000000000001')->'workOrders'->0->>'status', 'seen', 'opening stores seen state in the staff projection');
+select is((select count(*)::integer from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 0, 'staff cannot bypass the safe projection through raw work orders');
 select lives_ok(
-  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'travel', (select version from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'travel-1')$$,
+  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'travel', (public.staff_workspace('c0000000-0000-4000-8000-000000000001')->'workOrders'->0->>'version')::bigint, 'travel-1')$$,
   'staff can report travelling'
 );
 select lives_ok(
-  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'start', (select version from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'start-1')$$,
+  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'start', (public.staff_workspace('c0000000-0000-4000-8000-000000000001')->'workOrders'->0->>'version')::bigint, 'start-1')$$,
   'staff can start after travelling'
 );
-select ok((select actual_start_at is not null from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'start uses a server timestamp');
+select ok((public.staff_workspace('c0000000-0000-4000-8000-000000000001')->'workOrders'->0->>'actual_start_at') is not null, 'start uses a server timestamp');
 select is((select count(*)::integer from public.time_entries where assignment_id = 'c8000000-0000-4000-8000-000000000001' and kind = 'work'), 1, 'start creates exactly one work time entry');
 select throws_ok(
-  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'complete', (select version from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'complete-too-early')$$,
+  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'complete', (public.staff_workspace('c0000000-0000-4000-8000-000000000001')->'workOrders'->0->>'version')::bigint, 'complete-too-early')$$,
   '23514', null, 'completion is blocked while a required task is unchecked'
 );
 select lives_ok(
@@ -98,7 +98,7 @@ select lives_ok(
   'staff can complete the assigned task'
 );
 select lives_ok(
-  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'complete', (select version from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'complete-1')$$,
+  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'complete', (public.staff_workspace('c0000000-0000-4000-8000-000000000001')->'workOrders'->0->>'version')::bigint, 'complete-1')$$,
   'completion succeeds after the checklist is complete'
 );
 select ok((select ends_at is not null from public.time_entries where assignment_id = 'c8000000-0000-4000-8000-000000000001' and kind = 'work'), 'completion closes the server work time entry');
@@ -111,7 +111,7 @@ select lives_ok(
 select is((select status::text from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'correction_required', 'a returned review enters correction state');
 select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000002","session_id":"30000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
 select lives_ok(
-  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'resubmit', (select version from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'resubmit-1')$$,
+  $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'resubmit', (public.staff_workspace('c0000000-0000-4000-8000-000000000001')->'workOrders'->0->>'version')::bigint, 'resubmit-1')$$,
   'staff can resubmit a corrected report without returning the work order'
 );
 select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000001","session_id":"30000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
