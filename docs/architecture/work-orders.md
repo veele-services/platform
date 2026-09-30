@@ -79,6 +79,8 @@ De rapport-PDF bewaart de tenantnaam en huisstijlkleuren in de inhoudssnapshot. 
 
 De bestaande stagingworkflow voert na activatie de drie werkbondatabasesuites uit met `FIELDGRID_STAGING_SMOKE=1`. De testharness accepteert alleen de stagingbranch in GitHub Actions, de canonieke URL en het verwachte niet-productieproject. Hij dwingt TLS met certificaat- en hostnaamcontrole af; queryparameters mogen het gecontroleerde doel niet omleiden. Een read-only verbindingscontrole draait vóór build, backup en migraties. Alle fictieve klanten, gebruikers, bonnen, rapporten en factuurregels zitten in een niet-gecommitteerde transactie die wordt teruggedraaid; mail-/notificatie-outboxregels worden nooit zichtbaar voor de worker. Een expliciete commit wordt door deze harness geweigerd. Browsertests blijven op de geïsoleerde lokale sandbox draaien; ze gebruiken geen echte stagingklant.
 
+De databaseclient vertrouwt daarnaast het publieke `scripts/certs/supabase-root-2021.crt`, niet een private sleutel of nieuw secret. Bron: [Supabase-dashboardconfiguratie](https://github.com/supabase/supabase/blob/2cb70302b041b7e080917d5125b731de3de9f2e2/apps/studio/hooks/custom-content/custom-content.json#L63), [officiële CA-download](https://supabase-downloads.s3-ap-southeast-1.amazonaws.com/prod/ssl/prod-ca-2021.crt) en [TLS-documentatie](https://supabase.com/docs/guides/platform/ssl-enforcement). `prod` in die downloadnaam duidt Supabase-hosting aan, niet Fieldgrid-productie. Het certificaat verloopt op 26 april 2031; de SHA-256-fingerprint is `80:70:25:AD:50:D4:ED:21:9D:2C:9C:7D:29:9C:00:4F:82:4E:B0:0C:F7:F6:5A:FE:F6:07:D0:7B:72:E6:CA:FA`. Tests bewaken fingerprint, geldigheid en behoud van TLS-instellingen door de driver. Bij verbindingsfouten worden uitsluitend toegestane foutcodes gemeld, nooit de oorspronkelijke fouttekst of credentials.
+
 ## Gebruik en beheer
 
 - Open **Werkbonnen** voor de lijst en de zesstapswizard. Dezelfde bon opent vanuit Klant 360, Object 360 en het planbord. Filters en tabblad blijven in de URL behouden.
@@ -93,7 +95,7 @@ De bestaande stagingworkflow voert na activatie de drie werkbondatabasesuites ui
 ## Lokaal opleverbewijs — 30 september 2026
 
 - ESLint, TypeScript en geoptimaliseerde productiebuild: geslaagd.
-- Unitcontroles: 31 bestanden, 176 tests geslaagd.
+- Unitcontroles: 31 bestanden, 180 tests geslaagd.
 - Database/policies: 228 pgTAP-controles en 105 Node-integratietests geslaagd op een verse database.
 - Browser: 33 Chromium-flows geslaagd, inclusief de commerciële keten, alle 360-dossiers, planbord, reistijden, werkbonwizard en templatebeheer. De werkbonflow controleert ook private PNG/PDF-opslag, geautoriseerd downloaden, een herhaalde upload en mobiele breedtes.
 - Upgrade: baseline `20260930142326` gevuld met herkenbare historische fixtures; alle vier werkbonmigraties toegepast en behoud van IDs, goedgekeurde uren, bestaande signature/hash, review en prijsbron geverifieerd. Geen historische rapportinhoud of ondertekening verzonnen.

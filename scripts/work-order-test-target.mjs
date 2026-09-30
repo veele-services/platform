@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { rootCertificates } from "node:tls";
 import pg from "pg";
 
 /** Remote use is deliberately restricted to the staging deploy job; never reads .env. */
@@ -23,17 +25,38 @@ export function stagingWorkOrderTestUrl(env) {
   } catch { throw new Error("Staging rooktest geweigerd: database is niet aantoonbaar het stagingproject."); }
 }
 
+export function stagingWorkOrderTestOptions(env) {
+  const url = new URL(stagingWorkOrderTestUrl(env));
+  // pg parses URL sslmode into a new SSL object, replacing a separately passed
+  // CA. The already validated URL may contain no routing options; move TLS
+  // configuration into one explicit object so neither mode nor CA is lost.
+  url.searchParams.delete("sslmode");
+  return {
+    connectionString: url.toString(),
+    ssl: {
+      rejectUnauthorized: true,
+      ca: [...rootCertificates, readFileSync(new URL("./certs/supabase-root-2021.crt", import.meta.url), "utf8")],
+    },
+  };
+}
+
+export function safeWorkOrderConnectionError(error) {
+  const codes = new Set(["SELF_SIGNED_CERT_IN_CHAIN", "DEPTH_ZERO_SELF_SIGNED_CERT", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "CERT_HAS_EXPIRED", "ERR_TLS_CERT_ALTNAME_INVALID", "ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "28P01", "28000", "53300", "57P03"]);
+  const code = codes.has(error?.code) ? error.code : "ONBEKEND";
+  return new Error(`Testdatabaseverbinding mislukt (${code}); credentials worden niet gelogd.`);
+}
+
 export async function workOrderTestDatabase() {
-  let connectionString;
-  if (process.env.FIELDGRID_STAGING_SMOKE) connectionString = stagingWorkOrderTestUrl(process.env);
+  let connection;
+  if (process.env.FIELDGRID_STAGING_SMOKE) connection = stagingWorkOrderTestOptions(process.env);
   else {
     const local = JSON.parse(execFileSync("pnpm", ["supabase", "status", "-o", "json"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
     const url = new URL(local.DB_URL);
     if (url.hostname !== "127.0.0.1" || url.port !== "59322") throw new Error("Werkbontests vereisen de afgeschermde lokale database.");
-    connectionString = local.DB_URL;
+    connection = { connectionString: local.DB_URL };
   }
-  const client = new pg.Client({ connectionString, connectionTimeoutMillis: 10000, statement_timeout: 15000, idle_in_transaction_session_timeout: 60000 });
-  try { await client.connect(); } catch { throw new Error("Testdatabaseverbinding mislukt; credentials worden niet gelogd."); }
+  const client = new pg.Client({ ...connection, connectionTimeoutMillis: 10000, statement_timeout: 15000, idle_in_transaction_session_timeout: 60000 });
+  try { await client.connect(); } catch (error) { throw safeWorkOrderConnectionError(error); }
   if (process.env.FIELDGRID_STAGING_SMOKE) {
     const query = client.query.bind(client);
     client.query = (...args) => {
