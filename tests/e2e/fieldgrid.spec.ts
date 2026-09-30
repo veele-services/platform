@@ -270,9 +270,9 @@ test("Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel", asy
 });
 
 test("klantdossier toont uitvoeringen en bewaart contacten, notities en private documenten", async ({ page, browser }) => {
-  // Uploads, ten mobile tab checks and a second login need a larger total
-  // budget on a cold CI runner; keep individual assertion timeouts unchanged.
-  test.setTimeout(60_000);
+  // Uploads, persisted URL tabs, ten mobile tab checks and a second login
+  // need an end-to-end CI budget; individual assertion timeouts stay unchanged.
+  test.setTimeout(120_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page, "platform-admin@fieldgrid.test", "/app/klanten");
   const openCustomer = async () => {
@@ -285,9 +285,13 @@ test("klantdossier toont uitvoeringen en bewaart contacten, notities en private 
   await expect(dialog.getByText("finance@customer.test", { exact: true })).toBeVisible();
   await expect(dialog.getByText("14 dagen", { exact: true })).toBeVisible();
   await expect(dialog).toHaveScreenshot("customer-dossier-overview-1440.png");
+  // Read-only tabs must not need another server render of the entire workspace.
+  await page.route("**/app/klanten?*_rsc=*",route=>route.abort());
   await dialog.getByRole("tab", { name: "Overzicht", exact: true }).focus();
   await page.keyboard.press("ArrowRight");
   await expect(dialog.getByRole("tab", { name: "Contactpersonen", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page).toHaveURL(/tab=contacts/);
+  await page.unroute("**/app/klanten?*_rsc=*");
   const unique = Date.now().toString(36);
   await dialog.getByLabel("Naam", { exact: true }).fill(`Contact ${unique}`);
   await dialog.getByLabel("E-mail", { exact: true }).fill("contact@customer.test");

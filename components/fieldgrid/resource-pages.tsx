@@ -167,14 +167,14 @@ function CustomerEdit({ customer, onClose }: { customer: Customer; onClose: () =
 }
 
 function CustomerDetail({ customer, data, onClose, timezone, roles }: { customer: Customer; data: WorkspaceData; onClose: () => void; timezone:string; roles:string[] }) {
-  const params = useSearchParams(); const router = useRouter();
+  const params = useSearchParams();
   const tab = params.get("tab") || "overview";
   const contacts = data.contacts.filter((item) => item.customer_id === customer.id);
   const objects = data.objects.filter((item) => item.customer_id === customer.id);
   const notes = data.customerNotes.filter((item) => item.customer_id === customer.id);
   const documents = data.customerDocuments.filter((item) => item.customer_id === customer.id);
   return <Modal title={customer.name} eyebrow={customer.customer_number} onClose={onClose} wide>
-    <Tabs value={tab} onValueChange={value => { if(!confirmDiscard())return; const q = new URLSearchParams(params.toString()); q.set("record", customer.id); q.set("tab", value); router.replace(`/app/klanten?${q}`, { scroll: false }); }} className="customer-detail-tabs">
+    <Tabs value={tab} onValueChange={value => { if(!confirmDiscard())return; const q = new URLSearchParams(params.toString()); q.set("record", customer.id); q.set("tab", value); window.history.replaceState(null, "", `/app/klanten?${q}`); }} className="customer-detail-tabs">
       <div className="customer-tabs-scroll">
         <TabsList aria-label="Klantdossier" className="customer-tabs-list">
           <TabsTrigger value="overview"><LayoutDashboard size={16}/>Overzicht</TabsTrigger>
@@ -269,15 +269,15 @@ function CustomerDetail({ customer, data, onClose, timezone, roles }: { customer
 }
 
 export function CustomersPage({ data, timezone, roles=[] }: { data: WorkspaceData; timezone:string; roles?:string[] }) {
-  const params=useSearchParams();const router=useRouter();const linkedId=params.get("record");
+  const params=useSearchParams();const linkedId=params.get("record");
   const [query, setQuery] = useState(""); const [filter, setFilter] = useState("all"); const [sort, setSort] = useState("name-asc");
   const [localModal, setLocalModal] = useState<{ type: "create" } | { type: "edit"; item: Customer } | null>(params.get("new")==="1"?{type:"create"}:null);
   const selected=data.customers.find(c=>c.id===linkedId);
   const modal=localModal ?? (selected ? {type:"view" as const,item:selected}:null);
   const setModal=(value:{type:"create"}|{type:"view"|"edit";item:Customer}|null)=>{
     const q=new URLSearchParams(params.toString());
-    if(value?.type==="view"){setLocalModal(null);q.set("record",value.item.id);q.set("tab","overview");router.push(`/app/klanten?${q}`,{scroll:false});}
-    else {setLocalModal(value?.type==="edit"?{type:"edit",item:value.item}:value?.type==="create"?{type:"create"}:null);if(!value){q.delete("record");q.delete("tab");q.delete("new");router.replace(`/app/klanten?${q}`,{scroll:false});}}
+    if(value?.type==="view"){setLocalModal(null);q.set("record",value.item.id);q.set("tab","overview");window.history.pushState(null,"",`/app/klanten?${q}`);}
+    else {setLocalModal(value?.type==="edit"?{type:"edit",item:value.item}:value?.type==="create"?{type:"create"}:null);if(!value){q.delete("record");q.delete("tab");q.delete("new");window.history.replaceState(null,"",`/app/klanten?${q}`);}}
   };
   const rows = useMemo(() => data.customers.filter((item) => filter === "all" || item.status === filter).filter((item) => [item.name, item.customer_number, item.billing_email, item.phone, addressLine(item.billing_address)].some((value) => value?.toLowerCase().includes(query.toLowerCase()))).sort((a, b) => {
     const [field, direction] = sort.split("-"); const left = field === "created" ? a.created_at : field === "number" ? a.customer_number : a.name; const right = field === "created" ? b.created_at : field === "number" ? b.customer_number : b.name; return left.localeCompare(right, "nl") * (direction === "desc" ? -1 : 1);

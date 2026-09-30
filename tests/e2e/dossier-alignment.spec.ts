@@ -27,6 +27,7 @@ test.afterAll(async()=>{if(!db)return;try{
 test("Dossier 360: customer agreement, object programme, partial execution and linked invoice",async({page})=>{
  test.setTimeout(180000);
  await page.goto(`/login?next=${encodeURIComponent(`/app/klanten?record=${customer}`)}`);await page.getByLabel("E-mailadres").fill("platform-admin@fieldgrid.test");await page.getByLabel("Wachtwoord",{exact:true}).fill("Fieldgrid-E2E-2026");await page.getByRole("button",{name:/Inloggen/}).click();
+ await page.waitForURL(url=>url.pathname==="/app/klanten"&&url.searchParams.get("record")===customer,{timeout:30000});
  const dossier=page.getByRole("dialog",{name:"Dossier Ketenproef"});await expect(dossier).toBeVisible();
  await dossier.getByRole("tab",{name:"Documenten",exact:true}).click();await expect(page).toHaveURL(/tab=documents/);
  await dossier.getByLabel("Titel",{exact:true}).fill("Getekende klantafspraak");await dossier.getByLabel("Bestand",{exact:true}).setInputFiles({name:"agreement.pdf",mimeType:"application/pdf",buffer:Buffer.from("%PDF-1.4\n% Fictitious agreement\n%%EOF")});await dossier.getByRole("button",{name:"Document uploaden",exact:true}).click();await expect(dossier.getByRole("link",{name:"Getekende klantafspraak downloaden"})).toBeVisible();
