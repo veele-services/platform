@@ -46,4 +46,5 @@ jobs:
       - name: Run required browser flows
         run: pnpm test:e2e
       - name: Ensure no retired tenant or mail-provider naming
-        run: if rg -i 'v[e]ele|r[e]send' --glob '!pnpm-lock.yaml' .; then exit 1; fi
+        # Match names, not fragments of DOM API identifiers such as activeElement.
+        run: if rg -i '\bv[e]ele\b|\br[e]send\b' --glob '!pnpm-lock.yaml' .; then exit 1; fi

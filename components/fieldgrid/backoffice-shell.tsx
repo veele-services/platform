@@ -24,7 +24,7 @@ import {
   createTask, dispatchWorkOrder,
   updateTenantBranding, withdrawAnnouncement, createBookingLink,
   uploadTenantLogo, updatePersonnelNumberSettings,
-  rescheduleWorkOrder, recordQuoteDecision, sendQuoteEmail,
+  recordQuoteDecision, sendQuoteEmail,
   createExtraWorkRule, allowExtraWork,
 } from "@/app/app/operations-actions";
 
@@ -139,11 +139,6 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
       <DataTable headers={["Nummer", "Klant", "Omschrijving", "Prioriteit", "Status"]}>{data.requests.map((item) => <tr key={item.id}><td><strong>{item.request_number}</strong><small>{dateTime(item.created_at, tenant.timezone)}</small></td><td>{item.customer_id ? customerById.get(item.customer_id)?.name : "—"}</td><td>{item.description}</td><td>{item.priority}</td><td><Pill status={item.status}/></td></tr>)}</DataTable>
     </>;
 
-    if (view === "planning") return <>
-      <PageIntro eyebrow="OPERATIE" title="Planbord" description="Planning in echte minuten, per medewerker en met de avatarrail vast in beeld." />
-      {!!data.qualificationGaps?.length && <section className="panel"><div className="section-heading"><h2>Controleer geplande inzet</h2></div><p className="form-note">Deze kwalificaties ontbreken voor de volledige uitvoeringsperiode. Historische opdrachten blijven ongewijzigd.</p><div className="dossier-doc-links">{data.qualificationGaps.map(gap => { const assignment = data.assignments.find(a => a.id === gap.assignment_id); const order = data.workOrders.find(w => w.id === assignment?.work_order_id); return <Link key={gap.assignment_id + gap.code} href={order ? `/app/werkbonnen/${order.id}` : "/app/werkbonnen"}>{order?.work_order_number} · {data.personnel.find(p => p.id === gap.personnel_id)?.full_name} · {gap.code} ({gap.hard_requirement ? "harde eis ontbreekt" : "controleren"})</Link>; })}</div></section>}
-      <section className="panel planboard-viewport"><Planboard data={data} timezone={tenant.timezone} editable/></section>
-    </>;
 
     if (view === "werkbonnen") return <>
       <PageIntro eyebrow="UITVOERING" title="Werkbonnen" description="Vrijgeven, volgen en afronden op één versievaste statusstroom." />
@@ -157,8 +152,8 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
       <DataTable headers={["Code", "Taak", "Discipline", "Duur", "Tarief", "Status"]}>{data.tasks.map((task) => { const revision = data.taskRevisions.find((item) => item.task_id === task.id && !item.valid_until); return <tr key={task.id}><td><span className="code">{task.code}</span></td><td><strong>{task.name}</strong></td><td>{task.discipline}</td><td>{revision?.duration_minutes ?? 0} min</td><td>{money(revision?.price_cents)}</td><td><Pill status={task.active ? "active" : "inactive"}/></td></tr>; })}</DataTable>
     </>;
 
-    if (view === "klanten") return <CustomersPage data={data}/>;
-    if (view === "objecten") return <ObjectsPage data={data}/>;
+    if (view === "klanten") return <CustomersPage data={data} timezone={tenant.timezone}/>;
+    if (view === "objecten") return <ObjectsPage data={data} timezone={tenant.timezone}/>;
 
     if (view === "personeel") return <PersonnelPage data={data} roles={tenant.roles}/>;
 
@@ -180,7 +175,7 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
   })();
 
   return <div className="workspace-shell" style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
-    <aside className={`workspace-sidebar ${mobileNav ? "open" : ""}`}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><nav>{visibleNav.map((item) => <Link key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}</nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small>{!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}</footer></aside>
+    <aside className={`workspace-sidebar ${mobileNav ? "open" : ""}`}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><nav>{visibleNav.map((item) => <Link prefetch={view === "planning" ? false : undefined} key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}</nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small>{!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}</footer></aside>
     <div className="workspace-main"><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu"><Menu size={20}/></button><span className="breadcrumb">Fieldgrid <ChevronRight size={13}/> <strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><Bell size={18}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
   </div>;
 }
@@ -220,30 +215,3 @@ function TenantBrandingSettings({ tenant, data }: { tenant: NonNullable<AuthCont
 function Metric({ icon, label, value, tone }: { icon: ReactNode; label: string; value: string | number; tone: string }) { return <article className="metric"><span className={`metric-icon ${tone}`}>{icon}</span><div><span>{label}</span><strong>{value}</strong></div></article>; }
 function Pill({ status }: { status: string }) { const tone = ["paid", "accepted", "approved", "invoice_ready", "active"].includes(status) ? "green" : ["returned", "correction_required", "overdue", "urgent"].includes(status) ? "orange" : ["released", "seen", "travelling", "in_progress", "sent"].includes(status) ? "blue" : "neutral"; return <span className={`pill pill-${tone}`}>{statusLabel[status] ?? status.replaceAll("_", " ")}</span>; }
 function DataTable({ headers, children }: { headers: string[]; children: ReactNode }) { return <section className="panel table-panel"><div className="table-scroll"><table><thead><tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr></thead><tbody>{children}</tbody></table></div></section>; }
-
-function Planboard({ data, timezone, editable = false }: { data: WorkspaceData; timezone: string; editable?: boolean }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const now = new Date(); const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
-  const chronological = [...data.assignments].sort((a, b) => new Date(a.projected_start_at).getTime() - new Date(b.projected_start_at).getTime());
-  const reference = chronological.find((item) => new Date(item.projected_start_at) >= todayStart) ?? chronological.at(-1);
-  const dayStart = reference ? new Date(reference.projected_start_at) : new Date(); dayStart.setHours(7, 0, 0, 0);
-  const dayEnd = new Date(dayStart); dayEnd.setHours(19, 0, 0, 0);
-  const spanMinutes = 12 * 60;
-  const orderById = new Map(data.workOrders.map((item) => [item.id, item]));
-  const customerById = new Map(data.customers.map((item) => [item.id, item]));
-  const drop = (event: React.DragEvent<HTMLDivElement>, personnelId: string) => {
-    if (!editable || pending) return;
-    event.preventDefault();
-    try {
-      const payload = JSON.parse(event.dataTransfer.getData("application/x-fieldgrid-work-order")) as { id?: string; version?: number };
-      if (!payload.id || !Number.isInteger(payload.version)) return;
-      const bounds = event.currentTarget.getBoundingClientRect();
-      const minute = Math.max(0, Math.min(spanMinutes - 1, Math.round(((event.clientX - bounds.left) / bounds.width) * spanMinutes)));
-      const start = new Date(dayStart.getTime() + minute * 60_000);
-      const form = new FormData(); form.set("workOrderId", payload.id); form.set("personnelId", personnelId); form.set("start", start.toISOString()); form.set("version", String(payload.version));
-      startTransition(async () => { const result = await rescheduleWorkOrder(form); if (!result.ok) toast.error(result.error); else { toast.success(`Werkbon verplaatst naar ${new Intl.DateTimeFormat("nl-NL", { hour: "2-digit", minute: "2-digit", timeZone: timezone }).format(start)}`); router.refresh(); } });
-    } catch { toast.error("Werkbon kon niet worden verplaatst"); }
-  };
-  return <div className="planboard"><div className="plan-head"><span className="plan-avatar-head"/><strong className="plan-name-head">Medewerker</strong><div className="plan-ruler">{[7, 9, 11, 13, 15, 17, 19].map((hour) => <span key={hour}>{String(hour).padStart(2, "0")}:00</span>)}</div></div>{data.personnel.map((person) => <div className="plan-row" key={person.id}><div className="plan-avatar-rail"><span className="avatar avatar-mint">{initials(person.full_name)}</span></div><div className="plan-person"><span><strong>{person.full_name}</strong><small>{data.qualifications.filter((item) => item.personnel_id === person.id).map((item) => item.code).slice(0, 2).join(" · ") || "Beschikbaar"}</small></span></div><div className={`plan-lane ${editable ? "editable" : ""}`} onDragOver={(event) => { if (editable) event.preventDefault(); }} onDrop={(event) => drop(event, person.id)}>{data.assignments.filter((item) => item.personnel_id === person.id && new Date(item.projected_start_at) >= dayStart && new Date(item.projected_start_at) < dayEnd).map((assignment) => { const order = orderById.get(assignment.work_order_id); if (!order) return null; const start = new Date(assignment.projected_start_at); const end = new Date(assignment.projected_end_at); const left = Math.max(0, ((start.getTime() - dayStart.getTime()) / 60000) / spanMinutes * 100); const width = Math.max(3, ((end.getTime() - start.getTime()) / 60000) / spanMinutes * 100); const movable = editable && order.status === "planned"; return <button className={`plan-bon ${order.discipline.toLowerCase().replaceAll(" ", "-")} ${order.status === "in_progress" ? "running" : ""}`} style={{ left: `${left}%`, width: `${Math.min(width, 100 - left)}%` }} key={assignment.id} title={`${order.work_order_number} · ${dateTime(order.projected_start_at, timezone)}${movable ? " · sleep om te verplaatsen" : ""}`} draggable={movable} onDragStart={(event) => { if (movable) { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("application/x-fieldgrid-work-order", JSON.stringify({ id: order.id, version: order.version })); } }}><span>{order.work_order_number} · {customerById.get(order.customer_id)?.name}</span><small>{new Intl.DateTimeFormat("nl-NL", { hour: "2-digit", minute: "2-digit", timeZone: timezone }).format(start)}–{new Intl.DateTimeFormat("nl-NL", { hour: "2-digit", minute: "2-digit", timeZone: timezone }).format(end)}</small></button>; })}</div></div>)}{!data.personnel.length && <Empty>Voeg personeel toe om het planbord te vullen.</Empty>}<div className="plan-legend"><span><i className="legend teal"/> Planning op minuutniveau · {new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium", timeZone: timezone }).format(dayStart)}</span><em>07:00–19:00</em></div></div>;
-}

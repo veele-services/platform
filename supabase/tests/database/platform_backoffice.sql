@@ -151,7 +151,7 @@ select lives_ok(
     '92000000-0000-4000-8000-000000000001',
     '91000000-0000-4000-8000-000000000001',
     '2026-10-15 09:17+02',
-    1
+    (select version from public.work_orders where id='92000000-0000-4000-8000-000000000001')
   )$$,
   'security-definer planning RPC works while the module is enabled'
 );
@@ -171,7 +171,7 @@ select throws_ok(
     2
   )$$,
   '42501',
-  'Module planning is not enabled for this tenant',
+  'Geen toegang tot planning',
   'security-definer RPC cannot bypass a disabled module entitlement'
 );
 

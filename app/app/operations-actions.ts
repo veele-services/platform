@@ -326,10 +326,26 @@ export async function createWorkOrder(formData: FormData): Promise<ActionResult>
     const taskById = new Map(taskRows.map((task) => [task.id, task]));
     const taskPayload = latest.map((revision) => ({ tenant_id: context.tenant!.id, work_order_id: order.id, task_revision_id: revision.id, task_code: taskById.get(revision.task_id)!.code, task_name: taskById.get(revision.task_id)!.name, duration_minutes: revision.duration_minutes, unit: revision.unit, unit_price_cents: revision.price_cents, vat_basis_points: revision.vat_basis_points }));
     const { error: tasksInsertError } = await supabase.from("work_order_tasks").insert(taskPayload);
-    const { error: assignmentError } = await supabase.from("work_order_assignments").insert({ tenant_id: context.tenant.id, work_order_id: order.id, personnel_id: input.personnelId, planned_start_at: start.toISOString(), planned_end_at: end.toISOString(), projected_start_at: start.toISOString(), projected_end_at: end.toISOString() });
-    if (tasksInsertError || assignmentError) {
+    if (tasksInsertError) {
       await supabase.from("work_orders").delete().eq("id", order.id);
-      throw tasksInsertError ?? assignmentError;
+      throw tasksInsertError;
+    }
+    const { data: planning, error: assignmentError } = await supabase.rpc("change_work_order_planning", {
+      target_tenant: context.tenant.id,
+      target_work_order: order.id,
+      expected_version: order.version,
+      mutation_id: crypto.randomUUID(),
+      target_start: start.toISOString(),
+      target_end: end.toISOString(),
+      target_assignments: [{ personnelId: input.personnelId, start: start.toISOString(), end: end.toISOString() }],
+    });
+    if (assignmentError) {
+      await supabase.from("work_orders").delete().eq("id", order.id);
+      throw assignmentError;
+    }
+    if (!(planning as { ok: boolean }).ok) {
+      revalidatePath("/app", "layout");
+      return { ok: false, error: "De werkbon is aangemaakt maar nog niet toegewezen. Open het planbord om de planningsafwijkingen te controleren en te bevestigen." };
     }
     revalidatePath("/app");
     return { ok: true };

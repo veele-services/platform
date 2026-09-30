@@ -34,7 +34,7 @@ async function notificationFor(event: Event) {
     const values: TemplateValues = {
       bedrijfsnaam: tenant.name,
       bonnummer: workOrder.work_order_number,
-      datum: new Intl.DateTimeFormat("nl-NL", { dateStyle: "long", timeStyle: "short", timeZone: tenant.timezone }).format(new Date(workOrder.projected_start_at)),
+      datum: workOrder.projected_start_at ? new Intl.DateTimeFormat("nl-NL", { dateStyle: "long", timeStyle: "short", timeZone: tenant.timezone }).format(new Date(workOrder.projected_start_at)) : "Nog niet ingepland",
       locatie: location,
     };
     const fallback = templateDefinition(templateKey);

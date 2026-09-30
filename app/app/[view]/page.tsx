@@ -8,7 +8,6 @@ import { NoAccess } from "../no-access";
 
 const viewBySegment: Record<string, BackofficeView> = {
   aanvragen: "aanvragen",
-  planning: "planning",
   werkbonnen: "werkbonnen",
   taken: "taken",
   klanten: "klanten",
@@ -41,7 +40,7 @@ export default async function BackofficeViewPage({ params }: { params: Promise<{
   if (requiredService && !context.tenant.enabledServices.includes(requiredService)) notFound();
 
   const data = await getWorkspaceData(context.tenant.id);
-  if ((view === "planning" || view === "werkbonnen") && context.tenant.roles.some(role => ["tenant_admin", "management", "hr", "planner"].includes(role))) {
+  if (view === "werkbonnen" && context.tenant.roles.some(role => ["tenant_admin", "management", "hr", "planner"].includes(role))) {
     const db = await createClient();
     const { data: gaps, error } = await db.rpc("personnel_qualification_gaps", { target_tenant: context.tenant.id });
     if (error) throw new Error("De kwalificatiecontrole is tijdelijk niet beschikbaar.");

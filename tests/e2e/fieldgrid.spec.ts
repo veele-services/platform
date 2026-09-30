@@ -211,6 +211,9 @@ test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare v
   await page.getByRole("link", { name: "Planbord" }).click();
   await expect(page).toHaveURL(/\/app\/planning$/);
   await expect(page.getByRole("heading", { name: "Planbord", exact: true })).toBeVisible();
+  await page.getByLabel("Planningsdag").fill("2030-01-15");
+  await expect(page.locator("[data-order-id]")).toHaveCount(1);
+  await expect(page.getByRole("status").filter({ hasText: /Gegevens vernieuwen/ })).toHaveCount(0);
   await expect(page.getByText("Reistijd berekenen", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Werkbon plannen", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Bestaande planning exact aanpassen", { exact: true })).toHaveCount(0);
@@ -267,7 +270,7 @@ test("Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel", asy
   }
 });
 
-test("klantdossier heeft vijf tabs en bewaart contacten, notities en private documenten", async ({ page, browser }) => {
+test("klantdossier toont uitvoeringen en bewaart contacten, notities en private documenten", async ({ page, browser }) => {
   // Uploads, ten mobile tab checks and a second login need a larger total
   // budget on a cold CI runner; keep individual assertion timeouts unchanged.
   test.setTimeout(60_000);
@@ -278,7 +281,7 @@ test("klantdossier heeft vijf tabs en bewaart contacten, notities en private doc
   };
   await openCustomer();
   const dialog = page.getByRole("dialog", { name: "Noordhaven Vastgoed" });
-  await expect(dialog.getByRole("tab")).toHaveText(["Overzicht", "Contactpersonen", "Objecten", "Notities", "Documenten"]);
+  await expect(dialog.getByRole("tab")).toHaveText(["Overzicht", "Contactpersonen", "Objecten", "Uitvoeringen", "Notities", "Documenten"]);
   await expect(dialog.getByRole("heading", { name: "Hoofdgegevens" })).toBeVisible();
   await expect(dialog.getByText("finance@customer.test", { exact: true })).toBeVisible();
   await expect(dialog.getByText("14 dagen", { exact: true })).toBeVisible();
@@ -294,6 +297,10 @@ test("klantdossier heeft vijf tabs en bewaart contacten, notities en private doc
   await dialog.getByRole("tab", { name: "Objecten", exact: true }).click();
   await expect(dialog.getByText("Noordhaven Kantoor", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Contact toevoegen" })).toBeHidden();
+  await dialog.getByRole("tab", { name: "Uitvoeringen", exact: true }).click();
+  await expect(dialog.getByRole("heading", { name: "Uitvoeringen", exact: true })).toBeVisible();
+  await expect(dialog.getByText("WB-2030-001", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Planbord", exact: true })).toHaveAttribute("href", /\/app\/planning\?order=.+&day=2030-01-15/);
   await dialog.getByRole("tab", { name: "Notities", exact: true }).click();
   const note = `Dossierafspraak ${unique}\nGraag aanmelden bij de receptie.`;
   await dialog.getByLabel("Nieuwe notitie").fill(note);

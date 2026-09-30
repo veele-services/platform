@@ -29,7 +29,7 @@ select lives_ok(
   $$select public.reschedule_work_order('e5000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000002','2026-10-01 10:17+02',(select version from public.work_orders where id='e5000000-0000-4000-8000-000000000001'))$$,
   'planner moves a planned work order to the exact minute'
 );
-select is((select projected_start_at from public.work_order_assignments where work_order_id='e5000000-0000-4000-8000-000000000001'), '2026-10-01 10:17+02'::timestamptz, 'the exact minute is persisted');
+select is((select projected_start_at from public.work_order_assignments where work_order_id='e5000000-0000-4000-8000-000000000001' and status<>'cancelled'), '2026-10-01 10:17+02'::timestamptz, 'the exact minute is persisted; the old assignment is retained as history');
 select throws_ok(
   $$select public.reschedule_work_order('e5000000-0000-4000-8000-000000000001','e2000000-0000-4000-8000-000000000002','2026-10-01 13:10+02',(select version from public.work_orders where id='e5000000-0000-4000-8000-000000000001'))$$,
   '23P01', null, 'leave blocks scheduling'

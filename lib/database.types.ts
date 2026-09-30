@@ -876,6 +876,37 @@ isOneToOne: false
       referencedColumns: ["tenant_id","id"]
     }
                   ]
+                },"planning_changes": {
+                  Row: {
+                    "actor_user_id": string,"after_data": NonNullable<Json>,"before_data": NonNullable<Json>,"confirmed_warnings": NonNullable<Json>,"created_at": string,"id": string,"tenant_id": string,"undone_by": string | null,"work_order_id": string
+                  }
+                  Insert: {
+                    "actor_user_id": string,"after_data": NonNullable<Json>,"before_data": NonNullable<Json>,"confirmed_warnings"?: NonNullable<Json>,"created_at"?: string,"id": string,"tenant_id": string,"undone_by"?: string | null,"work_order_id": string
+                  }
+                  Update: {
+                    "actor_user_id"?: string,"after_data"?: NonNullable<Json>,"before_data"?: NonNullable<Json>,"confirmed_warnings"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"tenant_id"?: string,"undone_by"?: string | null,"work_order_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "planning_changes_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "planning_changes_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "planning_changes_undone_by_fkey"
+      columns: ["undone_by"]
+isOneToOne: false
+      referencedRelation: "planning_changes"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"platform_admins": {
                   Row: {
                     "created_at": string,"created_by": string | null,"user_id": string
@@ -1501,13 +1532,13 @@ isOneToOne: false
                   ]
                 },"work_orders": {
                   Row: {
-                    "actual_end_at": string | null,"actual_start_at": string | null,"appointment_slot_id": string | null,"attention_reason": string | null,"bill_travel": boolean,"created_at": string,"created_by": string,"customer_id": string,"discipline": string,"id": string,"object_id": string,"planned_end_at": string,"planned_start_at": string,"projected_end_at": string,"projected_start_at": string,"quote_id": string | null,"report_version": number,"request_id": string | null,"signature_required": boolean,"status": Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at": string,"version": number,"work_order_number": string
+                    "actual_end_at": string | null,"actual_start_at": string | null,"appointment_slot_id": string | null,"attention_reason": string | null,"bill_travel": boolean,"created_at": string,"created_by": string,"customer_id": string,"customer_window_kind": string,"day_instructions": string,"discipline": string,"id": string,"object_id": string,"planned_end_at": string | null,"planned_start_at": string | null,"projected_end_at": string | null,"projected_start_at": string | null,"quote_id": string | null,"report_version": number,"request_id": string | null,"requested_date": string | null,"required_personnel": number,"signature_required": boolean,"status": Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at": string,"version": number,"work_order_number": string
                   }
                   Insert: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"created_at"?: string,"created_by": string,"customer_id": string,"discipline": string,"id"?: string,"object_id": string,"planned_end_at": string,"planned_start_at": string,"projected_end_at": string,"projected_start_at": string,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at"?: string,"version"?: number,"work_order_number": string
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"created_at"?: string,"created_by": string,"customer_id": string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline": string,"id"?: string,"object_id": string,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at"?: string,"version"?: number,"work_order_number": string
                   }
                   Update: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"discipline"?: string,"id"?: string,"object_id"?: string,"planned_end_at"?: string,"planned_start_at"?: string,"projected_end_at"?: string,"projected_start_at"?: string,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id"?: string,"updated_at"?: string,"version"?: number,"work_order_number"?: string
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline"?: string,"id"?: string,"object_id"?: string,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id"?: string,"updated_at"?: string,"version"?: number,"work_order_number"?: string
                   }
                   Relationships: [
                     {
@@ -1656,6 +1687,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"change_work_order_planning":
+{ Args: { "appointment_data"?: Json,"confirmed_warnings"?: (string)[],"expected_version": number,"mutation_id": string,"target_assignments": Json,"target_end": string,"target_start": string,"target_tenant": string,"target_work_order": string,"undo_change"?: string }; Returns: Json
+                           },
 "claim_mail_delivery":
 { Args: { "target_idempotency_key": string,"target_recipient": string,"target_template": string,"target_tenant_id": string }; Returns: {
               "current_status": Database["public"]['Enums']["delivery_status"],"delivery_id": string,"should_send": boolean
@@ -1765,16 +1799,20 @@ isOneToOne: false
 "created_at": string,
 "created_by": string,
 "customer_id": string,
+"customer_window_kind": string,
+"day_instructions": string,
 "discipline": string,
 "id": string,
 "object_id": string,
-"planned_end_at": string,
-"planned_start_at": string,
-"projected_end_at": string,
-"projected_start_at": string,
+"planned_end_at": string | null,
+"planned_start_at": string | null,
+"projected_end_at": string | null,
+"projected_start_at": string | null,
 "quote_id": string | null,
 "report_version": number,
 "request_id": string | null,
+"requested_date": string | null,
+"required_personnel": number,
 "signature_required": boolean,
 "status": Database["public"]['Enums']["work_order_status"],
 "tenant_id": string,
@@ -1820,6 +1858,12 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"get_planboard":
+{ Args: { "list_view"?: string,"page_number"?: number,"search_text"?: string,"status_filter"?: string,"target_day": string,"target_tenant": string }; Returns: Json
+                           },
+"get_planboard_order":
+{ Args: { "target_order": string,"target_tenant": string }; Returns: Json
+                           },
 "personnel_dossier_owners":
 { Args: { "target_tenant": string }; Returns: {
               "id": string,"label": string
@@ -1901,16 +1945,20 @@ isOneToOne: false
 "created_at": string,
 "created_by": string,
 "customer_id": string,
+"customer_window_kind": string,
+"day_instructions": string,
 "discipline": string,
 "id": string,
 "object_id": string,
-"planned_end_at": string,
-"planned_start_at": string,
-"projected_end_at": string,
-"projected_start_at": string,
+"planned_end_at": string | null,
+"planned_start_at": string | null,
+"projected_end_at": string | null,
+"projected_start_at": string | null,
 "quote_id": string | null,
 "report_version": number,
 "request_id": string | null,
+"requested_date": string | null,
+"required_personnel": number,
 "signature_required": boolean,
 "status": Database["public"]['Enums']["work_order_status"],
 "tenant_id": string,
@@ -1939,16 +1987,20 @@ isOneToOne: false
 "created_at": string,
 "created_by": string,
 "customer_id": string,
+"customer_window_kind": string,
+"day_instructions": string,
 "discipline": string,
 "id": string,
 "object_id": string,
-"planned_end_at": string,
-"planned_start_at": string,
-"projected_end_at": string,
-"projected_start_at": string,
+"planned_end_at": string | null,
+"planned_start_at": string | null,
+"projected_end_at": string | null,
+"projected_start_at": string | null,
 "quote_id": string | null,
 "report_version": number,
 "request_id": string | null,
+"requested_date": string | null,
+"required_personnel": number,
 "signature_required": boolean,
 "status": Database["public"]['Enums']["work_order_status"],
 "tenant_id": string,
@@ -1996,16 +2048,20 @@ isOneToOne: false
 "created_at": string,
 "created_by": string,
 "customer_id": string,
+"customer_window_kind": string,
+"day_instructions": string,
 "discipline": string,
 "id": string,
 "object_id": string,
-"planned_end_at": string,
-"planned_start_at": string,
-"projected_end_at": string,
-"projected_start_at": string,
+"planned_end_at": string | null,
+"planned_start_at": string | null,
+"projected_end_at": string | null,
+"projected_start_at": string | null,
 "quote_id": string | null,
 "report_version": number,
 "request_id": string | null,
+"requested_date": string | null,
+"required_personnel": number,
 "signature_required": boolean,
 "status": Database["public"]['Enums']["work_order_status"],
 "tenant_id": string,
