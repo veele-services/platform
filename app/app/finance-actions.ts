@@ -56,10 +56,12 @@ export async function createInvoice(formData: FormData): Promise<ActionResult<{ 
     if (finalized.pdf_storage_path) return { ok: true, invoiceId: finalized.id };
     const customer = finalized.customer_snapshot as Record<string, unknown>;
     const branding = finalized.branding_snapshot as Record<string, unknown>;
+    const billing = (customer.billing_preferences ?? {}) as Record<string, unknown>;
     const pdf = await renderInvoicePdf({
       invoiceNumber: finalized.invoice_number!, issuedOn: finalized.issued_on!, dueOn: finalized.due_on!,
       tenantName: String(branding.tenant_name ?? context.tenant.name), customerName: String(customer.name ?? "Klant"),
       billingAddress: (customer.billing_address ?? {}) as Record<string, unknown>,
+      reference: String(billing.reference || ""), costCenter: String(billing.costCenter || ""),
       lines: lines.map((line) => ({ description: line.description, quantity: line.quantity, unitPriceCents: line.unit_price_cents, vatBasisPoints: line.vat_basis_points, totalCents: line.total_cents })),
       subtotalCents: finalized.subtotal_cents, vatCents: finalized.vat_cents, totalCents: finalized.total_cents,
       accentColor: String(branding.accent_color ?? "#41ac42"), footer: typeof branding.pdf_footer === "string" ? branding.pdf_footer : null,
@@ -94,6 +96,8 @@ export async function sendInvoice(formData: FormData): Promise<ActionResult<{ pa
     const supabase = await createClient();
     const { data: invoice, error } = await supabase.from("invoices").select("*").eq("id", invoiceId).single();
     if (error || !invoice.pdf_storage_path || !invoice.invoice_number) throw error ?? new Error("Factuur of PDF ontbreekt");
+    const invoicePreferences = ((invoice.customer_snapshot as Record<string, unknown>)?.billing_preferences ?? {}) as Record<string, unknown>;
+    if (invoicePreferences.channel && invoicePreferences.channel !== "email") return {ok:false,error:"Voor deze factuur is verzending via het klantportaal of per post afgesproken. Download de PDF en verwerk de afgesproken verzending; er is geen e-mail verstuurd."};
     const { data: customer, error: customerError } = await supabase.from("customers").select("*").eq("id", invoice.customer_id).single();
     if (customerError || !customer.billing_email) throw customerError ?? new Error("Klant heeft geen factuur-e-mailadres");
     const { data: group, error: groupError } = await supabase.from("invoice_groups").insert({ tenant_id: context.tenant.id, customer_id: customer.id, purpose: "payment_bundle", created_by: context.user.id, expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString() }).select().single();

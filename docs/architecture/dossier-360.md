@@ -133,7 +133,65 @@ web process alone does not establish that the VPS worker timer is healthy.
   interceptor. Actual staging provider delivery and physical-access backup/key
   recovery still need operator acceptance with authorized test recipients.
 
-## Verification and release
+## Klant 360 customer workspace
+
+`/app/klanten` uses server-side filtering, stable sorting and 25-row pagination.
+`/app/klanten/[customerId]?tab=...` is the canonical full-page dossier; old
+`?record=...` links redirect here. List filters and return context stay in the
+URL. The eleven tabs reuse the existing customer, object, commercial, work-order
+and invoice identifiers. No additional CRM, planning board or role system is
+introduced. Functional contact labels and account owners do not grant access.
+
+The five-step customer wizard stores identity, separate visiting/billing
+addresses, billing preferences, a first contact and relationship preferences in
+one transaction. It supports a draft and private customers without mandatory
+company identifiers. Duplicate suggestions never merge customers automatically.
+The existing address component handles selection and stale-coordinate clearing.
+Contact editing adds active periods, functional labels and multiple same-customer
+object links, guarded on the server. Existing customers keep their legacy status
+codes and data; new labels distinguish prospects, active, paused, former and
+archived relationships. Customers with dependent history must be archived.
+
+Contract drafts, revisions and addenda use the existing agreement tables. A draft
+successor does not invalidate the signed predecessor. Activation requires actual
+customer evidence, an identified approver, a date and scoped price lines.
+Regular visit prices can feed the existing object programme. Other price bases
+remain explicit and are not silently charged per visit. Preapproved extra work
+is applied at the concrete request in Object 360; the server checks the exact
+contract version, site, task, valid period and aggregate per-visit quantity and
+amount limit. Retrying cannot create another task. Actual execution and report
+approval still precede invoicing. Invoice snapshots now whitelist billing fields,
+honour the customer's payment term and required reference, and exclude internal
+notes/preferences and ownership fields. Historical snapshots are not rewritten.
+
+Communication entries are internal business records, not evidence of outgoing
+mail. Actual commercial correspondence keeps its existing SendGrid delivery
+records. Optional customer deadline reminders are daily in-app notifications for
+the explicitly selected active account owner, deduplicated per customer/business
+date. They require the existing worker; no new scheduler or secret is introduced.
+Financial and contract deadlines are not sent to an owner without existing
+commercial access. Source-specific email reminders retain their own preferences.
+
+Original customer documents remain in their private bucket and the shared
+document registry. Versions preserve bytes; metadata has separate optimistic
+version control. Sharing is explicit and off by default. `/klant/documenten`
+projects only shared documents, customer-visible approved reports and invoices
+whose underlying objects are all explicitly bound to the current user.
+Downloads repeat the live session, tenant and binding check; a URL is not a grant.
+HR records, object vault contents and raw audit snapshots are never included.
+Customer invoices configured for postal/manual portal delivery are not silently
+emailed. The current finance module still has no dedicated credit-note posting
+or manual portal-publication workflow; the UI reports this boundary honestly.
+
+`scripts/test-customer360.mjs` covers transactional retries, concurrent-edit
+versions, scoped contacts, document revocation, draft/signed contracts, bounded
+extra work through reviewed invoicing, private snapshot exclusion, reminders and
+stable pagination. Browser coverage includes all tabs, original PDF upload and
+download, contact/note persistence, the customer wizard, list return context,
+mobile overflow and the existing agreement-to-invoice chain. Migration
+`20260930134752_customer_360.sql` is additive and preserves existing records.
+
+## Verification and release process
 
 `test-dossier-alignment.mjs` asserts cross-context source IDs, exact consent,
 contract history, concurrent invoice retries, partial allocations, recipient

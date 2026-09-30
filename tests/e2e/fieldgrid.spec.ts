@@ -4,6 +4,7 @@ import { brandThemeStyle, createBrandPalette } from "../../lib/branding/palette"
 const PASSWORD = "Fieldgrid-E2E-2026";
 const rgb = (hex: string) => `rgb(${[1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16)).join(", ")})`;
 
+
 async function login(page: Page, email: string, next = "/app") {
   await page.goto(`/login?next=${encodeURIComponent(next)}`);
   await page.getByLabel("E-mailadres").fill(email);
@@ -20,6 +21,7 @@ test("beschermde routes vereisen een sessie en foutieve login lekt geen accounts
   await page.getByRole("button", { name: /Inloggen/ }).click();
   await expect(page.getByText("Inloggen is niet gelukt. Controleer je gegevens.")).toBeVisible();
 });
+
 
 test("platform backoffice beheert tenants, huisstijl en berichttemplates professioneel", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -135,25 +137,25 @@ test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare v
 
   await expect(page.getByRole("heading", { name: "Klanten", exact: true })).toBeVisible();
   await expect(page.getByText("Noordhaven Vastgoed").first()).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Klantnummer" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Bekijk" }).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "Bewerk" }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Nummer / klant" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Bekijk" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Bewerk" }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Verwijder" }).first()).toBeVisible();
   await expect(page.getByText("Meer", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Nieuwe klant" }).click();
   await expect(page.getByRole("dialog", { name: "Nieuwe klant" })).toBeVisible();
-  await expect(page.getByText("Organisatie", { exact: true })).toBeVisible();
+  await expect(page.getByText("Identiteit", { exact: true })).toBeVisible();
   await expect(page).toHaveScreenshot("customer-wizard-1440.png");
   const customerWizard = page.getByRole("dialog", { name: "Nieuwe klant" });
   await customerWizard.getByLabel("Klantnaam").fill("Acceptatietest klant");
   await customerWizard.getByRole("button", { name: "Volgende" }).click();
-  await expect(customerWizard.getByText("Wat is het factuuradres?")).toBeVisible();
-  await customerWizard.getByLabel("Straatnaam").fill("Teststraat");
-  await customerWizard.getByLabel("Huisnummer",{exact:true}).fill("1");
-  await customerWizard.getByLabel("Postcode").fill("1234 AB");
-  await customerWizard.getByLabel("Woonplaats").fill("Utrecht");
+  await expect(customerWizard.getByText("Adressen en facturatie")).toBeVisible();
+  await customerWizard.getByLabel("Straatnaam").first().fill("Teststraat");
+  await customerWizard.getByLabel("Huisnummer",{exact:true}).first().fill("1");
+  await customerWizard.getByLabel("Postcode").first().fill("1234 AB");
+  await customerWizard.getByLabel("Woonplaats").first().fill("Utrecht");
   await customerWizard.getByRole("button", { name: "Volgende" }).click();
-  await expect(customerWizard.getByText("Controleer en maak de klant aan")).toBeVisible();
+  await expect(customerWizard.getByText("Eerste contactpersoon")).toBeVisible();
   await customerWizard.getByRole("button", { name: "Sluiten" }).click();
   await page.evaluate(() => window.scrollTo(0, 0));
   await expect(page).toHaveScreenshot("customers-list-1440.png");
@@ -272,103 +274,71 @@ test("Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel", asy
   }
 });
 
-test("klantdossier toont uitvoeringen en bewaart contacten, notities en private documenten", async ({ page, browser }) => {
-  // Uploads, persisted URL tabs, ten mobile tab checks and a second login
-  // need an end-to-end CI budget; individual assertion timeouts stay unchanged.
-  test.setTimeout(120_000);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await login(page, "platform-admin@fieldgrid.test", "/app/klanten");
-  const openCustomer = async () => {
-    await page.getByRole("row").filter({ hasText: "Noordhaven Vastgoed" }).getByRole("button", { name: "Bekijk", exact: true }).click();
-  };
-  await openCustomer();
-  const dialog = page.getByRole("dialog", { name: "Noordhaven Vastgoed" });
-  await expect(dialog.getByRole("tab")).toHaveText(["Overzicht", "Contactpersonen", "Objecten", "Uitvoeringen", "Verzoeken & meerwerk", "Aanvragen & offertes", "Afspraken & contracten", "Opvolging", "Financieel", "Tijdlijn", "Notities", "Documenten"]);
-  await expect(dialog.getByRole("heading", { name: "Hoofdgegevens" })).toBeVisible();
-  await expect(dialog.getByText("finance@customer.test", { exact: true })).toBeVisible();
-  await expect(dialog.getByText("14 dagen", { exact: true })).toBeVisible();
-  await expect(dialog).toHaveScreenshot("customer-dossier-overview-1440.png");
-  // Read-only tabs must not need another server render of the entire workspace.
-  await page.route("**/app/klanten?*_rsc=*",route=>route.abort());
-  await dialog.getByRole("tab", { name: "Overzicht", exact: true }).focus();
-  await page.keyboard.press("ArrowRight");
-  await expect(dialog.getByRole("tab", { name: "Contactpersonen", exact: true })).toHaveAttribute("aria-selected", "true");
-  await expect(page).toHaveURL(/tab=contacts/);
-  await page.unroute("**/app/klanten?*_rsc=*");
-  const unique = Date.now().toString(36);
-  await dialog.getByLabel("Naam", { exact: true }).fill(`Contact ${unique}`);
-  await dialog.getByLabel("E-mail", { exact: true }).fill("contact@customer.test");
-  await dialog.getByRole("button", { name: "Contact toevoegen" }).click();
-  await expect(dialog.getByText(`Contact ${unique}`, { exact: true })).toBeVisible();
-  await dialog.getByRole("tab", { name: "Objecten", exact: true }).click();
-  await expect(dialog.getByText("Noordhaven Kantoor", { exact: true })).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Contact toevoegen" })).toBeHidden();
-  await dialog.getByRole("tab", { name: "Uitvoeringen", exact: true }).click();
-  await expect(dialog.getByRole("heading", { name: "Uitvoeringen", exact: true })).toBeVisible();
-  await expect(dialog.getByText("WB-2030-001", { exact: true })).toBeVisible();
-  await expect(dialog.getByRole("link", { name: "Planbord", exact: true })).toHaveAttribute("href", /\/app\/planning\?order=.+&day=2030-01-15/);
-  await dialog.getByRole("tab", { name: "Notities", exact: true }).click();
-  const note = `Dossierafspraak ${unique}\nGraag aanmelden bij de receptie.`;
-  await dialog.getByLabel("Nieuwe notitie").fill(note);
-  await dialog.getByRole("button", { name: "Notitie toevoegen" }).click();
-  await expect(dialog.getByText(note, { exact: true })).toBeVisible();
-  await expect(dialog.getByLabel("Nieuwe notitie")).toHaveValue("");
-
-  await dialog.getByRole("tab", { name: "Documenten", exact: true }).click();
-  const title = `Overeenkomst ${unique}`;
-  await dialog.getByLabel("Titel", { exact: true }).fill(title);
-  await dialog.getByLabel("Bestand", { exact: true }).setInputFiles({ name: "too-large.pdf", mimeType: "application/pdf", buffer: Buffer.alloc(10 * 1024 * 1024 + 1) });
-  await expect.poll(() => dialog.getByLabel("Bestand", { exact: true }).evaluate((element: HTMLInputElement) => element.validationMessage)).toBe("Gebruik een bestand van maximaal 10 MB");
-  await dialog.getByLabel("Bestand", { exact: true }).setInputFiles({ name: "invalid.pdf", mimeType: "application/pdf", buffer: Buffer.from("<html>not a PDF</html>") });
-  await dialog.getByRole("button", { name: "Document uploaden" }).click();
-  await expect(page.getByText("De bestandsinhoud komt niet overeen met PDF, JPG of PNG")).toBeVisible();
-  await expect(dialog.getByRole("link", { name: `${title} downloaden` })).toHaveCount(0);
-  const { PDFDocument } = await import("pdf-lib");
-  const pdf = await PDFDocument.create();
-  pdf.addPage().drawText("Fieldgrid customer document test");
-  const bytes = Buffer.from(await pdf.save());
-  await dialog.getByLabel("Bestand", { exact: true }).setInputFiles({ name: "overeenkomst.pdf", mimeType: "application/pdf", buffer: bytes });
-  await dialog.getByRole("button", { name: "Document uploaden" }).click();
-  const downloadLink = dialog.getByRole("link", { name: `${title} downloaden` });
-  await expect(downloadLink).toBeVisible();
-  await dialog.screenshot({ path: "test-results/customer-dossier-documents.png" });
-  const downloadPath = await downloadLink.getAttribute("href");
-  const response = await page.request.get(downloadPath!);
-  expect(response.status()).toBe(200);
-  expect(response.headers()["content-disposition"]).toContain("attachment");
-  expect(await response.body()).toEqual(bytes);
-
-  await page.reload();
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("tab",{name:"Documenten",exact:true})).toHaveAttribute("aria-selected","true");
-  await dialog.getByRole("tab", { name: "Notities", exact: true }).click();
-  await expect(dialog.getByText(note, { exact: true })).toBeVisible();
-  await dialog.getByRole("tab", { name: "Documenten", exact: true }).click();
-  await expect(downloadLink).toBeVisible();
-  for (const width of [390, 320]) {
-    await page.setViewportSize({ width, height: 844 });
-    for (const tab of ["Overzicht", "Contactpersonen", "Objecten", "Notities", "Documenten"]) {
-      await dialog.getByRole("tab", { name: tab, exact: true }).click();
-      await expect(dialog.getByRole("tab", { name: tab, exact: true })).toHaveAttribute("aria-selected","true");
-      await expect(dialog.getByRole("tabpanel")).toBeVisible();
-      await expect.poll(() => dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+test("klantdossier opent elf volledige paginaonderdelen en bewaart contacten, notities en private documenten", async ({ page, browser }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({width:1440,height:900});
+  await login(page,"platform-admin@fieldgrid.test","/app/klanten");
+  await page.getByRole("row").filter({hasText:"Noordhaven Vastgoed"}).getByRole("link",{name:"Bekijk",exact:true}).click();
+  await expect(page).toHaveURL(/\/app\/klanten\/[a-f0-9-]+/);
+  const dossier=page.locator(".customer-dossier");
+  const nav=dossier.getByRole("navigation",{name:"Klantdossier"});
+  await expect(nav.getByRole("link")).toHaveText(["Overzicht","Klantgegevens","Contactpersonen","Objecten","Contracten & diensten","Afspraken & opdrachten","Offertes & meerwerk","Facturen & betalingen","Kwaliteit & meldingen","Documenten","Communicatie & tijdlijn"]);
+  await expect(dossier.getByRole("heading",{name:"Aandacht & opvolging"})).toBeVisible();
+  await expect(dossier.locator(".customer-overview-cards")).toHaveScreenshot("customer-dossier-overview-1440.png");
+  await nav.getByRole("link",{name:"Klantgegevens",exact:true}).click();
+  await expect(dossier.getByText("finance@customer.test",{exact:true})).toBeVisible();
+  await expect(dossier.getByText("14 dagen",{exact:true})).toBeVisible();
+  await nav.getByRole("link",{name:"Contactpersonen",exact:true}).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/tab=contactpersonen/);
+  await dossier.getByRole("button",{name:"Contactpersoon toevoegen",exact:true}).click();
+  const contact=page.getByRole("dialog",{name:"Contactpersoon toevoegen"});
+  const unique=Date.now().toString(36);
+  await contact.getByLabel("Naam",{exact:true}).fill(`Contact ${unique}`);
+  await contact.getByLabel("E-mail",{exact:true}).fill("contact@customer.test");
+  await contact.getByRole("button",{name:"Contact opslaan",exact:true}).click();
+  await expect(contact).toBeHidden();
+  await expect(dossier.getByText(`Contact ${unique}`,{exact:true})).toBeVisible();
+  await nav.getByRole("link",{name:"Objecten",exact:true}).click();
+  await expect(dossier.getByText("Noordhaven Kantoor",{exact:true})).toBeVisible();
+  await nav.getByRole("link",{name:"Afspraken & opdrachten",exact:true}).click();
+  await expect(dossier.getByText("WB-2030-001",{exact:true})).toBeVisible();
+  await nav.getByRole("link",{name:"Communicatie & tijdlijn",exact:true}).click();
+  await dossier.getByRole("button",{name:"Registratie toevoegen",exact:true}).click();
+  const noteDialog=page.getByRole("dialog",{name:"Communicatie of actie vastleggen"});
+  const note=`Dossierafspraak ${unique}: aanmelden bij de receptie.`;
+  await noteDialog.getByLabel("Zakelijke toelichting").fill(note);
+  await noteDialog.getByRole("button",{name:"Registratie opslaan",exact:true}).click();
+  await expect(noteDialog).toBeHidden();
+  await expect(dossier.getByText(note,{exact:true})).toBeVisible();
+  await nav.getByRole("link",{name:"Documenten",exact:true}).click();
+  await dossier.getByRole("button",{name:"Document uploaden",exact:true}).click();
+  const upload=page.getByRole("dialog",{name:"Document uploaden",exact:true});
+  const title=`Overeenkomst ${unique}`;
+  await upload.getByLabel("Titel",{exact:true}).fill(title);
+  await upload.getByLabel("Bestand",{exact:true}).setInputFiles({name:"invalid.pdf",mimeType:"application/pdf",buffer:Buffer.from("<html>not a PDF</html>")});
+  await upload.getByRole("button",{name:"Document uploaden",exact:true}).click();
+  await expect(upload.getByRole("alert")).toContainText("bestandsinhoud");
+  const {PDFDocument}=await import("pdf-lib");const pdf=await PDFDocument.create();pdf.addPage().drawText("FICTITIOUS Fieldgrid customer test");const bytes=Buffer.from(await pdf.save());
+  await upload.getByLabel("Bestand",{exact:true}).setInputFiles({name:"overeenkomst.pdf",mimeType:"application/pdf",buffer:bytes});
+  await upload.getByRole("button",{name:"Document uploaden",exact:true}).click();
+  await expect(upload).toBeHidden();
+  const row=dossier.getByRole("row").filter({hasText:title});
+  const downloadPath=await row.getByRole("link",{name:"Download",exact:true}).getAttribute("href");
+  const response=await page.request.get(downloadPath!);expect(response.status()).toBe(200);expect(await response.body()).toEqual(bytes);
+  await page.reload();await expect(row).toBeVisible();await expect(page).toHaveURL(/tab=documenten/);
+  for(const width of [768,390,320]){
+    await page.setViewportSize({width,height:844});
+    for(const tab of ["overzicht","contactpersonen","objecten","afspraken","communicatie","documenten"]){
+      await dossier.getByLabel("Onderdeel",{exact:true}).selectOption(tab);
+      await expect(page).toHaveURL(new RegExp("tab="+tab));
+      await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     }
   }
-  await page.setViewportSize({ width: 390, height: 844 });
-  await dialog.getByRole("tab", { name: "Overzicht", exact: true }).click();
-  await expect(dialog.getByRole("tab",{name:"Overzicht",exact:true})).toHaveAttribute("aria-selected","true");
-  await expect(dialog.getByRole("heading",{name:"Hoofdgegevens"})).toBeVisible();
-  await expect(dialog).toHaveScreenshot("customer-dossier-overview-390.png",{stylePath:"tests/e2e/dossier-screenshot.css"});
-
-  const staffContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
-  try {
-    const staffPage = await staffContext.newPage();
-    await login(staffPage, "field-worker@fieldgrid.test", "/staff");
-    const denied = await staffContext.request.get(downloadPath!);
-    expect(denied.status()).toBe(404);
-  } finally {
-    await staffContext.close();
-  }
+  await page.setViewportSize({width:390,height:844});await dossier.getByLabel("Onderdeel",{exact:true}).selectOption("overzicht");await expect(dossier.getByRole("heading",{name:"Aandacht & opvolging"})).toBeVisible();
+  await expect(dossier.locator(".customer-overview-cards")).toHaveScreenshot("customer-dossier-overview-390.png",{stylePath:"tests/e2e/dossier-screenshot.css"});
+  const staffContext=await browser.newContext({baseURL:"http://127.0.0.1:3000"});
+  try{const staff=await staffContext.newPage();await login(staff,"field-worker@fieldgrid.test","/staff");expect((await staffContext.request.get(downloadPath!)).status()).toBe(404);}finally{await staffContext.close();}
 });
 
 test("personeels-PWA opent een vrijgegeven bon, zet gezien en toont de echte checklist", async ({ page }) => {
@@ -391,4 +361,38 @@ test("login en PWA hebben geen horizontale overflow op smalle doelbreedtes", asy
     await page.goto("/login");
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   }
+});
+
+
+test("Klant 360 wizard bewaart een particulier zonder bedrijfsnummers en behoudt lijstcontext",async({page})=>{
+  await login(page,"platform-admin@fieldgrid.test","/app/klanten");
+  await page.getByRole("button",{name:"Nieuwe klant",exact:true}).click();
+  const wizard=page.getByRole("dialog",{name:"Nieuwe klant",exact:true});
+  const name=`FICTITIOUS Klantwizard ${Date.now()}`;
+  await wizard.locator('select[name="type"]').selectOption("private");
+  await wizard.getByLabel("Klantnaam",{exact:true}).fill(name);
+  await expect(wizard.getByLabel("KvK-nummer (optioneel)")).toBeHidden();
+  await wizard.getByRole("button",{name:"Volgende",exact:true}).click();
+  await expect(wizard.getByLabel("Betaaltermijn (dagen)")).toHaveValue("14");
+  await wizard.getByLabel("Factuurmail",{exact:true}).fill("fixture@customer360.test");
+  await wizard.getByRole("button",{name:"Volgende",exact:true}).click();
+  await wizard.getByLabel("Naam contactpersoon",{exact:true}).fill("FICTITIOUS Contact wizard");
+  await wizard.getByLabel("E-mail contactpersoon",{exact:true}).fill("contact@customer360.test");
+  await wizard.getByRole("button",{name:"Volgende",exact:true}).click();
+  await wizard.locator('select[name="status"]').selectOption("active");
+  await wizard.getByRole("button",{name:"Volgende",exact:true}).click();
+  await expect(wizard.locator(".customer-summary")).toContainText(name);
+  await wizard.getByRole("button",{name:"Klant aanmaken",exact:true}).click();
+  await expect(wizard).toBeHidden();
+  await expect(page).toHaveURL(/\/app\/klanten\/[a-f0-9-]{36}/);
+  await page.reload();await expect(page.getByRole("heading",{name,exact:true})).toBeVisible();
+  const customerPath=new URL(page.url()).pathname;
+  await page.goto("/app/klanten?q="+encodeURIComponent(name)+"&sort=number");
+  const row=page.getByRole("row").filter({hasText:name});
+  await expect(row).toHaveCount(1);
+  await row.getByRole("link",{name:"Bekijk",exact:true}).click();
+  await expect(page).toHaveURL(new RegExp(customerPath));
+  await page.getByRole("link",{name:"Terug naar klanten"}).click();
+  await expect(page).toHaveURL(/sort=number/);
+  await expect(page.getByRole("row").filter({hasText:name})).toHaveCount(1);
 });

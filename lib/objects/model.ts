@@ -40,6 +40,7 @@ export const recordSchema = z.object({
   evidence:z.string().max(3000),acknowledgement:z.boolean(),quantity:z.string().max(30),unit:z.string().max(60),
 });
 export type ObjectData = {
+ extraAgreementOptions:Array<{id:string;title:string;version:number;scope:string;priceCents:number;limitCents:number;quantity:number}>;
  agreementOptions:Array<{id:string;title:string;version:number;task_revision_id:string;scope:string}>;qualificationGaps:Database["public"]["Functions"]["personnel_qualification_gaps"]["Returns"];
  object:Row<"objects">;customer:Row<"customers">;nodes:Row<"object_nodes">[];records:Row<"object_records">[];
  orders:Row<"work_orders">[];assignments:Row<"work_order_assignments">[];personnel:Array<Pick<Row<"personnel">,"id"|"full_name">>;

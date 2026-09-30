@@ -294,13 +294,13 @@ isOneToOne: false
                   ]
                 },"customer_agreement_lines": {
                   Row: {
-                    "agreement_id": string,"id": string,"limit_cents": number,"object_id": string,"price_cents": number,"quantity": number,"scope": string,"task_revision_id": string,"tenant_id": string
+                    "agreement_id": string,"duration_minutes": number | null,"extra_work": boolean,"frequency": string,"id": string,"limit_cents": number,"object_id": string,"price_basis": string,"price_cents": number,"quantity": number,"scope": string,"task_revision_id": string,"tenant_id": string,"time_window": string,"unit": string,"vat_basis_points": number | null
                   }
                   Insert: {
-                    "agreement_id": string,"id"?: string,"limit_cents": number,"object_id": string,"price_cents": number,"quantity": number,"scope": string,"task_revision_id": string,"tenant_id": string
+                    "agreement_id": string,"duration_minutes"?: number | null,"extra_work"?: boolean,"frequency"?: string,"id"?: string,"limit_cents": number,"object_id": string,"price_basis"?: string,"price_cents": number,"quantity": number,"scope": string,"task_revision_id": string,"tenant_id": string,"time_window"?: string,"unit"?: string,"vat_basis_points"?: number | null
                   }
                   Update: {
-                    "agreement_id"?: string,"id"?: string,"limit_cents"?: number,"object_id"?: string,"price_cents"?: number,"quantity"?: number,"scope"?: string,"task_revision_id"?: string,"tenant_id"?: string
+                    "agreement_id"?: string,"duration_minutes"?: number | null,"extra_work"?: boolean,"frequency"?: string,"id"?: string,"limit_cents"?: number,"object_id"?: string,"price_basis"?: string,"price_cents"?: number,"quantity"?: number,"scope"?: string,"task_revision_id"?: string,"tenant_id"?: string,"time_window"?: string,"unit"?: string,"vat_basis_points"?: number | null
                   }
                   Relationships: [
                     {
@@ -325,16 +325,22 @@ isOneToOne: false
                   ]
                 },"customer_agreements": {
                   Row: {
-                    "accepted_by_name": string,"accepted_on": string,"created_at": string,"created_by": string,"customer_id": string,"ends_on": string | null,"evidence_document_id": string | null,"id": string,"previous_id": string | null,"starts_on": string,"state": string,"tenant_id": string,"title": string,"version": number
+                    "accepted_by_name": string | null,"accepted_on": string | null,"agreement_type": string,"created_at": string,"created_by": string,"customer_id": string,"details": NonNullable<Json>,"edit_version": number,"ends_on": string | null,"evidence_document_id": string | null,"id": string,"notice_on": string | null,"owner_user_id": string | null,"previous_id": string | null,"renewal_on": string | null,"review_on": string | null,"starts_on": string | null,"state": string,"tenant_id": string,"title": string,"version": number
                   }
                   Insert: {
-                    "accepted_by_name": string,"accepted_on": string,"created_at"?: string,"created_by"?: string,"customer_id": string,"ends_on"?: string | null,"evidence_document_id"?: string | null,"id"?: string,"previous_id"?: string | null,"starts_on": string,"state"?: string,"tenant_id": string,"title": string,"version"?: number
+                    "accepted_by_name"?: string | null,"accepted_on"?: string | null,"agreement_type"?: string,"created_at"?: string,"created_by"?: string,"customer_id": string,"details"?: NonNullable<Json>,"edit_version"?: number,"ends_on"?: string | null,"evidence_document_id"?: string | null,"id"?: string,"notice_on"?: string | null,"owner_user_id"?: string | null,"previous_id"?: string | null,"renewal_on"?: string | null,"review_on"?: string | null,"starts_on"?: string | null,"state"?: string,"tenant_id": string,"title": string,"version"?: number
                   }
                   Update: {
-                    "accepted_by_name"?: string,"accepted_on"?: string,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"ends_on"?: string | null,"evidence_document_id"?: string | null,"id"?: string,"previous_id"?: string | null,"starts_on"?: string,"state"?: string,"tenant_id"?: string,"title"?: string,"version"?: number
+                    "accepted_by_name"?: string | null,"accepted_on"?: string | null,"agreement_type"?: string,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"details"?: NonNullable<Json>,"edit_version"?: number,"ends_on"?: string | null,"evidence_document_id"?: string | null,"id"?: string,"notice_on"?: string | null,"owner_user_id"?: string | null,"previous_id"?: string | null,"renewal_on"?: string | null,"review_on"?: string | null,"starts_on"?: string | null,"state"?: string,"tenant_id"?: string,"title"?: string,"version"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "customer_agreement_owner_fk"
+      columns: ["tenant_id","owner_user_id"]
+isOneToOne: false
+      referencedRelation: "tenant_memberships"
+      referencedColumns: ["tenant_id","user_id"]
+    },{
       foreignKeyName: "customer_agreements_tenant_id_customer_id_fkey"
       columns: ["tenant_id","customer_id"]
 isOneToOne: false
@@ -362,13 +368,13 @@ isOneToOne: false
                   ]
                 },"customer_contacts": {
                   Row: {
-                    "created_at": string,"customer_id": string,"email": string | null,"full_name": string,"id": string,"is_primary": boolean,"phone": string | null,"role": string | null,"tenant_id": string
+                    "active": boolean,"active_from": string | null,"active_until": string | null,"availability": string,"created_at": string,"customer_id": string,"email": string | null,"full_name": string,"id": string,"is_primary": boolean,"labels": (string)[],"object_ids": (string)[],"organization": string,"phone": string | null,"role": string | null,"tenant_id": string,"updated_at": string,"version": number
                   }
                   Insert: {
-                    "created_at"?: string,"customer_id": string,"email"?: string | null,"full_name": string,"id"?: string,"is_primary"?: boolean,"phone"?: string | null,"role"?: string | null,"tenant_id": string
+                    "active"?: boolean,"active_from"?: string | null,"active_until"?: string | null,"availability"?: string,"created_at"?: string,"customer_id": string,"email"?: string | null,"full_name": string,"id"?: string,"is_primary"?: boolean,"labels"?: (string)[],"object_ids"?: (string)[],"organization"?: string,"phone"?: string | null,"role"?: string | null,"tenant_id": string,"updated_at"?: string,"version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"customer_id"?: string,"email"?: string | null,"full_name"?: string,"id"?: string,"is_primary"?: boolean,"phone"?: string | null,"role"?: string | null,"tenant_id"?: string
+                    "active"?: boolean,"active_from"?: string | null,"active_until"?: string | null,"availability"?: string,"created_at"?: string,"customer_id"?: string,"email"?: string | null,"full_name"?: string,"id"?: string,"is_primary"?: boolean,"labels"?: (string)[],"object_ids"?: (string)[],"organization"?: string,"phone"?: string | null,"role"?: string | null,"tenant_id"?: string,"updated_at"?: string,"version"?: number
                   }
                   Relationships: [
                     {
@@ -381,13 +387,13 @@ isOneToOne: false
                   ]
                 },"customer_documents": {
                   Row: {
-                    "created_at": string,"created_by": string,"customer_id": string,"document_on": string | null,"file_name": string,"id": string,"mime_type": string,"previous_id": string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until": string | null,"version": number
+                    "archived": boolean,"category": string,"created_at": string,"created_by": string,"customer_id": string,"document_on": string | null,"file_name": string,"id": string,"metadata_version": number,"mime_type": string,"previous_id": string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until": string | null,"version": number,"visibility": string
                   }
                   Insert: {
-                    "created_at"?: string,"created_by": string,"customer_id": string,"document_on"?: string | null,"file_name": string,"id"?: string,"mime_type": string,"previous_id"?: string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until"?: string | null,"version"?: number
+                    "archived"?: boolean,"category"?: string,"created_at"?: string,"created_by": string,"customer_id": string,"document_on"?: string | null,"file_name": string,"id"?: string,"metadata_version"?: number,"mime_type": string,"previous_id"?: string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until"?: string | null,"version"?: number,"visibility"?: string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string,"customer_id"?: string,"document_on"?: string | null,"file_name"?: string,"id"?: string,"mime_type"?: string,"previous_id"?: string | null,"sha256"?: string,"size_bytes"?: number,"storage_path"?: string,"tenant_id"?: string,"title"?: string,"valid_until"?: string | null,"version"?: number
+                    "archived"?: boolean,"category"?: string,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"document_on"?: string | null,"file_name"?: string,"id"?: string,"metadata_version"?: number,"mime_type"?: string,"previous_id"?: string | null,"sha256"?: string,"size_bytes"?: number,"storage_path"?: string,"tenant_id"?: string,"title"?: string,"valid_until"?: string | null,"version"?: number,"visibility"?: string
                   }
                   Relationships: [
                     {
@@ -412,16 +418,34 @@ isOneToOne: false
                   ]
                 },"customer_notes": {
                   Row: {
-                    "body": string,"created_at": string,"created_by": string,"customer_id": string,"id": string,"tenant_id": string
+                    "body": string,"created_at": string,"created_by": string,"customer_id": string,"due_on": string | null,"id": string,"kind": string,"object_id": string | null,"owner_user_id": string | null,"state": string,"tenant_id": string,"title": string,"updated_at": string,"version": number,"work_order_id": string | null
                   }
                   Insert: {
-                    "body": string,"created_at"?: string,"created_by": string,"customer_id": string,"id"?: string,"tenant_id": string
+                    "body": string,"created_at"?: string,"created_by": string,"customer_id": string,"due_on"?: string | null,"id"?: string,"kind"?: string,"object_id"?: string | null,"owner_user_id"?: string | null,"state"?: string,"tenant_id": string,"title"?: string,"updated_at"?: string,"version"?: number,"work_order_id"?: string | null
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"id"?: string,"tenant_id"?: string
+                    "body"?: string,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"due_on"?: string | null,"id"?: string,"kind"?: string,"object_id"?: string | null,"owner_user_id"?: string | null,"state"?: string,"tenant_id"?: string,"title"?: string,"updated_at"?: string,"version"?: number,"work_order_id"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "customer_note_object_fk"
+      columns: ["tenant_id","object_id"]
+isOneToOne: false
+      referencedRelation: "objects"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "customer_note_order_fk"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "customer_note_owner_fk"
+      columns: ["tenant_id","owner_user_id"]
+isOneToOne: false
+      referencedRelation: "tenant_memberships"
+      referencedColumns: ["tenant_id","user_id"]
+    },{
       foreignKeyName: "customer_notes_tenant_id_customer_id_fkey"
       columns: ["tenant_id","customer_id"]
 isOneToOne: false
@@ -437,16 +461,22 @@ isOneToOne: false
                   ]
                 },"customers": {
                   Row: {
-                    "billing_address": NonNullable<Json>,"billing_email": string | null,"created_at": string,"customer_number": string,"id": string,"name": string,"payment_terms_days": number | null,"phone": string | null,"status": string,"tenant_id": string,"updated_at": string,"version": number
+                    "billing_address": NonNullable<Json>,"billing_email": string | null,"billing_preferences": NonNullable<Json>,"company_number": string,"created_at": string,"created_by": string | null,"customer_number": string,"customer_type": string,"email": string,"id": string,"legal_name": string,"name": string,"owner_user_id": string | null,"payment_terms_days": number | null,"phone": string | null,"preferences": string,"relationship_since": string | null,"reminders_enabled": boolean,"services": (string)[],"status": string,"tenant_id": string,"trade_name": string,"updated_at": string,"updated_by": string | null,"vat_number": string,"version": number,"visit_address": NonNullable<Json>,"website": string
                   }
                   Insert: {
-                    "billing_address"?: NonNullable<Json>,"billing_email"?: string | null,"created_at"?: string,"customer_number": string,"id"?: string,"name": string,"payment_terms_days"?: number | null,"phone"?: string | null,"status"?: string,"tenant_id": string,"updated_at"?: string,"version"?: number
+                    "billing_address"?: NonNullable<Json>,"billing_email"?: string | null,"billing_preferences"?: NonNullable<Json>,"company_number"?: string,"created_at"?: string,"created_by"?: string | null,"customer_number": string,"customer_type"?: string,"email"?: string,"id"?: string,"legal_name"?: string,"name": string,"owner_user_id"?: string | null,"payment_terms_days"?: number | null,"phone"?: string | null,"preferences"?: string,"relationship_since"?: string | null,"reminders_enabled"?: boolean,"services"?: (string)[],"status"?: string,"tenant_id": string,"trade_name"?: string,"updated_at"?: string,"updated_by"?: string | null,"vat_number"?: string,"version"?: number,"visit_address"?: NonNullable<Json>,"website"?: string
                   }
                   Update: {
-                    "billing_address"?: NonNullable<Json>,"billing_email"?: string | null,"created_at"?: string,"customer_number"?: string,"id"?: string,"name"?: string,"payment_terms_days"?: number | null,"phone"?: string | null,"status"?: string,"tenant_id"?: string,"updated_at"?: string,"version"?: number
+                    "billing_address"?: NonNullable<Json>,"billing_email"?: string | null,"billing_preferences"?: NonNullable<Json>,"company_number"?: string,"created_at"?: string,"created_by"?: string | null,"customer_number"?: string,"customer_type"?: string,"email"?: string,"id"?: string,"legal_name"?: string,"name"?: string,"owner_user_id"?: string | null,"payment_terms_days"?: number | null,"phone"?: string | null,"preferences"?: string,"relationship_since"?: string | null,"reminders_enabled"?: boolean,"services"?: (string)[],"status"?: string,"tenant_id"?: string,"trade_name"?: string,"updated_at"?: string,"updated_by"?: string | null,"vat_number"?: string,"version"?: number,"visit_address"?: NonNullable<Json>,"website"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "customer_owner_fk"
+      columns: ["tenant_id","owner_user_id"]
+isOneToOne: false
+      referencedRelation: "tenant_memberships"
+      referencedColumns: ["tenant_id","user_id"]
+    },{
       foreignKeyName: "customers_tenant_id_fkey"
       columns: ["tenant_id"]
 isOneToOne: false
@@ -2525,7 +2555,33 @@ isOneToOne: false
               "user_id": string
             }[]
                            },
+"customer_command":
+{ Args: { "command": string,"input": Json,"request_id": string,"target_tenant": string }; Returns: Json
+                           },
+"customer_commercial_followup":
+{ Args: { "target_customer": string,"target_tenant": string }; Returns: Json
+                           },
+"customer_extra_agreements":
+{ Args: { "target_object": string,"target_tenant": string }; Returns: Json
+                           },
+"customer_file_access":
+{ Args: { "kind": string,"target_id": string,"target_tenant": string }; Returns: Json
+                           },
+"customer_history":
+{ Args: { "target_customer": string,"target_tenant": string }; Returns: Json
+                           },
+"customer_list":
+{ Args: { "filters"?: Json,"target_tenant": string }; Returns: Json
+                           },
 "customer_object_visits":
+{ Args: { "target_tenant": string }; Returns: Json
+                           },
+"customer_owners":
+{ Args: { "target_tenant": string }; Returns: {
+              "commercial": boolean,"id": string,"label": string
+            }[]
+                           },
+"customer_portal_documents":
 { Args: { "target_tenant": string }; Returns: Json
                            },
 "dispatch_work_order":
@@ -2660,6 +2716,9 @@ isOneToOne: false
                            },
 "prepare_personnel_checklist":
 { Args: { "checklist_type": string,"target_personnel": string,"target_tenant": string }; Returns: number
+                           },
+"process_customer_reminders":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "process_object_reminders":
 { Args: Record<PropertyKey, never>; Returns: number

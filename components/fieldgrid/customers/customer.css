@@ -1,0 +1,296 @@
+.customer-workspace,
+.customer-dossier {
+  display: grid;
+  gap: 24px;
+  min-width: 0;
+}
+.customer-dossier .dossier-toolbar > label {
+  min-width: 0;
+  flex: 1 1 180px;
+  width: auto;
+}
+.customer-dossier .dossier-toolbar input,
+.customer-dossier .dossier-toolbar select {
+  width: 100%;
+  min-width: 0;
+}
+.customer-dossier .dossier-toolbar {
+  margin-bottom: 20px;
+  max-width: 100%;
+}
+.customer-dossier .dossier-event {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.customer-dialog .primary-button {
+  background: var(--brand-action);
+  color: var(--brand-action-foreground);
+}
+.customer-dialog .eyebrow {
+  color: var(--brand-accent-text);
+}
+.customer-dialog .dossier-form-fields .dossier-form-fields {
+  padding: 0;
+}
+.customer-dialog .customer-steps {
+  flex-shrink: 0;
+  padding: 16px 24px;
+  margin: 0;
+}
+.customer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+  padding: 22px;
+}
+.customer-toolbar label {
+  display: grid;
+  gap: 7px;
+  min-width: 140px;
+  flex: 1;
+  font-size: 12px;
+  font-weight: 650;
+}
+.customer-toolbar .customer-search {
+  min-width: 240px;
+  flex: 2;
+}
+.customer-toolbar label > span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.customer-toolbar input,
+.customer-toolbar select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--brand-border, #dce5e9);
+  border-radius: 9px;
+  padding: 10px;
+  background: var(--brand-surface, #fff);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+}
+.customer-table {
+  min-width: 1420px;
+}
+.customer-table th:last-child,
+.customer-table td:last-child {
+  position: static;
+}
+.customer-tabs {
+  min-width: 0;
+  border-bottom: 1px solid var(--brand-border, #dce5e9);
+}
+.customer-tabs-wide {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding: 4px 0 12px;
+}
+.customer-tabs-wide a {
+  padding: 11px 13px;
+  color: inherit;
+  font-size: 13px;
+  border-radius: 9px;
+  text-decoration: none;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.customer-tabs-wide a[aria-current="page"] {
+  background: var(--brand-accent-soft, #eef4ee);
+  color: var(--brand-accent-text, #23452a);
+  border-color: var(--brand-accent-border, #c9dcca);
+  font-weight: 750;
+}
+.customer-tabs-mobile {
+  display: none;
+}
+.customer-overview-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+.customer-overview-card {
+  display: grid;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+.customer-overview-card > svg {
+  color: var(--brand-accent-text, #345d36);
+}
+.customer-overview-card strong {
+  font-size: 25px;
+}
+.customer-overview-card small {
+  color: var(--brand-muted, #637b8b);
+  line-height: 1.6;
+}
+.customer-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.customer-facts > div {
+  border-bottom: 1px solid var(--brand-border, #e3ebee);
+  padding: 0 0 16px;
+}
+.customer-facts dt {
+  font-size: 12px;
+  color: var(--brand-muted, #637b8b);
+  margin-bottom: 7px;
+}
+.customer-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.customer-summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px 24px;
+  line-height: 1.6;
+  padding: 16px 0;
+}
+.customer-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.customer-summary dt {
+  font-weight: 650;
+}
+.customer-contract-line {
+  border: 1px solid var(--brand-border, #dce5e9);
+  padding: 20px;
+  border-radius: 12px;
+  display: grid;
+  gap: 16px;
+}
+.customer-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px 0;
+}
+.customer-dialog .dossier-form-fields[hidden],
+.customer-dialog [hidden] {
+  display: none !important;
+}
+.customer-dialog fieldset > legend {
+  margin-bottom: 20px;
+}
+.customer-dialog .dossier-form-fields > h3 {
+  margin: 8px 0;
+}
+.customer-dossier .dossier-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.customer-dossier .dossier-header .object-actions {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+.customer-dossier .object-inline-facts {
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+.customer-dossier .dossier-card {
+  min-width: 0;
+}
+.customer-dossier .object-record {
+  margin-top: 20px;
+}
+.customer-dossier .customer-tabs a:focus-visible {
+  outline: 3px solid var(--accent, #41ac42);
+  outline-offset: 2px;
+}
+.customer-agenda {
+  display: grid;
+  gap: 12px;
+}
+.customer-steps {
+  overflow: auto;
+  flex-wrap: nowrap;
+}
+.customer-steps li {
+  min-width: 100px;
+}
+.customer-dialog .wizard-footer {
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.customer-dialog .dossier-notice .resource-action {
+  margin: 6px 6px 0 0;
+}
+@media (max-width: 1100px) {
+  .customer-overview-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .customer-tabs-wide {
+    display: none;
+  }
+  .customer-tabs-mobile {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .customer-tabs-mobile select {
+    padding: 12px;
+    border: 1px solid var(--brand-border, #dce5e9);
+    border-radius: 9px;
+    font-size: 14px;
+    background: white;
+    color: inherit;
+  }
+}
+@media (max-width: 640px) {
+  .customer-workspace,
+  .customer-dossier {
+    gap: 20px;
+  }
+  .customer-toolbar {
+    padding: 16px;
+    gap: 12px;
+  }
+  .customer-toolbar label,
+  .customer-toolbar .customer-search {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+  .customer-overview-cards {
+    grid-template-columns: 1fr;
+  }
+  .customer-facts {
+    grid-template-columns: 1fr;
+  }
+  .customer-dossier .dossier-header h1 {
+    font-size: 27px;
+  }
+  .customer-summary {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .customer-summary dd {
+    margin-bottom: 12px;
+  }
+  .customer-contract-line {
+    padding: 14px;
+  }
+  .customer-dossier .table-scroll {
+    max-width: 100%;
+    overflow: auto;
+  }
+  .customer-dossier .resource-table {
+    min-width: 740px;
+  }
+  .customer-dialog .dossier-form-fields {
+    grid-template-columns: 1fr;
+  }
+}

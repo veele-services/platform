@@ -147,7 +147,8 @@ test("PDOK address selection, exact suffixes, stale response protection and mobi
   const modal = page.getByRole("dialog", { name: "Nieuwe klant" });
   await modal.getByLabel("Klantnaam").fill("FICTIEF autofill acceptatie");
   await modal.getByRole("button", { name: "Volgende" }).click();
-  const search = modal.getByRole("combobox", { name: "Zoek een adres" });
+  const address = modal.locator(".address-input").filter({ has: page.locator('[name="visitAddress"]') });
+  const search = address.getByRole("combobox", { name: "Zoek een adres" });
   let finishOld!: () => void;
   const oldFinished = new Promise<void>((resolve) => {
     finishOld = resolve;
@@ -184,42 +185,45 @@ test("PDOK address selection, exact suffixes, stale response protection and mobi
   await expect(
     page.getByRole("option", { name: "FICTIEF VEROUDERD RESULTAAT" }),
   ).toHaveCount(0);
-  await expect(modal.getByLabel("Huisletter", { exact: true })).toHaveValue(
+  await expect(address.getByLabel("Huisletter", { exact: true })).toHaveValue(
     "A",
   );
-  await expect(modal.getByLabel("Toevoeging", { exact: true })).toHaveValue(
+  await expect(address.getByLabel("Toevoeging", { exact: true })).toHaveValue(
     "bis",
   );
   await expect(
-    modal.getByText("Locatie beschikbaar voor routeberekening"),
+    address.getByText("Locatie beschikbaar voor routeberekening"),
   ).toBeVisible();
-  await modal.getByLabel("Huisnummer", { exact: true }).fill("13");
+  await address.getByLabel("Huisnummer", { exact: true }).fill("13");
   expect(
-    JSON.parse(await modal.locator('[name="addressPayload"]').inputValue())
+    JSON.parse(await address.locator('[name="visitAddress"]').inputValue())
       .latitude,
   ).toBeNull();
-  await expect(modal.getByText(/Adres controleren:/)).toBeVisible();
-  await modal.getByLabel("Zoekmethode").selectOption("postcode");
-  await modal.getByLabel("Zoekpostcode").fill("1234AB");
-  await modal.getByLabel("Zoekhuisnummer").fill("12");
-  await modal.getByLabel("Zoektoevoeging").fill("A bis");
+  await expect(address.getByText(/Adres controleren:/)).toBeVisible();
+  await address.getByLabel("Zoekmethode").selectOption("postcode");
+  await address.getByLabel("Zoekpostcode").fill("1234AB");
+  await address.getByLabel("Zoekhuisnummer").fill("12");
+  await address.getByLabel("Zoektoevoeging").fill("A bis");
   await page.getByRole("option", { name: /FICTIEF Testplein/ }).click();
-  await expect(modal.getByLabel("Huisnummer", { exact: true })).toHaveValue(
+  await expect(address.getByLabel("Huisnummer", { exact: true })).toHaveValue(
     "12",
   );
   await expect
     .poll(() => modal.evaluate((e) => e.scrollWidth <= e.clientWidth))
     .toBe(true);
   await modal.getByRole("button", { name: "Volgende" }).click();
+  await modal.getByRole("button", { name: "Volgende" }).click();
+  await modal.getByRole("button", { name: "Volgende" }).click();
   await modal.getByRole("button", { name: "Klant aanmaken" }).click();
   await expect(modal).not.toBeVisible();
   const saved = (
     await db.query(
-      "select billing_address from public.customers where tenant_id=$1 and name='FICTIEF autofill acceptatie'",
+      "select billing_address, visit_address from public.customers where tenant_id=$1 and name='FICTIEF autofill acceptatie'",
       [tenant],
     )
-  ).rows[0].billing_address;
-  expect(saved).toMatchObject({
+  ).rows[0];
+  expect(saved.visit_address).toEqual(saved.billing_address);
+  expect(saved.billing_address).toMatchObject({
     house_number: "12",
     house_letter: "A",
     house_addition: "bis",

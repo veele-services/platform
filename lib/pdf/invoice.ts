@@ -9,6 +9,8 @@ type InvoicePdfInput = {
   tenantName: string;
   customerName: string;
   billingAddress: Record<string, unknown>;
+  reference?: string;
+  costCenter?: string;
   lines: Array<{ description: string; quantity: number; unitPriceCents: number; vatBasisPoints: number; totalCents: number }>;
   subtotalCents: number;
   vatCents: number;
@@ -31,6 +33,7 @@ export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Uint8Arr
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
   const dark = rgb(0.04, 0.11, 0.23);
   const muted = rgb(0.38, 0.45, 0.52);
+  const safe = (value: string) => [...value.replace(/\s+/g, " ")].map(c => { try { regular.encodeText(c); return c; } catch { return "?"; } }).join("");
   const accent = color(input.accentColor);
   const left = 52;
   let y = 785;
@@ -47,13 +50,15 @@ export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Uint8Arr
   const address = [input.billingAddress.street, input.billingAddress.postal_code, input.billingAddress.city].filter(Boolean).join(" · ");
   if (address) page.drawText(String(address), { x: left, y: y - 36, size: 9, font: regular, color: muted });
   y -= 75;
+  for (const [label, value] of [["Referentie", input.reference], ["Kostenplaats", input.costCenter]]) {
+    if (value) { page.drawText(safe(`${label}: ${value}`).slice(0,95), {x:left,y,size:9,font:regular,color:muted}); y-=18; }
+  }
   page.drawRectangle({ x: left, y, width: 491, height: 26, color: rgb(0.94, 0.97, 0.98) });
   page.drawText("Omschrijving", { x: left + 8, y: y + 9, size: 8, font: bold, color: muted });
   page.drawText("Aantal", { x: 350, y: y + 9, size: 8, font: bold, color: muted });
   page.drawText("BTW", { x: 408, y: y + 9, size: 8, font: bold, color: muted });
   page.drawText("Totaal", { x: 482, y: y + 9, size: 8, font: bold, color: muted });
   y -= 23;
-  const safe = (value: string) => [...value.replace(/\s+/g, " ")].map(c => { try { regular.encodeText(c); return c; } catch { return "?"; } }).join("");
   const continuation = () => {
     page = document.addPage([595.28, 841.89]); y = 750;
     page.drawText(input.invoiceNumber + " · vervolg", { x: left, y: 790, size: 14, font: bold, color: dark });

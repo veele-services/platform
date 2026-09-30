@@ -95,6 +95,10 @@ The commercial module adds `/klant/aanvragen` for requests and offers within tho
 same explicit bindings, and `/aanvraag` for public intake on an active tenant host.
 External version-bound offer links do not grant general portal access. See
 [`commercial.md`](commercial.md) for the data and release contract.
+Klant 360 adds the canonical backoffice dossier at `/app/klanten/[customerId]`
+and `/klant/documenten` for explicitly shared customer documents, approved
+reports and scoped invoices. Current object bindings remain authoritative.
+See [Dossier 360](dossier-360.md#klant-360-customer-workspace).
 Separate backoffice or personnel subdomains must not be introduced.
 
 Tenant context is determined exclusively from the validated request hostname:

@@ -445,7 +445,7 @@ export async function createCustomerNote(formData: FormData): Promise<ActionResu
 export async function uploadCustomerDocument(formData: FormData): Promise<ActionResult> {
   try {
     const context = await authorized(["tenant_admin", "management", "planner", "finance"], ["planning"]);
-    const input = z.object({ customerId: z.string().uuid(), title: z.string().trim().min(2).max(160), previousId:z.uuid().or(z.literal("")).optional(), documentOn:z.iso.date().or(z.literal("")).optional(), validUntil:z.iso.date().or(z.literal("")).optional() }).parse(Object.fromEntries(formData));
+    const input = z.object({ customerId: z.string().uuid(), title: z.string().trim().min(2).max(160), requestId:z.uuid().optional(), category:z.enum(["agreement","correspondence","report","photo","other"]).default("other"), previousId:z.uuid().or(z.literal("")).optional(), documentOn:z.iso.date().or(z.literal("")).optional(), validUntil:z.iso.date().or(z.literal("")).optional() }).parse(Object.fromEntries(formData));
     const file = formData.get("document");
     if (!(file instanceof File) || file.size === 0) throw new Error("Selecteer een document");
     if (file.size > CUSTOMER_DOCUMENT_MAX_BYTES) throw new Error("Gebruik PDF, JPG of PNG van maximaal 10 MB");
@@ -459,10 +459,15 @@ export async function uploadCustomerDocument(formData: FormData): Promise<Action
     if (!customer) throw new Error("Klant niet gevonden binnen deze tenant");
     const path = `${context.tenant.id}/${customer.id}/${randomBytes(16).toString("hex")}.${extension}`;
     const bucket = supabase.storage.from("customer-documents");
+    if(input.requestId){
+      const existing=await supabase.from("customer_documents").select("id,created_by,customer_id,sha256,title,previous_id").eq("tenant_id",context.tenant.id).eq("id",input.requestId).maybeSingle();
+      if(existing.error)throw existing.error;
+      if(existing.data){if(existing.data.created_by!==context.user.id||existing.data.customer_id!==customer.id||existing.data.sha256!==createHash("sha256").update(bytes).digest("hex")||existing.data.title!==input.title||existing.data.previous_id!==(input.previousId||null))throw new Error("Deze uploadpoging is al gebruikt. Open een nieuw uploadvenster.");return {ok:true};}
+    }
     const { error: uploadError } = await bucket.upload(path, bytes, { contentType: file.type, upsert: false });
     if (uploadError) throw uploadError;
     const { error } = await supabase.from("customer_documents").insert({
-      tenant_id: context.tenant.id, customer_id: customer.id, title: input.title, storage_path: path, previous_id:input.previousId||null,document_on:input.documentOn||null,valid_until:input.validUntil||null,
+      id:input.requestId,category:input.category,tenant_id: context.tenant.id, customer_id: customer.id, title: input.title, storage_path: path, previous_id:input.previousId||null,document_on:input.documentOn||null,valid_until:input.validUntil||null,
       file_name: customerDocumentFileName(file.name), mime_type: file.type, size_bytes: file.size,
       sha256: createHash("sha256").update(bytes).digest("hex"), created_by: context.user.id,
     });
