@@ -15,7 +15,11 @@ export function stagingWorkOrderTestUrl(env) {
     const direct = db.hostname === `db.${expected}.supabase.co`;
     const pool = /^aws-[a-z0-9-]+\.pooler\.supabase\.com$/.test(db.hostname) && decodeURIComponent(db.username) === `postgres.${expected}` && db.port === "5432";
     if ((!direct && !pool) || decodeURIComponent(db.href).includes(forbidden) || (db.pathname !== "/postgres")) throw new Error();
-    return env.MIGRATION_DATABASE_URL;
+    // Always encrypt and authenticate the remote endpoint, including when the
+    // configured migration URL omits a TLS mode. Avoid pg's changing require
+    // alias semantics by selecting hostname/certificate verification explicitly.
+    db.searchParams.set("sslmode", "verify-full");
+    return db.toString();
   } catch { throw new Error("Staging rooktest geweigerd: database is niet aantoonbaar het stagingproject."); }
 }
 

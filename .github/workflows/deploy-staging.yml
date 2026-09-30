@@ -88,6 +88,17 @@ jobs:
         run: pnpm exec tsx scripts/check-routing-provider.ts
       - name: Refuse an unrelated database history
         run: pnpm db:verify-target
+      - name: Verify isolated TLS connection for work-order smoke tests
+        env:
+          FIELDGRID_STAGING_SMOKE: "1"
+        run: |
+          node --input-type=module -e '
+            import { workOrderTestDatabase } from "./scripts/work-order-test-target.mjs";
+            const db = await workOrderTestDatabase();
+            try { await db.query("begin read only"); await db.query("select 1"); }
+            finally { await db.query("rollback"); await db.end(); }
+            console.log("Staging smoke connection verified with TLS and project isolation.");
+          '
       - name: Build the exact release before touching the database
         run: pnpm build
       - name: Create a staging database backup
