@@ -47,4 +47,11 @@ jobs:
         run: pnpm test:e2e
       - name: Ensure no retired tenant or mail-provider naming
         # Match names, not fragments of DOM API identifiers such as activeElement.
-        run: if rg -i '\bv[e]ele\b|\br[e]send\b' --glob '!pnpm-lock.yaml' .; then exit 1; fi
+        # Git is already required by checkout; do not silently skip a missing rg.
+        run: |
+          if git grep -n -i -E '\bv[e]ele\b|\br[e]send\b' -- . ':!pnpm-lock.yaml'; then
+            exit 1
+          else
+            result=$?
+            test "$result" -eq 1
+          fi

@@ -281,7 +281,7 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
   rect = (await card.boundingBox())!;
   await dragTo(rect.x + 18, rect.y + 28 + 72);
   await expect
-    .poll(async () => (await card.boundingBox())!.y)
+    .poll(async () => (await card.boundingBox())?.y ?? -1)
     .toBeCloseTo(rect.y + 72, 0);
   await expect(page.getByRole("status")).not.toContainText("Planning opslaan");
   expect(
