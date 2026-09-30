@@ -120,6 +120,12 @@ blijft uitgeschakeld; geen legacy fallback. Geen wijziging aan productie, Caddy,
 systemd, poort of deployroot vereist. De bestaande staging-releaseketen voert de
 forward-only migratie na backup uit.
 
+Vóór stagingmigraties controleert de deployworkflow met de ingestelde sleutel alle
+vier profielen op één traject tussen twee openbare stations. Deze controle schrijft
+geen tenantdata en logt geen sleutel, coördinaten of providerantwoord. Een fout
+blokkeert activatie; `ROUTING_PROVIDER=disabled` is de expliciete handmatige modus.
+Reserveer naast runtimeverbruik vier Matrix-aanvragen per deployment.
+
 ## Verificatie en acceptatie
 
 Unit-tests controleren PDOK-formaat/suffixen, coördinaatvolgorde, invalidatie,
@@ -133,7 +139,9 @@ uitsluitend via een lokaal testproces geladen; geen productie-testmodus of fallb
 Na configuratie: bevestig object- en vertrekadressen, kies vervoer, stel marge in,
 plan twee opeenvolgende bonnen en vergelijk de berekening met de provider. Controleer
 ook fiets/e-bike/lopen, handmatige fallback en een medewerkerlogin. Live provider-
-acceptatie vereist de nieuwe sleutel; unit-/browsertests bewijzen dat niet.
+acceptatie gebruikt de staging-sleutel: de deployment-smokecheck bewijst de
+providerkoppeling, de aansluitende tenantacceptatie controleert de eigen adressen
+en planningskeuzes. Unit-/browsertests gebruiken herkenbare fixtures.
 Geen live verkeersinformatie, GPS, voertuigspecifieke bestelautorestricties of
 automatische onzekere adresverrijking in deze versie.
 

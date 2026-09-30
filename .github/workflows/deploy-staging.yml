@@ -84,6 +84,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Environment preflight
         run: pnpm deploy:preflight
+      - name: Verify live routing profiles using public station locations
+        run: pnpm exec tsx scripts/check-routing-provider.ts
       - name: Refuse an unrelated database history
         run: pnpm db:verify-target
       - name: Build the exact release before touching the database
