@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env/server";
 import type { Database } from "@/lib/database.types";
 import { renderTemplateText, templateDefinition, type TemplateValues } from "@/lib/communications/templates";
+import { processDossierReminders } from "@/lib/personnel/dossier-reminders";
 
 type Event = Database["public"]["Tables"]["outbox_events"]["Row"];
 
@@ -109,5 +110,6 @@ export async function POST(request: Request) {
       await admin.from("outbox_events").update({ status: dead ? "dead_letter" : "failed", last_error: lastError, locked_until: null, available_at: new Date(Date.now() + retry * 1000).toISOString() }).eq("id", event.id);
     }
   }
-  return NextResponse.json({ claimed: data?.length ?? 0, sent, failed });
+  const dossier = await processDossierReminders();
+  return NextResponse.json({ claimed: data?.length ?? 0, sent, failed, dossier });
 }

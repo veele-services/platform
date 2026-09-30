@@ -88,3 +88,14 @@ jobs:
         run: scripts/write-runtime-env.sh
       - name: Activate the exact staging release
         run: scripts/deploy-local.sh
+      - name: Check the existing staging reminder timer (read-only)
+        run: |
+          if systemctl is-active --quiet fieldgrid-worker@staging.timer; then
+            echo "Existing staging worker timer is active."
+          else
+            echo "::warning::Staging is deployed, but fieldgrid-worker@staging.timer is not active. Reminders require the existing timer; follow docs/deployment/staging-runbook.md."
+          fi
+          result="$(systemctl show fieldgrid-worker@staging.service --property=Result --value)"
+          if [ "$result" != "success" ]; then
+            echo "::warning::The last staging worker result was not successful. Check the unit on the staging VPS without logging credentials."
+          fi

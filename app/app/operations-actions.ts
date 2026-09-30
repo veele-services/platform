@@ -14,6 +14,7 @@ import { sendEmail } from "@/lib/providers/sendgrid";
 import { renderTenantEmailHtml } from "@/lib/communications/email";
 import { renderPlainEmail, type TemplateValues } from "@/lib/communications/templates";
 import { CUSTOMER_DOCUMENT_MAX_BYTES, customerDocumentExtension, customerDocumentFileName } from "@/lib/customers/documents";
+import { privacyText } from "@/lib/personnel/dossier";
 import { personnelNumberInputSchema, personnelNumberSettingsSchema } from "@/lib/personnel/numbering";
 import { deliverPersonnelInvitation, preparePersonnelAccount, requirePersonnelEmail } from "@/lib/personnel/invitations";
 
@@ -771,14 +772,11 @@ export async function addQualification(formData: FormData): Promise<ActionResult
     }).parse(Object.fromEntries(formData));
     if (input.issuedAt && input.validUntil && input.validUntil < input.issuedAt) throw new Error("De geldigheidsdatum ligt voor de uitgiftedatum");
     const supabase = await createClient();
-    const { data: qualification, error } = await supabase.from("qualifications").upsert({ tenant_id: context.tenant.id, personnel_id: input.personnelId, code: input.code, name: input.name, issued_at: input.issuedAt || null, valid_until: input.validUntil || null, verified_at: new Date().toISOString() }, { onConflict: "tenant_id,personnel_id,code" }).select().single();
-    if (error) throw error;
-    if (input.validUntil) {
-      const dueAt = new Date(`${input.validUntil}T09:00:00.000Z`);
-      dueAt.setUTCDate(dueAt.getUTCDate() - 30);
-      const { error: reminderError } = await supabase.from("reminders").upsert({ tenant_id: context.tenant.id, personnel_id: input.personnelId, kind: "qualification_expiry", source_id: qualification.id, title: `${input.name} verloopt op ${input.validUntil}`, due_at: dueAt.toISOString(), assigned_user_id: context.user.id, deduplication_key: `qualification:${qualification.id}:${input.validUntil}` }, { onConflict: "tenant_id,deduplication_key" });
-      if (reminderError) throw reminderError;
-    }
+    if(input.code==="VOG"||/\bVOG\b/i.test(input.name))throw new Error("Gebruik VOG-controle in het personeelsdossier.");
+    const {error:catalogError}=await supabase.from("qualification_types").upsert({tenant_id:context.tenant.id,code:input.code,name:input.name},{onConflict:"tenant_id,code",ignoreDuplicates:true});
+    if(catalogError)throw catalogError;
+    const {error}=await supabase.from("certificates").insert({tenant_id:context.tenant.id,personnel_id:input.personnelId,code:input.code,name:input.name,issued_on:input.issuedAt||null,valid_from:input.issuedAt||null,expires_on:input.validUntil||null,dossier_managed:true,dossier_status:"unverified"});
+    if(error)throw error;
     revalidatePath("/app"); revalidatePath("/staff");
     return { ok: true };
   } catch (error) { return { ok: false, error: message(error) }; }
@@ -801,13 +799,13 @@ export async function addAvailability(formData: FormData): Promise<ActionResult>
 export async function uploadPersonnelDocument(formData: FormData): Promise<ActionResult> {
   try {
     const context = await authorized(["tenant_admin", "management", "hr"], ["personeel"]);
-    const input = z.object({ personnelId: z.string().uuid(), title: z.string().trim().min(2).max(160), documentType: z.string().trim().min(2).max(80), visibleToEmployee: z.string().optional() }).parse(Object.fromEntries(formData));
+    const input = z.object({ personnelId: z.string().uuid(), title: z.string().trim().min(2).max(160), documentType: z.string().trim().min(2).max(80), visibleToEmployee: z.string().optional(), privacyConfirmed:z.literal("on") }).parse(Object.fromEntries(formData));
     const file = formData.get("document");
     if (!(file instanceof File) || file.size === 0) throw new Error("Selecteer een document");
-    const allowed = { "application/pdf": "pdf", "image/jpeg": "jpg", "image/png": "png" } as const;
-    const extension = allowed[file.type as keyof typeof allowed];
-    if (!extension || file.size > 20 * 1024 * 1024) throw new Error("Gebruik PDF, JPG of PNG van maximaal 20 MB");
+    privacyText(input.title+" "+file.name+" "+input.documentType);
+    if(/\bVOG\b|verklaring.omtrent.gedrag|medisch|paspoort/i.test(input.title+" "+file.name+" "+input.documentType))throw new Error("Dit bestand mag niet worden bewaard in het personeelsdossier.");
     const bytes = new Uint8Array(await file.arrayBuffer());
+    const extension=customerDocumentExtension(file.type,bytes);
     const documentId = randomBytes(16).toString("hex");
     const path = `${context.tenant.id}/${input.personnelId}/${documentId}.${extension}`;
     const supabase = await createClient();

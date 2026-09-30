@@ -1,0 +1,2 @@
+/* Transient toast/dev UI is not part of the dossier visual contract. */
+[data-sonner-toaster], nextjs-portal { visibility: hidden !important; }

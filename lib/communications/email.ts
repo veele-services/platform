@@ -67,7 +67,7 @@ function paragraphHtml(value: string) {
 
 export function renderTenantEmailHtml(input: {
   brand: EmailBrand;
-  kind: Extract<TemplateKey, "invoice" | "quote"> | "personnel_invitation";
+  kind: Extract<TemplateKey, "invoice" | "quote"> | "personnel_invitation" | "dossier_reminder";
   message: EmailMessage;
   values?: TemplateValues;
   targetUrl?: string;
@@ -87,10 +87,11 @@ export function renderTenantEmailHtml(input: {
   const accent = validColor(input.brand.accent, FIELDGRID_SECONDARY);
   const onAccent = textOn(accent);
   const personnelInvitation = input.kind === "personnel_invitation";
-  const preheader = personnelInvitation ? `Je bent uitgenodigd voor het personeelsportaal van ${company}.` : input.kind === "invoice" ? "Uw factuur is beschikbaar." : "Uw prijsopgave staat klaar.";
-  const eyebrow = personnelInvitation ? "UITNODIGING PERSONEELSPORTAAL" : input.kind === "invoice" ? "UW FACTUUR" : "UW PRIJSOPGAVE";
-  const cta = personnelInvitation ? (input.existingAccount ? "Personeelsportaal openen" : "Personeelsaccount activeren") : input.kind === "invoice" ? "Factuur veilig betalen" : "Prijsopgave bekijken";
-  const targetToken = personnelInvitation ? "{portaallink}" : input.kind === "invoice" ? "{betaallink}" : "{offertelink}";
+  const dossierReminder = input.kind === "dossier_reminder";
+  const preheader = dossierReminder ? "Een dossieractie vraagt aandacht." : personnelInvitation ? `Je bent uitgenodigd voor het personeelsportaal van ${company}.` : input.kind === "invoice" ? "Uw factuur is beschikbaar." : "Uw prijsopgave staat klaar.";
+  const eyebrow = dossierReminder ? "DOSSIERHERINNERING" : personnelInvitation ? "UITNODIGING PERSONEELSPORTAAL" : input.kind === "invoice" ? "UW FACTUUR" : "UW PRIJSOPGAVE";
+  const cta = dossierReminder ? "Open personeelsdossier" : personnelInvitation ? (input.existingAccount ? "Personeelsportaal openen" : "Personeelsaccount activeren") : input.kind === "invoice" ? "Factuur veilig betalen" : "Prijsopgave bekijken";
+  const targetToken = personnelInvitation || dossierReminder ? "{portaallink}" : input.kind === "invoice" ? "{betaallink}" : "{offertelink}";
   const target = mode === "template"
     ? targetToken
     : mode === "preview"

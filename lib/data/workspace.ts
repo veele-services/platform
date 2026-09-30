@@ -46,6 +46,8 @@ export type WorkspaceData = {
   settings: Row<"tenant_settings"> | null;
   branding: Row<"tenant_branding"> | null;
   brandingLogoUrl: string | null;
+  dossierSummary?: Database["public"]["Functions"]["personnel_dossier_summary"]["Returns"];
+  qualificationGaps?: Database["public"]["Functions"]["personnel_qualification_gaps"]["Returns"];
 };
 
 function rows<T>(result: { data: T[] | null; error: { message: string } | null }): T[] {
@@ -95,6 +97,7 @@ export async function getWorkspaceData(tenantId: string): Promise<WorkspaceData>
     supabase.from("personnel_functions").select("*").eq("tenant_id", tenantId),
     supabase.from("customer_notes").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
     supabase.from("customer_documents").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
+    supabase.rpc("personnel_dossier_summary", { target_tenant: tenantId }),
   ]);
   const singleton = <T>(result: { data: T | null; error: { message: string } | null }): T | null => {
     if (result.error) throw new Error(result.error.message);
@@ -120,5 +123,6 @@ export async function getWorkspaceData(tenantId: string): Promise<WorkspaceData>
     personnelFunctions: rows(results[36]),
     customerNotes: rows(results[37]),
     customerDocuments: rows(results[38]),
+    dossierSummary: rows(results[39]),
   };
 }

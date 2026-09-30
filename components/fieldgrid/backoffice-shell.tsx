@@ -92,7 +92,7 @@ function PageIntro({ eyebrow, title, description, children }: { eyebrow: string;
 
 function Empty({ children }: { children: ReactNode }) { return <div className="workspace-empty"><PackageCheck size={28}/><p>{children}</p></div>; }
 
-export function BackofficeShell({ context, data, initialView = "overzicht" }: { context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> }; data: WorkspaceData; initialView?: BackofficeView }) {
+export function BackofficeShell({ context, data, initialView = "overzicht", children }: { context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> }; data: WorkspaceData; initialView?: BackofficeView; children?: ReactNode }) {
   const view = initialView;
   const [mobileNav, setMobileNav] = useState(false);
   const [search, setSearch] = useState("");
@@ -106,6 +106,7 @@ export function BackofficeShell({ context, data, initialView = "overzicht" }: { 
   const attention = data.workOrders.filter((order) => ["returned", "correction_required", "under_review"].includes(order.status));
 
   const content = (() => {
+    if (children) return children;
     if (view === "overzicht") return <>
       <PageIntro eyebrow="WERKRUIMTE" title={`Goedendag, ${tenant.name}`} description="Live overzicht van aanvragen, uitvoering, controle en betalingen." />
       <div className="metric-grid">
@@ -140,12 +141,13 @@ export function BackofficeShell({ context, data, initialView = "overzicht" }: { 
 
     if (view === "planning") return <>
       <PageIntro eyebrow="OPERATIE" title="Planbord" description="Planning in echte minuten, per medewerker en met de avatarrail vast in beeld." />
+      {!!data.qualificationGaps?.length && <section className="panel"><div className="section-heading"><h2>Controleer geplande inzet</h2></div><p className="form-note">Deze kwalificaties ontbreken voor de volledige uitvoeringsperiode. Historische opdrachten blijven ongewijzigd.</p><div className="dossier-doc-links">{data.qualificationGaps.map(gap => { const assignment = data.assignments.find(a => a.id === gap.assignment_id); const order = data.workOrders.find(w => w.id === assignment?.work_order_id); return <Link key={gap.assignment_id + gap.code} href={order ? `/app/werkbonnen/${order.id}` : "/app/werkbonnen"}>{order?.work_order_number} · {data.personnel.find(p => p.id === gap.personnel_id)?.full_name} · {gap.code} ({gap.hard_requirement ? "harde eis ontbreekt" : "controleren"})</Link>; })}</div></section>}
       <section className="panel planboard-viewport"><Planboard data={data} timezone={tenant.timezone} editable/></section>
     </>;
 
     if (view === "werkbonnen") return <>
       <PageIntro eyebrow="UITVOERING" title="Werkbonnen" description="Vrijgeven, volgen en afronden op één versievaste statusstroom." />
-      <div className="kanban">{["planned", "released", "in_progress", "under_review", "invoice_ready"].map((stage, index) => <section className="kanban-col" key={stage}><div className="kanban-top"><i className={`stage-${index}`}/><strong>{statusLabel[stage]}</strong><b>{visibleOrders.filter((item) => item.status === stage || (stage === "in_progress" && ["seen", "travelling", "completed"].includes(item.status))).length}</b></div>{visibleOrders.filter((item) => item.status === stage || (stage === "in_progress" && ["seen", "travelling", "completed"].includes(item.status))).map((order) => <article className="kanban-card" key={order.id}><div className="card-id"><span>{order.work_order_number}</span><Pill status={order.status}/></div><h3>{objectById.get(order.object_id)?.name}</h3><p>{customerById.get(order.customer_id)?.name} · {order.discipline}</p><div className="card-meta"><Clock3 size={13}/>{dateTime(order.projected_start_at, tenant.timezone)}</div>{order.status === "planned" && <ActionForm action={dispatchWorkOrder} className="kanban-action" success="Vrijgeven"><input type="hidden" name="workOrderId" value={order.id}/><input type="hidden" name="personnelId" value={data.assignments.find((item) => item.work_order_id === order.id)?.personnel_id ?? ""}/><input type="hidden" name="version" value={order.version}/></ActionForm>}</article>)}</section>)}</div>
+      <div className="kanban">{["planned", "released", "in_progress", "under_review", "invoice_ready"].map((stage, index) => <section className="kanban-col" key={stage}><div className="kanban-top"><i className={`stage-${index}`}/><strong>{statusLabel[stage]}</strong><b>{visibleOrders.filter((item) => item.status === stage || (stage === "in_progress" && ["seen", "travelling", "completed"].includes(item.status))).length}</b></div>{visibleOrders.filter((item) => item.status === stage || (stage === "in_progress" && ["seen", "travelling", "completed"].includes(item.status))).map((order) => <article className="kanban-card" id={order.id} key={order.id}><div className="card-id"><span>{order.work_order_number}</span><Pill status={order.status}/></div><h3>{objectById.get(order.object_id)?.name}</h3><p>{customerById.get(order.customer_id)?.name} · {order.discipline}</p><div className="card-meta"><Clock3 size={13}/>{dateTime(order.projected_start_at, tenant.timezone)}</div>{order.status === "planned" && <ActionForm action={dispatchWorkOrder} className="kanban-action" success="Vrijgeven"><input type="hidden" name="workOrderId" value={order.id}/><input type="hidden" name="personnelId" value={data.assignments.find((item) => item.work_order_id === order.id)?.personnel_id ?? ""}/><input type="hidden" name="version" value={order.version}/></ActionForm>}</article>)}</section>)}</div>
     </>;
 
     if (view === "taken") return <>
@@ -158,7 +160,7 @@ export function BackofficeShell({ context, data, initialView = "overzicht" }: { 
     if (view === "klanten") return <CustomersPage data={data}/>;
     if (view === "objecten") return <ObjectsPage data={data}/>;
 
-    if (view === "personeel") return <PersonnelPage data={data}/>;
+    if (view === "personeel") return <PersonnelPage data={data} roles={tenant.roles}/>;
 
     if (view === "controle") return <ReportsPage data={data} timezone={tenant.timezone}/>;
 

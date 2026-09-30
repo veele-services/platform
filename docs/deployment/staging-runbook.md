@@ -91,8 +91,8 @@ Before promotion, verify in the dedicated staging project:
 
 - Auth Site URL is `https://staging.fieldgrid.nl` and redirect allow-listing
   covers the intended staging tenant host pattern;
-- the project is new/empty or contains only the exact five Fieldgrid V1
-  migrations;
+- the project is new/empty or its applied migrations are an exact prefix of the
+  repository's V1 migration history, including subsequent module extensions;
 - Storage has no legacy application data;
 - SMTP is configured with the staging SendGrid sender if Auth email delivery
   is enabled.

@@ -49,6 +49,19 @@ naar het productieproject of de productie-VPS wijzen.
 
 ## Functionele acceptatie
 
+- Open **Personeel → Bekijk**: controleer twaalf dossieronderdelen, URL-tabbladen,
+  terugnavigatie en mobiel. Gebruik fictieve testdata voor contract/concept,
+  verlenging/addendum, certificaatverificatie/vernieuwing, kwalificatie-eisen over
+  de volledige uitvoeringsperiode, documentversies, gesprek/opvolgtaak,
+  middelenretour en herhaald aanmaken van dezelfde in-/uitdienstchecklist.
+  Controleer **Actie nodig → Opvolgen** en afronden met bewijs.
+  Verifieer een in-app reminder en huisstijlmail naar een eigen testmailbox na
+  workerverwerking. Lezen/verzenden mag de taak niet afronden. Een personeels-
+  portalsessie en andere tenant mogen dossier, versies en private downloads niet
+  lezen. Zie het [Personeelsdossier 360-contract](architecture/personnel-dossier-360.md)
+  voor autorisatie en ontbrekende integraties. Geen extra GitHub-secret,
+  HR-demoseed of handmatige bucketconfiguratie nodig.
+
 - Maak via **Personeel → Nieuwe medewerker** een testmedewerker aan met een eigen
   testmailbox. De wizard legt de uitnodiging uit zonder technische providertermen.
   Controleer dat één uitnodigingsmail via SendGrid aankomt, met tenantlogo (of

@@ -21,6 +21,7 @@ export default async function globalSetup() {
   const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("Lokale Supabase-config ontbreekt voor E2E");
+  if(new URL(url).hostname!=="127.0.0.1" || new URL(url).port!=="59321")throw new Error("E2E fixtures require the isolated local Fieldgrid database");
   const admin = createClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   const owner = await user(admin, ADMIN_EMAIL);
   const worker = await user(admin, STAFF_EMAIL);

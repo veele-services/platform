@@ -126,16 +126,22 @@ isOneToOne: false
                   ]
                 },"availability": {
                   Row: {
-                    "approved_at": string | null,"created_at": string,"ends_at": string,"id": string,"kind": string,"note": string | null,"personnel_id": string,"starts_at": string,"tenant_id": string
+                    "approved_at": string | null,"created_at": string,"dossier_source_id": string | null,"ends_at": string,"id": string,"kind": string,"note": string | null,"personnel_id": string,"starts_at": string,"tenant_id": string
                   }
                   Insert: {
-                    "approved_at"?: string | null,"created_at"?: string,"ends_at": string,"id"?: string,"kind": string,"note"?: string | null,"personnel_id": string,"starts_at": string,"tenant_id": string
+                    "approved_at"?: string | null,"created_at"?: string,"dossier_source_id"?: string | null,"ends_at": string,"id"?: string,"kind": string,"note"?: string | null,"personnel_id": string,"starts_at": string,"tenant_id": string
                   }
                   Update: {
-                    "approved_at"?: string | null,"created_at"?: string,"ends_at"?: string,"id"?: string,"kind"?: string,"note"?: string | null,"personnel_id"?: string,"starts_at"?: string,"tenant_id"?: string
+                    "approved_at"?: string | null,"created_at"?: string,"dossier_source_id"?: string | null,"ends_at"?: string,"id"?: string,"kind"?: string,"note"?: string | null,"personnel_id"?: string,"starts_at"?: string,"tenant_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "availability_dossier_source_id_fkey"
+      columns: ["dossier_source_id"]
+isOneToOne: true
+      referencedRelation: "personnel_dossier_items"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "availability_tenant_id_personnel_id_fkey"
       columns: ["tenant_id","personnel_id"]
 isOneToOne: false
@@ -170,16 +176,22 @@ isOneToOne: false
                   ]
                 },"certificates": {
                   Row: {
-                    "code": string,"created_at": string,"expires_on": string | null,"id": string,"issued_on": string | null,"name": string,"personnel_id": string,"storage_path": string | null,"tenant_id": string,"version": number
+                    "code": string,"created_at": string,"dossier_data": NonNullable<Json>,"dossier_managed": boolean,"dossier_revision": number,"dossier_status": string,"expires_on": string | null,"id": string,"issued_on": string | null,"name": string,"personnel_id": string,"previous_id": string | null,"storage_path": string | null,"tenant_id": string,"updated_at": string,"updated_by": string | null,"valid_from": string | null,"verified_at": string | null,"verified_by": string | null,"version": number
                   }
                   Insert: {
-                    "code": string,"created_at"?: string,"expires_on"?: string | null,"id"?: string,"issued_on"?: string | null,"name": string,"personnel_id": string,"storage_path"?: string | null,"tenant_id": string,"version"?: number
+                    "code": string,"created_at"?: string,"dossier_data"?: NonNullable<Json>,"dossier_managed"?: boolean,"dossier_revision"?: number,"dossier_status"?: string,"expires_on"?: string | null,"id"?: string,"issued_on"?: string | null,"name": string,"personnel_id": string,"previous_id"?: string | null,"storage_path"?: string | null,"tenant_id": string,"updated_at"?: string,"updated_by"?: string | null,"valid_from"?: string | null,"verified_at"?: string | null,"verified_by"?: string | null,"version"?: number
                   }
                   Update: {
-                    "code"?: string,"created_at"?: string,"expires_on"?: string | null,"id"?: string,"issued_on"?: string | null,"name"?: string,"personnel_id"?: string,"storage_path"?: string | null,"tenant_id"?: string,"version"?: number
+                    "code"?: string,"created_at"?: string,"dossier_data"?: NonNullable<Json>,"dossier_managed"?: boolean,"dossier_revision"?: number,"dossier_status"?: string,"expires_on"?: string | null,"id"?: string,"issued_on"?: string | null,"name"?: string,"personnel_id"?: string,"previous_id"?: string | null,"storage_path"?: string | null,"tenant_id"?: string,"updated_at"?: string,"updated_by"?: string | null,"valid_from"?: string | null,"verified_at"?: string | null,"verified_by"?: string | null,"version"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "certificates_dossier_previous_fk"
+      columns: ["tenant_id","previous_id"]
+isOneToOne: false
+      referencedRelation: "certificates"
+      referencedColumns: ["tenant_id","id"]
+    },{
       foreignKeyName: "certificates_tenant_id_personnel_id_fkey"
       columns: ["tenant_id","personnel_id"]
 isOneToOne: false
@@ -666,16 +678,28 @@ isOneToOne: false
                   ]
                 },"personnel_contracts": {
                   Row: {
-                    "active": boolean,"created_at": string,"employment_type": string,"ends_on": string | null,"hours_per_week": number | null,"id": string,"personnel_id": string,"review_on": string | null,"starts_on": string,"tenant_id": string,"version": number
+                    "active": boolean,"created_at": string,"dossier_data": NonNullable<Json>,"dossier_managed": boolean,"dossier_revision": number,"dossier_status": string,"employment_type": string,"ends_on": string | null,"function_id": string | null,"hours_per_week": number | null,"id": string,"personnel_id": string,"previous_id": string | null,"review_on": string | null,"starts_on": string,"tenant_id": string,"updated_at": string,"updated_by": string | null,"version": number
                   }
                   Insert: {
-                    "active"?: boolean,"created_at"?: string,"employment_type": string,"ends_on"?: string | null,"hours_per_week"?: number | null,"id"?: string,"personnel_id": string,"review_on"?: string | null,"starts_on": string,"tenant_id": string,"version"?: number
+                    "active"?: boolean,"created_at"?: string,"dossier_data"?: NonNullable<Json>,"dossier_managed"?: boolean,"dossier_revision"?: number,"dossier_status"?: string,"employment_type": string,"ends_on"?: string | null,"function_id"?: string | null,"hours_per_week"?: number | null,"id"?: string,"personnel_id": string,"previous_id"?: string | null,"review_on"?: string | null,"starts_on": string,"tenant_id": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Update: {
-                    "active"?: boolean,"created_at"?: string,"employment_type"?: string,"ends_on"?: string | null,"hours_per_week"?: number | null,"id"?: string,"personnel_id"?: string,"review_on"?: string | null,"starts_on"?: string,"tenant_id"?: string,"version"?: number
+                    "active"?: boolean,"created_at"?: string,"dossier_data"?: NonNullable<Json>,"dossier_managed"?: boolean,"dossier_revision"?: number,"dossier_status"?: string,"employment_type"?: string,"ends_on"?: string | null,"function_id"?: string | null,"hours_per_week"?: number | null,"id"?: string,"personnel_id"?: string,"previous_id"?: string | null,"review_on"?: string | null,"starts_on"?: string,"tenant_id"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "contract_function_fk"
+      columns: ["tenant_id","function_id"]
+isOneToOne: false
+      referencedRelation: "function_catalog"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "personnel_contracts_dossier_previous_fk"
+      columns: ["tenant_id","previous_id"]
+isOneToOne: false
+      referencedRelation: "personnel_contracts"
+      referencedColumns: ["tenant_id","id"]
+    },{
       foreignKeyName: "personnel_contracts_tenant_id_personnel_id_fkey"
       columns: ["tenant_id","personnel_id"]
 isOneToOne: false
@@ -685,16 +709,22 @@ isOneToOne: false
                   ]
                 },"personnel_documents": {
                   Row: {
-                    "created_at": string,"created_by": string,"document_type": string,"file_name": string | null,"id": string,"mime_type": string | null,"personnel_id": string,"replaced_by": string | null,"sha256": string | null,"size_bytes": number | null,"storage_path": string,"tenant_id": string,"title": string,"version": number,"visible_to_employee": boolean
+                    "created_at": string,"created_by": string,"document_type": string,"dossier_data": NonNullable<Json>,"dossier_managed": boolean,"dossier_revision": number,"dossier_status": string,"file_name": string | null,"id": string,"mime_type": string | null,"personnel_id": string,"previous_id": string | null,"replaced_by": string | null,"sha256": string | null,"size_bytes": number | null,"storage_path": string,"tenant_id": string,"title": string,"updated_at": string,"updated_by": string | null,"version": number,"visible_to_employee": boolean
                   }
                   Insert: {
-                    "created_at"?: string,"created_by": string,"document_type": string,"file_name"?: string | null,"id"?: string,"mime_type"?: string | null,"personnel_id": string,"replaced_by"?: string | null,"sha256"?: string | null,"size_bytes"?: number | null,"storage_path": string,"tenant_id": string,"title": string,"version"?: number,"visible_to_employee"?: boolean
+                    "created_at"?: string,"created_by": string,"document_type": string,"dossier_data"?: NonNullable<Json>,"dossier_managed"?: boolean,"dossier_revision"?: number,"dossier_status"?: string,"file_name"?: string | null,"id"?: string,"mime_type"?: string | null,"personnel_id": string,"previous_id"?: string | null,"replaced_by"?: string | null,"sha256"?: string | null,"size_bytes"?: number | null,"storage_path": string,"tenant_id": string,"title": string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"visible_to_employee"?: boolean
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string,"document_type"?: string,"file_name"?: string | null,"id"?: string,"mime_type"?: string | null,"personnel_id"?: string,"replaced_by"?: string | null,"sha256"?: string | null,"size_bytes"?: number | null,"storage_path"?: string,"tenant_id"?: string,"title"?: string,"version"?: number,"visible_to_employee"?: boolean
+                    "created_at"?: string,"created_by"?: string,"document_type"?: string,"dossier_data"?: NonNullable<Json>,"dossier_managed"?: boolean,"dossier_revision"?: number,"dossier_status"?: string,"file_name"?: string | null,"id"?: string,"mime_type"?: string | null,"personnel_id"?: string,"previous_id"?: string | null,"replaced_by"?: string | null,"sha256"?: string | null,"size_bytes"?: number | null,"storage_path"?: string,"tenant_id"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"version"?: number,"visible_to_employee"?: boolean
                   }
                   Relationships: [
                     {
+      foreignKeyName: "personnel_documents_dossier_previous_fk"
+      columns: ["tenant_id","previous_id"]
+isOneToOne: false
+      referencedRelation: "personnel_documents"
+      referencedColumns: ["tenant_id","id"]
+    },{
       foreignKeyName: "personnel_documents_tenant_id_personnel_id_fkey"
       columns: ["tenant_id","personnel_id"]
 isOneToOne: false
@@ -705,6 +735,94 @@ isOneToOne: false
       columns: ["tenant_id","replaced_by"]
 isOneToOne: false
       referencedRelation: "personnel_documents"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"personnel_dossier_access": {
+                  Row: {
+                    "action": string,"actor_user_id": string,"created_at": string,"id": string,"personnel_id": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "action": string,"actor_user_id"?: string,"created_at"?: string,"id"?: string,"personnel_id": string,"tenant_id": string
+                  }
+                  Update: {
+                    "action"?: string,"actor_user_id"?: string,"created_at"?: string,"id"?: string,"personnel_id"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "personnel_dossier_access_tenant_id_personnel_id_fkey"
+      columns: ["tenant_id","personnel_id"]
+isOneToOne: false
+      referencedRelation: "personnel"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"personnel_dossier_deliveries": {
+                  Row: {
+                    "attempts": number,"available_at": string,"created_at": string,"due_on": string,"id": string,"last_error": string | null,"personnel_id": string,"recipient": string,"recipient_user_id": string | null,"sent_at": string | null,"source_id": string,"source_revision": number,"source_table": string,"status": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "attempts"?: number,"available_at"?: string,"created_at"?: string,"due_on": string,"id"?: string,"last_error"?: string | null,"personnel_id": string,"recipient": string,"recipient_user_id"?: string | null,"sent_at"?: string | null,"source_id": string,"source_revision": number,"source_table": string,"status"?: string,"tenant_id": string
+                  }
+                  Update: {
+                    "attempts"?: number,"available_at"?: string,"created_at"?: string,"due_on"?: string,"id"?: string,"last_error"?: string | null,"personnel_id"?: string,"recipient"?: string,"recipient_user_id"?: string | null,"sent_at"?: string | null,"source_id"?: string,"source_revision"?: number,"source_table"?: string,"status"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "personnel_dossier_deliveries_tenant_id_personnel_id_fkey"
+      columns: ["tenant_id","personnel_id"]
+isOneToOne: false
+      referencedRelation: "personnel"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"personnel_dossier_history": {
+                  Row: {
+                    "actor_user_id": string | null,"created_at": string,"id": string,"personnel_id": string,"revision": number,"snapshot": NonNullable<Json>,"source_id": string,"source_table": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "actor_user_id"?: string | null,"created_at"?: string,"id"?: string,"personnel_id": string,"revision": number,"snapshot": NonNullable<Json>,"source_id": string,"source_table": string,"tenant_id": string
+                  }
+                  Update: {
+                    "actor_user_id"?: string | null,"created_at"?: string,"id"?: string,"personnel_id"?: string,"revision"?: number,"snapshot"?: NonNullable<Json>,"source_id"?: string,"source_table"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "personnel_dossier_history_tenant_id_personnel_id_fkey"
+      columns: ["tenant_id","personnel_id"]
+isOneToOne: false
+      referencedRelation: "personnel"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"personnel_dossier_items": {
+                  Row: {
+                    "created_at": string,"dossier_data": NonNullable<Json>,"dossier_managed": boolean,"dossier_revision": number,"dossier_status": string,"due_on": string | null,"id": string,"kind": string,"owner_user_id": string | null,"personnel_id": string,"previous_id": string | null,"tenant_id": string,"title": string,"updated_at": string,"updated_by": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"dossier_data"?: NonNullable<Json>,"dossier_managed"?: boolean,"dossier_revision"?: number,"dossier_status"?: string,"due_on"?: string | null,"id"?: string,"kind": string,"owner_user_id"?: string | null,"personnel_id": string,"previous_id"?: string | null,"tenant_id": string,"title": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"dossier_data"?: NonNullable<Json>,"dossier_managed"?: boolean,"dossier_revision"?: number,"dossier_status"?: string,"due_on"?: string | null,"id"?: string,"kind"?: string,"owner_user_id"?: string | null,"personnel_id"?: string,"previous_id"?: string | null,"tenant_id"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "personnel_dossier_items_dossier_previous_fk"
+      columns: ["tenant_id","previous_id"]
+isOneToOne: false
+      referencedRelation: "personnel_dossier_items"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "personnel_dossier_items_tenant_id_owner_user_id_fkey"
+      columns: ["tenant_id","owner_user_id"]
+isOneToOne: false
+      referencedRelation: "tenant_memberships"
+      referencedColumns: ["tenant_id","user_id"]
+    },{
+      foreignKeyName: "personnel_dossier_items_tenant_id_personnel_id_fkey"
+      columns: ["tenant_id","personnel_id"]
+isOneToOne: false
+      referencedRelation: "personnel"
       referencedColumns: ["tenant_id","id"]
     }
                   ]
@@ -735,16 +853,22 @@ isOneToOne: false
                   ]
                 },"personnel_notes": {
                   Row: {
-                    "body": string,"created_at": string,"created_by": string,"id": string,"personnel_id": string,"tenant_id": string,"updated_at": string
+                    "body": string,"created_at": string,"created_by": string,"dossier_data": NonNullable<Json>,"dossier_managed": boolean,"dossier_revision": number,"dossier_status": string,"id": string,"personnel_id": string,"previous_id": string | null,"tenant_id": string,"updated_at": string,"updated_by": string | null
                   }
                   Insert: {
-                    "body": string,"created_at"?: string,"created_by": string,"id"?: string,"personnel_id": string,"tenant_id": string,"updated_at"?: string
+                    "body": string,"created_at"?: string,"created_by": string,"dossier_data"?: NonNullable<Json>,"dossier_managed"?: boolean,"dossier_revision"?: number,"dossier_status"?: string,"id"?: string,"personnel_id": string,"previous_id"?: string | null,"tenant_id": string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"created_by"?: string,"id"?: string,"personnel_id"?: string,"tenant_id"?: string,"updated_at"?: string
+                    "body"?: string,"created_at"?: string,"created_by"?: string,"dossier_data"?: NonNullable<Json>,"dossier_managed"?: boolean,"dossier_revision"?: number,"dossier_status"?: string,"id"?: string,"personnel_id"?: string,"previous_id"?: string | null,"tenant_id"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "personnel_notes_dossier_previous_fk"
+      columns: ["tenant_id","previous_id"]
+isOneToOne: false
+      referencedRelation: "personnel_notes"
+      referencedColumns: ["tenant_id","id"]
+    },{
       foreignKeyName: "personnel_notes_tenant_id_personnel_id_fkey"
       columns: ["tenant_id","personnel_id"]
 isOneToOne: false
@@ -778,6 +902,44 @@ isOneToOne: false
                   Relationships: [
                     {
       foreignKeyName: "push_subscriptions_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"qualification_requirements": {
+                  Row: {
+                    "active": boolean,"code": string,"hard_requirement": boolean,"id": string,"scope": string,"service_name": string | null,"subject_id": string | null,"tenant_id": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"code": string,"hard_requirement"?: boolean,"id"?: string,"scope": string,"service_name"?: string | null,"subject_id"?: string | null,"tenant_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"code"?: string,"hard_requirement"?: boolean,"id"?: string,"scope"?: string,"service_name"?: string | null,"subject_id"?: string | null,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "qualification_requirements_tenant_id_code_fkey"
+      columns: ["tenant_id","code"]
+isOneToOne: false
+      referencedRelation: "qualification_types"
+      referencedColumns: ["tenant_id","code"]
+    }
+                  ]
+                },"qualification_types": {
+                  Row: {
+                    "active": boolean,"code": string,"id": string,"name": string,"reminder_days": (number)[],"tenant_id": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"code": string,"id"?: string,"name": string,"reminder_days"?: (number)[],"tenant_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"code"?: string,"id"?: string,"name"?: string,"reminder_days"?: (number)[],"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "qualification_types_tenant_id_fkey"
       columns: ["tenant_id"]
 isOneToOne: false
       referencedRelation: "tenants"
@@ -1289,13 +1451,13 @@ isOneToOne: false
                   ]
                 },"work_order_assignments": {
                   Row: {
-                    "actual_end_at": string | null,"actual_start_at": string | null,"created_at": string,"departed_at": string | null,"id": string,"personnel_id": string,"planned_end_at": string,"planned_start_at": string,"projected_end_at": string,"projected_start_at": string,"return_note": string | null,"return_reason_code": string | null,"status": string,"tenant_id": string,"updated_at": string,"version": number,"work_order_id": string
+                    "actual_end_at": string | null,"actual_start_at": string | null,"created_at": string,"departed_at": string | null,"id": string,"personnel_id": string,"planned_end_at": string,"planned_start_at": string,"projected_end_at": string,"projected_start_at": string,"qualification_snapshot": NonNullable<Json>,"return_note": string | null,"return_reason_code": string | null,"status": string,"tenant_id": string,"updated_at": string,"version": number,"work_order_id": string
                   }
                   Insert: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"created_at"?: string,"departed_at"?: string | null,"id"?: string,"personnel_id": string,"planned_end_at": string,"planned_start_at": string,"projected_end_at": string,"projected_start_at": string,"return_note"?: string | null,"return_reason_code"?: string | null,"status"?: string,"tenant_id": string,"updated_at"?: string,"version"?: number,"work_order_id": string
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"created_at"?: string,"departed_at"?: string | null,"id"?: string,"personnel_id": string,"planned_end_at": string,"planned_start_at": string,"projected_end_at": string,"projected_start_at": string,"qualification_snapshot"?: NonNullable<Json>,"return_note"?: string | null,"return_reason_code"?: string | null,"status"?: string,"tenant_id": string,"updated_at"?: string,"version"?: number,"work_order_id": string
                   }
                   Update: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"created_at"?: string,"departed_at"?: string | null,"id"?: string,"personnel_id"?: string,"planned_end_at"?: string,"planned_start_at"?: string,"projected_end_at"?: string,"projected_start_at"?: string,"return_note"?: string | null,"return_reason_code"?: string | null,"status"?: string,"tenant_id"?: string,"updated_at"?: string,"version"?: number,"work_order_id"?: string
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"created_at"?: string,"departed_at"?: string | null,"id"?: string,"personnel_id"?: string,"planned_end_at"?: string,"planned_start_at"?: string,"projected_end_at"?: string,"projected_start_at"?: string,"qualification_snapshot"?: NonNullable<Json>,"return_note"?: string | null,"return_reason_code"?: string | null,"status"?: string,"tenant_id"?: string,"updated_at"?: string,"version"?: number,"work_order_id"?: string
                   }
                   Relationships: [
                     {
@@ -1522,6 +1684,30 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"claim_personnel_dossier_deliveries":
+{ Args: { "batch_size"?: number }; Returns: {
+              "attempts": number,
+"available_at": string,
+"created_at": string,
+"due_on": string,
+"id": string,
+"last_error": string | null,
+"personnel_id": string,
+"recipient": string,
+"recipient_user_id": string | null,
+"sent_at": string | null,
+"source_id": string,
+"source_revision": number,
+"source_table": string,
+"status": string,
+"tenant_id": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "personnel_dossier_deliveries"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "complete_work_order_task":
 { Args: { "completed": boolean,"completion_note"?: string,"target_task_id": string }; Returns: {
               "added_by": string | null,
@@ -1634,6 +1820,24 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"personnel_dossier_owners":
+{ Args: { "target_tenant": string }; Returns: {
+              "id": string,"label": string
+            }[]
+                           },
+"personnel_dossier_summary":
+{ Args: { "target_tenant": string }; Returns: {
+              "certificate_attention": boolean,"employment_status": string,"ends_on": string,"function_id": string,"open_actions": number,"personnel_id": string,"team": string
+            }[]
+                           },
+"personnel_qualification_gaps":
+{ Args: { "target_tenant": string }; Returns: {
+              "assignment_id": string,"code": string,"hard_requirement": boolean,"personnel_id": string
+            }[]
+                           },
+"prepare_personnel_checklist":
+{ Args: { "checklist_type": string,"target_personnel": string,"target_tenant": string }; Returns: number
+                           },
 "provision_platform_tenant":
 { Args: { "accent_color": string,"actor_user_id": string,"admin_email": string,"admin_name": string,"enabled_services": (string)[],"primary_color": string,"request_key": string,"sender_email"?: string,"tenant_domain"?: string,"tenant_name": string,"tenant_slug": string }; Returns: string
                            },

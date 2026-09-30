@@ -2,6 +2,10 @@ import "server-only";
 
 import { getServerEnv, requireProvider } from "@/lib/env/server";
 
+export class SendGridDeliveryError extends Error {
+  constructor(message:string, public readonly httpStatus:number) { super(message); }
+}
+
 export async function sendEmail(input: { fromEmail: string; fromName: string; to: string; subject: string; text: string; html: string; attachment?: { filename: string; bytes: Uint8Array }; deliveryKey: string; disableTracking?: boolean }) {
   const endpoint = new URL("v3/mail/send", getServerEnv().SENDGRID_API_BASE);
   const response = await fetch(endpoint, {
@@ -19,7 +23,7 @@ export async function sendEmail(input: { fromEmail: string; fromName: string; to
   });
   if (response.status !== 202) {
     const payload = await response.json().catch(() => ({})) as { errors?: Array<{ message?: string }> };
-    throw new Error(payload.errors?.[0]?.message ?? `SendGrid gaf HTTP ${response.status}`);
+    throw new SendGridDeliveryError(payload.errors?.[0]?.message ?? `SendGrid gaf HTTP ${response.status}`, response.status);
   }
   return { id: response.headers.get("x-message-id") ?? input.deliveryKey };
 }

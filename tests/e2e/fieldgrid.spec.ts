@@ -245,10 +245,9 @@ test("Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel", asy
           && [[rect.left + inset, rect.top + inset], [rect.right - inset, rect.bottom - inset]]
             .every(([x, y]) => element.contains(document.elementFromPoint(x, y)));
       })).toBe(true);
-      if (width === 1440) {
-        const tableBottom = await table.evaluate((element) => element.getBoundingClientRect().bottom);
-        expect(await overlay.evaluate((element) => element.getBoundingClientRect().bottom)).toBeGreaterThan(tableBottom);
-      }
+      // Additional dossier filters can put the last row near the viewport edge:
+      // Radix may correctly flip upwards. Check the portal, not a forced direction.
+      expect(await overlay.evaluate(element => Boolean(element.closest(".resource-table-panel")))).toBe(false);
 
       await page.keyboard.press("Escape");
       await expect(overlay).toBeHidden();
