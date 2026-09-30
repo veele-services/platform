@@ -26,11 +26,13 @@ export async function getObjectData(tenantId:string,id:string):Promise<ObjectDat
   db.from("qualification_types").select("*").eq("tenant_id",tenantId).eq("active",true),
   db.from("object_reminder_recipients").select("*").eq("tenant_id",tenantId).eq("object_id",id),
   db.rpc("object_customer_accounts",{target_tenant:tenantId,target_object:id}),
+  db.rpc("object_agreement_options",{target_tenant:tenantId,target_object:id}),
+  db.rpc("personnel_qualification_gaps",{target_tenant:tenantId}),
  ]);
  // Planner may not read HR owners/assets; these optional catalogues stay empty.
  for(let i=0;i<r.length;i++)if(![12,14].includes(i)&&r[i].error)throw new Error("Het objectdossier kon niet volledig worden geladen.");
  const ids=r[3].data?.map(w=>w.id)??[];
  const [assignments,reports]=await Promise.all([db.from("work_order_assignments").select("*").eq("tenant_id",tenantId).in("work_order_id",ids),db.from("report_entries").select("*").eq("tenant_id",tenantId).in("work_order_id",ids).is("deleted_at",null)]);
  if(assignments.error||reports.error||!r[0].data)throw new Error("Uitvoeringsgegevens tijdelijk niet beschikbaar.");
- return {object,customer:r[0].data,nodes:r[1].data??[],records:r[2].data??[],orders:r[3].data??[],contacts:r[4].data??[],documents:r[5].data??[],history:r[6].data??[],requests:r[7].data??[],proposals:r[8].data??[],tasks:r[9].data??[],taskRevisions:r[10].data??[],personnel:r[11].data??[],owners:r[12].data??[],bindings:r[13].data??[],assets:r[14].data??[],requirements:r[15].data??[],qualificationTypes:r[16].data??[],assignments:assignments.data??[],reports:reports.data??[],reminderRecipients:r[17].data??[],customerAccounts:r[18].data??[]};
+ return {agreementOptions:r[19].data??[],qualificationGaps:(r[20].data??[]).filter(g=>(assignments.data??[]).some(a=>a.id===g.assignment_id)),object,customer:r[0].data,nodes:r[1].data??[],records:r[2].data??[],orders:r[3].data??[],contacts:r[4].data??[],documents:r[5].data??[],history:r[6].data??[],requests:r[7].data??[],proposals:r[8].data??[],tasks:r[9].data??[],taskRevisions:r[10].data??[],personnel:r[11].data??[],owners:r[12].data??[],bindings:r[13].data??[],assets:r[14].data??[],requirements:r[15].data??[],qualificationTypes:r[16].data??[],assignments:assignments.data??[],reports:reports.data??[],reminderRecipients:r[17].data??[],customerAccounts:r[18].data??[]};
 }

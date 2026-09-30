@@ -1,0 +1,11 @@
+"use client";
+import { useState } from "react";
+import type { Row } from "@/lib/objects/model";
+import { recordTaskExecution } from "@/app/app/dossier-actions";
+import { billingStatus, executionLabels } from "@/lib/dossiers/status";
+import { ObjectForm } from "./objects/forms";
+export function TaskExecution({ task, editable = false, allocated = 0, reviewed = false }: { task: Row<"work_order_tasks">; editable?: boolean; allocated?: number; reviewed?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const actual = task.executed_quantity ?? (task.completed_at ? task.quantity : 0);
+  return <article className="object-record"><header><h3>{task.task_name}</h3><span className="dossier-status">{executionLabels[task.completed_at && task.execution_state === "planned" ? "completed" : task.execution_state]}</span></header><p>Uitgevoerd: {actual} van {task.quantity} {task.unit}</p>{task.completion_note && <p>{task.completion_note}</p>}<p className="dossier-muted">{billingStatus(task.unit_price_cents, !!task.completed_at, reviewed && (!task.is_extra_work || task.extra_work_status === "approved"), allocated, actual)}</p>{editable && <button className="resource-action" onClick={() => setOpen(!open)}>Hoeveelheid / deeluitvoering</button>}{open && <ObjectForm action={recordTaskExecution} onSuccess={() => setOpen(false)}><input type="hidden" name="taskId" value={task.id}/><input type="hidden" name="version" value={task.execution_version}/><label>Uitvoeringsresultaat<select name="result" defaultValue={task.execution_state==="planned"?"completed":task.execution_state}><option value="completed">Geheel uitgevoerd</option><option value="partial">Deels uitgevoerd</option><option value="not_done">Niet uitgevoerd</option></select></label><label>Werkelijk uitgevoerde hoeveelheid<input name="quantity" type="number" min="0" max={task.quantity} step="0.001" required defaultValue={task.completed_at?actual:task.quantity}/></label><label className="wide">Resultaat en resterend werk<textarea name="reason" rows={3} placeholder="Bij gedeeltelijke uitvoering: wat is gedaan, wat niet en hoe volgt dit later?"/></label><p className="dossier-notice wide">Extra tijd is geen automatische toestemming voor extra kosten. Meerwerk vereist een afzonderlijke afspraak.</p></ObjectForm>}</article>;
+}

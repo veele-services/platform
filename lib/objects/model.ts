@@ -33,12 +33,13 @@ export const objectSchema = z.object({
 export const recordSchema = z.object({
   id:z.string().uuid(),objectId:z.string().uuid(),version:z.coerce.number().int().min(0),kind:z.enum(recordKinds),title:z.string().trim().min(2).max(180),body:z.string().max(10000),
   state:z.enum(["draft","open","active","progress","completed","partial","not_done","archived"]),nodeId:optionalId,workOrderId:optionalId,ownerId:optionalId,
-  contactId:optionalId,taskRevisionId:optionalId,assetId:optionalId,service:z.string().max(100),instructionType:z.enum(["","fixed","temporary","appointment"]),
+  agreementLineId:optionalId.default(""),contactId:optionalId,taskRevisionId:optionalId,assetId:optionalId,service:z.string().max(100),instructionType:z.enum(["","fixed","temporary","appointment"]),
   startsAt:z.string().max(50),endsAt:z.string().max(50),dueOn:z.string().date().or(z.literal("")),
   category:z.string().max(100),frequency:z.string().max(200),window:z.string().max(200),checklist:z.string().max(3000),equipment:z.string().max(1000),
   evidence:z.string().max(3000),acknowledgement:z.boolean(),quantity:z.string().max(30),unit:z.string().max(60),
 });
 export type ObjectData = {
+ agreementOptions:Array<{id:string;title:string;version:number;task_revision_id:string;scope:string}>;qualificationGaps:Database["public"]["Functions"]["personnel_qualification_gaps"]["Returns"];
  object:Row<"objects">;customer:Row<"customers">;nodes:Row<"object_nodes">[];records:Row<"object_records">[];
  orders:Row<"work_orders">[];assignments:Row<"work_order_assignments">[];personnel:Array<Pick<Row<"personnel">,"id"|"full_name">>;
  contacts:Row<"customer_contacts">[];documents:Row<"object_documents">[];history:Row<"object_history">[];

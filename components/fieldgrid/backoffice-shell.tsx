@@ -28,7 +28,7 @@ import {
   createExtraWorkRule, allowExtraWork,
 } from "@/app/app/operations-actions";
 
-export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen";
+export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging";
 
 const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboard; href: string }> = [
   { id: "overzicht", label: "Overzicht", icon: LayoutDashboard, href: "/app" },
@@ -42,6 +42,7 @@ const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboa
   { id: "controle", label: "Rapportcontrole", icon: ClipboardCheck, href: "/app/rapporten" },
   { id: "facturen", label: "Facturen", icon: CreditCard, href: "/app/facturen" },
   { id: "nieuws", label: "Nieuws", icon: Megaphone, href: "/app/nieuws" },
+  { id: "opvolging", label: "Opvolging", icon: ClipboardCheck, href: "/app/opvolging" },
   { id: "instellingen", label: "Instellingen", icon: Settings, href: "/app/instellingen" },
 ];
 
@@ -152,7 +153,7 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
       <DataTable headers={["Code", "Taak", "Discipline", "Duur", "Tarief", "Status"]}>{data.tasks.map((task) => { const revision = data.taskRevisions.find((item) => item.task_id === task.id && !item.valid_until); return <tr key={task.id}><td><span className="code">{task.code}</span></td><td><strong>{task.name}</strong></td><td>{task.discipline}</td><td>{revision?.duration_minutes ?? 0} min</td><td>{money(revision?.price_cents)}</td><td><Pill status={task.active ? "active" : "inactive"}/></td></tr>; })}</DataTable>
     </>;
 
-    if (view === "klanten") return <CustomersPage data={data} timezone={tenant.timezone}/>;
+    if (view === "klanten") return <CustomersPage data={data} timezone={tenant.timezone} roles={tenant.roles}/>;
     if (view === "objecten") return <ObjectsPage data={data} timezone={tenant.timezone}/>;
 
     if (view === "personeel") return <PersonnelPage data={data} roles={tenant.roles}/>;

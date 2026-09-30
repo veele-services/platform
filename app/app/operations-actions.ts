@@ -13,7 +13,7 @@ import { tenantAppUrl } from "@/lib/tenancy/hostname";
 import { sendEmail } from "@/lib/providers/sendgrid";
 import { renderTenantEmailHtml } from "@/lib/communications/email";
 import { renderPlainEmail, type TemplateValues } from "@/lib/communications/templates";
-import { CUSTOMER_DOCUMENT_MAX_BYTES, customerDocumentExtension, customerDocumentFileName } from "@/lib/customers/documents";
+import { validateDossierDocumentName, CUSTOMER_DOCUMENT_MAX_BYTES, customerDocumentExtension, customerDocumentFileName } from "@/lib/customers/documents";
 import { privacyText } from "@/lib/personnel/dossier";
 import { personnelNumberInputSchema, personnelNumberSettingsSchema } from "@/lib/personnel/numbering";
 import { deliverPersonnelInvitation, preparePersonnelAccount, requirePersonnelEmail } from "@/lib/personnel/invitations";
@@ -647,10 +647,11 @@ export async function createCustomerNote(formData: FormData): Promise<ActionResu
 export async function uploadCustomerDocument(formData: FormData): Promise<ActionResult> {
   try {
     const context = await authorized(["tenant_admin", "management", "planner", "finance"], ["planning"]);
-    const input = z.object({ customerId: z.string().uuid(), title: z.string().trim().min(2).max(160) }).parse(Object.fromEntries(formData));
+    const input = z.object({ customerId: z.string().uuid(), title: z.string().trim().min(2).max(160), previousId:z.uuid().or(z.literal("")).optional(), documentOn:z.iso.date().or(z.literal("")).optional(), validUntil:z.iso.date().or(z.literal("")).optional() }).parse(Object.fromEntries(formData));
     const file = formData.get("document");
     if (!(file instanceof File) || file.size === 0) throw new Error("Selecteer een document");
     if (file.size > CUSTOMER_DOCUMENT_MAX_BYTES) throw new Error("Gebruik PDF, JPG of PNG van maximaal 10 MB");
+    validateDossierDocumentName(input.title,file.name);
     const bytes = new Uint8Array(await file.arrayBuffer());
     const extension = customerDocumentExtension(file.type, bytes);
     const supabase = await createClient();
@@ -663,7 +664,7 @@ export async function uploadCustomerDocument(formData: FormData): Promise<Action
     const { error: uploadError } = await bucket.upload(path, bytes, { contentType: file.type, upsert: false });
     if (uploadError) throw uploadError;
     const { error } = await supabase.from("customer_documents").insert({
-      tenant_id: context.tenant.id, customer_id: customer.id, title: input.title, storage_path: path,
+      tenant_id: context.tenant.id, customer_id: customer.id, title: input.title, storage_path: path, previous_id:input.previousId||null,document_on:input.documentOn||null,valid_until:input.validUntil||null,
       file_name: customerDocumentFileName(file.name), mime_type: file.type, size_bytes: file.size,
       sha256: createHash("sha256").update(bytes).digest("hex"), created_by: context.user.id,
     });

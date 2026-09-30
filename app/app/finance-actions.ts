@@ -25,28 +25,31 @@ async function financeContext(): Promise<AuthContext & { tenant: TenantContext }
 export async function createInvoice(formData: FormData): Promise<ActionResult<{ invoiceId: string }>> {
   try {
     const context = await financeContext();
-    const ids = z.string().min(1).parse(formData.get("workOrderIds")).split(",").map((id) => z.string().uuid().parse(id));
+    const invoiceId = formData.get("invoiceId") ? z.uuid().parse(formData.get("invoiceId")) : null;
+    const requestId = invoiceId ? null : z.uuid().parse(formData.get("requestId"));
     const supabase = await createClient();
-    const { data: orders, error: orderError } = await supabase.from("work_orders").select("*").in("id", ids).eq("status", "invoice_ready");
-    if (orderError || orders.length !== ids.length) throw orderError ?? new Error("Niet alle werkbonnen zijn factureerbaar");
-    if (new Set(orders.map((order) => order.customer_id)).size !== 1) throw new Error("Een verzamelfactuur kan alleen bonnen van één klant bevatten");
-    const customerId = orders[0].customer_id;
-    const { data: tasks, error: tasksError } = await supabase.from("work_order_tasks").select("*").in("work_order_id", ids);
-    if (tasksError) throw tasksError;
-    const billable = tasks.filter((task) => !task.is_extra_work || task.extra_work_status === "approved");
-    if (!billable.length) throw new Error("Er zijn geen factureerbare regels");
-    const { data: invoice, error } = await supabase.from("invoices").insert({ tenant_id: context.tenant.id, customer_id: customerId, created_by: context.user.id }).select().single();
-    if (error) throw error;
-    const lines = billable.map((task) => {
-      const quantity = Number(task.quantity);
-      const subtotal = Math.round(quantity * task.unit_price_cents);
-      const vat = Math.round(subtotal * task.vat_basis_points / 10000);
-      return { tenant_id: context.tenant!.id, invoice_id: invoice.id, work_order_id: task.work_order_id, description: `${task.task_code} · ${task.task_name}`, quantity, unit: task.unit, unit_price_cents: task.unit_price_cents, subtotal_cents: subtotal, vat_basis_points: task.vat_basis_points, vat_cents: vat, total_cents: subtotal + vat, source_snapshot: { work_order_task_id: task.id, duration_minutes: task.duration_minutes } };
-    });
-    const { error: linesError } = await supabase.from("invoice_lines").insert(lines);
-    if (linesError) { await supabase.from("invoices").delete().eq("id", invoice.id); throw linesError; }
-    const { data: finalized, error: finalizeError } = await supabase.rpc("finalize_invoice", { target_invoice_id: invoice.id });
-    if (finalizeError) throw finalizeError;
+    const lookup = supabase.from("invoices").select("*").eq("tenant_id", context.tenant.id);
+    const existing = await (invoiceId ? lookup.eq("id", invoiceId) : lookup.eq("source_request_id", requestId!)).maybeSingle();
+    if (existing.error) throw existing.error;
+    let finalized = existing.data;
+    if (invoiceId && (!finalized || !finalized.invoice_number || finalized.status === "draft")) throw new Error("Geen definitieve factuur gevonden");
+    if (!finalized) {
+      const ids = z.string().min(1).parse(formData.get("workOrderIds")).split(",").map(id => z.uuid().parse(id));
+      const { data: tasks, error: tasksError } = await supabase.from("work_order_tasks").select("*").eq("tenant_id", context.tenant.id).in("work_order_id", ids);
+      const { data: allocated, error: allocationError } = await supabase.from("invoice_lines").select("work_order_task_id,work_order_id,source_snapshot,quantity").eq("tenant_id", context.tenant.id).in("work_order_id", ids);
+      if (tasksError || allocationError) throw new Error("Factureerbare bronnen konden niet worden geladen");
+      const sources = tasks.filter(t => t.completed_at && t.unit_price_cents > 0 && (!t.is_extra_work || t.extra_work_status === "approved")).map(t => ({
+        taskId: t.id,
+        quantity: Number(t.executed_quantity ?? t.quantity) - (allocated ?? []).filter(l => l.work_order_id===t.work_order_id && (l.work_order_task_id || (l.source_snapshot as Record<string,unknown>).work_order_task_id)===t.id).reduce((n,l) => n + Number(l.quantity), 0),
+      })).filter(t => t.quantity > 0);
+      if (!sources.length) throw new Error("Er zijn geen gecontroleerde, nog factureerbare hoeveelheden");
+      const { data, error } = await supabase.rpc("create_execution_invoice", { target_tenant: context.tenant.id, request_id: requestId!, sources });
+      if (error) throw new Error("Factuur niet aangemaakt. Controleer de rapportcontrole, akkoorden en nog factureerbare hoeveelheden.");
+      finalized = data;
+    }
+    const { data: lines, error: linesError } = await supabase.from("invoice_lines").select("*").eq("tenant_id", context.tenant.id).eq("invoice_id", finalized.id);
+    if (linesError) throw new Error("Factuurregels konden niet worden geladen");
+    if (finalized.pdf_storage_path) return { ok: true, invoiceId: finalized.id };
     const customer = finalized.customer_snapshot as Record<string, unknown>;
     const branding = finalized.branding_snapshot as Record<string, unknown>;
     const pdf = await renderInvoicePdf({
@@ -57,15 +60,27 @@ export async function createInvoice(formData: FormData): Promise<ActionResult<{ 
       subtotalCents: finalized.subtotal_cents, vatCents: finalized.vat_cents, totalCents: finalized.total_cents,
       accentColor: String(branding.accent_color ?? "#41ac42"), footer: typeof branding.pdf_footer === "string" ? branding.pdf_footer : null,
     });
-    const digest = createHash("sha256").update(pdf).digest("hex");
-    const path = `${context.tenant.id}/${invoice.id}/${finalized.invoice_number}.pdf`;
-    const { error: uploadError } = await supabase.storage.from("invoices").upload(path, pdf, { contentType: "application/pdf", upsert: false });
-    if (uploadError) throw uploadError;
-    const { error: attachError } = await supabase.rpc("attach_invoice_pdf", { target_invoice_id: invoice.id, storage_path: path, sha256: digest });
+
+    const path = `${context.tenant.id}/${finalized.id}/${finalized.invoice_number}.pdf`;
+    const bucket = supabase.storage.from("invoices");
+    // A previous attempt may have uploaded before losing the response.
+    const stored = await bucket.download(path);
+    let bytes: Uint8Array = pdf;
+    if (stored.data) bytes = new Uint8Array(await stored.data.arrayBuffer());
+    else {
+      const uploaded = await bucket.upload(path, pdf, { contentType: "application/pdf", upsert: false });
+      if (uploaded.error) {
+        const raced = await bucket.download(path);
+        if (!raced.data) throw new Error("De factuur is vastgelegd, maar de PDF kon niet worden opgeslagen. Probeer dezelfde actie opnieuw.");
+        bytes = new Uint8Array(await raced.data.arrayBuffer());
+      }
+    }
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    const { error: attachError } = await supabase.rpc("attach_invoice_pdf", { target_invoice_id: finalized.id, storage_path: path, sha256: digest });
     if (attachError) throw attachError;
-    revalidatePath("/app");
-    return { ok: true, invoiceId: invoice.id };
-  } catch (error) { return { ok: false, error: message(error) }; }
+    revalidatePath("/app", "layout");
+    return { ok: true, invoiceId: finalized.id };
+  } catch { return { ok: false, error: "Controleer de rapportcontrole, akkoorden en hoeveelheden. Is de factuur al vastgelegd maar ontbreekt de PDF? Open de factuur en kies PDF herstellen." }; }
 }
 
 export async function sendInvoice(formData: FormData): Promise<ActionResult<{ paymentUrl: string }>> {

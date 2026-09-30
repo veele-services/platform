@@ -280,7 +280,7 @@ test("klantdossier toont uitvoeringen en bewaart contacten, notities en private 
   };
   await openCustomer();
   const dialog = page.getByRole("dialog", { name: "Noordhaven Vastgoed" });
-  await expect(dialog.getByRole("tab")).toHaveText(["Overzicht", "Contactpersonen", "Objecten", "Uitvoeringen", "Notities", "Documenten"]);
+  await expect(dialog.getByRole("tab")).toHaveText(["Overzicht", "Contactpersonen", "Objecten", "Uitvoeringen", "Verzoeken & meerwerk", "Afspraken & contracten", "Opvolging", "Financieel", "Tijdlijn", "Notities", "Documenten"]);
   await expect(dialog.getByRole("heading", { name: "Hoofdgegevens" })).toBeVisible();
   await expect(dialog.getByText("finance@customer.test", { exact: true })).toBeVisible();
   await expect(dialog.getByText("14 dagen", { exact: true })).toBeVisible();
@@ -332,7 +332,8 @@ test("klantdossier toont uitvoeringen en bewaart contacten, notities en private 
   expect(await response.body()).toEqual(bytes);
 
   await page.reload();
-  await openCustomer();
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("tab",{name:"Documenten",exact:true})).toHaveAttribute("aria-selected","true");
   await dialog.getByRole("tab", { name: "Notities", exact: true }).click();
   await expect(dialog.getByText(note, { exact: true })).toBeVisible();
   await dialog.getByRole("tab", { name: "Documenten", exact: true }).click();
@@ -341,13 +342,16 @@ test("klantdossier toont uitvoeringen en bewaart contacten, notities en private 
     await page.setViewportSize({ width, height: 844 });
     for (const tab of ["Overzicht", "Contactpersonen", "Objecten", "Notities", "Documenten"]) {
       await dialog.getByRole("tab", { name: tab, exact: true }).click();
+      await expect(dialog.getByRole("tab", { name: tab, exact: true })).toHaveAttribute("aria-selected","true");
       await expect(dialog.getByRole("tabpanel")).toBeVisible();
       await expect.poll(() => dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
     }
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await dialog.getByRole("tab", { name: "Overzicht", exact: true }).click();
-  await expect(dialog).toHaveScreenshot("customer-dossier-overview-390.png");
+  await expect(dialog.getByRole("tab",{name:"Overzicht",exact:true})).toHaveAttribute("aria-selected","true");
+  await expect(dialog.getByRole("heading",{name:"Hoofdgegevens"})).toBeVisible();
+  await expect(dialog).toHaveScreenshot("customer-dossier-overview-390.png",{stylePath:"tests/e2e/dossier-screenshot.css"});
 
   const staffContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000" });
   try {

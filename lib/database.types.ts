@@ -199,6 +199,74 @@ isOneToOne: false
       referencedColumns: ["tenant_id","id"]
     }
                   ]
+                },"customer_agreement_lines": {
+                  Row: {
+                    "agreement_id": string,"id": string,"limit_cents": number,"object_id": string,"price_cents": number,"quantity": number,"scope": string,"task_revision_id": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "agreement_id": string,"id"?: string,"limit_cents": number,"object_id": string,"price_cents": number,"quantity": number,"scope": string,"task_revision_id": string,"tenant_id": string
+                  }
+                  Update: {
+                    "agreement_id"?: string,"id"?: string,"limit_cents"?: number,"object_id"?: string,"price_cents"?: number,"quantity"?: number,"scope"?: string,"task_revision_id"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customer_agreement_lines_tenant_id_agreement_id_fkey"
+      columns: ["tenant_id","agreement_id"]
+isOneToOne: false
+      referencedRelation: "customer_agreements"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "customer_agreement_lines_tenant_id_object_id_fkey"
+      columns: ["tenant_id","object_id"]
+isOneToOne: false
+      referencedRelation: "objects"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "customer_agreement_lines_tenant_id_task_revision_id_fkey"
+      columns: ["tenant_id","task_revision_id"]
+isOneToOne: false
+      referencedRelation: "task_revisions"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"customer_agreements": {
+                  Row: {
+                    "accepted_by_name": string,"accepted_on": string,"created_at": string,"created_by": string,"customer_id": string,"ends_on": string | null,"evidence_document_id": string | null,"id": string,"previous_id": string | null,"starts_on": string,"state": string,"tenant_id": string,"title": string,"version": number
+                  }
+                  Insert: {
+                    "accepted_by_name": string,"accepted_on": string,"created_at"?: string,"created_by"?: string,"customer_id": string,"ends_on"?: string | null,"evidence_document_id"?: string | null,"id"?: string,"previous_id"?: string | null,"starts_on": string,"state"?: string,"tenant_id": string,"title": string,"version"?: number
+                  }
+                  Update: {
+                    "accepted_by_name"?: string,"accepted_on"?: string,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"ends_on"?: string | null,"evidence_document_id"?: string | null,"id"?: string,"previous_id"?: string | null,"starts_on"?: string,"state"?: string,"tenant_id"?: string,"title"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customer_agreements_tenant_id_customer_id_fkey"
+      columns: ["tenant_id","customer_id"]
+isOneToOne: false
+      referencedRelation: "customers"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "customer_agreements_tenant_id_evidence_document_id_fkey"
+      columns: ["tenant_id","evidence_document_id"]
+isOneToOne: false
+      referencedRelation: "customer_documents"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "customer_agreements_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "customer_agreements_tenant_id_previous_id_fkey"
+      columns: ["tenant_id","previous_id"]
+isOneToOne: false
+      referencedRelation: "customer_agreements"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
                 },"customer_contacts": {
                   Row: {
                     "created_at": string,"customer_id": string,"email": string | null,"full_name": string,"id": string,"is_primary": boolean,"phone": string | null,"role": string | null,"tenant_id": string
@@ -220,16 +288,22 @@ isOneToOne: false
                   ]
                 },"customer_documents": {
                   Row: {
-                    "created_at": string,"created_by": string,"customer_id": string,"file_name": string,"id": string,"mime_type": string,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string
+                    "created_at": string,"created_by": string,"customer_id": string,"document_on": string | null,"file_name": string,"id": string,"mime_type": string,"previous_id": string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until": string | null,"version": number
                   }
                   Insert: {
-                    "created_at"?: string,"created_by": string,"customer_id": string,"file_name": string,"id"?: string,"mime_type": string,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string
+                    "created_at"?: string,"created_by": string,"customer_id": string,"document_on"?: string | null,"file_name": string,"id"?: string,"mime_type": string,"previous_id"?: string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until"?: string | null,"version"?: number
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string,"customer_id"?: string,"file_name"?: string,"id"?: string,"mime_type"?: string,"sha256"?: string,"size_bytes"?: number,"storage_path"?: string,"tenant_id"?: string,"title"?: string
+                    "created_at"?: string,"created_by"?: string,"customer_id"?: string,"document_on"?: string | null,"file_name"?: string,"id"?: string,"mime_type"?: string,"previous_id"?: string | null,"sha256"?: string,"size_bytes"?: number,"storage_path"?: string,"tenant_id"?: string,"title"?: string,"valid_until"?: string | null,"version"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "customer_document_previous_fk"
+      columns: ["tenant_id","previous_id"]
+isOneToOne: false
+      referencedRelation: "customer_documents"
+      referencedColumns: ["tenant_id","id"]
+    },{
       foreignKeyName: "customer_documents_tenant_id_customer_id_fkey"
       columns: ["tenant_id","customer_id"]
 isOneToOne: false
@@ -309,6 +383,43 @@ isOneToOne: false
       columns: ["tenant_id","work_order_id"]
 isOneToOne: false
       referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"dossier_documents": {
+                  Row: {
+                    "classification": string,"customer_id": string | null,"id": string,"object_id": string | null,"personnel_id": string | null,"source_id": string,"source_kind": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "classification": string,"customer_id"?: string | null,"id"?: string,"object_id"?: string | null,"personnel_id"?: string | null,"source_id": string,"source_kind": string,"tenant_id": string
+                  }
+                  Update: {
+                    "classification"?: string,"customer_id"?: string | null,"id"?: string,"object_id"?: string | null,"personnel_id"?: string | null,"source_id"?: string,"source_kind"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "dossier_documents_tenant_id_customer_id_fkey"
+      columns: ["tenant_id","customer_id"]
+isOneToOne: false
+      referencedRelation: "customers"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "dossier_documents_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "dossier_documents_tenant_id_object_id_fkey"
+      columns: ["tenant_id","object_id"]
+isOneToOne: false
+      referencedRelation: "objects"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "dossier_documents_tenant_id_personnel_id_fkey"
+      columns: ["tenant_id","personnel_id"]
+isOneToOne: false
+      referencedRelation: "personnel"
       referencedColumns: ["tenant_id","id"]
     }
                   ]
@@ -421,13 +532,13 @@ isOneToOne: false
                   ]
                 },"invoice_lines": {
                   Row: {
-                    "created_at": string,"description": string,"id": string,"invoice_id": string,"quantity": number,"source_snapshot": NonNullable<Json>,"subtotal_cents": number,"tenant_id": string,"total_cents": number,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"vat_cents": number,"work_order_id": string | null
+                    "created_at": string,"description": string,"id": string,"invoice_id": string,"quantity": number,"source_snapshot": NonNullable<Json>,"subtotal_cents": number,"tenant_id": string,"total_cents": number,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"vat_cents": number,"work_order_id": string | null,"work_order_task_id": string | null
                   }
                   Insert: {
-                    "created_at"?: string,"description": string,"id"?: string,"invoice_id": string,"quantity": number,"source_snapshot": NonNullable<Json>,"subtotal_cents": number,"tenant_id": string,"total_cents": number,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"vat_cents": number,"work_order_id"?: string | null
+                    "created_at"?: string,"description": string,"id"?: string,"invoice_id": string,"quantity": number,"source_snapshot": NonNullable<Json>,"subtotal_cents": number,"tenant_id": string,"total_cents": number,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"vat_cents": number,"work_order_id"?: string | null,"work_order_task_id"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"description"?: string,"id"?: string,"invoice_id"?: string,"quantity"?: number,"source_snapshot"?: NonNullable<Json>,"subtotal_cents"?: number,"tenant_id"?: string,"total_cents"?: number,"unit"?: string,"unit_price_cents"?: number,"vat_basis_points"?: number,"vat_cents"?: number,"work_order_id"?: string | null
+                    "created_at"?: string,"description"?: string,"id"?: string,"invoice_id"?: string,"quantity"?: number,"source_snapshot"?: NonNullable<Json>,"subtotal_cents"?: number,"tenant_id"?: string,"total_cents"?: number,"unit"?: string,"unit_price_cents"?: number,"vat_basis_points"?: number,"vat_cents"?: number,"work_order_id"?: string | null,"work_order_task_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -441,6 +552,12 @@ isOneToOne: false
       columns: ["tenant_id","work_order_id"]
 isOneToOne: false
       referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "invoice_task_fk"
+      columns: ["tenant_id","work_order_task_id"]
+isOneToOne: false
+      referencedRelation: "work_order_tasks"
       referencedColumns: ["tenant_id","id"]
     }
                   ]
@@ -465,13 +582,13 @@ isOneToOne: true
                   ]
                 },"invoices": {
                   Row: {
-                    "branding_snapshot": Json | null,"created_at": string,"created_by": string,"currency": string,"customer_id": string,"customer_snapshot": Json | null,"due_on": string | null,"finalized_at": string | null,"id": string,"invoice_number": string | null,"issued_on": string | null,"lines_snapshot": Json | null,"paid_cents": number,"pdf_sha256": string | null,"pdf_storage_path": string | null,"sent_at": string | null,"status": Database["public"]['Enums']["invoice_status"],"subtotal_cents": number,"tenant_id": string,"total_cents": number,"updated_at": string,"vat_cents": number,"version": number
+                    "branding_snapshot": Json | null,"created_at": string,"created_by": string,"currency": string,"customer_id": string,"customer_snapshot": Json | null,"due_on": string | null,"finalized_at": string | null,"id": string,"invoice_number": string | null,"issued_on": string | null,"lines_snapshot": Json | null,"paid_cents": number,"pdf_sha256": string | null,"pdf_storage_path": string | null,"sent_at": string | null,"source_request_id": string | null,"status": Database["public"]['Enums']["invoice_status"],"subtotal_cents": number,"tenant_id": string,"total_cents": number,"updated_at": string,"vat_cents": number,"version": number
                   }
                   Insert: {
-                    "branding_snapshot"?: Json | null,"created_at"?: string,"created_by": string,"currency"?: string,"customer_id": string,"customer_snapshot"?: Json | null,"due_on"?: string | null,"finalized_at"?: string | null,"id"?: string,"invoice_number"?: string | null,"issued_on"?: string | null,"lines_snapshot"?: Json | null,"paid_cents"?: number,"pdf_sha256"?: string | null,"pdf_storage_path"?: string | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["invoice_status"],"subtotal_cents"?: number,"tenant_id": string,"total_cents"?: number,"updated_at"?: string,"vat_cents"?: number,"version"?: number
+                    "branding_snapshot"?: Json | null,"created_at"?: string,"created_by": string,"currency"?: string,"customer_id": string,"customer_snapshot"?: Json | null,"due_on"?: string | null,"finalized_at"?: string | null,"id"?: string,"invoice_number"?: string | null,"issued_on"?: string | null,"lines_snapshot"?: Json | null,"paid_cents"?: number,"pdf_sha256"?: string | null,"pdf_storage_path"?: string | null,"sent_at"?: string | null,"source_request_id"?: string | null,"status"?: Database["public"]['Enums']["invoice_status"],"subtotal_cents"?: number,"tenant_id": string,"total_cents"?: number,"updated_at"?: string,"vat_cents"?: number,"version"?: number
                   }
                   Update: {
-                    "branding_snapshot"?: Json | null,"created_at"?: string,"created_by"?: string,"currency"?: string,"customer_id"?: string,"customer_snapshot"?: Json | null,"due_on"?: string | null,"finalized_at"?: string | null,"id"?: string,"invoice_number"?: string | null,"issued_on"?: string | null,"lines_snapshot"?: Json | null,"paid_cents"?: number,"pdf_sha256"?: string | null,"pdf_storage_path"?: string | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["invoice_status"],"subtotal_cents"?: number,"tenant_id"?: string,"total_cents"?: number,"updated_at"?: string,"vat_cents"?: number,"version"?: number
+                    "branding_snapshot"?: Json | null,"created_at"?: string,"created_by"?: string,"currency"?: string,"customer_id"?: string,"customer_snapshot"?: Json | null,"due_on"?: string | null,"finalized_at"?: string | null,"id"?: string,"invoice_number"?: string | null,"issued_on"?: string | null,"lines_snapshot"?: Json | null,"paid_cents"?: number,"pdf_sha256"?: string | null,"pdf_storage_path"?: string | null,"sent_at"?: string | null,"source_request_id"?: string | null,"status"?: Database["public"]['Enums']["invoice_status"],"subtotal_cents"?: number,"tenant_id"?: string,"total_cents"?: number,"updated_at"?: string,"vat_cents"?: number,"version"?: number
                   }
                   Relationships: [
                     {
@@ -677,16 +794,22 @@ isOneToOne: false
                   ]
                 },"object_records": {
                   Row: {
-                    "body": string,"contact_id": string | null,"created_at": string,"created_by": string,"details": NonNullable<Json>,"due_on": string | null,"ends_at": string | null,"id": string,"instruction_type": string | null,"kind": string,"node_id": string | null,"object_id": string,"owner_user_id": string | null,"personnel_asset_id": string | null,"service": string,"starts_at": string | null,"state": string,"task_revision_id": string | null,"tenant_id": string,"title": string,"updated_at": string,"updated_by": string,"version": number,"work_order_id": string | null
+                    "agreement_line_id": string | null,"body": string,"contact_id": string | null,"created_at": string,"created_by": string,"details": NonNullable<Json>,"due_on": string | null,"ends_at": string | null,"id": string,"instruction_type": string | null,"kind": string,"node_id": string | null,"object_id": string,"owner_user_id": string | null,"personnel_asset_id": string | null,"service": string,"starts_at": string | null,"state": string,"task_revision_id": string | null,"tenant_id": string,"title": string,"updated_at": string,"updated_by": string,"version": number,"work_order_id": string | null
                   }
                   Insert: {
-                    "body"?: string,"contact_id"?: string | null,"created_at"?: string,"created_by"?: string,"details"?: NonNullable<Json>,"due_on"?: string | null,"ends_at"?: string | null,"id"?: string,"instruction_type"?: string | null,"kind": string,"node_id"?: string | null,"object_id": string,"owner_user_id"?: string | null,"personnel_asset_id"?: string | null,"service"?: string,"starts_at"?: string | null,"state"?: string,"task_revision_id"?: string | null,"tenant_id": string,"title": string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id"?: string | null
+                    "agreement_line_id"?: string | null,"body"?: string,"contact_id"?: string | null,"created_at"?: string,"created_by"?: string,"details"?: NonNullable<Json>,"due_on"?: string | null,"ends_at"?: string | null,"id"?: string,"instruction_type"?: string | null,"kind": string,"node_id"?: string | null,"object_id": string,"owner_user_id"?: string | null,"personnel_asset_id"?: string | null,"service"?: string,"starts_at"?: string | null,"state"?: string,"task_revision_id"?: string | null,"tenant_id": string,"title": string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id"?: string | null
                   }
                   Update: {
-                    "body"?: string,"contact_id"?: string | null,"created_at"?: string,"created_by"?: string,"details"?: NonNullable<Json>,"due_on"?: string | null,"ends_at"?: string | null,"id"?: string,"instruction_type"?: string | null,"kind"?: string,"node_id"?: string | null,"object_id"?: string,"owner_user_id"?: string | null,"personnel_asset_id"?: string | null,"service"?: string,"starts_at"?: string | null,"state"?: string,"task_revision_id"?: string | null,"tenant_id"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id"?: string | null
+                    "agreement_line_id"?: string | null,"body"?: string,"contact_id"?: string | null,"created_at"?: string,"created_by"?: string,"details"?: NonNullable<Json>,"due_on"?: string | null,"ends_at"?: string | null,"id"?: string,"instruction_type"?: string | null,"kind"?: string,"node_id"?: string | null,"object_id"?: string,"owner_user_id"?: string | null,"personnel_asset_id"?: string | null,"service"?: string,"starts_at"?: string | null,"state"?: string,"task_revision_id"?: string | null,"tenant_id"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "object_record_agreement_fk"
+      columns: ["tenant_id","agreement_line_id"]
+isOneToOne: false
+      referencedRelation: "customer_agreement_lines"
+      referencedColumns: ["tenant_id","id"]
+    },{
       foreignKeyName: "object_records_tenant_id_contact_id_fkey"
       columns: ["tenant_id","contact_id"]
 isOneToOne: false
@@ -1787,16 +1910,22 @@ isOneToOne: false
                   ]
                 },"work_order_tasks": {
                   Row: {
-                    "added_by": string | null,"allowed_for_staff": boolean,"completed_at": string | null,"completion_note": string | null,"created_at": string,"duration_minutes": number,"extra_work_status": string | null,"id": string,"is_extra_work": boolean,"quantity": number,"task_code": string,"task_name": string,"task_revision_id": string | null,"tenant_id": string,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"work_order_id": string
+                    "added_by": string | null,"agreement_line_id": string | null,"allowed_for_staff": boolean,"commercial_snapshot": NonNullable<Json>,"completed_at": string | null,"completion_note": string | null,"created_at": string,"duration_minutes": number,"executed_quantity": number | null,"execution_state": string,"execution_version": number,"extra_work_status": string | null,"id": string,"is_extra_work": boolean,"quantity": number,"task_code": string,"task_name": string,"task_revision_id": string | null,"tenant_id": string,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"work_order_id": string
                   }
                   Insert: {
-                    "added_by"?: string | null,"allowed_for_staff"?: boolean,"completed_at"?: string | null,"completion_note"?: string | null,"created_at"?: string,"duration_minutes": number,"extra_work_status"?: string | null,"id"?: string,"is_extra_work"?: boolean,"quantity"?: number,"task_code": string,"task_name": string,"task_revision_id"?: string | null,"tenant_id": string,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"work_order_id": string
+                    "added_by"?: string | null,"agreement_line_id"?: string | null,"allowed_for_staff"?: boolean,"commercial_snapshot"?: NonNullable<Json>,"completed_at"?: string | null,"completion_note"?: string | null,"created_at"?: string,"duration_minutes": number,"executed_quantity"?: number | null,"execution_state"?: string,"execution_version"?: number,"extra_work_status"?: string | null,"id"?: string,"is_extra_work"?: boolean,"quantity"?: number,"task_code": string,"task_name": string,"task_revision_id"?: string | null,"tenant_id": string,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"work_order_id": string
                   }
                   Update: {
-                    "added_by"?: string | null,"allowed_for_staff"?: boolean,"completed_at"?: string | null,"completion_note"?: string | null,"created_at"?: string,"duration_minutes"?: number,"extra_work_status"?: string | null,"id"?: string,"is_extra_work"?: boolean,"quantity"?: number,"task_code"?: string,"task_name"?: string,"task_revision_id"?: string | null,"tenant_id"?: string,"unit"?: string,"unit_price_cents"?: number,"vat_basis_points"?: number,"work_order_id"?: string
+                    "added_by"?: string | null,"agreement_line_id"?: string | null,"allowed_for_staff"?: boolean,"commercial_snapshot"?: NonNullable<Json>,"completed_at"?: string | null,"completion_note"?: string | null,"created_at"?: string,"duration_minutes"?: number,"executed_quantity"?: number | null,"execution_state"?: string,"execution_version"?: number,"extra_work_status"?: string | null,"id"?: string,"is_extra_work"?: boolean,"quantity"?: number,"task_code"?: string,"task_name"?: string,"task_revision_id"?: string | null,"tenant_id"?: string,"unit"?: string,"unit_price_cents"?: number,"vat_basis_points"?: number,"work_order_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "task_agreement_line_fk"
+      columns: ["tenant_id","agreement_line_id"]
+isOneToOne: false
+      referencedRelation: "customer_agreement_lines"
+      referencedColumns: ["tenant_id","id"]
+    },{
       foreignKeyName: "work_order_tasks_tenant_id_task_revision_id_fkey"
       columns: ["tenant_id","task_revision_id"]
 isOneToOne: false
@@ -1877,11 +2006,16 @@ isOneToOne: false
 "add_extra_work":
 { Args: { "idempotency_key": string,"target_extra_work_rule_id": string,"target_work_order_id": string }; Returns: {
               "added_by": string | null,
+"agreement_line_id": string | null,
 "allowed_for_staff": boolean,
+"commercial_snapshot": NonNullable<Json>,
 "completed_at": string | null,
 "completion_note": string | null,
 "created_at": string,
 "duration_minutes": number,
+"executed_quantity": number | null,
+"execution_state": string,
+"execution_version": number,
 "extra_work_status": string | null,
 "id": string,
 "is_extra_work": boolean,
@@ -1945,6 +2079,7 @@ isOneToOne: false
 "pdf_sha256": string | null,
 "pdf_storage_path": string | null,
 "sent_at": string | null,
+"source_request_id": string | null,
 "status": Database["public"]['Enums']["invoice_status"],
 "subtotal_cents": number,
 "tenant_id": string,
@@ -2037,11 +2172,16 @@ isOneToOne: false
 "complete_work_order_task":
 { Args: { "completed": boolean,"completion_note"?: string,"target_task_id": string }; Returns: {
               "added_by": string | null,
+"agreement_line_id": string | null,
 "allowed_for_staff": boolean,
+"commercial_snapshot": NonNullable<Json>,
 "completed_at": string | null,
 "completion_note": string | null,
 "created_at": string,
 "duration_minutes": number,
+"executed_quantity": number | null,
+"execution_state": string,
+"execution_version": number,
 "extra_work_status": string | null,
 "id": string,
 "is_extra_work": boolean,
@@ -2081,6 +2221,44 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"create_execution_invoice":
+{ Args: { "request_id": string,"sources": Json,"target_tenant": string }; Returns: {
+              "branding_snapshot": Json | null,
+"created_at": string,
+"created_by": string,
+"currency": string,
+"customer_id": string,
+"customer_snapshot": Json | null,
+"due_on": string | null,
+"finalized_at": string | null,
+"id": string,
+"invoice_number": string | null,
+"issued_on": string | null,
+"lines_snapshot": Json | null,
+"paid_cents": number,
+"pdf_sha256": string | null,
+"pdf_storage_path": string | null,
+"sent_at": string | null,
+"source_request_id": string | null,
+"status": Database["public"]['Enums']["invoice_status"],
+"subtotal_cents": number,
+"tenant_id": string,
+"total_cents": number,
+"updated_at": string,
+"vat_cents": number,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "invoices"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"current_event_recipients":
+{ Args: { "target_event": string }; Returns: {
+              "user_id": string
+            }[]
+                           },
 "customer_object_visits":
 { Args: { "target_tenant": string }; Returns: Json
                            },
@@ -2122,6 +2300,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"dossier_chain":
+{ Args: { "target_customer"?: string,"target_object"?: string,"target_order"?: string,"target_personnel"?: string,"target_tenant": string }; Returns: Json
+                           },
 "extend_object_access":
 { Args: { "reason": string,"target_assignment": string,"target_tenant": string,"until_time": string }; Returns: undefined
                            },
@@ -2143,6 +2324,7 @@ isOneToOne: false
 "pdf_sha256": string | null,
 "pdf_storage_path": string | null,
 "sent_at": string | null,
+"source_request_id": string | null,
 "status": Database["public"]['Enums']["invoice_status"],
 "subtotal_cents": number,
 "tenant_id": string,
@@ -2165,6 +2347,11 @@ isOneToOne: false
                            },
 "get_planboard_order":
 { Args: { "target_order": string,"target_tenant": string }; Returns: Json
+                           },
+"object_agreement_options":
+{ Args: { "target_object": string,"target_tenant": string }; Returns: {
+              "id": string,"scope": string,"task_revision_id": string,"title": string,"version": number
+            }[]
                            },
 "object_customer_accounts":
 { Args: { "target_object": string,"target_tenant": string }; Returns: {
@@ -2233,6 +2420,12 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"record_customer_agreement":
+{ Args: { "input": Json,"target_customer": string,"target_tenant": string }; Returns: string
+                           },
+"record_task_execution":
+{ Args: { "actual_quantity": number,"expected_version": number,"reason": string,"result": string,"target_task": string,"target_tenant": string }; Returns: undefined
+                           },
 "register_manual_payment":
 { Args: { "allocations": Json,"idempotency_key": string,"payment_date": string,"reference": string,"target_tenant_id": string }; Returns: {
               "amount_cents": number,
@@ -2416,6 +2609,9 @@ isOneToOne: false
       } },
 "update_object_visit_request":
 { Args: { "expected_version": number,"input": Json,"target_request": string,"target_tenant": string }; Returns: undefined
+                           },
+"withdraw_object_request":
+{ Args: { "expected_version": number,"reason": string,"target_request": string,"target_tenant": string }; Returns: undefined
                            }
           }
           Enums: {

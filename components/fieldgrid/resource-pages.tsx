@@ -1,5 +1,7 @@
 "use client";
 
+import { useFormChanges, confirmDiscard } from "./unsaved-form";
+import { DossierChainPanel, type ChainView } from "./dossier-chain";
 import { useMemo, useState, useTransition, type FormEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import {ExecutionHistory} from "@/components/fieldgrid/planboard/execution-history";
@@ -74,9 +76,9 @@ function ResourceTable({ headers, children, empty }: { headers: ReactNode; child
 }
 
 function Modal({ title, eyebrow, onClose, children, wide = false }: { title: string; eyebrow?: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
-  return <div className="resource-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+  return <div className="resource-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && confirmDiscard()) onClose(); }}>
     <section className={`resource-modal ${wide ? "wide" : ""}`} role="dialog" aria-modal="true" aria-label={title}>
-      <header><div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h2>{title}</h2></div><button type="button" className="modal-close" onClick={onClose} aria-label="Sluiten"><X size={19}/></button></header>
+      <header><div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h2>{title}</h2></div><button type="button" className="modal-close" onClick={()=>{if(confirmDiscard())onClose();}} aria-label="Sluiten"><X size={19}/></button></header>
       <div className="resource-modal-body">{children}</div>
     </section>
   </div>;
@@ -86,6 +88,8 @@ function ServerForm({ action, success, children, className = "resource-form", on
   action: ServerAction; success: string; children: ReactNode; className?: string; onSuccess?: (result: ActionResult<Record<string, unknown>> | ActionResult) => void; submitLabel?: string;
 }) {
   const router = useRouter();
+  const {ref:formRef,changed:formChanged,saved:formSaved}=useFormChanges();
+  const [requestId] = useState(()=>crypto.randomUUID());
   const [pending, startTransition] = useTransition();
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -94,13 +98,14 @@ function ServerForm({ action, success, children, className = "resource-form", on
     startTransition(async () => {
       const result = await action(data);
       if (!result.ok) { toast.error(result.error); return; }
+      formSaved();
       toast.success(success);
       form.reset();
       onSuccess?.(result);
       router.refresh();
     });
   };
-  return <form className={className} onSubmit={submit}>{children}<button className="primary-button" disabled={pending}>{pending ? "Bezig…" : submitLabel}</button></form>;
+  return <form ref={formRef} onChange={formChanged} className={className} onSubmit={submit}><input type="hidden" name="requestId" value={requestId}/>{children}<button className="primary-button" disabled={pending}>{pending ? "Bezig…" : submitLabel}</button></form>;
 }
 
 function ArchiveButton({ action, fields, label, success }: { action: ServerAction; fields: Record<string, string>; label: string; success: string }) {
@@ -161,23 +166,31 @@ function CustomerEdit({ customer, onClose }: { customer: Customer; onClose: () =
   </ServerForm></Modal>;
 }
 
-function CustomerDetail({ customer, data, onClose, timezone }: { customer: Customer; data: WorkspaceData; onClose: () => void; timezone:string }) {
+function CustomerDetail({ customer, data, onClose, timezone, roles }: { customer: Customer; data: WorkspaceData; onClose: () => void; timezone:string; roles:string[] }) {
+  const params = useSearchParams(); const router = useRouter();
+  const tab = params.get("tab") || "overview";
   const contacts = data.contacts.filter((item) => item.customer_id === customer.id);
   const objects = data.objects.filter((item) => item.customer_id === customer.id);
   const notes = data.customerNotes.filter((item) => item.customer_id === customer.id);
   const documents = data.customerDocuments.filter((item) => item.customer_id === customer.id);
   return <Modal title={customer.name} eyebrow={customer.customer_number} onClose={onClose} wide>
-    <Tabs defaultValue="overview" className="customer-detail-tabs">
+    <Tabs value={tab} onValueChange={value => { if(!confirmDiscard())return; const q = new URLSearchParams(params.toString()); q.set("record", customer.id); q.set("tab", value); router.replace(`/app/klanten?${q}`, { scroll: false }); }} className="customer-detail-tabs">
       <div className="customer-tabs-scroll">
         <TabsList aria-label="Klantdossier" className="customer-tabs-list">
           <TabsTrigger value="overview"><LayoutDashboard size={16}/>Overzicht</TabsTrigger>
           <TabsTrigger value="contacts"><UsersRound size={16}/>Contactpersonen</TabsTrigger>
           <TabsTrigger value="objects"><Building2 size={16}/>Objecten</TabsTrigger>
           <TabsTrigger value="executions"><FileText size={16}/>Uitvoeringen</TabsTrigger>
+          <TabsTrigger value="requests">Verzoeken & meerwerk</TabsTrigger>
+          <TabsTrigger value="agreements">Afspraken & contracten</TabsTrigger>
+          <TabsTrigger value="actions">Opvolging</TabsTrigger>
+          <TabsTrigger value="finance">Financieel</TabsTrigger>
+          <TabsTrigger value="timeline">Tijdlijn</TabsTrigger>
           <TabsTrigger value="notes"><StickyNote size={16}/>Notities</TabsTrigger>
           <TabsTrigger value="documents"><FileText size={16}/>Documenten</TabsTrigger>
         </TabsList>
       </div>
+      {(["requests","agreements","actions","finance","timeline"] as ChainView[]).map(view => <TabsContent key={view} value={view} className="customer-tab-panel"><DossierChainPanel scope={{customerId:customer.id}} view={view} workspace={data} timezone={timezone} canCommercial={roles.some(r=>["tenant_admin","management","finance"].includes(r))}/></TabsContent>)}
       <TabsContent value="overview" className="customer-tab-panel">
         <div className="customer-section-heading"><h3>Hoofdgegevens</h3><p>De belangrijkste gegevens van deze klant op één plek.</p></div>
         <div className="detail-grid">
@@ -232,6 +245,7 @@ function CustomerDetail({ customer, data, onClose, timezone }: { customer: Custo
         </article>) : <p className="customer-dossier-empty">Nog geen notities toegevoegd.</p>}</div>
       </TabsContent>
       <TabsContent value="documents" className="customer-tab-panel">
+        <DossierChainPanel scope={{customerId:customer.id}} view="documents" excludeSource="customer" timezone={timezone}/>
         <div className="customer-section-heading"><h3>Documenten <span>{documents.length}</span></h3><p>Privé opgeslagen bij deze klant, alleen toegankelijk voor de bevoegde backoffice.</p></div>
         <section className="customer-dossier-form">
           <ServerForm action={uploadCustomerDocument} success="Document geüpload" submitLabel="Document uploaden">
@@ -242,7 +256,7 @@ function CustomerDetail({ customer, data, onClose, timezone }: { customer: Custo
               input.setCustomValidity((input.files?.[0]?.size ?? 0) > CUSTOMER_DOCUMENT_MAX_BYTES ? "Gebruik een bestand van maximaal 10 MB" : "");
               input.reportValidity();
             }}/></label>
-            <p id="customer-document-help" className="muted-p wide">PDF, JPG of PNG · maximaal 10 MB per bestand.</p>
+            <label>Nieuwe versie van<select name="previousId"><option value="">Nieuw document</option>{documents.filter(d=>!documents.some(n=>n.previous_id===d.id)).map(d=><option key={d.id} value={d.id}>{d.title} · v{d.version}</option>)}</select></label><label>Documentdatum<input name="documentOn" type="date"/></label><label>Geldig tot<input name="validUntil" type="date"/></label><p id="customer-document-help" className="muted-p wide">PDF, JPG of PNG · maximaal 10 MB per bestand.</p>
           </ServerForm>
         </section>
         <div className="customer-dossier-list">{documents.length ? documents.map((item) => <article className="customer-dossier-card customer-document" key={item.id}>
@@ -254,17 +268,24 @@ function CustomerDetail({ customer, data, onClose, timezone }: { customer: Custo
   </Modal>;
 }
 
-export function CustomersPage({ data, timezone }: { data: WorkspaceData; timezone:string }) {
-  const params=useSearchParams();const linkedId=params.get("record");
+export function CustomersPage({ data, timezone, roles=[] }: { data: WorkspaceData; timezone:string; roles?:string[] }) {
+  const params=useSearchParams();const router=useRouter();const linkedId=params.get("record");
   const [query, setQuery] = useState(""); const [filter, setFilter] = useState("all"); const [sort, setSort] = useState("name-asc");
-  const [modal, setModal] = useState<{ type: "create" } | { type: "view" | "edit"; item: Customer } | null>(()=>{const item=data.customers.find(c=>c.id===linkedId);return item?{type:"view",item}:params.get("new")==="1"?{type:"create"}:null;});
+  const [localModal, setLocalModal] = useState<{ type: "create" } | { type: "edit"; item: Customer } | null>(params.get("new")==="1"?{type:"create"}:null);
+  const selected=data.customers.find(c=>c.id===linkedId);
+  const modal=localModal ?? (selected ? {type:"view" as const,item:selected}:null);
+  const setModal=(value:{type:"create"}|{type:"view"|"edit";item:Customer}|null)=>{
+    const q=new URLSearchParams(params.toString());
+    if(value?.type==="view"){setLocalModal(null);q.set("record",value.item.id);q.set("tab","overview");router.push(`/app/klanten?${q}`,{scroll:false});}
+    else {setLocalModal(value?.type==="edit"?{type:"edit",item:value.item}:value?.type==="create"?{type:"create"}:null);if(!value){q.delete("record");q.delete("tab");q.delete("new");router.replace(`/app/klanten?${q}`,{scroll:false});}}
+  };
   const rows = useMemo(() => data.customers.filter((item) => filter === "all" || item.status === filter).filter((item) => [item.name, item.customer_number, item.billing_email, item.phone, addressLine(item.billing_address)].some((value) => value?.toLowerCase().includes(query.toLowerCase()))).sort((a, b) => {
     const [field, direction] = sort.split("-"); const left = field === "created" ? a.created_at : field === "number" ? a.customer_number : a.name; const right = field === "created" ? b.created_at : field === "number" ? b.customer_number : b.name; return left.localeCompare(right, "nl") * (direction === "desc" ? -1 : 1);
   }), [data.customers, filter, query, sort]);
   const setColumnSort = (field: string) => setSort((current) => current.startsWith(`${field}-`) && current.endsWith("asc") ? `${field}-desc` : `${field}-asc`);
   return <><ResourceHeader eyebrow="RELATIES" title="Klanten" description="Zoek, filter en beheer alle klantrelaties binnen deze tenant." actions={<button className="primary-button" onClick={() => setModal({ type: "create" })}><Plus size={16}/>Nieuwe klant</button>}/><ListToolbar query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} filterOptions={[{ value: "all", label: "Alle statussen" }, { value: "lead", label: "Lead" }, { value: "active", label: "Actief" }, { value: "inactive", label: "Inactief" }]} sort={sort} onSort={setSort} sortOptions={[{ value: "name-asc", label: "Naam A–Z" }, { value: "name-desc", label: "Naam Z–A" }, { value: "number-asc", label: "Klantnummer" }, { value: "created-desc", label: "Nieuwste eerst" }]} resultCount={rows.length}/><ResourceTable empty={!rows.length} headers={<><SortHead label="Klant" active={sort.startsWith("name-")} direction={sort.endsWith("desc") ? "desc" : "asc"} onClick={() => setColumnSort("name")}/><SortHead label="Klantnummer" active={sort.startsWith("number-")} direction={sort.endsWith("desc") ? "desc" : "asc"} onClick={() => setColumnSort("number")}/><SortHead label="Contact"/><SortHead label="Factuuradres"/><SortHead label="Objecten"/><SortHead label="Status"/><SortHead label="Acties" className="actions-column"/></>}>
     {rows.map((customer) => <tr key={customer.id}><td><div className="resource-primary"><span className="avatar avatar-mint">{initials(customer.name)}</span><span><strong>{customer.name}</strong><small>{customer.billing_email ?? "Geen factuurmail"}</small></span></div></td><td><span className="resource-code">{customer.customer_number}</span></td><td>{customer.phone ?? "—"}</td><td>{addressLine(customer.billing_address)}</td><td>{data.objects.filter((item) => item.customer_id === customer.id).length}</td><td><StatusBadge tone={customer.status === "active" ? "green" : customer.status === "lead" ? "blue" : "neutral"}>{customer.status === "active" ? "Actief" : customer.status === "lead" ? "Lead" : "Inactief"}</StatusBadge></td><td><RowActions onView={() => setModal({ type: "view", item: customer })} onEdit={() => setModal({ type: "edit", item: customer })} archive={<ArchiveButton action={archiveCustomer} fields={{ customerId: customer.id, version: String(customer.version) }} label={`Klant ${customer.name} verwijderen`} success="Klant gedeactiveerd"/>} more={<><span>{data.contacts.filter((item) => item.customer_id === customer.id).length} contactpersonen</span><span>{data.workOrders.filter((item) => item.customer_id === customer.id).length} werkbonnen</span></>}/></td></tr>)}
-  </ResourceTable>{modal?.type === "create" && <CustomerWizard onClose={() => setModal(null)}/>} {modal?.type === "edit" && <CustomerEdit customer={modal.item} onClose={() => setModal(null)}/>} {modal?.type === "view" && <CustomerDetail customer={modal.item} data={data} timezone={timezone} onClose={() => setModal(null)}/>}</>;
+  </ResourceTable>{modal?.type === "create" && <CustomerWizard onClose={() => setModal(null)}/>} {modal?.type === "edit" && <CustomerEdit customer={modal.item} onClose={() => setModal(null)}/>} {modal?.type === "view" && <CustomerDetail customer={data.customers.find(c=>c.id===modal.item.id)||modal.item} data={data} timezone={timezone} roles={roles} onClose={() => setModal(null)}/>}</>;
 }
 
 function ObjectWizard({ customers, onClose }: { customers: Customer[]; onClose: () => void }) {
@@ -420,11 +441,11 @@ const invoiceStage = (invoice: Invoice): InvoiceStage => invoice.status === "pai
 const invoiceStageLabel: Record<InvoiceStage, string> = { new: "Nieuw", submitted: "Ingediend", open: "Openstaand", paid: "Betaald", late: "Te laat" };
 
 export function InvoicesPage({ data }: { data: WorkspaceData }) {
-  const customerById = useMemo(() => new Map(data.customers.map((item) => [item.id, item])), [data.customers]); const [query, setQuery] = useState(""); const [filter, setFilter] = useState("all"); const [sort, setSort] = useState("date-desc"); const [modal, setModal] = useState<{ type: "create" | "bundle" } | { type: "view"; item: Invoice } | null>(null);
+  const customerById = useMemo(() => new Map(data.customers.map((item) => [item.id, item])), [data.customers]); const [query, setQuery] = useState(""); const [filter, setFilter] = useState("all"); const [sort, setSort] = useState("date-desc"); const params=useSearchParams(); const [modal, setModal] = useState<{ type: "create" | "bundle" } | { type: "view"; item: Invoice } | null>(()=>{const item=data.invoices.find(i=>i.id===params.get("record"));return item?{type:"view",item}:null;});
   const invoiceReadyGroups = useMemo(() => Array.from(data.workOrders.filter((item) => item.status === "invoice_ready").reduce<Map<string, WorkOrder[]>>((map, item) => map.set(item.customer_id, [...(map.get(item.customer_id) ?? []), item]), new Map()).entries()), [data.workOrders]);
   const openGroups = useMemo(() => Array.from(data.invoices.filter((item) => item.status !== "draft" && item.paid_cents < item.total_cents).reduce<Map<string, Invoice[]>>((map, item) => map.set(item.customer_id, [...(map.get(item.customer_id) ?? []), item]), new Map()).entries()).filter(([, invoices]) => invoices.length > 1), [data.invoices]);
   const rows = useMemo(() => data.invoices.filter((item) => filter === "all" || invoiceStage(item) === filter).filter((item) => [item.invoice_number ?? "Concept", customerById.get(item.customer_id)?.name, invoiceStageLabel[invoiceStage(item)]].some((value) => value?.toLowerCase().includes(query.toLowerCase()))).sort((a, b) => { const [field, direction] = sort.split("-"); const left = field === "number" ? a.invoice_number ?? "" : field === "amount" ? String(a.total_cents).padStart(16, "0") : a.created_at; const right = field === "number" ? b.invoice_number ?? "" : field === "amount" ? String(b.total_cents).padStart(16, "0") : b.created_at; return left.localeCompare(right, "nl") * (direction === "desc" ? -1 : 1); }), [customerById, data.invoices, filter, query, sort]);
   return <><ResourceHeader eyebrow="FINANCE" title="Facturen" description="Van nieuwe factuur tot betaling, met één herkenbare status per regel." actions={<><button className="secondary-button" disabled={!openGroups.length} onClick={() => setModal({ type: "bundle" })}>Betaallink bundelen</button><button className="primary-button" disabled={!invoiceReadyGroups.length} onClick={() => setModal({ type: "create" })}><Plus size={16}/>Nieuwe factuur</button></>}/><ListToolbar query={query} onQuery={setQuery} filter={filter} onFilter={setFilter} filterOptions={[{ value: "all", label: "Alle statussen" }, { value: "new", label: "Nieuw" }, { value: "submitted", label: "Ingediend" }, { value: "open", label: "Openstaand" }, { value: "paid", label: "Betaald" }, { value: "late", label: "Te laat" }]} sort={sort} onSort={setSort} sortOptions={[{ value: "date-desc", label: "Nieuwste eerst" }, { value: "date-asc", label: "Oudste eerst" }, { value: "number-asc", label: "Factuurnummer" }, { value: "amount-desc", label: "Hoogste bedrag" }]} resultCount={rows.length}/><ResourceTable empty={!rows.length} headers={<><SortHead label="Factuur"/><SortHead label="Klant"/><SortHead label="Datum"/><SortHead label="Totaal"/><SortHead label="Openstaand"/><SortHead label="Status"/><SortHead label="Acties" className="actions-column"/></>}>
     {rows.map((invoice) => { const stage = invoiceStage(invoice); const paymentAttempts = new Set(data.allocations.filter((item) => item.invoice_id === invoice.id).map((item) => item.payment_attempt_id)).size; return <tr key={invoice.id}><td><strong>{invoice.invoice_number ?? "Concept"}</strong><small>v{invoice.version}</small></td><td>{customerById.get(invoice.customer_id)?.name ?? "—"}</td><td>{invoice.issued_on ?? date(invoice.created_at)}</td><td>{money(invoice.total_cents)}</td><td>{money(invoice.total_cents - invoice.paid_cents)}</td><td><StatusBadge tone={stage === "paid" ? "green" : stage === "late" ? "orange" : stage === "open" ? "blue" : "neutral"}>{invoiceStageLabel[stage]}</StatusBadge></td><td><div className="resource-actions"><button className="resource-action" onClick={() => setModal({ type: "view", item: invoice })}><Eye size={13}/>Bekijk</button>{invoice.status !== "draft" && <ServerForm action={sendInvoice} success="Betaallink gekopieerd" className="inline-server-form" submitLabel="Verstuur" onSuccess={(result) => { if (result.ok && "paymentUrl" in result && result.paymentUrl) void navigator.clipboard.writeText(String(result.paymentUrl)); }}><input type="hidden" name="invoiceId" value={invoice.id}/></ServerForm>}<ResourceMore><span>{data.invoiceLines.filter((item) => item.invoice_id === invoice.id).length} regels</span><span>{paymentAttempts} betaalpogingen</span></ResourceMore></div></td></tr>; })}
-  </ResourceTable>{modal?.type === "create" && <Modal title="Nieuwe factuur" eyebrow="FACTUREERBARE WERKBONNEN" onClose={() => setModal(null)}>{invoiceReadyGroups.map(([customerId, orders]) => <ServerForm key={customerId} action={createInvoice} success="Factuur aangemaakt" className="invoice-choice" submitLabel={orders.length > 1 ? "Verzamelfactuur maken" : "Factuur maken"} onSuccess={() => setModal(null)}><input type="hidden" name="workOrderIds" value={orders.map((item) => item.id).join(",")}/><span><strong>{customerById.get(customerId)?.name}</strong><small>{orders.map((item) => item.work_order_number).join(" · ")}</small></span></ServerForm>)}</Modal>} {modal?.type === "bundle" && <Modal title="Betaallink bundelen" eyebrow="OPENSTAANDE FACTUREN" onClose={() => setModal(null)}>{openGroups.map(([customerId, invoices]) => <ServerForm key={customerId} action={createPaymentBundle} success="Betaallink aangemaakt" className="invoice-choice" submitLabel="Link maken" onSuccess={(result) => { if (result.ok && "paymentUrl" in result && result.paymentUrl) void navigator.clipboard.writeText(String(result.paymentUrl)); setModal(null); }}><input type="hidden" name="invoiceIds" value={invoices.map((item) => item.id).join(",")}/><span><strong>{customerById.get(customerId)?.name}</strong><small>{invoices.map((item) => item.invoice_number).join(" · ")}</small></span></ServerForm>)}</Modal>} {modal?.type === "view" && <Modal title={modal.item.invoice_number ?? "Nieuwe factuur"} eyebrow={invoiceStageLabel[invoiceStage(modal.item)]} onClose={() => setModal(null)}><div className="detail-grid"><div><span>Klant</span><strong>{customerById.get(modal.item.customer_id)?.name ?? "—"}</strong></div><div><span>Vervaldatum</span><strong>{modal.item.due_on ?? "—"}</strong></div><div><span>Totaal</span><strong>{money(modal.item.total_cents)}</strong></div><div><span>Betaald</span><strong>{money(modal.item.paid_cents)}</strong></div></div>{modal.item.paid_cents < modal.item.total_cents && <ServerForm action={registerManualPayment} success="Betaling geboekt" submitLabel="Betaling boeken" onSuccess={() => setModal(null)}><input type="hidden" name="invoiceId" value={modal.item.id}/><label>Bedrag<input name="amount" type="number" step=".01" max={(modal.item.total_cents - modal.item.paid_cents) / 100} required/></label><label>Datum<input name="date" type="date" required/></label><label className="wide">Referentie<input name="reference" required/></label></ServerForm>}</Modal>}</>;
+  </ResourceTable>{modal?.type === "create" && <Modal title="Nieuwe factuur" eyebrow="FACTUREERBARE WERKBONNEN" onClose={() => setModal(null)}>{invoiceReadyGroups.map(([customerId, orders]) => <ServerForm key={customerId} action={createInvoice} success="Factuur aangemaakt" className="invoice-choice" submitLabel={orders.length > 1 ? "Verzamelfactuur maken" : "Factuur maken"} onSuccess={() => setModal(null)}><input type="hidden" name="workOrderIds" value={orders.map((item) => item.id).join(",")}/><span><strong>{customerById.get(customerId)?.name}</strong><small>{orders.map((item) => item.work_order_number).join(" · ")}</small></span></ServerForm>)}</Modal>} {modal?.type === "bundle" && <Modal title="Betaallink bundelen" eyebrow="OPENSTAANDE FACTUREN" onClose={() => setModal(null)}>{openGroups.map(([customerId, invoices]) => <ServerForm key={customerId} action={createPaymentBundle} success="Betaallink aangemaakt" className="invoice-choice" submitLabel="Link maken" onSuccess={(result) => { if (result.ok && "paymentUrl" in result && result.paymentUrl) void navigator.clipboard.writeText(String(result.paymentUrl)); setModal(null); }}><input type="hidden" name="invoiceIds" value={invoices.map((item) => item.id).join(",")}/><span><strong>{customerById.get(customerId)?.name}</strong><small>{invoices.map((item) => item.invoice_number).join(" · ")}</small></span></ServerForm>)}</Modal>} {modal?.type === "view" && <Modal title={modal.item.invoice_number ?? "Nieuwe factuur"} eyebrow={invoiceStageLabel[invoiceStage(modal.item)]} onClose={() => setModal(null)}><div className="detail-grid"><div><span>Klant</span><strong>{customerById.get(modal.item.customer_id)?.name ?? "—"}</strong></div><div><span>Vervaldatum</span><strong>{modal.item.due_on ?? "—"}</strong></div><div><span>Totaal</span><strong>{money(modal.item.total_cents)}</strong></div><div><span>Betaald</span><strong>{money(modal.item.paid_cents)}</strong></div></div>{!modal.item.pdf_storage_path && modal.item.invoice_number && <ServerForm action={createInvoice} success="PDF hersteld" submitLabel="PDF herstellen" onSuccess={()=>setModal(null)}><input type="hidden" name="invoiceId" value={modal.item.id}/><p className="form-note wide">De factuur is al vastgelegd. Alleen de ontbrekende PDF wordt opnieuw gemaakt, zonder nieuwe factuur of bronallocatie.</p></ServerForm>}{modal.item.paid_cents < modal.item.total_cents && <ServerForm action={registerManualPayment} success="Betaling geboekt" submitLabel="Betaling boeken" onSuccess={() => setModal(null)}><input type="hidden" name="invoiceId" value={modal.item.id}/><label>Bedrag<input name="amount" type="number" step=".01" max={(modal.item.total_cents - modal.item.paid_cents) / 100} required/></label><label>Datum<input name="date" type="date" required/></label><label className="wide">Referentie<input name="reference" required/></label></ServerForm>}</Modal>}</>;
 }

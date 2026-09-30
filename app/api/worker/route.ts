@@ -45,26 +45,15 @@ async function notificationFor(event: Event) {
       personnelId: String(payload.personnel_id ?? ""),
     };
   }
-  if (event.event_type === "work_order.reviewed" && payload.decision === "returned") return { title: "Rapport teruggestuurd", body: String(payload.reason ?? "Je rapport heeft een correctie nodig."), target: `/staff?workOrder=${event.aggregate_id}`, personnelId: "" };
+  if (event.event_type === "work_order.reviewed" && payload.decision === "returned") return { title: "Rapport teruggestuurd", body: "Je rapport heeft een correctie nodig. Open de beveiligde werkbon voor de toelichting.", target: `/staff?workOrder=${event.aggregate_id}`, personnelId: "" };
   if (event.event_type === "announcement.published" && payload.send_push === true) return { title: "Nieuw bericht", body: "Er is een nieuw teambericht gepubliceerd.", target: "/staff?tab=nieuws", personnelId: "" };
   return null;
 }
 
-async function recipients(event: Event, personnelId: string) {
-  const admin = createAdminClient();
-  if (personnelId) {
-    const { data } = await admin.from("personnel").select("user_id").eq("tenant_id", event.tenant_id).eq("id", personnelId).eq("status", "active").maybeSingle();
-    return data?.user_id ? [data.user_id] : [];
-  }
-  if (event.aggregate_type === "work_order") {
-    const { data: assignments } = await admin.from("work_order_assignments").select("personnel_id").eq("tenant_id", event.tenant_id).eq("work_order_id", event.aggregate_id);
-    const ids = (assignments ?? []).map((item) => item.personnel_id);
-    if (!ids.length) return [];
-    const { data } = await admin.from("personnel").select("user_id").eq("tenant_id", event.tenant_id).in("id", ids).eq("status", "active");
-    return (data ?? []).flatMap((item) => item.user_id ? [item.user_id] : []);
-  }
-  const { data } = await admin.from("tenant_memberships").select("user_id,roles").eq("tenant_id", event.tenant_id).eq("status", "active").contains("roles", ["staff"]);
-  return (data ?? []).map((item) => item.user_id);
+async function recipients(event: Event) {
+  const {data,error}=await createAdminClient().rpc("current_event_recipients",{target_event:event.id});
+  if(error) throw new Error("Actuele ontvangers konden niet worden gecontroleerd");
+  return (data??[]).map(r=>r.user_id);
 }
 
 async function processEvent(event: Event) {
@@ -74,14 +63,15 @@ async function processEvent(event: Event) {
     await admin.from("outbox_events").update({ status: "sent", processed_at: new Date().toISOString(), locked_until: null }).eq("id", event.id);
     return;
   }
-  const userIds = await recipients(event, notification.personnelId);
-  if (userIds.length) await admin.from("notifications").upsert(userIds.map((userId) => ({ tenant_id: event.tenant_id, user_id: userId, outbox_event_id: event.id, channel: "in_app", title: notification.title, body: notification.body, target_path: notification.target, status: "sent" as const, sent_at: new Date().toISOString() })), { onConflict: "tenant_id,user_id,outbox_event_id,channel" });
+  const userIds = await recipients(event);
+  if (userIds.length) { const inserted=await admin.from("notifications").upsert(userIds.map((userId) => ({ tenant_id: event.tenant_id, user_id: userId, outbox_event_id: event.id, channel: "in_app", title: notification.title, body: notification.body, target_path: notification.target, status: "sent" as const, sent_at: new Date().toISOString() })), { onConflict: "tenant_id,user_id,outbox_event_id,channel", ignoreDuplicates:true }); if(inserted.error)throw new Error("Melding kon niet worden geregistreerd"); }
   const env = getServerEnv();
   if (userIds.length && env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT) {
     webpush.setVapidDetails(env.VAPID_SUBJECT, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
     const { data: subscriptions } = await admin.from("push_subscriptions").select("*").eq("tenant_id", event.tenant_id).in("user_id", userIds).is("revoked_at", null);
     for (const subscription of subscriptions ?? []) {
       try {
+        if (!(await recipients(event)).includes(subscription.user_id)) continue;
         await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth_secret } }, JSON.stringify(notification), { TTL: 3600, urgency: "high" });
       } catch (error) {
         const status = typeof error === "object" && error && "statusCode" in error ? Number(error.statusCode) : 0;
@@ -104,7 +94,8 @@ export async function POST(request: Request) {
     try { await processEvent(event); sent += 1; }
     catch (cause) {
       failed += 1;
-      const lastError = cause instanceof Error ? cause.message.slice(0, 1000) : "Onbekende workerfout";
+      void cause;
+      const lastError = "Verwerking mislukt; controleer de provider en actuele bron. Geen berichtinhoud opgeslagen.";
       const dead = event.attempts >= env.NOTIFICATION_WORKER_MAX_ATTEMPTS;
       const retry = Math.min(env.NOTIFICATION_WORKER_MAX_RETRY_SECONDS, env.NOTIFICATION_WORKER_BASE_RETRY_SECONDS * (2 ** Math.max(0, event.attempts - 1)));
       await admin.from("outbox_events").update({ status: dead ? "dead_letter" : "failed", last_error: lastError, locked_until: null, available_at: new Date(Date.now() + retry * 1000).toISOString() }).eq("id", event.id);

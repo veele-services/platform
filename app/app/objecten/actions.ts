@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { ActionResult } from "@/lib/actions/result";
 import type { Json } from "@/lib/database.types";
 import { canManageObjects, objectSchema, recordSchema, optionalId } from "@/lib/objects/model";
-import { customerDocumentExtension, customerDocumentFileName, CUSTOMER_DOCUMENT_MAX_BYTES } from "@/lib/customers/documents";
+import { validateDossierDocumentName, customerDocumentExtension, customerDocumentFileName, CUSTOMER_DOCUMENT_MAX_BYTES } from "@/lib/customers/documents";
 import { localToInstant } from "@/lib/planning/time";
 
 async function authorize(objectId?:string) {
@@ -41,7 +41,7 @@ export async function saveObjectRecord(form:FormData):Promise<ActionResult>{
  try{
  const input=recordSchema.parse({...Object.fromEntries(form),acknowledgement:form.get("acknowledgement")==="on"});const {db,tenant}=await authorize(input.objectId);
  const instant=(v:string)=>v?localToInstant(v,tenant.timezone):null;
- const data={id:input.id,tenant_id:tenant.id,object_id:input.objectId,node_id:input.nodeId||null,work_order_id:input.workOrderId||null,kind:input.kind,title:input.title,body:input.body,state:input.state,service:input.service,instruction_type:input.instructionType||null,starts_at:instant(input.startsAt),ends_at:instant(input.endsAt),due_on:input.dueOn||null,owner_user_id:input.ownerId||null,task_revision_id:input.taskRevisionId||null,contact_id:input.contactId||null,personnel_asset_id:input.assetId||null,details:{category:input.category,frequency:input.frequency,window:input.window,checklist:input.checklist,equipment:input.equipment,evidence:input.evidence,acknowledgement:input.acknowledgement,quantity:input.quantity,unit:input.unit}};
+ const data={agreement_line_id:input.agreementLineId||null,id:input.id,tenant_id:tenant.id,object_id:input.objectId,node_id:input.nodeId||null,work_order_id:input.workOrderId||null,kind:input.kind,title:input.title,body:input.body,state:input.state,service:input.service,instruction_type:input.instructionType||null,starts_at:instant(input.startsAt),ends_at:instant(input.endsAt),due_on:input.dueOn||null,owner_user_id:input.ownerId||null,task_revision_id:input.taskRevisionId||null,contact_id:input.contactId||null,personnel_asset_id:input.assetId||null,details:{category:input.category,frequency:input.frequency,window:input.window,checklist:input.checklist,equipment:input.equipment,evidence:input.evidence,acknowledgement:input.acknowledgement,quantity:input.quantity,unit:input.unit}};
  const r=input.version?await db.from("object_records").update(data).eq("tenant_id",tenant.id).eq("object_id",input.objectId).eq("id",input.id).eq("version",input.version).select("id").maybeSingle():await db.from("object_records").insert(data).select("id").single();
  if(r.error||!r.data)return fail();refresh(input.objectId);return {ok:true};}catch{return fail();}
 }
@@ -68,6 +68,7 @@ export async function uploadObjectDocument(form:FormData):Promise<ActionResult>{
  const v=z.object({objectId:z.string().uuid(),title:z.string().trim().min(2).max(180),category:z.enum(["instruction","floorplan","report","agreement","photo","other","security"]),nodeId:optionalId,recordId:optionalId,orderId:optionalId,previousId:optionalId,validUntil:z.string().date().or(z.literal("")),service:z.string().max(100)}).parse(Object.fromEntries(form));
  const {db,tenant,context}=await authorize(v.objectId);if(v.category==="security"&&!tenant.roles.some(r=>["tenant_admin","management"].includes(r)))return fail();
  const file=form.get("document");if(!(file instanceof File)||file.size<1||file.size>CUSTOMER_DOCUMENT_MAX_BYTES)return fail();
+ validateDossierDocumentName(v.title,file.name);
  const bytes=new Uint8Array(await file.arrayBuffer());const ext=customerDocumentExtension(file.type,bytes);const path=`${tenant.id}/${v.objectId}/${randomUUID()}.${ext}`;
  let version=1;
  if(v.previousId){const r=await db.from("object_documents").select("version,category").eq("tenant_id",tenant.id).eq("object_id",v.objectId).eq("id",v.previousId).single();if(!r.data||r.data.category==="security"&&v.category!=="security")return fail();version=r.data.version+1;}

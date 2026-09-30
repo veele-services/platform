@@ -9,6 +9,9 @@ insert into auth.users (
   ('00000000-0000-0000-0000-000000000000', '30000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'manager@fieldgrid.test', crypt('Fieldgrid123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', '30000000-0000-4000-8000-000000000002', 'authenticated', 'authenticated', 'staff@fieldgrid.test', crypt('Fieldgrid123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now());
 
+insert into auth.sessions(id,user_id,created_at,updated_at)
+select id,id,now(),now() from auth.users where id in ('30000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000002');
+
 insert into public.tenants (id, slug, name) values ('c0000000-0000-4000-8000-000000000001', 'flow-test', 'Fieldgrid Testtenant');
 insert into public.tenant_settings (tenant_id, invoice_prefix) values ('c0000000-0000-4000-8000-000000000001', 'FG');
 insert into public.tenant_branding (tenant_id, sender_name) values ('c0000000-0000-4000-8000-000000000001', 'Fieldgrid');
@@ -49,8 +52,8 @@ insert into public.work_order_assignments (
 );
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
-select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000001","session_id":"30000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000001","session_id":"30000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 select lives_ok(
   $$select public.dispatch_work_order('c6000000-0000-4000-8000-000000000001', 'c1000000-0000-4000-8000-000000000001', (select version from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'dispatch-1')$$,
   'planner can dispatch an assigned work order'
@@ -62,7 +65,7 @@ select lives_ok(
 );
 select is((select count(*)::integer from public.dispatches where idempotency_key = 'dispatch-1'), 1, 'dispatch retry creates one dispatch');
 
-select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000002","session_id":"30000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
 select throws_ok(
   $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'start', (select version from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'early-start')$$,
   '23514', null, 'staff cannot skip the seen and travelling states'
@@ -100,18 +103,18 @@ select lives_ok(
 );
 select ok((select ends_at is not null from public.time_entries where assignment_id = 'c8000000-0000-4000-8000-000000000001' and kind = 'work'), 'completion closes the server work time entry');
 
-select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000001","session_id":"30000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 select lives_ok(
   $$select public.review_work_order('c6000000-0000-4000-8000-000000000001', 'returned', 'Vul de rapportage aan')$$,
   'management can return a completed report for correction'
 );
 select is((select status::text from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'correction_required', 'a returned review enters correction state');
-select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000002","session_id":"30000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
 select lives_ok(
   $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'resubmit', (select version from public.work_orders where id = 'c6000000-0000-4000-8000-000000000001'), 'resubmit-1')$$,
   'staff can resubmit a corrected report without returning the work order'
 );
-select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"30000000-0000-4000-8000-000000000001","session_id":"30000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 select lives_ok(
   $$select public.review_work_order('c6000000-0000-4000-8000-000000000001', 'approved', null)$$,
   'management can approve a completed work order'

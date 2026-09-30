@@ -7,21 +7,7 @@ export const planningViews = {
   all: "Alle bonnen",
 } as const;
 export type PlanningView = keyof typeof planningViews;
-export const executionStatuses: Record<string, string> = {
-  planned: "Gepland",
-  released: "Vrijgegeven",
-  seen: "Gezien",
-  travelling: "Onderweg",
-  in_progress: "Lopend",
-  completed: "Afgerond",
-  returned: "Teruggemeld",
-  under_review: "Rapportcontrole",
-  correction_required: "Rapportcorrectie",
-  approved: "Goedgekeurd",
-  invoice_ready: "Factureerbaar",
-  invoiced: "Gefactureerd",
-  cancelled: "Geannuleerd",
-};
+export { executionLabels as executionStatuses } from "../dossiers/status";
 export type Crew = {
   id: string;
   personnelId: string;

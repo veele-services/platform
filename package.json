@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:db": "supabase test db && node --test scripts/test-personnel-numbering.mjs scripts/test-planboard.mjs scripts/test-object360.mjs",
+    "test:db": "supabase test db && node --test scripts/test-personnel-numbering.mjs scripts/test-planboard.mjs scripts/test-object360.mjs scripts/test-dossier-alignment.mjs",
     "test:e2e": "playwright test",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "db:start": "supabase start",

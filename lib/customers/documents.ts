@@ -1,6 +1,13 @@
 export const CUSTOMER_DOCUMENT_MAX_BYTES = 10 * 1024 * 1024;
 export const CUSTOMER_DOCUMENT_ACCEPT = ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png";
 
+/** A name/category gate, not a claim to inspect the contents of a PDF or image. */
+export function validateDossierDocumentName(title: string, fileName: string) {
+  if (/\b(VOG|BSN|paspoort|identiteitsbewijs|medisch|diagnose|medicatie|alarmcode|kluiscode|wachtwoord)\b|verklaring.omtrent.gedrag|identiteitskopie/i.test(`${title} ${fileName}`)) {
+    throw new Error("Upload geen medische documenten, identiteits- of VOG-kopieën en geen geheime toegangscodes. Gebruik het daarvoor bedoelde proces.");
+  }
+}
+
 const signatures = {
   "application/pdf": { extension: "pdf", bytes: [0x25, 0x50, 0x44, 0x46, 0x2d] },
   "image/jpeg": { extension: "jpg", bytes: [0xff, 0xd8, 0xff] },
