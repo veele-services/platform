@@ -190,6 +190,8 @@ stable pagination. Browser coverage includes all tabs, original PDF upload and
 download, contact/note persistence, the customer wizard, list return context,
 mobile overflow and the existing agreement-to-invoice chain. Migration
 `20260930134752_customer_360.sql` is additive and preserves existing records.
+`20260930142326_customer_active_followup.sql` keeps archived requests and offers
+out of active customer-list attention counts, matching the dossier projection.
 
 ## Verification and release process
 

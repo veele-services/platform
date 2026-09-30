@@ -190,6 +190,34 @@ test("Customer 360 uses persistent sources, guarded relationships and exact revi
         );
         assert.equal((await list({ q: "missing" })).total, 0);
         assert.equal((await list({ attention: "objects" })).total, 2);
+        const request = randomUUID();
+        await db.query(
+          "insert into public.requests(id,tenant_id,customer_id,request_number,discipline,description,status) values($1::uuid,$2,$3,$1::uuid::text,'Test','FICTITIOUS follow-up','new')",
+          [request, tenant, customer],
+        );
+        assert.equal((await list({ attention: "requests" })).total, 1);
+        assert.equal(
+          (await list()).rows.find((row) => row.id === customer).requests,
+          1,
+        );
+        await db.query(
+          "update public.requests set archived_at=clock_timestamp() where id=$1",
+          [request],
+        );
+        assert.equal((await list({ attention: "requests" })).total, 0);
+        assert.equal(
+          (await list()).rows.find((row) => row.id === customer).requests,
+          0,
+        );
+        assert.equal(
+          (
+            await call(
+              "select public.customer_commercial_followup($1,$2) result",
+              [tenant, customer],
+            )
+          )[0].result.length,
+          0,
+        );
         await assert.rejects(list({}, staff), (e) => e.code === "42501");
         await assert.rejects(
           call("select public.customer_list($1,$2)", [other, {}]),
