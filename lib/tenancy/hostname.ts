@@ -40,8 +40,8 @@ export function tenantAppUrl(slug: string, pathname = "/app"): string {
   if (!tenantSlugPattern.test(slug)) throw new Error("Ongeldige tenantslug");
   const appUrl = new URL(process.env.APP_URL!);
   if ((process.env.DEPLOY_TARGET ?? "local") !== "local") appUrl.hostname = `${slug}.${appUrl.hostname}`;
-  appUrl.pathname = pathname;
-  appUrl.search = "";
-  appUrl.hash = "";
-  return appUrl.toString();
+  if (!pathname.startsWith("/") || pathname.startsWith("//") || pathname.includes("\\")) throw new Error("Ongeldig tenantpad");
+  const target = new URL(pathname, appUrl);
+  if (target.origin !== appUrl.origin) throw new Error("Ongeldig tenantpad");
+  return target.toString();
 }

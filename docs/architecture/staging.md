@@ -91,6 +91,10 @@ All workspaces are paths on the same tenant origin. The Object 360 request of
 their object visits, appointment requests and explicitly permitted secure
 object management. A contact email is not an access grant. No global customer
 role, separate planning or general customer administration is introduced.
+The commercial module adds `/klant/aanvragen` for requests and offers within those
+same explicit bindings, and `/aanvraag` for public intake on an active tenant host.
+External version-bound offer links do not grant general portal access. See
+[`commercial.md`](commercial.md) for the data and release contract.
 Separate backoffice or personnel subdomains must not be introduced.
 
 Tenant context is determined exclusively from the validated request hostname:

@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 // activation links are written to disk or console.
 const messages = [];
 let failNext = false;
+let rejectNext = false;
 createServer(async (req, res) => {
   const url = new URL(req.url, "http://127.0.0.1:59329");
   res.setHeader("content-type", "application/json");
@@ -15,11 +16,13 @@ createServer(async (req, res) => {
     return res.end(JSON.stringify(messages.filter((mail) => mail.personalizations[0].to[0].email === recipient)));
   }
   if (req.method === "POST" && url.pathname === "/fail-next") { failNext = true; return res.end('{}'); }
+  if (req.method === "POST" && url.pathname === "/reject-next") { rejectNext = true; return res.end('{}'); }
   if (req.method === "POST" && url.pathname === "/v3/mail/send") {
     if (req.headers.authorization !== "Bearer SG.fieldgrid-local-e2e-placeholder") { res.statusCode = 403; return res.end('{}'); }
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
     const mail = JSON.parse(Buffer.concat(chunks).toString());
+    if (rejectNext) { rejectNext = false; res.statusCode = 429; return res.end('{"errors":[{"message":"Fictitious temporary rejection"}]}'); }
     if (failNext) { failNext = false; res.statusCode = 503; return res.end('{"errors":[{"message":"Test delivery failure"}]}'); }
     messages.push(mail);
     res.statusCode = 202;

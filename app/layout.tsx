@@ -4,6 +4,7 @@ import "./personnel-dossier.css";
 import "./planboard.css";
 import "./object-360.css";
 import "./travel.css";
+import "./commercial.css";
 
 export const metadata: Metadata = {
   title: { default: "Fieldgrid", template: "%s · Fieldgrid" },

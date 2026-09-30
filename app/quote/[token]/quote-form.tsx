@@ -1,10 +1,8 @@
 "use client";
-
-import { useState } from "react";
-import { acceptQuote } from "./actions";
-
-export function QuoteForm({ token }: { token: string }) {
-  const [result, setResult] = useState<{ ok: boolean; error?: string }>();
-  if (result?.ok) return <p className="auth-message success">Bedankt. Het akkoord is veilig vastgelegd.</p>;
-  return <form className="auth-form" action={async (form) => setResult(await acceptQuote(form))}><input type="hidden" name="token" value={token}/><label><span>Naam akkoordgever</span><span className="auth-input"><input name="name" required minLength={2}/></span></label><label className="check-line"><input type="checkbox" name="accepted" required/> Ik geef akkoord op deze offerte.</label>{result && !result.ok && <p className="auth-message error">{result.error}</p>}<button className="primary-button full">Akkoord bevestigen</button></form>;
+import {useState,useTransition} from "react";
+import {acceptQuote} from "./actions";
+export function QuoteForm({token}:{token:string}){
+ const [result,setResult]=useState<{ok:boolean;error?:string}>(),[decision,setDecision]=useState("accepted"),[pending,start]=useTransition();
+ if(result?.ok)return <p className="auth-message success" role="status">Bedankt. Je besluit over deze offerteversie is vastgelegd. De afzender kan de opvolging nu behandelen.</p>;
+ return <form className="auth-form" onSubmit={e=>{e.preventDefault();const f=new FormData(e.currentTarget);start(async()=>{try{setResult(await acceptQuote(f));}catch{setResult({ok:false,error:"Verbinding onderbroken. Je kunt dezelfde bevestiging veilig opnieuw proberen."});}});}}><input type="hidden" name="token" value={token}/><h2>Jouw reactie op deze versie</h2><label>Naam beslisser<input name="name" required minLength={2} maxLength={180}/></label><label>Besluit<select name="decision" value={decision} onChange={e=>setDecision(e.target.value)}><option value="accepted">Akkoord geven</option><option value="change_requested">Wijziging vragen</option><option value="rejected">Afwijzen</option></select></label><label>{decision==="accepted"?"Toelichting (optioneel)":"Toelichting"}<textarea name="evidence" required={decision!=="accepted"} minLength={decision!=="accepted"?3:undefined} maxLength={3000}/></label><label className="check-line"><input type="checkbox" name="accepted" required/> {decision==="accepted"?"Ik ga akkoord met deze offerteversie, de omschreven werkzaamheden, bedragen en voorwaarden.":"Ik bevestig dat dit mijn besluit over deze offerteversie is."}</label>{result&&!result.ok&&<p className="auth-message error" role="alert">{result.error}</p>}<button className="primary-button full" disabled={pending}>{pending?"Besluit opslaan…":decision==="accepted"?"Akkoord bevestigen":decision==="rejected"?"Afwijzing bevestigen":"Wijzigingsverzoek versturen"}</button><small>Het openen van deze pagina geeft geen akkoord. Akkoord, planning en betaling worden apart vastgelegd.</small></form>;
 }

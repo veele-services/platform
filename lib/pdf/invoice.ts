@@ -26,7 +26,7 @@ function color(hex: string) {
 
 export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Uint8Array> {
   const document = await PDFDocument.create();
-  const page = document.addPage([595.28, 841.89]);
+  let page = document.addPage([595.28, 841.89]);
   const regular = await document.embedFont(StandardFonts.Helvetica);
   const bold = await document.embedFont(StandardFonts.HelveticaBold);
   const dark = rgb(0.04, 0.11, 0.23);
@@ -36,7 +36,6 @@ export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Uint8Arr
   let y = 785;
   page.drawRectangle({ x: 0, y: 812, width: 595.28, height: 30, color: dark });
   page.drawText(input.tenantName, { x: left, y, size: 20, font: bold, color: dark });
-  page.drawText("LOGO", { x: 475, y: y + 2, size: 10, font: bold, color: muted });
   y -= 55;
   page.drawText("FACTUUR", { x: left, y, size: 10, font: bold, color: accent });
   page.drawText(input.invoiceNumber, { x: left, y: y - 25, size: 23, font: bold, color: dark });
@@ -54,20 +53,37 @@ export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Uint8Arr
   page.drawText("BTW", { x: 408, y: y + 9, size: 8, font: bold, color: muted });
   page.drawText("Totaal", { x: 482, y: y + 9, size: 8, font: bold, color: muted });
   y -= 23;
-  for (const line of input.lines.slice(0, 22)) {
-    page.drawText(line.description.slice(0, 58), { x: left + 8, y, size: 9, font: regular, color: dark });
+  const safe = (value: string) => [...value.replace(/\s+/g, " ")].map(c => { try { regular.encodeText(c); return c; } catch { return "?"; } }).join("");
+  const continuation = () => {
+    page = document.addPage([595.28, 841.89]); y = 750;
+    page.drawText(input.invoiceNumber + " · vervolg", { x: left, y: 790, size: 14, font: bold, color: dark });
+  };
+  for (const line of input.lines) {
+    const wrapped: string[] = []; let text = "";
+    for (const c of safe(line.description)) {
+      if (regular.widthOfTextAtSize(text + c, 9) > 280) { wrapped.push(text); text = ""; }
+      text += c;
+    }
+    wrapped.push(text);
+    if (y < 110) continuation();
+    const rowY = y;
+    page.drawText(wrapped.shift() || "", { x: left + 8, y, size: 9, font: regular, color: dark });
     page.drawText(String(line.quantity), { x: 350, y, size: 9, font: regular, color: dark });
     page.drawText(`${line.vatBasisPoints / 100}%`, { x: 408, y, size: 9, font: regular, color: dark });
     page.drawText(money(line.totalCents), { x: 482, y, size: 9, font: regular, color: dark });
+    y = rowY;
+    for (const part of wrapped) { y -= 14; if (y < 85) continuation(); page.drawText(part, { x: left + 8, y, size: 9, font: regular, color: dark }); }
     page.drawLine({ start: { x: left, y: y - 7 }, end: { x: 543, y: y - 7 }, thickness: 0.5, color: rgb(0.87, 0.91, 0.93) });
     y -= 27;
   }
+  if (y < 185) continuation();
   y = Math.min(y - 20, 250);
   const totals = [["Subtotaal", input.subtotalCents], ["BTW", input.vatCents], ["Te betalen", input.totalCents]] as const;
   totals.forEach(([label, cents], index) => {
     page.drawText(label, { x: 370, y: y - index * 24, size: index === 2 ? 12 : 9, font: index === 2 ? bold : regular, color: index === 2 ? dark : muted });
     page.drawText(money(cents), { x: 478, y: y - index * 24, size: index === 2 ? 12 : 9, font: index === 2 ? bold : regular, color: index === 2 ? dark : muted });
   });
+  document.getPages().forEach((p, i) => p.drawText(`${i + 1} / ${document.getPageCount()}`, { x: left, y: 60, size: 8, font: regular, color: muted }));
   page.drawRectangle({ x: 0, y: 0, width: 595.28, height: 54, color: dark });
   page.drawText((input.footer || "Betaling via de beveiligde link in de factuurmail").slice(0, 95), { x: left, y: 22, size: 8, font: regular, color: rgb(0.82, 0.89, 0.93) });
   page.drawText("Powered by Fieldgrid", { x: 450, y: 22, size: 8, font: bold, color: accent });

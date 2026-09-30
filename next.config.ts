@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
+      ...["/quote/:path*", "/booking/:path*"].map(source => ({source,headers:[{key:"Referrer-Policy",value:"no-referrer"},{key:"Cache-Control",value:"private, no-store"}]})),
     ];
   },
 };

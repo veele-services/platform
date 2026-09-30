@@ -6,6 +6,7 @@ export const objectTabs = [
   ["overzicht", "Overzicht"], ["locatie", "Locatie & structuur"], ["contact", "Contact & bereikbaarheid"],
   ["toegang", "Toegang & beveiligde gegevens"], ["diensten", "Diensten & werkprogramma"], ["afspraken", "Afspraken"],
   ["instructies", "Instructies & taken"], ["werkbonnen", "Werkbonnen & rapporten"], ["kwaliteit", "Kwaliteit & incidenten"],
+  ["commercieel", "Aanvragen & offertes"],
   ["materialen", "Materialen & voorzieningen"], ["documenten", "Documenten & plattegronden"], ["tijdlijn", "Tijdlijn"],
 ] as const;
 export type ObjectTab = typeof objectTabs[number][0];

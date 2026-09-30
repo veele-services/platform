@@ -1,6 +1,6 @@
 begin;
 
-select plan(8);
+select plan(10);
 
 insert into public.tenants (id, slug, name) values ('d0000000-0000-4000-8000-000000000001', 'booking-test', 'Booking Test');
 insert into public.customers (id, tenant_id, customer_number, name) values ('d1000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000001', 'KL-B01', 'Boekingsklant');
@@ -33,10 +33,12 @@ select is((select booked_count from public.appointment_slots where id = 'd400000
 select is((select status from public.appointment_slots where id = 'd4000000-0000-4000-8000-000000000001'), 'full', 'full capacity closes the slot');
 select is((select preferred_slot_id from public.requests where id = 'd3000000-0000-4000-8000-000000000001'), 'd4000000-0000-4000-8000-000000000001'::uuid, 'request points to the immutable appointment block');
 select ok((select consumed_at is not null from public.external_action_tokens where id = 'd5000000-0000-4000-8000-000000000001'), 'one-time token is consumed');
-select throws_ok(
+select lives_ok(
   $$select public.book_appointment_slot('d0000000-0000-4000-8000-000000000001','d3000000-0000-4000-8000-000000000001','d4000000-0000-4000-8000-000000000001','d5000000-0000-4000-8000-000000000001')$$,
-  '42501', null, 'repeated booking is rejected without double allocation'
+  'same booking replay returns the existing reservation'
 );
+select is((select booked_count from public.appointment_slots where id='d4000000-0000-4000-8000-000000000001'),1,'replay never consumes a second place');
+select is((select status from public.requests where id='d3000000-0000-4000-8000-000000000001'),'new','booking is not commercial acceptance');
 
 select * from finish();
 rollback;

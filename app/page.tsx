@@ -35,7 +35,8 @@ export default async function HomePage() {
         </div>
         <span className="eyebrow">VEILIGE WERKOMGEVING</span>
         <h1>Welkom bij {tenant.name}</h1>
-        <p>Open je persoonlijke Fieldgrid-werkruimte om verder te gaan.</p>
+        <p>Open je persoonlijke werkruimte of geef een nieuwe werkvraag door.</p>
+        <a className="secondary-button full" href="/aanvraag">Nieuwe aanvraag</a>
         <a className="primary-button full" href="/login">Inloggen</a>
       </section>
     </main>

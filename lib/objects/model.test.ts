@@ -11,8 +11,8 @@ describe("Object 360 contracts",()=>{
   expect(objectSchema.safeParse({...input,latitude:"91"}).success).toBe(false);
   expect(objectSchema.parse(input).structure).toBe("");
  });
- it("uses twelve stable URL tabs and existing authority",()=>{
-  expect(objectTabs).toHaveLength(12);expect(new Set(objectTabs.map(([k])=>k)).size).toBe(12);
+ it("uses thirteen stable URL tabs including shared commercial records and existing authority",()=>{
+  expect(objectTabs).toHaveLength(13);expect(new Set(objectTabs.map(([k])=>k)).size).toBe(13);
   expect(canManageObjects(["planner"])).toBe(true);expect(canManageObjects(["staff"])).toBe(false);expect(canManageObjects([])).toBe(false);
   expect(addressLine({street:"Teststraat 1",postal_code:"1234 AB",city:"Utrecht"})).toBe("Teststraat 1, 1234 AB, Utrecht");
  });

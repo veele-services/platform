@@ -33,12 +33,16 @@ export async function createInvoice(formData: FormData): Promise<ActionResult<{ 
     if (existing.error) throw existing.error;
     let finalized = existing.data;
     if (invoiceId && (!finalized || !finalized.invoice_number || finalized.status === "draft")) throw new Error("Geen definitieve factuur gevonden");
+    if (!finalized && formData.get("quoteId")) {
+      const result=await supabase.rpc("create_commercial_period_invoice",{target_tenant:context.tenant.id,target_quote:z.uuid().parse(formData.get("quoteId")),period_start:z.iso.date().parse(formData.get("periodStart")),request_id:requestId!,confirmed:formData.get("confirmed")==="on"});
+      if(result.error)return{ok:false,error:result.error.code==="23514"?result.error.message:"De periodefactuur kon niet worden aangemaakt."};finalized=result.data;
+    }
     if (!finalized) {
       const ids = z.string().min(1).parse(formData.get("workOrderIds")).split(",").map(id => z.uuid().parse(id));
       const { data: tasks, error: tasksError } = await supabase.from("work_order_tasks").select("*").eq("tenant_id", context.tenant.id).in("work_order_id", ids);
       const { data: allocated, error: allocationError } = await supabase.from("invoice_lines").select("work_order_task_id,work_order_id,source_snapshot,quantity").eq("tenant_id", context.tenant.id).in("work_order_id", ids);
       if (tasksError || allocationError) throw new Error("Factureerbare bronnen konden niet worden geladen");
-      const sources = tasks.filter(t => t.completed_at && t.unit_price_cents > 0 && (!t.is_extra_work || t.extra_work_status === "approved")).map(t => ({
+      const sources = tasks.filter(t => t.completed_at && t.unit_price_cents > 0 && !["week","month"].includes(String((t.commercial_snapshot as Record<string,unknown>).price_basis||"")) && (!t.is_extra_work || t.extra_work_status === "approved")).map(t => ({
         taskId: t.id,
         quantity: Number(t.executed_quantity ?? t.quantity) - (allocated ?? []).filter(l => l.work_order_id===t.work_order_id && (l.work_order_task_id || (l.source_snapshot as Record<string,unknown>).work_order_task_id)===t.id).reduce((n,l) => n + Number(l.quantity), 0),
       })).filter(t => t.quantity > 0);

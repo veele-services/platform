@@ -52,4 +52,12 @@ describe("resolveHostContext", () => {
     process.env.DEPLOY_TARGET = "local";
     expect(tenantAppUrl("voorbeeld-tenant", "/app")).toBe("http://127.0.0.1:3000/app");
   });
+
+  it("preserves scoped document queries without allowing another origin", () => {
+    process.env.APP_URL = appUrl;
+    process.env.DEPLOY_TARGET = "staging";
+    expect(tenantAppUrl("voorbeeld-tenant", "/api/files/commercial/example?asset=logo&token=fictional")).toBe("https://voorbeeld-tenant.staging.fieldgrid.nl/api/files/commercial/example?asset=logo&token=fictional");
+    expect(() => tenantAppUrl("voorbeeld-tenant", "//other.invalid/")).toThrow();
+    expect(() => tenantAppUrl("voorbeeld-tenant", "/\\other.invalid/")).toThrow();
+  });
 });

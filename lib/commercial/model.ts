@@ -1,0 +1,36 @@
+import { z } from "zod";
+import type { Row } from "@/lib/objects/model";
+
+export const requestLabels: Record<string,string>={new:"Nieuw",review:"In beoordeling",waiting_info:"Wacht op informatie",processed:"Verwerkt",rejected:"Afgewezen",withdrawn:"Ingetrokken"};
+export const quoteLabels: Record<string,string>={draft:"Concept",awaiting_acceptance:"Wacht op akkoord",change_requested:"Wijziging gevraagd",accepted:"Akkoord",rejected:"Afgewezen",expired:"Verlopen"};
+export const workKinds={once:"Eenmalig",recurring:"Terugkerend",extra:"Meerwerk"};
+export const priceBases={once:"eenmalig",visit:"per bezoek",week:"per week",month:"per maand",hour:"per uur"};
+export const sources={website:"Website",portal:"Klantportaal",phone:"Telefoon",email:"E-mail",backoffice:"Interne registratie",email_link:"Beveiligde link"};
+export const priorities={low:"Laag",normal:"Normaal",high:"Hoog",urgent:"Urgent"};
+export const money=(cents:number)=>new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(cents/100);
+export const commercialDate=(value:string|null|undefined,timezone="Europe/Amsterdam",time=false)=>value?new Intl.DateTimeFormat("nl-NL",{dateStyle:"medium",...(time?{timeStyle:"short" as const}:{}),timeZone:timezone}).format(new Date(value.length===10?`${value}T12:00:00Z`:value)):"—";
+export type SourceKind="request"|"quote"|"visit"|"proposal";
+export type CommercialRow={id:string;source_kind:SourceKind;tab:"requests"|"quotes";number:string;subject:string;customer_id:string|null;customer:string;prospect:boolean;object_id:string|null;object:string|null;work_kind:keyof typeof workKinds;source:keyof typeof sources;status:string;priority:keyof typeof priorities;owner_id:string|null;owner:string|null;next_action:string;followup_on:string|null;created_at:string;updated_at:string;archived_at:string|null;version:number;revision?:number;series_id?:string;expires_at?:string|null;subtotal_cents?:number;price_basis?:keyof typeof priceBases;operation_id?:string|null;planned?:boolean;previous_accepted?:boolean;request_id?:string};
+export type CommercialList={rows:CommercialRow[];total:number;page:number;page_size:number;today:string;counts:Record<"new"|"followup"|"expiring"|"convert",number>};
+export type QuoteLine={id:string;task_revision_id?:string|null;task_code?:string;description:string;quantity:number|string;unit:string;price_cents:number;discount_basis_points:number;vat_basis_points:number;duration_minutes:number|null;net_cents?:number;discount_cents?:number};
+export type QuoteTerms={introduction:string;scope:string;included:string;excluded:string;preparation:string;conditions:string;frequency:string;starts_on:string;ends_on:string;pricing_method:"fixed"|"estimate"|"actual";discipline:string};
+export type QuoteSnapshot={schema?:number;timezone?:string;quote_number:string;revision:number;subject:string;work_kind:keyof typeof workKinds;price_basis:keyof typeof priceBases;terms:QuoteTerms;expires_at:string;lines:QuoteLine[];subtotal_cents:number;vat_cents:number;total_cents:number;taxes:Array<{basis_points:number;base_cents:number;tax_cents:number}>;customer:{id:string;name:string;number:string;billing_address:Record<string,unknown>};contact:{name:string;email:string};object:{id:string;name:string;number:string;address:Record<string,unknown>};brand:{name:string;slug:string;primary:string;accent:string;logo_source:string|null;sender_name:string|null;sender_email:string|null;footer:string|null;white_label:boolean;business:Record<string,string>};attachments:Array<{id:string;title:string;sha256:string;mime_type:string}>};
+export type CommercialDetail={record:Row<"requests">|Row<"quotes">;preview?:QuoteSnapshot;quotes:Row<"quotes">[];events:Array<Row<"commercial_events">&{actor:string|null}>;attachments:Row<"commercial_attachments">[];deliveries:Array<{id:string;recipient:string;status:string;attempts:number;error:string|null;sent_at:string|null;subject:string}>;operations:Array<{id:string;number:string;kind:string;start:string|null;status:string;bookable:boolean;booking_active:boolean}>};
+export type VisitDetail={record:Row<"object_visit_requests">;proposals:Row<"object_request_proposals">[]};
+export type CommercialOptions={brand?:QuoteSnapshot["brand"];customers:Array<Pick<Row<"customers">,"id"|"name"|"status"|"billing_email"|"phone"|"billing_address"|"customer_number">>;objects:Array<Pick<Row<"objects">,"id"|"name"|"customer_id"|"address">>;contacts:Row<"customer_contacts">[];owners:Array<{id:string;name:string}>;tasks:Array<Pick<Row<"task_revisions">,"id"|"price_cents"|"vat_basis_points"|"unit"|"duration_minutes">&{code:string;name:string;discipline:string}>};
+export const emptyOptions:CommercialOptions={customers:[],objects:[],contacts:[],owners:[],tasks:[]};
+const optional=z.string().max(200).optional().default("");
+export const filtersSchema=z.object({tab:z.enum(["requests","quotes"]).catch("requests"),q:optional,status:optional,customer:z.uuid().or(z.literal("")).optional().default(""),object:z.uuid().or(z.literal("")).optional().default(""),work_kind:optional,source:optional,owner:z.uuid().or(z.literal("")).optional().default(""),priority:optional,from:z.iso.date().or(z.literal("")).optional().default(""),until:z.iso.date().or(z.literal("")).optional().default(""),attention:optional,archived:optional,operation:optional,sort:z.enum(["attention","updated","number","customer","amount","expires"]).catch("attention"),page:z.coerce.number().int().min(1).max(100000).catch(1)});
+export type CommercialFilters=z.infer<typeof filtersSchema>;
+
+// Preview uses the same integer/decimal rule as the SQL authority. Never use
+// binary floating-point multiplication for monetary totals.
+export function previewPrices(lines:QuoteLine[]){
+ const round=(n:bigint,d:bigint)=>(n+d/2n)/d;
+ const taxes=new Map<number,bigint>();let subtotal=0n;
+ const result=lines.map(l=>{const raw=String(l.quantity);if(!/^\d+(\.\d{1,3})?$/.test(raw))throw new Error("Gebruik een positief aantal met maximaal drie decimalen.");const [whole,fraction=""]=raw.split(".");const qty=BigInt(whole)*1000n+BigInt(fraction.padEnd(3,"0"));if(qty<=0n||qty>1_000_000_000n||![l.price_cents,l.discount_basis_points,l.vat_basis_points].every(Number.isSafeInteger)||l.price_cents<0||l.discount_basis_points<0||l.discount_basis_points>10000||l.vat_basis_points<0||l.vat_basis_points>10000)throw new Error("Controleer aantal, tarief, korting en btw.");const gross=round(qty*BigInt(l.price_cents),1000n);const net=round(gross*BigInt(10000-l.discount_basis_points),10000n);subtotal+=net;taxes.set(l.vat_basis_points,(taxes.get(l.vat_basis_points)??0n)+net);return{...l,net_cents:Number(net),discount_cents:Number(gross-net)};});
+ const groups=[...taxes].sort((a,b)=>a[0]-b[0]).map(([rate,base])=>({basis_points:rate,base_cents:Number(base),tax_cents:Number(round(base*BigInt(rate),10000n))}));const vat=groups.reduce((n,t)=>n+t.tax_cents,0);
+ if(subtotal+BigInt(vat)>BigInt(Number.MAX_SAFE_INTEGER))throw new Error("Het totaalbedrag is te groot.");
+ return{lines:result,subtotal_cents:Number(subtotal),vat_cents:vat,total_cents:Number(subtotal)+vat,taxes:groups};
+}
+export const emptyTerms:QuoteTerms={introduction:"",scope:"",included:"",excluded:"",preparation:"",conditions:"",frequency:"",starts_on:"",ends_on:"",pricing_method:"fixed",discipline:""};

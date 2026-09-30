@@ -1,4 +1,5 @@
 "use client";
+import {CommercialOrderContext} from "@/components/fieldgrid/commercial/order-context";
 import { useEffect, useState, type FormEvent, type ReactNode, type CSSProperties } from "react";
 import Link from "next/link";
 import {
@@ -194,7 +195,7 @@ export function PlanningDetail({
               Object 360
             </Link>
           </nav>
-          <ObjectVisitSignals orderId={order.id}/>
+          <ObjectVisitSignals orderId={order.id}/><CommercialOrderContext orderId={order.id} timezone={timezone}/>
           <dl className="pb-facts">
             <div>
               <dt>Uitvoeringsduur</dt>

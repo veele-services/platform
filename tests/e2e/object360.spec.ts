@@ -41,7 +41,7 @@ async function login(page:Page,next:string,email="platform-admin@fieldgrid.test"
 test("Object 360: full page tabs, structure, versioned instructions and responsive layout",async({page})=>{
  test.setTimeout(120000);await login(page,`/app/objecten/${object}`);
  await expect(page.getByRole("heading",{name:"Object 360 testlocatie",exact:true})).toBeVisible();
- const tabs=page.getByRole("navigation",{name:"Objectdossier tabbladen"});await expect(tabs.getByRole("link")).toHaveCount(12);
+ const tabs=page.getByRole("navigation",{name:"Objectdossier tabbladen"});await expect(tabs.getByRole("link")).toHaveCount(13);
  for(const width of [1440,768,390,320]){
   await page.setViewportSize({width,height:950});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   await expect(page).toHaveScreenshot(`object360-overview-${width}.png`,{fullPage:true,stylePath:"tests/e2e/dossier-screenshot.css",mask:[page.locator(".object-metrics strong").first()]});

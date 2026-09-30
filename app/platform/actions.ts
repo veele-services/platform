@@ -195,9 +195,9 @@ export async function uploadPlatformTenantLogo(formData: FormData): Promise<Plat
     const extension = extensions[file.type as keyof typeof extensions];
     if (!extension || file.size > 2 * 1024 * 1024) throw new Error("Gebruik PNG, JPG of WebP van maximaal 2 MB.");
     const admin = createAdminClient();
-    const path = `${tenantId}/logo.${extension}`;
+    const path = `${tenantId}/logo-${crypto.randomUUID()}.${extension}`;
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const { error: uploadError } = await admin.storage.from("branding").upload(path, bytes, { contentType: file.type, upsert: true });
+    const { error: uploadError } = await admin.storage.from("branding").upload(path, bytes, { contentType: file.type, upsert: false });
     if (uploadError) throw uploadError;
     const { error } = await admin.from("tenant_branding").update({ logo_path: path }).eq("tenant_id", tenantId);
     if (error) throw error;

@@ -78,7 +78,7 @@ test("backoffice toont echte tenantdata en blijft bruikbaar over alle doelbreedt
   await page.getByRole("link", { name: "Aanvragen & offertes" }).click();
   const palette = createBrandPalette("#214E72", "#C65D21");
   await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(palette.sidebar));
-  await expect(page.locator(".view-aanvragen > .page-intro h1")).toHaveCSS("color", rgb(palette.ink));
+  await expect(page.locator(".view-aanvragen .page-intro h1")).toHaveCSS("color", rgb(palette.ink));
   await expect(page.locator(".view-aanvragen .primary-button").first()).toHaveCSS("background-color", rgb(palette.action));
   await expect(page).toHaveScreenshot("tenant-themed-request-page-1440.png", { fullPage: true });
 });
@@ -283,7 +283,7 @@ test("klantdossier toont uitvoeringen en bewaart contacten, notities en private 
   };
   await openCustomer();
   const dialog = page.getByRole("dialog", { name: "Noordhaven Vastgoed" });
-  await expect(dialog.getByRole("tab")).toHaveText(["Overzicht", "Contactpersonen", "Objecten", "Uitvoeringen", "Verzoeken & meerwerk", "Afspraken & contracten", "Opvolging", "Financieel", "Tijdlijn", "Notities", "Documenten"]);
+  await expect(dialog.getByRole("tab")).toHaveText(["Overzicht", "Contactpersonen", "Objecten", "Uitvoeringen", "Verzoeken & meerwerk", "Aanvragen & offertes", "Afspraken & contracten", "Opvolging", "Financieel", "Tijdlijn", "Notities", "Documenten"]);
   await expect(dialog.getByRole("heading", { name: "Hoofdgegevens" })).toBeVisible();
   await expect(dialog.getByText("finance@customer.test", { exact: true })).toBeVisible();
   await expect(dialog.getByText("14 dagen", { exact: true })).toBeVisible();

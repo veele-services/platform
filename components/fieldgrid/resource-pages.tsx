@@ -1,6 +1,7 @@
 "use client";
 
 import { AddressInput } from "./address-input";
+import { CommercialDossierPanel } from "./commercial/dossier-panel";
 import { WizardMobility } from "./travel-settings";
 import { useFormChanges, confirmDiscard } from "./unsaved-form";
 import { DossierChainPanel, type ChainView } from "./dossier-chain";
@@ -183,6 +184,7 @@ function CustomerDetail({ customer, data, onClose, timezone, roles }: { customer
           <TabsTrigger value="objects"><Building2 size={16}/>Objecten</TabsTrigger>
           <TabsTrigger value="executions"><FileText size={16}/>Uitvoeringen</TabsTrigger>
           <TabsTrigger value="requests">Verzoeken & meerwerk</TabsTrigger>
+          <TabsTrigger value="commercial">Aanvragen & offertes</TabsTrigger>
           <TabsTrigger value="agreements">Afspraken & contracten</TabsTrigger>
           <TabsTrigger value="actions">Opvolging</TabsTrigger>
           <TabsTrigger value="finance">Financieel</TabsTrigger>
@@ -203,6 +205,7 @@ function CustomerDetail({ customer, data, onClose, timezone, roles }: { customer
           <div><span>Betaaltermijn</span><strong>{customer.payment_terms_days ?? data.settings?.payment_terms_days ?? 14} dagen</strong></div>
         </div>
       </TabsContent>
+      <TabsContent value="commercial" className="customer-tab-panel"><CommercialDossierPanel customerId={customer.id} timezone={timezone}/></TabsContent>
       <TabsContent value="executions" className="customer-tab-panel"><ExecutionHistory orders={data.workOrders.filter(w=>w.customer_id===customer.id)} timezone={timezone}/></TabsContent>
       <TabsContent value="contacts" className="customer-tab-panel">
         <div className="modal-columns customer-dossier-columns">

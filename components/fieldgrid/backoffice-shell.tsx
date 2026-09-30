@@ -21,11 +21,11 @@ import { formatPersonnelNumber, PERSONNEL_NUMBER_MAX } from "@/lib/personnel/num
 import { CustomersPage, InvoicesPage, ObjectsPage, PersonnelPage, ReportsPage } from "@/components/fieldgrid/resource-pages";
 import { switchTenant } from "@/app/app/actions";
 import {
-  createAnnouncement, createQuote, createRequest,
+  createAnnouncement,
   createTask, dispatchWorkOrder,
-  updateTenantBranding, withdrawAnnouncement, createBookingLink,
+  updateTenantBranding, withdrawAnnouncement,
   uploadTenantLogo, updatePersonnelNumberSettings,
-  recordQuoteDecision, sendQuoteEmail,
+
   createExtraWorkRule, allowExtraWork,
 } from "@/app/app/operations-actions";
 
@@ -112,35 +112,13 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
     if (view === "overzicht") return <>
       <PageIntro eyebrow="WERKRUIMTE" title={`Goedendag, ${tenant.name}`} description="Live overzicht van aanvragen, uitvoering, controle en betalingen." />
       <div className="metric-grid">
-        <Metric icon={<FileText/>} label="Open aanvragen" value={data.requests.filter((item) => !["closed", "rejected"].includes(item.status)).length} tone="mint" />
+        <Metric icon={<FileText/>} label="Open aanvragen" value={data.requests.filter((item) => !["closed", "rejected", "processed", "withdrawn"].includes(item.status)&&!item.archived_at).length} tone="mint" />
         <Metric icon={<CalendarDays/>} label="Actieve werkbonnen" value={data.workOrders.filter((item) => !["invoiced", "cancelled"].includes(item.status)).length} tone="blue" />
         <Metric icon={<ClipboardCheck/>} label="Aandacht nodig" value={attention.length} tone="amber" />
         <Metric icon={<CreditCard/>} label="Openstaand" value={money(data.invoices.reduce((sum, item) => sum + (item.total_cents - item.paid_cents), 0))} tone="navy" />
       </div>
       <section className="panel dashboard-attention"><div className="section-heading"><div><span className="eyebrow">SIGNALEN</span><h2>Aandacht</h2></div><Link className="text-link" href="/app/rapporten">Open rapportcontrole <ChevronRight size={15}/></Link></div>{attention.length ? <div className="attention-list">{attention.slice(0, 7).map((order) => <Link key={order.id} href="/app/rapporten"><span className="attention-icon orange"><Bell size={16}/></span><span><strong>{order.work_order_number}</strong><small>{statusLabel[order.status]} · {customerById.get(order.customer_id)?.name}</small></span><ChevronRight size={15}/></Link>)}</div> : <Empty>Er zijn geen open signalen.</Empty>}</section>
     </>;
-
-    if (view === "aanvragen") return <>
-      <PageIntro eyebrow="COMMERCIEEL" title="Aanvragen & offertes" description="Van eerste klantvraag tot aantoonbaar digitaal akkoord." />
-      <div className="workspace-split">
-        <section className="panel"><div className="section-heading"><h2>Nieuwe aanvraag</h2></div><ActionForm action={createRequest} className="workspace-form" success="Aanvraag aanmaken">
-          <label>Klant<select name="customerId" required defaultValue=""><option value="" disabled>Kies klant</option>{data.customers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <label>Object<select name="objectId" required defaultValue=""><option value="" disabled>Kies object</option>{data.objects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-          <label>Discipline<input name="discipline" required placeholder="bijv. Onderhoud" /></label><label>Prioriteit<select name="priority" defaultValue="normal"><option value="low">Laag</option><option value="normal">Normaal</option><option value="high">Hoog</option><option value="urgent">Spoed</option></select></label>
-          <label className="wide">Omschrijving<textarea name="description" required rows={4}/></label>
-        </ActionForm></section>
-        <section className="panel"><div className="section-heading"><h2>Offerte opstellen</h2></div><ActionForm action={createQuote} className="workspace-form" success="Offertelink maken" onSuccess={(result) => { if (result.ok && "previewUrl" in result && result.previewUrl) navigator.clipboard.writeText(String(result.previewUrl)); }}>
-          <label className="wide">Aanvraag<select name="requestId" required defaultValue=""><option value="" disabled>Kies aanvraag</option>{data.requests.filter((item) => !["closed", "rejected"].includes(item.status)).map((item) => <option key={item.id} value={item.id}>{item.request_number} · {item.description}</option>)}</select></label>
-          <label>Bedrag excl. btw<input name="amount" type="number" min="0.01" step="0.01" required /></label><label>Geldig (dagen)<input name="validDays" type="number" min="1" max="90" defaultValue="14" required /></label>
-        </ActionForm><p className="form-note">De veilige acceptatielink wordt na aanmaken naar het klembord gekopieerd.</p><hr className="form-divider"/><div className="section-heading"><h2>Boekingslink maken</h2></div><ActionForm action={createBookingLink} className="workspace-form" success="Boekingslink maken" onSuccess={(result) => { if (result.ok && "previewUrl" in result && result.previewUrl) navigator.clipboard.writeText(String(result.previewUrl)); }}><label className="wide">Aanvraag<select name="requestId" required defaultValue=""><option value="" disabled>Kies aanvraag</option>{data.requests.filter((item) => !["closed", "rejected"].includes(item.status)).map((item) => <option key={item.id} value={item.id}>{item.request_number}</option>)}</select></label><label>Start tijdvak<input name="start" type="datetime-local" required/></label><label>Einde tijdvak<input name="end" type="datetime-local" required/></label><label>Capaciteit<input name="capacity" type="number" min="1" max="20" defaultValue="1"/></label></ActionForm></section>
-      </div>
-      {data.quotes.some((item) => item.status === "awaiting_acceptance") && <div className="workspace-split">
-        <section className="panel"><div className="section-heading"><h2>Prijsopgave e-mailen</h2></div><ActionForm action={sendQuoteEmail} className="workspace-form" success="Prijsopgave verzenden" onSuccess={(result) => { if (result.ok && "previewUrl" in result && result.previewUrl) navigator.clipboard.writeText(String(result.previewUrl)); }}><label className="wide">Prijsopgave<select name="quoteId" required defaultValue=""><option value="" disabled>Kies prijsopgave</option>{data.quotes.filter((item) => item.status === "awaiting_acceptance").map((item) => <option key={item.id} value={item.id}>{item.quote_number} · {customerById.get(item.customer_id)?.name}</option>)}</select></label></ActionForm><p className="form-note">De tenanttemplate, actuele huisstijl en veilige acceptatielink worden in één versievaste verzending vastgelegd.</p></section>
-        <section className="panel"><div className="section-heading"><h2>Akkoord registreren</h2></div><ActionForm action={recordQuoteDecision} className="workspace-form" success="Besluit registreren"><label>Prijsopgave<select name="quoteId" required defaultValue=""><option value="" disabled>Kies verzonden prijsopgave</option>{data.quotes.filter((item) => item.status === "awaiting_acceptance").map((item) => <option key={item.id} value={item.id}>{item.quote_number}</option>)}</select></label><label>Besluit<select name="decision" defaultValue="accepted"><option value="accepted">Akkoord</option><option value="rejected">Afgewezen</option></select></label><label>Naam klant<input name="name" required/></label><label>Bewijs/notitie<input name="evidence" required placeholder="Bijv. e-mail ontvangen op…"/></label></ActionForm></section>
-      </div>}
-      <DataTable headers={["Nummer", "Klant", "Omschrijving", "Prioriteit", "Status"]}>{data.requests.map((item) => <tr key={item.id}><td><strong>{item.request_number}</strong><small>{dateTime(item.created_at, tenant.timezone)}</small></td><td>{item.customer_id ? customerById.get(item.customer_id)?.name : "—"}</td><td>{item.description}</td><td>{item.priority}</td><td><Pill status={item.status}/></td></tr>)}</DataTable>
-    </>;
-
 
     if (view === "werkbonnen") return <>
       <PageIntro eyebrow="UITVOERING" title="Werkbonnen" description="Vrijgeven, volgen en afronden op één versievaste statusstroom." />

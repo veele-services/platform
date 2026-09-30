@@ -199,6 +199,99 @@ isOneToOne: false
       referencedColumns: ["tenant_id","id"]
     }
                   ]
+                },"commercial_attachments": {
+                  Row: {
+                    "created_at": string,"created_by": string,"id": string,"mime_type": string,"public_in_offer": boolean,"quote_id": string | null,"request_id": string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by": string,"id": string,"mime_type": string,"public_in_offer"?: boolean,"quote_id"?: string | null,"request_id"?: string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string,"id"?: string,"mime_type"?: string,"public_in_offer"?: boolean,"quote_id"?: string | null,"request_id"?: string | null,"sha256"?: string,"size_bytes"?: number,"storage_path"?: string,"tenant_id"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "commercial_attachments_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "commercial_attachments_tenant_id_quote_id_fkey"
+      columns: ["tenant_id","quote_id"]
+isOneToOne: false
+      referencedRelation: "quotes"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "commercial_attachments_tenant_id_request_id_fkey"
+      columns: ["tenant_id","request_id"]
+isOneToOne: false
+      referencedRelation: "requests"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"commercial_billing_periods": {
+                  Row: {
+                    "confirmed_by": string,"created_at": string,"ends_before": string,"id": string,"invoice_id": string,"quote_id": string,"starts_on": string,"tenant_id": string
+                  }
+                  Insert: {
+                    "confirmed_by": string,"created_at"?: string,"ends_before": string,"id"?: string,"invoice_id": string,"quote_id": string,"starts_on": string,"tenant_id": string
+                  }
+                  Update: {
+                    "confirmed_by"?: string,"created_at"?: string,"ends_before"?: string,"id"?: string,"invoice_id"?: string,"quote_id"?: string,"starts_on"?: string,"tenant_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "commercial_billing_periods_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "commercial_billing_periods_tenant_id_invoice_id_fkey"
+      columns: ["tenant_id","invoice_id"]
+isOneToOne: true
+      referencedRelation: "invoices"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "commercial_billing_periods_tenant_id_quote_id_fkey"
+      columns: ["tenant_id","quote_id"]
+isOneToOne: false
+      referencedRelation: "quotes"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"commercial_events": {
+                  Row: {
+                    "actor_id": string | null,"body": string,"created_at": string,"details": NonNullable<Json>,"id": string,"kind": string,"mail_snapshot": Json | null,"quote_id": string | null,"request_id": string | null,"tenant_id": string,"visibility": string
+                  }
+                  Insert: {
+                    "actor_id"?: string | null,"body"?: string,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"kind": string,"mail_snapshot"?: Json | null,"quote_id"?: string | null,"request_id"?: string | null,"tenant_id": string,"visibility"?: string
+                  }
+                  Update: {
+                    "actor_id"?: string | null,"body"?: string,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"kind"?: string,"mail_snapshot"?: Json | null,"quote_id"?: string | null,"request_id"?: string | null,"tenant_id"?: string,"visibility"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "commercial_events_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "commercial_events_tenant_id_quote_id_fkey"
+      columns: ["tenant_id","quote_id"]
+isOneToOne: false
+      referencedRelation: "quotes"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "commercial_events_tenant_id_request_id_fkey"
+      columns: ["tenant_id","request_id"]
+isOneToOne: false
+      referencedRelation: "requests"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
                 },"customer_agreement_lines": {
                   Row: {
                     "agreement_id": string,"id": string,"limit_cents": number,"object_id": string,"price_cents": number,"quantity": number,"scope": string,"task_revision_id": string,"tenant_id": string
@@ -425,13 +518,13 @@ isOneToOne: false
                   ]
                 },"external_action_tokens": {
                   Row: {
-                    "consumed_at": string | null,"created_at": string,"expires_at": string,"id": string,"purpose": string,"subject_id": string,"tenant_id": string,"token_hash": string
+                    "booking_kind": string,"consumed_at": string | null,"created_at": string,"decision": Json | null,"expires_at": string,"id": string,"purpose": string,"recipient": string | null,"revoked_at": string | null,"subject_id": string,"tenant_id": string,"token_hash": string,"work_order_id": string | null
                   }
                   Insert: {
-                    "consumed_at"?: string | null,"created_at"?: string,"expires_at": string,"id"?: string,"purpose": string,"subject_id": string,"tenant_id": string,"token_hash": string
+                    "booking_kind"?: string,"consumed_at"?: string | null,"created_at"?: string,"decision"?: Json | null,"expires_at": string,"id"?: string,"purpose": string,"recipient"?: string | null,"revoked_at"?: string | null,"subject_id": string,"tenant_id": string,"token_hash": string,"work_order_id"?: string | null
                   }
                   Update: {
-                    "consumed_at"?: string | null,"created_at"?: string,"expires_at"?: string,"id"?: string,"purpose"?: string,"subject_id"?: string,"tenant_id"?: string,"token_hash"?: string
+                    "booking_kind"?: string,"consumed_at"?: string | null,"created_at"?: string,"decision"?: Json | null,"expires_at"?: string,"id"?: string,"purpose"?: string,"recipient"?: string | null,"revoked_at"?: string | null,"subject_id"?: string,"tenant_id"?: string,"token_hash"?: string,"work_order_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -439,6 +532,12 @@ isOneToOne: false
       columns: ["tenant_id"]
 isOneToOne: false
       referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "external_action_tokens_work_order_id_fkey"
+      columns: ["work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
       referencedColumns: ["id"]
     }
                   ]
@@ -532,16 +631,22 @@ isOneToOne: false
                   ]
                 },"invoice_lines": {
                   Row: {
-                    "created_at": string,"description": string,"id": string,"invoice_id": string,"quantity": number,"source_snapshot": NonNullable<Json>,"subtotal_cents": number,"tenant_id": string,"total_cents": number,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"vat_cents": number,"work_order_id": string | null,"work_order_task_id": string | null
+                    "commercial_period_id": string | null,"created_at": string,"description": string,"id": string,"invoice_id": string,"quantity": number,"source_snapshot": NonNullable<Json>,"subtotal_cents": number,"tenant_id": string,"total_cents": number,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"vat_cents": number,"work_order_id": string | null,"work_order_task_id": string | null
                   }
                   Insert: {
-                    "created_at"?: string,"description": string,"id"?: string,"invoice_id": string,"quantity": number,"source_snapshot": NonNullable<Json>,"subtotal_cents": number,"tenant_id": string,"total_cents": number,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"vat_cents": number,"work_order_id"?: string | null,"work_order_task_id"?: string | null
+                    "commercial_period_id"?: string | null,"created_at"?: string,"description": string,"id"?: string,"invoice_id": string,"quantity": number,"source_snapshot": NonNullable<Json>,"subtotal_cents": number,"tenant_id": string,"total_cents": number,"unit": string,"unit_price_cents": number,"vat_basis_points": number,"vat_cents": number,"work_order_id"?: string | null,"work_order_task_id"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"description"?: string,"id"?: string,"invoice_id"?: string,"quantity"?: number,"source_snapshot"?: NonNullable<Json>,"subtotal_cents"?: number,"tenant_id"?: string,"total_cents"?: number,"unit"?: string,"unit_price_cents"?: number,"vat_basis_points"?: number,"vat_cents"?: number,"work_order_id"?: string | null,"work_order_task_id"?: string | null
+                    "commercial_period_id"?: string | null,"created_at"?: string,"description"?: string,"id"?: string,"invoice_id"?: string,"quantity"?: number,"source_snapshot"?: NonNullable<Json>,"subtotal_cents"?: number,"tenant_id"?: string,"total_cents"?: number,"unit"?: string,"unit_price_cents"?: number,"vat_basis_points"?: number,"vat_cents"?: number,"work_order_id"?: string | null,"work_order_task_id"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "invoice_lines_commercial_period_fk"
+      columns: ["tenant_id","commercial_period_id"]
+isOneToOne: false
+      referencedRelation: "commercial_billing_periods"
+      referencedColumns: ["tenant_id","id"]
+    },{
       foreignKeyName: "invoice_lines_tenant_id_invoice_id_fkey"
       columns: ["tenant_id","invoice_id"]
 isOneToOne: false
@@ -906,13 +1011,13 @@ isOneToOne: false
                   ]
                 },"object_visit_requests": {
                   Row: {
-                    "body": string,"created_at": string,"created_by": string,"feedback": string,"id": string,"kind": string,"needs_review": boolean,"node_id": string | null,"object_id": string,"priority": string,"response": string,"review_note": string,"state": string,"tenant_id": string,"title": string,"updated_at": string,"updated_by": string,"version": number,"work_order_id": string,"work_order_task_id": string | null
+                    "body": string,"created_at": string,"created_by": string,"due_on": string | null,"feedback": string,"id": string,"kind": string,"needs_review": boolean,"node_id": string | null,"object_id": string,"owner_user_id": string | null,"priority": string,"response": string,"review_note": string,"state": string,"tenant_id": string,"title": string,"updated_at": string,"updated_by": string,"version": number,"work_order_id": string,"work_order_task_id": string | null
                   }
                   Insert: {
-                    "body": string,"created_at"?: string,"created_by"?: string,"feedback"?: string,"id": string,"kind": string,"needs_review"?: boolean,"node_id"?: string | null,"object_id": string,"priority"?: string,"response"?: string,"review_note"?: string,"state"?: string,"tenant_id": string,"title": string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id": string,"work_order_task_id"?: string | null
+                    "body": string,"created_at"?: string,"created_by"?: string,"due_on"?: string | null,"feedback"?: string,"id": string,"kind": string,"needs_review"?: boolean,"node_id"?: string | null,"object_id": string,"owner_user_id"?: string | null,"priority"?: string,"response"?: string,"review_note"?: string,"state"?: string,"tenant_id": string,"title": string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id": string,"work_order_task_id"?: string | null
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"created_by"?: string,"feedback"?: string,"id"?: string,"kind"?: string,"needs_review"?: boolean,"node_id"?: string | null,"object_id"?: string,"priority"?: string,"response"?: string,"review_note"?: string,"state"?: string,"tenant_id"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id"?: string,"work_order_task_id"?: string | null
+                    "body"?: string,"created_at"?: string,"created_by"?: string,"due_on"?: string | null,"feedback"?: string,"id"?: string,"kind"?: string,"needs_review"?: boolean,"node_id"?: string | null,"object_id"?: string,"owner_user_id"?: string | null,"priority"?: string,"response"?: string,"review_note"?: string,"state"?: string,"tenant_id"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id"?: string,"work_order_task_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -1432,16 +1537,34 @@ isOneToOne: false
                   ]
                 },"quotes": {
                   Row: {
-                    "acceptance_channel": string | null,"acceptance_evidence": string | null,"accepted_at": string | null,"accepted_by_name": string | null,"created_at": string,"currency": string,"customer_id": string,"expires_at": string | null,"id": string,"object_id": string | null,"quote_number": string,"request_id": string,"revision": number,"sent_at": string | null,"snapshot": NonNullable<Json>,"status": Database["public"]['Enums']["quote_status"],"subtotal_cents": number,"tenant_id": string,"total_cents": number,"updated_at": string,"vat_cents": number
+                    "acceptance_channel": string | null,"acceptance_evidence": string | null,"accepted_at": string | null,"accepted_by_name": string | null,"archived_at": string | null,"contact_id": string | null,"created_at": string,"currency": string,"customer_id": string,"expires_at": string | null,"followup_on": string | null,"id": string,"lines": NonNullable<Json>,"logo_path": string | null,"next_action": string,"object_id": string | null,"operation_id": string | null,"owner_id": string | null,"pdf_path": string | null,"previous_id": string | null,"price_basis": string,"published_at": string | null,"quote_number": string,"request_id": string | null,"revision": number,"sent_at": string | null,"series_id": string,"snapshot": NonNullable<Json>,"status": Database["public"]['Enums']["quote_status"],"subject": string,"subtotal_cents": number,"superseded_at": string | null,"tenant_id": string,"terms": NonNullable<Json>,"total_cents": number,"updated_at": string,"vat_cents": number,"version": number,"visit_request_id": string | null,"work_kind": string
                   }
                   Insert: {
-                    "acceptance_channel"?: string | null,"acceptance_evidence"?: string | null,"accepted_at"?: string | null,"accepted_by_name"?: string | null,"created_at"?: string,"currency"?: string,"customer_id": string,"expires_at"?: string | null,"id"?: string,"object_id"?: string | null,"quote_number": string,"request_id": string,"revision"?: number,"sent_at"?: string | null,"snapshot": NonNullable<Json>,"status"?: Database["public"]['Enums']["quote_status"],"subtotal_cents": number,"tenant_id": string,"total_cents": number,"updated_at"?: string,"vat_cents": number
+                    "acceptance_channel"?: string | null,"acceptance_evidence"?: string | null,"accepted_at"?: string | null,"accepted_by_name"?: string | null,"archived_at"?: string | null,"contact_id"?: string | null,"created_at"?: string,"currency"?: string,"customer_id": string,"expires_at"?: string | null,"followup_on"?: string | null,"id"?: string,"lines"?: NonNullable<Json>,"logo_path"?: string | null,"next_action"?: string,"object_id"?: string | null,"operation_id"?: string | null,"owner_id"?: string | null,"pdf_path"?: string | null,"previous_id"?: string | null,"price_basis"?: string,"published_at"?: string | null,"quote_number": string,"request_id"?: string | null,"revision"?: number,"sent_at"?: string | null,"series_id"?: string,"snapshot": NonNullable<Json>,"status"?: Database["public"]['Enums']["quote_status"],"subject"?: string,"subtotal_cents": number,"superseded_at"?: string | null,"tenant_id": string,"terms"?: NonNullable<Json>,"total_cents": number,"updated_at"?: string,"vat_cents": number,"version"?: number,"visit_request_id"?: string | null,"work_kind"?: string
                   }
                   Update: {
-                    "acceptance_channel"?: string | null,"acceptance_evidence"?: string | null,"accepted_at"?: string | null,"accepted_by_name"?: string | null,"created_at"?: string,"currency"?: string,"customer_id"?: string,"expires_at"?: string | null,"id"?: string,"object_id"?: string | null,"quote_number"?: string,"request_id"?: string,"revision"?: number,"sent_at"?: string | null,"snapshot"?: NonNullable<Json>,"status"?: Database["public"]['Enums']["quote_status"],"subtotal_cents"?: number,"tenant_id"?: string,"total_cents"?: number,"updated_at"?: string,"vat_cents"?: number
+                    "acceptance_channel"?: string | null,"acceptance_evidence"?: string | null,"accepted_at"?: string | null,"accepted_by_name"?: string | null,"archived_at"?: string | null,"contact_id"?: string | null,"created_at"?: string,"currency"?: string,"customer_id"?: string,"expires_at"?: string | null,"followup_on"?: string | null,"id"?: string,"lines"?: NonNullable<Json>,"logo_path"?: string | null,"next_action"?: string,"object_id"?: string | null,"operation_id"?: string | null,"owner_id"?: string | null,"pdf_path"?: string | null,"previous_id"?: string | null,"price_basis"?: string,"published_at"?: string | null,"quote_number"?: string,"request_id"?: string | null,"revision"?: number,"sent_at"?: string | null,"series_id"?: string,"snapshot"?: NonNullable<Json>,"status"?: Database["public"]['Enums']["quote_status"],"subject"?: string,"subtotal_cents"?: number,"superseded_at"?: string | null,"tenant_id"?: string,"terms"?: NonNullable<Json>,"total_cents"?: number,"updated_at"?: string,"vat_cents"?: number,"version"?: number,"visit_request_id"?: string | null,"work_kind"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "quotes_contact_fk"
+      columns: ["tenant_id","contact_id"]
+isOneToOne: false
+      referencedRelation: "customer_contacts"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "quotes_operation_fk"
+      columns: ["tenant_id","operation_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "quotes_previous_id_fkey"
+      columns: ["previous_id"]
+isOneToOne: false
+      referencedRelation: "quotes"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "quotes_tenant_id_customer_id_fkey"
       columns: ["tenant_id","customer_id"]
 isOneToOne: false
@@ -1465,6 +1588,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "requests"
       referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "quotes_visit_request_id_fkey"
+      columns: ["visit_request_id"]
+isOneToOne: false
+      referencedRelation: "object_visit_requests"
+      referencedColumns: ["id"]
     }
                   ]
                 },"reminders": {
@@ -1513,13 +1642,13 @@ isOneToOne: false
                   ]
                 },"requests": {
                   Row: {
-                    "contact_id": string | null,"created_at": string,"created_by": string | null,"customer_id": string | null,"description": string,"discipline": string,"id": string,"object_id": string | null,"preferred_slot_id": string | null,"priority": string,"request_number": string,"source": string,"status": string,"tenant_id": string,"updated_at": string,"version": number
+                    "archived_at": string | null,"contact_id": string | null,"created_at": string,"created_by": string | null,"customer_id": string | null,"description": string,"discipline": string,"followup_on": string | null,"id": string,"next_action": string,"object_id": string | null,"outcome": string | null,"owner_id": string | null,"preferences": NonNullable<Json>,"preferred_slot_id": string | null,"priority": string,"request_number": string,"source": string,"status": string,"subject": string,"tenant_id": string,"updated_at": string,"version": number,"work_kind": string
                   }
                   Insert: {
-                    "contact_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"description": string,"discipline": string,"id"?: string,"object_id"?: string | null,"preferred_slot_id"?: string | null,"priority"?: string,"request_number": string,"source"?: string,"status"?: string,"tenant_id": string,"updated_at"?: string,"version"?: number
+                    "archived_at"?: string | null,"contact_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"description": string,"discipline": string,"followup_on"?: string | null,"id"?: string,"next_action"?: string,"object_id"?: string | null,"outcome"?: string | null,"owner_id"?: string | null,"preferences"?: NonNullable<Json>,"preferred_slot_id"?: string | null,"priority"?: string,"request_number": string,"source"?: string,"status"?: string,"subject"?: string,"tenant_id": string,"updated_at"?: string,"version"?: number,"work_kind"?: string
                   }
                   Update: {
-                    "contact_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"description"?: string,"discipline"?: string,"id"?: string,"object_id"?: string | null,"preferred_slot_id"?: string | null,"priority"?: string,"request_number"?: string,"source"?: string,"status"?: string,"tenant_id"?: string,"updated_at"?: string,"version"?: number
+                    "archived_at"?: string | null,"contact_id"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_id"?: string | null,"description"?: string,"discipline"?: string,"followup_on"?: string | null,"id"?: string,"next_action"?: string,"object_id"?: string | null,"outcome"?: string | null,"owner_id"?: string | null,"preferences"?: NonNullable<Json>,"preferred_slot_id"?: string | null,"priority"?: string,"request_number"?: string,"source"?: string,"status"?: string,"subject"?: string,"tenant_id"?: string,"updated_at"?: string,"version"?: number,"work_kind"?: string
                   }
                   Relationships: [
                     {
@@ -1991,13 +2120,13 @@ isOneToOne: false
                   ]
                 },"work_orders": {
                   Row: {
-                    "actual_end_at": string | null,"actual_start_at": string | null,"appointment_slot_id": string | null,"attention_reason": string | null,"bill_travel": boolean,"created_at": string,"created_by": string,"customer_id": string,"customer_window_kind": string,"day_instructions": string,"discipline": string,"id": string,"object_id": string,"object_snapshot": NonNullable<Json>,"planned_end_at": string | null,"planned_start_at": string | null,"projected_end_at": string | null,"projected_start_at": string | null,"quote_id": string | null,"report_version": number,"request_id": string | null,"requested_date": string | null,"required_personnel": number,"signature_required": boolean,"status": Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at": string,"version": number,"work_order_number": string
+                    "actual_end_at": string | null,"actual_start_at": string | null,"appointment_slot_id": string | null,"attention_reason": string | null,"bill_travel": boolean,"commercial_terms": NonNullable<Json>,"created_at": string,"created_by": string,"customer_id": string,"customer_window_kind": string,"day_instructions": string,"discipline": string,"id": string,"object_id": string,"object_snapshot": NonNullable<Json>,"planned_end_at": string | null,"planned_start_at": string | null,"projected_end_at": string | null,"projected_start_at": string | null,"quote_id": string | null,"report_version": number,"request_id": string | null,"requested_date": string | null,"required_personnel": number,"signature_required": boolean,"status": Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at": string,"version": number,"visit_kind": string,"work_order_number": string
                   }
                   Insert: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"created_at"?: string,"created_by": string,"customer_id": string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline": string,"id"?: string,"object_id": string,"object_snapshot"?: NonNullable<Json>,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at"?: string,"version"?: number,"work_order_number": string
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"commercial_terms"?: NonNullable<Json>,"created_at"?: string,"created_by": string,"customer_id": string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline": string,"id"?: string,"object_id": string,"object_snapshot"?: NonNullable<Json>,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at"?: string,"version"?: number,"visit_kind"?: string,"work_order_number": string
                   }
                   Update: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline"?: string,"id"?: string,"object_id"?: string,"object_snapshot"?: NonNullable<Json>,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id"?: string,"updated_at"?: string,"version"?: number,"work_order_number"?: string
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"commercial_terms"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline"?: string,"id"?: string,"object_id"?: string,"object_snapshot"?: NonNullable<Json>,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id"?: string,"updated_at"?: string,"version"?: number,"visit_kind"?: string,"work_order_number"?: string
                   }
                   Relationships: [
                     {
@@ -2219,6 +2348,60 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
+"commercial_booking":
+{ Args: { "command_id": string,"input": Json,"target_tenant": string }; Returns: Json
+                           },
+"commercial_cancel_booking":
+{ Args: { "command_id": string,"reason": string,"target_order": string,"target_tenant": string }; Returns: boolean
+                           },
+"commercial_command":
+{ Args: { "command": string,"command_id": string,"input": Json,"target_tenant": string }; Returns: Json
+                           },
+"commercial_customer_action":
+{ Args: { "command": string,"command_id": string,"input": Json,"target_tenant": string }; Returns: Json
+                           },
+"commercial_customer_file":
+{ Args: { "asset"?: string,"target_id": string,"target_tenant": string }; Returns: Json
+                           },
+"commercial_customer_list":
+{ Args: { "page_number"?: number,"target_tenant": string }; Returns: Json
+                           },
+"commercial_detail":
+{ Args: { "source_kind": string,"target_id": string,"target_tenant": string }; Returns: Json
+                           },
+"commercial_external_decision":
+{ Args: { "input": Json,"target_tenant": string,"token_hash_input": string }; Returns: Json
+                           },
+"commercial_list":
+{ Args: { "filters"?: Json,"target_tenant": string }; Returns: Json
+                           },
+"commercial_mail_claim":
+{ Args: { "event_id": string,"recipient_input": string,"target_tenant": string }; Returns: Json
+                           },
+"commercial_next_visit":
+{ Args: { "command_id": string,"quote_id": string,"target_tenant": string,"visit_date": string }; Returns: string
+                           },
+"commercial_options":
+{ Args: { "customer"?: string,"query"?: string,"target_tenant": string }; Returns: Json
+                           },
+"commercial_order_context":
+{ Args: { "target_order": string,"target_tenant": string }; Returns: Json
+                           },
+"commercial_public_intake":
+{ Args: { "client_hash": string,"input": Json,"request_id": string,"target_tenant": string }; Returns: boolean
+                           },
+"commercial_quote_mail_claim":
+{ Args: { "command_id": string,"reminder": boolean,"target_quote": string,"target_tenant": string }; Returns: Json
+                           },
+"commercial_quote_mail_finish":
+{ Args: { "actor": string,"delivery_id": string,"message_id": string,"target_tenant": string }; Returns: undefined
+                           },
+"commercial_save_quote":
+{ Args: { "input": Json,"target_tenant": string }; Returns: Json
+                           },
+"commercial_save_request":
+{ Args: { "input": Json,"target_tenant": string }; Returns: Json
+                           },
 "complete_work_order_task":
 { Args: { "completed": boolean,"completion_note"?: string,"target_task_id": string }; Returns: {
               "added_by": string | null,
@@ -2271,6 +2454,39 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"create_commercial_period_invoice":
+{ Args: { "confirmed": boolean,"period_start": string,"request_id": string,"target_quote": string,"target_tenant": string }; Returns: {
+              "branding_snapshot": Json | null,
+"created_at": string,
+"created_by": string,
+"currency": string,
+"customer_id": string,
+"customer_snapshot": Json | null,
+"due_on": string | null,
+"finalized_at": string | null,
+"id": string,
+"invoice_number": string | null,
+"issued_on": string | null,
+"lines_snapshot": Json | null,
+"paid_cents": number,
+"pdf_sha256": string | null,
+"pdf_storage_path": string | null,
+"sent_at": string | null,
+"source_request_id": string | null,
+"status": Database["public"]['Enums']["invoice_status"],
+"subtotal_cents": number,
+"tenant_id": string,
+"total_cents": number,
+"updated_at": string,
+"vat_cents": number,
+"version": number
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "invoices"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "create_execution_invoice":
 { Args: { "request_id": string,"sources": Json,"target_tenant": string }; Returns: {
               "branding_snapshot": Json | null,
@@ -2319,6 +2535,7 @@ isOneToOne: false
 "appointment_slot_id": string | null,
 "attention_reason": string | null,
 "bill_travel": boolean,
+"commercial_terms": NonNullable<Json>,
 "created_at": string,
 "created_by": string,
 "customer_id": string,
@@ -2342,6 +2559,7 @@ isOneToOne: false
 "tenant_id": string,
 "updated_at": string,
 "version": number,
+"visit_kind": string,
 "work_order_number": string
             }
                           SetofOptions: {
@@ -2515,6 +2733,7 @@ isOneToOne: false
 "appointment_slot_id": string | null,
 "attention_reason": string | null,
 "bill_travel": boolean,
+"commercial_terms": NonNullable<Json>,
 "created_at": string,
 "created_by": string,
 "customer_id": string,
@@ -2538,6 +2757,7 @@ isOneToOne: false
 "tenant_id": string,
 "updated_at": string,
 "version": number,
+"visit_kind": string,
 "work_order_number": string
             }
                           SetofOptions: {
@@ -2561,6 +2781,7 @@ isOneToOne: false
 "appointment_slot_id": string | null,
 "attention_reason": string | null,
 "bill_travel": boolean,
+"commercial_terms": NonNullable<Json>,
 "created_at": string,
 "created_by": string,
 "customer_id": string,
@@ -2584,6 +2805,7 @@ isOneToOne: false
 "tenant_id": string,
 "updated_at": string,
 "version": number,
+"visit_kind": string,
 "work_order_number": string
             }
                           SetofOptions: {
@@ -2641,6 +2863,7 @@ isOneToOne: false
 "appointment_slot_id": string | null,
 "attention_reason": string | null,
 "bill_travel": boolean,
+"commercial_terms": NonNullable<Json>,
 "created_at": string,
 "created_by": string,
 "customer_id": string,
@@ -2664,6 +2887,7 @@ isOneToOne: false
 "tenant_id": string,
 "updated_at": string,
 "version": number,
+"visit_kind": string,
 "work_order_number": string
             }
                           SetofOptions: {
@@ -2689,7 +2913,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "app_role": "tenant_admin"|"management"|"planner"|"finance"|"hr"|"staff","delivery_status": "queued"|"processing"|"sent"|"failed"|"dead_letter","invoice_status": "draft"|"final"|"sent"|"partially_paid"|"paid"|"overdue"|"credited"|"void","membership_status": "invited"|"active"|"suspended"|"revoked","payment_status": "open"|"pending"|"paid"|"failed"|"expired"|"canceled"|"refunded","quote_status": "draft"|"sent"|"awaiting_acceptance"|"accepted"|"rejected"|"expired","work_order_status": "planned"|"released"|"seen"|"travelling"|"in_progress"|"completed"|"returned"|"under_review"|"correction_required"|"approved"|"invoice_ready"|"invoiced"|"cancelled"
+            "app_role": "tenant_admin"|"management"|"planner"|"finance"|"hr"|"staff","delivery_status": "queued"|"processing"|"sent"|"failed"|"dead_letter","invoice_status": "draft"|"final"|"sent"|"partially_paid"|"paid"|"overdue"|"credited"|"void","membership_status": "invited"|"active"|"suspended"|"revoked","payment_status": "open"|"pending"|"paid"|"failed"|"expired"|"canceled"|"refunded","quote_status": "draft"|"sent"|"awaiting_acceptance"|"accepted"|"rejected"|"expired"|"change_requested","work_order_status": "planned"|"released"|"seen"|"travelling"|"in_progress"|"completed"|"returned"|"under_review"|"correction_required"|"approved"|"invoice_ready"|"invoiced"|"cancelled"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -2809,7 +3033,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "app_role": ["tenant_admin", "management", "planner", "finance", "hr", "staff"],"delivery_status": ["queued", "processing", "sent", "failed", "dead_letter"],"invoice_status": ["draft", "final", "sent", "partially_paid", "paid", "overdue", "credited", "void"],"membership_status": ["invited", "active", "suspended", "revoked"],"payment_status": ["open", "pending", "paid", "failed", "expired", "canceled", "refunded"],"quote_status": ["draft", "sent", "awaiting_acceptance", "accepted", "rejected", "expired"],"work_order_status": ["planned", "released", "seen", "travelling", "in_progress", "completed", "returned", "under_review", "correction_required", "approved", "invoice_ready", "invoiced", "cancelled"]
+            "app_role": ["tenant_admin", "management", "planner", "finance", "hr", "staff"],"delivery_status": ["queued", "processing", "sent", "failed", "dead_letter"],"invoice_status": ["draft", "final", "sent", "partially_paid", "paid", "overdue", "credited", "void"],"membership_status": ["invited", "active", "suspended", "revoked"],"payment_status": ["open", "pending", "paid", "failed", "expired", "canceled", "refunded"],"quote_status": ["draft", "sent", "awaiting_acceptance", "accepted", "rejected", "expired", "change_requested"],"work_order_status": ["planned", "released", "seen", "travelling", "in_progress", "completed", "returned", "under_review", "correction_required", "approved", "invoice_ready", "invoiced", "cancelled"]
           }
         }
 } as const
