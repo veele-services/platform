@@ -62,6 +62,8 @@ Bezoekinstructies en hun meerwerkvoorstellen zijn projecties van
   er is geen nieuwe automatische herinneringsscheduler ingeschakeld.
 - Een aanvraag met een verzendpoging behoudt haar communicatiehistorie en kan
   alleen worden gearchiveerd. Verwijderen is uitsluitend voor ongebruikte intake.
+- Handmatige mailherhaling doorloopt ook oudere dossierhistorie in pagina's.
+  Aangenomen en onzekere verzendingen worden niet opnieuw aangeboden.
 
 ## Configuratie en migratie
 

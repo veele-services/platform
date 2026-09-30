@@ -36,7 +36,7 @@ export async function commercialAction(command:string,input:Record<string,unknow
 }
 
 export async function retryCommercialMessages(id:string,kind:"request"|"quote"):Promise<ActionResult>{
- try{const {db,tenant}=await getObjectActor();z.uuid().parse(id);const access=await db.rpc("commercial_detail",{target_tenant:tenant.id,target_id:id,source_kind:kind});if(access.error)throw access.error;await flushCommercialMail(tenant.id,id);return{ok:true};}catch(e){return{ok:false,error:errorText(e)};}
+ try{const {db,tenant}=await getObjectActor();z.uuid().parse(id);const access=await db.rpc("commercial_detail",{target_tenant:tenant.id,target_id:id,source_kind:kind});if(access.error)throw access.error;await flushCommercialMail(tenant.id,id,true);return{ok:true};}catch(e){return{ok:false,error:errorText(e)};}
 }
 
 export async function createNextCommercialVisit(id:string,day:string,commandId:string):Promise<ActionResult<{id:string}>>{
