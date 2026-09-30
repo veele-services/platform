@@ -67,7 +67,7 @@ function paragraphHtml(value: string) {
 
 export function renderTenantEmailHtml(input: {
   brand: EmailBrand;
-  kind: Extract<TemplateKey, "invoice" | "quote"> | "personnel_invitation" | "dossier_reminder";
+  kind: Extract<TemplateKey, "invoice" | "quote"> | "personnel_invitation" | "dossier_reminder" | "object_otp";
   message: EmailMessage;
   values?: TemplateValues;
   targetUrl?: string;
@@ -88,8 +88,9 @@ export function renderTenantEmailHtml(input: {
   const onAccent = textOn(accent);
   const personnelInvitation = input.kind === "personnel_invitation";
   const dossierReminder = input.kind === "dossier_reminder";
-  const preheader = dossierReminder ? "Een dossieractie vraagt aandacht." : personnelInvitation ? `Je bent uitgenodigd voor het personeelsportaal van ${company}.` : input.kind === "invoice" ? "Uw factuur is beschikbaar." : "Uw prijsopgave staat klaar.";
-  const eyebrow = dossierReminder ? "DOSSIERHERINNERING" : personnelInvitation ? "UITNODIGING PERSONEELSPORTAAL" : input.kind === "invoice" ? "UW FACTUUR" : "UW PRIJSOPGAVE";
+  const objectOtp = input.kind === "object_otp";
+  const preheader = objectOtp ? "Bevestig je toegang in de geopende omgeving." : dossierReminder ? "Een dossieractie vraagt aandacht." : personnelInvitation ? `Je bent uitgenodigd voor het personeelsportaal van ${company}.` : input.kind === "invoice" ? "Uw factuur is beschikbaar." : "Uw prijsopgave staat klaar.";
+  const eyebrow = objectOtp ? "TIJDELIJKE VERIFICATIECODE" : dossierReminder ? "DOSSIERHERINNERING" : personnelInvitation ? "UITNODIGING PERSONEELSPORTAAL" : input.kind === "invoice" ? "UW FACTUUR" : "UW PRIJSOPGAVE";
   const cta = dossierReminder ? "Open personeelsdossier" : personnelInvitation ? (input.existingAccount ? "Personeelsportaal openen" : "Personeelsaccount activeren") : input.kind === "invoice" ? "Factuur veilig betalen" : "Prijsopgave bekijken";
   const targetToken = personnelInvitation || dossierReminder ? "{portaallink}" : input.kind === "invoice" ? "{betaallink}" : "{offertelink}";
   const target = mode === "template"
@@ -132,8 +133,8 @@ export function renderTenantEmailHtml(input: {
           <span style="display:block;color:${primary};font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;line-height:1.5;">${eyebrow}</span>
           <h1 class="mail-heading" style="margin:12px 0 20px;color:#102B42;font-family:Arial,Helvetica,sans-serif;font-size:29px;font-weight:700;line-height:1.28;letter-spacing:-.5px;">${escapeHtml(subject)}</h1>
           ${paragraphHtml(body)}
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;margin:25px 0 18px;"><tr><td align="center" bgcolor="${accent}" style="border-radius:9px;background:${accent};"><a href="${escapeHtml(target)}" style="display:inline-block;padding:15px 22px;color:${onAccent};font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.3;text-decoration:none;">${cta}</a></td></tr></table>
-          <p style="margin:0;color:#91A2AA;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;word-break:break-word;">Werkt de knop niet? Open <a href="${escapeHtml(target)}" style="color:#457A8E;text-decoration:underline;">${escapeHtml(visibleTarget)}</a>.</p>
+          ${objectOtp ? "" : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;margin:25px 0 18px;"><tr><td align="center" bgcolor="${accent}" style="border-radius:9px;background:${accent};"><a href="${escapeHtml(target)}" style="display:inline-block;padding:15px 22px;color:${onAccent};font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.3;text-decoration:none;">${cta}</a></td></tr></table>
+          <p style="margin:0;color:#91A2AA;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;word-break:break-word;">Werkt de knop niet? Open <a href="${escapeHtml(target)}" style="color:#457A8E;text-decoration:underline;">${escapeHtml(visibleTarget)}</a>.</p>`}
         </td></tr>
         <tr><td class="mail-pad" style="padding:22px 42px;background:#F7F9FA;border-top:1px solid #E9EFF2;"><p style="margin:0 0 5px;color:#17334A;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;line-height:1.5;">${escapeHtml(company)}</p><p style="margin:0;color:#8195A1;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.65;">Dit bericht is voor u bestemd. Vragen? ${sender}</p>${website}</td></tr>
       </table>

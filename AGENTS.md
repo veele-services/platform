@@ -35,7 +35,9 @@ the architecture in a later request.
 - A tenant is resolved only from the hostname. Unknown, malformed or inactive
   tenant slugs fail closed and must never fall back to another tenant.
 - Tenant workspaces live on the same tenant origin at `/app` (backoffice) and
-  `/staff` (personnel). A customer portal is deferred beyond the current V1.
+  `/staff` (personnel). The Object 360 request adds a narrowly scoped `/klant`
+  workspace for explicitly bound customers and concrete visits; it is not a
+  general customer administration or a new global role.
 - Next.js listens only on `127.0.0.1:3301`.
 - The deploy root is `/opt/fieldgrid/staging`; releases, shared configuration
   and the atomic `current` symlink live below that root.

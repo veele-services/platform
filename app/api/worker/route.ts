@@ -111,5 +111,7 @@ export async function POST(request: Request) {
     }
   }
   const dossier = await processDossierReminders();
-  return NextResponse.json({ claimed: data?.length ?? 0, sent, failed, dossier });
+  const objectReminders = await admin.rpc("process_object_reminders");
+  if (objectReminders.error) throw new Error("Objectherinneringen konden niet worden verwerkt.");
+  return NextResponse.json({ claimed: data?.length ?? 0, sent, failed, dossier, objectReminders: objectReminders.data });
 }

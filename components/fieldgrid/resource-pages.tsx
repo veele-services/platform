@@ -212,9 +212,9 @@ function CustomerDetail({ customer, data, onClose, timezone }: { customer: Custo
         </div>
       </TabsContent>
       <TabsContent value="objects" className="customer-tab-panel">
-        <div className="customer-section-heading"><h3>Objecten <span>{objects.length}</span></h3><p>De uitvoeringslocaties die aan deze klant zijn gekoppeld.</p></div>
+        <div className="customer-section-heading"><h3>Objecten <span>{objects.length}</span></h3><p>De uitvoeringslocaties die aan deze klant zijn gekoppeld.</p><Link className="secondary-button" href={`/app/objecten?new=1&customer=${customer.id}`}>Nieuw object</Link></div>
         <div className="customer-dossier-list">{objects.length ? objects.map((item) => <article className="customer-dossier-card" key={item.id}>
-          <Building2 size={18}/><div><strong>{item.name}</strong><small>{item.object_number} · {item.active ? "Actief" : "Inactief"}</small><small>{addressLine(item.address)}</small>
+          <Building2 size={18}/><div><Link href={`/app/objecten/${item.id}`}><strong>{item.name}</strong></Link><small>{item.object_number} · {item.active ? "Actief" : "Inactief"}</small><small>{addressLine(item.address)}</small>
             {item.access_instructions && <p>{item.access_instructions}</p>}
           </div>
         </article>) : <p className="customer-dossier-empty">Nog geen objecten gekoppeld. Voeg een locatie toe via de pagina Objecten.</p>}</div>
@@ -255,9 +255,9 @@ function CustomerDetail({ customer, data, onClose, timezone }: { customer: Custo
 }
 
 export function CustomersPage({ data, timezone }: { data: WorkspaceData; timezone:string }) {
-  const linkedId=useSearchParams().get("record");
+  const params=useSearchParams();const linkedId=params.get("record");
   const [query, setQuery] = useState(""); const [filter, setFilter] = useState("all"); const [sort, setSort] = useState("name-asc");
-  const [modal, setModal] = useState<{ type: "create" } | { type: "view" | "edit"; item: Customer } | null>(()=>{const item=data.customers.find(c=>c.id===linkedId);return item?{type:"view",item}:null;});
+  const [modal, setModal] = useState<{ type: "create" } | { type: "view" | "edit"; item: Customer } | null>(()=>{const item=data.customers.find(c=>c.id===linkedId);return item?{type:"view",item}:params.get("new")==="1"?{type:"create"}:null;});
   const rows = useMemo(() => data.customers.filter((item) => filter === "all" || item.status === filter).filter((item) => [item.name, item.customer_number, item.billing_email, item.phone, addressLine(item.billing_address)].some((value) => value?.toLowerCase().includes(query.toLowerCase()))).sort((a, b) => {
     const [field, direction] = sort.split("-"); const left = field === "created" ? a.created_at : field === "number" ? a.customer_number : a.name; const right = field === "created" ? b.created_at : field === "number" ? b.customer_number : b.name; return left.localeCompare(right, "nl") * (direction === "desc" ? -1 : 1);
   }), [data.customers, filter, query, sort]);
@@ -316,7 +316,7 @@ function ObjectDetail({ object, customer, data, onClose, timezone }: { object: O
 }
 
 export function ObjectsPage({ data, timezone }: { data: WorkspaceData; timezone:string }) {
-  const linkedId=useSearchParams().get("record");
+  const params=useSearchParams();const linkedId=params.get("record");
   const [query, setQuery] = useState(""); const [filter, setFilter] = useState("all"); const [sort, setSort] = useState("name-asc"); const [modal, setModal] = useState<{ type: "create" } | { type: "view" | "edit"; item: ObjectRow } | null>(()=>{const item=data.objects.find(c=>c.id===linkedId);return item?{type:"view",item}:null;}); const customerById = useMemo(() => new Map(data.customers.map((item) => [item.id, item])), [data.customers]);
   const rows = useMemo(() => data.objects.filter((item) => filter === "all" || (filter === "active" ? item.active : !item.active)).filter((item) => [item.name, item.object_number, customerById.get(item.customer_id)?.name, addressLine(item.address)].some((value) => value?.toLowerCase().includes(query.toLowerCase()))).sort((a, b) => { const [field, direction] = sort.split("-"); const left = field === "customer" ? customerById.get(a.customer_id)?.name ?? "" : field === "number" ? a.object_number : a.name; const right = field === "customer" ? customerById.get(b.customer_id)?.name ?? "" : field === "number" ? b.object_number : b.name; return left.localeCompare(right, "nl") * (direction === "desc" ? -1 : 1); }), [customerById, data.objects, filter, query, sort]);
   const setColumnSort = (field: string) => setSort((current) => current.startsWith(`${field}-`) && current.endsWith("asc") ? `${field}-desc` : `${field}-asc`);

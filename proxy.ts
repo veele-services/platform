@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
 import { HOST_KIND_HEADER, resolveHostContext, TENANT_SLUG_HEADER } from "@/lib/tenancy/hostname";
 
-const protectedPrefixes = ["/app", "/staff", "/platform"];
+const protectedPrefixes = ["/app", "/staff", "/platform", "/klant"];
 
 export async function proxy(request: NextRequest) {
   const hostContext = resolveHostContext(request.headers.get("host"), process.env.APP_URL!, process.env.DEPLOY_TARGET ?? "local");

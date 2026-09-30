@@ -86,9 +86,12 @@ must bind to `127.0.0.1`, not to all interfaces.
 | `https://{slug}.staging.fieldgrid.nl/app` | Backoffice for that tenant |
 | `https://{slug}.staging.fieldgrid.nl/staff` | Personnel portal for that tenant |
 
-Both workspaces are paths on the same tenant origin. A customer portal is not
-part of the current V1 route contract. Separate backoffice or personnel
-subdomains must not be introduced.
+All workspaces are paths on the same tenant origin. The Object 360 request of
+30 September 2026 adds `/klant` solely for explicitly bound customer users:
+their object visits, appointment requests and explicitly permitted secure
+object management. A contact email is not an access grant. No global customer
+role, separate planning or general customer administration is introduced.
+Separate backoffice or personnel subdomains must not be introduced.
 
 Tenant context is determined exclusively from the validated request hostname:
 

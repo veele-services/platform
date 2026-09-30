@@ -21,6 +21,7 @@ import {
 } from "@/lib/planning/model";
 import { localDateTime, localToInstant } from "@/lib/planning/time";
 
+import {ObjectVisitSignals} from "../objects/visit-signals";
 export function PlanningDetail({
   order,
   people,
@@ -186,11 +187,12 @@ export function PlanningDetail({
             </Link>
             <Link
               prefetch={false}
-              href={`/app/objecten?record=${order.objectId}`}
+              href={`/app/objecten/${order.objectId}`}
             >
               Object 360
             </Link>
           </nav>
+          <ObjectVisitSignals orderId={order.id}/>
           <dl className="pb-facts">
             <div>
               <dt>Uitvoeringsduur</dt>

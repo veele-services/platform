@@ -538,15 +538,295 @@ isOneToOne: false
       referencedColumns: ["tenant_id","id"]
     }
                   ]
-                },"objects": {
+                },"object_customer_bindings": {
                   Row: {
-                    "access_instructions": string | null,"active": boolean,"address": NonNullable<Json>,"created_at": string,"customer_id": string,"id": string,"latitude": number | null,"longitude": number | null,"name": string,"object_number": string,"tenant_id": string,"updated_at": string
+                    "active": boolean,"created_at": string,"created_by": string,"id": string,"manage_secrets": boolean,"object_id": string,"tenant_id": string,"user_id": string,"version": number
                   }
                   Insert: {
-                    "access_instructions"?: string | null,"active"?: boolean,"address": NonNullable<Json>,"created_at"?: string,"customer_id": string,"id"?: string,"latitude"?: number | null,"longitude"?: number | null,"name": string,"object_number": string,"tenant_id": string,"updated_at"?: string
+                    "active"?: boolean,"created_at"?: string,"created_by"?: string,"id"?: string,"manage_secrets"?: boolean,"object_id": string,"tenant_id": string,"user_id": string,"version"?: number
                   }
                   Update: {
-                    "access_instructions"?: string | null,"active"?: boolean,"address"?: NonNullable<Json>,"created_at"?: string,"customer_id"?: string,"id"?: string,"latitude"?: number | null,"longitude"?: number | null,"name"?: string,"object_number"?: string,"tenant_id"?: string,"updated_at"?: string
+                    "active"?: boolean,"created_at"?: string,"created_by"?: string,"id"?: string,"manage_secrets"?: boolean,"object_id"?: string,"tenant_id"?: string,"user_id"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "object_customer_bindings_tenant_id_object_id_fkey"
+      columns: ["tenant_id","object_id"]
+isOneToOne: false
+      referencedRelation: "objects"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"object_documents": {
+                  Row: {
+                    "category": string,"created_at": string,"created_by": string,"file_name": string,"id": string,"mime_type": string,"node_id": string | null,"object_id": string,"previous_id": string | null,"record_id": string | null,"request_id": string | null,"scan_status": string,"service": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until": string | null,"version": number,"work_order_id": string | null
+                  }
+                  Insert: {
+                    "category": string,"created_at"?: string,"created_by"?: string,"file_name": string,"id"?: string,"mime_type": string,"node_id"?: string | null,"object_id": string,"previous_id"?: string | null,"record_id"?: string | null,"request_id"?: string | null,"scan_status"?: string,"service"?: string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until"?: string | null,"version"?: number,"work_order_id"?: string | null
+                  }
+                  Update: {
+                    "category"?: string,"created_at"?: string,"created_by"?: string,"file_name"?: string,"id"?: string,"mime_type"?: string,"node_id"?: string | null,"object_id"?: string,"previous_id"?: string | null,"record_id"?: string | null,"request_id"?: string | null,"scan_status"?: string,"service"?: string,"size_bytes"?: number,"storage_path"?: string,"tenant_id"?: string,"title"?: string,"valid_until"?: string | null,"version"?: number,"work_order_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "object_documents_tenant_id_object_id_fkey"
+      columns: ["tenant_id","object_id"]
+isOneToOne: false
+      referencedRelation: "objects"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "object_documents_tenant_id_object_id_node_id_fkey"
+      columns: ["tenant_id","object_id","node_id"]
+isOneToOne: false
+      referencedRelation: "object_nodes"
+      referencedColumns: ["tenant_id","object_id","id"]
+    },{
+      foreignKeyName: "object_documents_tenant_id_object_id_previous_id_fkey"
+      columns: ["tenant_id","object_id","previous_id"]
+isOneToOne: false
+      referencedRelation: "object_documents"
+      referencedColumns: ["tenant_id","object_id","id"]
+    },{
+      foreignKeyName: "object_documents_tenant_id_object_id_record_id_fkey"
+      columns: ["tenant_id","object_id","record_id"]
+isOneToOne: false
+      referencedRelation: "object_records"
+      referencedColumns: ["tenant_id","object_id","id"]
+    },{
+      foreignKeyName: "object_documents_tenant_id_object_id_request_id_fkey"
+      columns: ["tenant_id","object_id","request_id"]
+isOneToOne: false
+      referencedRelation: "object_visit_requests"
+      referencedColumns: ["tenant_id","object_id","id"]
+    },{
+      foreignKeyName: "object_documents_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"object_history": {
+                  Row: {
+                    "actor_user_id": string | null,"created_at": string,"event": string,"id": string,"object_id": string,"snapshot": NonNullable<Json>,"source_id": string,"source_table": string,"tenant_id": string,"version": number
+                  }
+                  Insert: {
+                    "actor_user_id"?: string | null,"created_at"?: string,"event": string,"id"?: string,"object_id": string,"snapshot": NonNullable<Json>,"source_id": string,"source_table": string,"tenant_id": string,"version": number
+                  }
+                  Update: {
+                    "actor_user_id"?: string | null,"created_at"?: string,"event"?: string,"id"?: string,"object_id"?: string,"snapshot"?: NonNullable<Json>,"source_id"?: string,"source_table"?: string,"tenant_id"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "object_history_tenant_id_object_id_fkey"
+      columns: ["tenant_id","object_id"]
+isOneToOne: false
+      referencedRelation: "objects"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"object_instruction_receipts": {
+                  Row: {
+                    "id": string,"object_id": string,"read_at": string,"record_id": string,"record_version": number,"snapshot": NonNullable<Json>,"tenant_id": string,"user_id": string,"work_order_id": string
+                  }
+                  Insert: {
+                    "id"?: string,"object_id": string,"read_at"?: string,"record_id": string,"record_version": number,"snapshot": NonNullable<Json>,"tenant_id": string,"user_id": string,"work_order_id": string
+                  }
+                  Update: {
+                    "id"?: string,"object_id"?: string,"read_at"?: string,"record_id"?: string,"record_version"?: number,"snapshot"?: NonNullable<Json>,"tenant_id"?: string,"user_id"?: string,"work_order_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "object_instruction_receipts_tenant_id_object_id_record_id_fkey"
+      columns: ["tenant_id","object_id","record_id"]
+isOneToOne: false
+      referencedRelation: "object_records"
+      referencedColumns: ["tenant_id","object_id","id"]
+    },{
+      foreignKeyName: "object_instruction_receipts_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"object_nodes": {
+                  Row: {
+                    "active": boolean,"code": string,"created_at": string,"details": NonNullable<Json>,"id": string,"kind": string,"name": string,"object_id": string,"parent_id": string | null,"position": number,"tenant_id": string,"version": number
+                  }
+                  Insert: {
+                    "active"?: boolean,"code"?: string,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"kind": string,"name": string,"object_id": string,"parent_id"?: string | null,"position"?: number,"tenant_id": string,"version"?: number
+                  }
+                  Update: {
+                    "active"?: boolean,"code"?: string,"created_at"?: string,"details"?: NonNullable<Json>,"id"?: string,"kind"?: string,"name"?: string,"object_id"?: string,"parent_id"?: string | null,"position"?: number,"tenant_id"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "object_nodes_tenant_id_object_id_fkey"
+      columns: ["tenant_id","object_id"]
+isOneToOne: false
+      referencedRelation: "objects"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "object_nodes_tenant_id_object_id_parent_id_fkey"
+      columns: ["tenant_id","object_id","parent_id"]
+isOneToOne: false
+      referencedRelation: "object_nodes"
+      referencedColumns: ["tenant_id","object_id","id"]
+    }
+                  ]
+                },"object_records": {
+                  Row: {
+                    "body": string,"contact_id": string | null,"created_at": string,"created_by": string,"details": NonNullable<Json>,"due_on": string | null,"ends_at": string | null,"id": string,"instruction_type": string | null,"kind": string,"node_id": string | null,"object_id": string,"owner_user_id": string | null,"personnel_asset_id": string | null,"service": string,"starts_at": string | null,"state": string,"task_revision_id": string | null,"tenant_id": string,"title": string,"updated_at": string,"updated_by": string,"version": number,"work_order_id": string | null
+                  }
+                  Insert: {
+                    "body"?: string,"contact_id"?: string | null,"created_at"?: string,"created_by"?: string,"details"?: NonNullable<Json>,"due_on"?: string | null,"ends_at"?: string | null,"id"?: string,"instruction_type"?: string | null,"kind": string,"node_id"?: string | null,"object_id": string,"owner_user_id"?: string | null,"personnel_asset_id"?: string | null,"service"?: string,"starts_at"?: string | null,"state"?: string,"task_revision_id"?: string | null,"tenant_id": string,"title": string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id"?: string | null
+                  }
+                  Update: {
+                    "body"?: string,"contact_id"?: string | null,"created_at"?: string,"created_by"?: string,"details"?: NonNullable<Json>,"due_on"?: string | null,"ends_at"?: string | null,"id"?: string,"instruction_type"?: string | null,"kind"?: string,"node_id"?: string | null,"object_id"?: string,"owner_user_id"?: string | null,"personnel_asset_id"?: string | null,"service"?: string,"starts_at"?: string | null,"state"?: string,"task_revision_id"?: string | null,"tenant_id"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "object_records_tenant_id_contact_id_fkey"
+      columns: ["tenant_id","contact_id"]
+isOneToOne: false
+      referencedRelation: "customer_contacts"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "object_records_tenant_id_object_id_fkey"
+      columns: ["tenant_id","object_id"]
+isOneToOne: false
+      referencedRelation: "objects"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "object_records_tenant_id_object_id_node_id_fkey"
+      columns: ["tenant_id","object_id","node_id"]
+isOneToOne: false
+      referencedRelation: "object_nodes"
+      referencedColumns: ["tenant_id","object_id","id"]
+    },{
+      foreignKeyName: "object_records_tenant_id_task_revision_id_fkey"
+      columns: ["tenant_id","task_revision_id"]
+isOneToOne: false
+      referencedRelation: "task_revisions"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "object_records_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"object_reminder_recipients": {
+                  Row: {
+                    "active": boolean,"created_by": string,"object_id": string,"tenant_id": string,"user_id": string
+                  }
+                  Insert: {
+                    "active"?: boolean,"created_by"?: string,"object_id": string,"tenant_id": string,"user_id": string
+                  }
+                  Update: {
+                    "active"?: boolean,"created_by"?: string,"object_id"?: string,"tenant_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "object_reminder_recipients_tenant_id_object_id_fkey"
+      columns: ["tenant_id","object_id"]
+isOneToOne: false
+      referencedRelation: "objects"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"object_request_proposals": {
+                  Row: {
+                    "accepted_at": string | null,"accepted_by": string | null,"created_at": string,"created_by": string,"id": string,"object_id": string,"price_cents": number,"quantity": number,"request_id": string,"scope": string,"task_revision_id": string,"tenant_id": string,"title": string,"vat_basis_points": number,"version": number
+                  }
+                  Insert: {
+                    "accepted_at"?: string | null,"accepted_by"?: string | null,"created_at"?: string,"created_by"?: string,"id"?: string,"object_id": string,"price_cents": number,"quantity": number,"request_id": string,"scope": string,"task_revision_id": string,"tenant_id": string,"title": string,"vat_basis_points": number,"version": number
+                  }
+                  Update: {
+                    "accepted_at"?: string | null,"accepted_by"?: string | null,"created_at"?: string,"created_by"?: string,"id"?: string,"object_id"?: string,"price_cents"?: number,"quantity"?: number,"request_id"?: string,"scope"?: string,"task_revision_id"?: string,"tenant_id"?: string,"title"?: string,"vat_basis_points"?: number,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "object_request_proposals_tenant_id_object_id_request_id_fkey"
+      columns: ["tenant_id","object_id","request_id"]
+isOneToOne: false
+      referencedRelation: "object_visit_requests"
+      referencedColumns: ["tenant_id","object_id","id"]
+    },{
+      foreignKeyName: "object_request_proposals_tenant_id_task_revision_id_fkey"
+      columns: ["tenant_id","task_revision_id"]
+isOneToOne: false
+      referencedRelation: "task_revisions"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"object_request_receipts": {
+                  Row: {
+                    "object_id": string,"read_at": string,"request_id": string,"tenant_id": string,"user_id": string,"version": number
+                  }
+                  Insert: {
+                    "object_id": string,"read_at"?: string,"request_id": string,"tenant_id": string,"user_id": string,"version": number
+                  }
+                  Update: {
+                    "object_id"?: string,"read_at"?: string,"request_id"?: string,"tenant_id"?: string,"user_id"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "object_request_receipts_tenant_id_object_id_request_id_fkey"
+      columns: ["tenant_id","object_id","request_id"]
+isOneToOne: false
+      referencedRelation: "object_visit_requests"
+      referencedColumns: ["tenant_id","object_id","id"]
+    }
+                  ]
+                },"object_visit_requests": {
+                  Row: {
+                    "body": string,"created_at": string,"created_by": string,"feedback": string,"id": string,"kind": string,"needs_review": boolean,"node_id": string | null,"object_id": string,"priority": string,"response": string,"review_note": string,"state": string,"tenant_id": string,"title": string,"updated_at": string,"updated_by": string,"version": number,"work_order_id": string,"work_order_task_id": string | null
+                  }
+                  Insert: {
+                    "body": string,"created_at"?: string,"created_by"?: string,"feedback"?: string,"id": string,"kind": string,"needs_review"?: boolean,"node_id"?: string | null,"object_id": string,"priority"?: string,"response"?: string,"review_note"?: string,"state"?: string,"tenant_id": string,"title": string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id": string,"work_order_task_id"?: string | null
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"created_by"?: string,"feedback"?: string,"id"?: string,"kind"?: string,"needs_review"?: boolean,"node_id"?: string | null,"object_id"?: string,"priority"?: string,"response"?: string,"review_note"?: string,"state"?: string,"tenant_id"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string,"version"?: number,"work_order_id"?: string,"work_order_task_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "object_visit_requests_tenant_id_object_id_fkey"
+      columns: ["tenant_id","object_id"]
+isOneToOne: false
+      referencedRelation: "objects"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "object_visit_requests_tenant_id_object_id_node_id_fkey"
+      columns: ["tenant_id","object_id","node_id"]
+isOneToOne: false
+      referencedRelation: "object_nodes"
+      referencedColumns: ["tenant_id","object_id","id"]
+    },{
+      foreignKeyName: "object_visit_requests_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "object_visit_requests_tenant_id_work_order_task_id_fkey"
+      columns: ["tenant_id","work_order_task_id"]
+isOneToOne: false
+      referencedRelation: "work_order_tasks"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"objects": {
+                  Row: {
+                    "access_instructions": string | null,"active": boolean,"address": NonNullable<Json>,"created_at": string,"customer_id": string,"dossier_status": string,"id": string,"latitude": number | null,"location_description": string,"longitude": number | null,"name": string,"object_number": string,"object_type": string,"tenant_id": string,"updated_at": string,"version": number
+                  }
+                  Insert: {
+                    "access_instructions"?: string | null,"active"?: boolean,"address": NonNullable<Json>,"created_at"?: string,"customer_id": string,"dossier_status"?: string,"id"?: string,"latitude"?: number | null,"location_description"?: string,"longitude"?: number | null,"name": string,"object_number": string,"object_type"?: string,"tenant_id": string,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "access_instructions"?: string | null,"active"?: boolean,"address"?: NonNullable<Json>,"created_at"?: string,"customer_id"?: string,"dossier_status"?: string,"id"?: string,"latitude"?: number | null,"location_description"?: string,"longitude"?: number | null,"name"?: string,"object_number"?: string,"object_type"?: string,"tenant_id"?: string,"updated_at"?: string,"version"?: number
                   }
                   Relationships: [
                     {
@@ -1532,13 +1812,13 @@ isOneToOne: false
                   ]
                 },"work_orders": {
                   Row: {
-                    "actual_end_at": string | null,"actual_start_at": string | null,"appointment_slot_id": string | null,"attention_reason": string | null,"bill_travel": boolean,"created_at": string,"created_by": string,"customer_id": string,"customer_window_kind": string,"day_instructions": string,"discipline": string,"id": string,"object_id": string,"planned_end_at": string | null,"planned_start_at": string | null,"projected_end_at": string | null,"projected_start_at": string | null,"quote_id": string | null,"report_version": number,"request_id": string | null,"requested_date": string | null,"required_personnel": number,"signature_required": boolean,"status": Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at": string,"version": number,"work_order_number": string
+                    "actual_end_at": string | null,"actual_start_at": string | null,"appointment_slot_id": string | null,"attention_reason": string | null,"bill_travel": boolean,"created_at": string,"created_by": string,"customer_id": string,"customer_window_kind": string,"day_instructions": string,"discipline": string,"id": string,"object_id": string,"object_snapshot": NonNullable<Json>,"planned_end_at": string | null,"planned_start_at": string | null,"projected_end_at": string | null,"projected_start_at": string | null,"quote_id": string | null,"report_version": number,"request_id": string | null,"requested_date": string | null,"required_personnel": number,"signature_required": boolean,"status": Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at": string,"version": number,"work_order_number": string
                   }
                   Insert: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"created_at"?: string,"created_by": string,"customer_id": string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline": string,"id"?: string,"object_id": string,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at"?: string,"version"?: number,"work_order_number": string
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"created_at"?: string,"created_by": string,"customer_id": string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline": string,"id"?: string,"object_id": string,"object_snapshot"?: NonNullable<Json>,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id": string,"updated_at"?: string,"version"?: number,"work_order_number": string
                   }
                   Update: {
-                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline"?: string,"id"?: string,"object_id"?: string,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id"?: string,"updated_at"?: string,"version"?: number,"work_order_number"?: string
+                    "actual_end_at"?: string | null,"actual_start_at"?: string | null,"appointment_slot_id"?: string | null,"attention_reason"?: string | null,"bill_travel"?: boolean,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"customer_window_kind"?: string,"day_instructions"?: string,"discipline"?: string,"id"?: string,"object_id"?: string,"object_snapshot"?: NonNullable<Json>,"planned_end_at"?: string | null,"planned_start_at"?: string | null,"projected_end_at"?: string | null,"projected_start_at"?: string | null,"quote_id"?: string | null,"report_version"?: number,"request_id"?: string | null,"requested_date"?: string | null,"required_personnel"?: number,"signature_required"?: boolean,"status"?: Database["public"]['Enums']["work_order_status"],"tenant_id"?: string,"updated_at"?: string,"version"?: number,"work_order_number"?: string
                   }
                   Relationships: [
                     {
@@ -1585,7 +1865,16 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "add_extra_work":
+            "accept_object_proposal":
+{ Args: { "target_proposal": string,"target_tenant": string }; Returns: undefined
+                           },
+"acknowledge_object_instruction":
+{ Args: { "expected_version": number,"target_order": string,"target_record": string,"target_tenant": string }; Returns: undefined
+                           },
+"acknowledge_object_request":
+{ Args: { "expected_version": number,"target_request": string,"target_tenant": string }; Returns: undefined
+                           },
+"add_extra_work":
 { Args: { "idempotency_key": string,"target_extra_work_rule_id": string,"target_work_order_id": string }; Returns: {
               "added_by": string | null,
 "allowed_for_staff": boolean,
@@ -1670,6 +1959,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"bind_object_customer":
+{ Args: { "allow_secrets": boolean,"email_address": string,"is_active": boolean,"target_object": string,"target_tenant": string }; Returns: undefined
+                           },
 "book_appointment_slot":
 { Args: { "target_request_id": string,"target_slot_id": string,"target_tenant_id": string,"target_token_id": string }; Returns: {
               "booked_count": number,
@@ -1789,6 +2081,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"customer_object_visits":
+{ Args: { "target_tenant": string }; Returns: Json
+                           },
 "dispatch_work_order":
 { Args: { "expected_version": number,"idempotency_key": string,"target_personnel_id": string,"target_work_order_id": string }; Returns: {
               "actual_end_at": string | null,
@@ -1804,6 +2099,7 @@ isOneToOne: false
 "discipline": string,
 "id": string,
 "object_id": string,
+"object_snapshot": NonNullable<Json>,
 "planned_end_at": string | null,
 "planned_start_at": string | null,
 "projected_end_at": string | null,
@@ -1826,6 +2122,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"extend_object_access":
+{ Args: { "reason": string,"target_assignment": string,"target_tenant": string,"until_time": string }; Returns: undefined
+                           },
 "finalize_invoice":
 { Args: { "target_invoice_id": string }; Returns: {
               "branding_snapshot": Json | null,
@@ -1858,10 +2157,32 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"get_object_document":
+{ Args: { "target_document": string,"target_order"?: string,"target_tenant": string }; Returns: Json
+                           },
 "get_planboard":
 { Args: { "list_view"?: string,"page_number"?: number,"search_text"?: string,"status_filter"?: string,"target_day": string,"target_tenant": string }; Returns: Json
                            },
 "get_planboard_order":
+{ Args: { "target_order": string,"target_tenant": string }; Returns: Json
+                           },
+"object_customer_accounts":
+{ Args: { "target_object": string,"target_tenant": string }; Returns: {
+              "email": string,"user_id": string
+            }[]
+                           },
+"object_dossier_owners":
+{ Args: { "target_tenant": string }; Returns: {
+              "id": string,"label": string
+            }[]
+                           },
+"object_vault_operation":
+{ Args: { "actor": string,"input"?: Json,"operation": string,"session_id": string,"target_item": string,"target_object": string,"target_order": string,"target_tenant": string }; Returns: Json
+                           },
+"object_visit_context":
+{ Args: { "target_object": string,"target_order"?: string,"target_tenant": string }; Returns: Json
+                           },
+"object_visit_signals":
 { Args: { "target_order": string,"target_tenant": string }; Returns: Json
                            },
 "personnel_dossier_owners":
@@ -1881,6 +2202,9 @@ isOneToOne: false
                            },
 "prepare_personnel_checklist":
 { Args: { "checklist_type": string,"target_personnel": string,"target_tenant": string }; Returns: number
+                           },
+"process_object_reminders":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "provision_platform_tenant":
 { Args: { "accent_color": string,"actor_user_id": string,"admin_email": string,"admin_name": string,"enabled_services": (string)[],"primary_color": string,"request_key": string,"sender_email"?: string,"tenant_domain"?: string,"tenant_name": string,"tenant_slug": string }; Returns: string
@@ -1935,6 +2259,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"register_visit_attachment":
+{ Args: { "input": Json,"target_request": string,"target_tenant": string }; Returns: string
+                           },
 "reschedule_work_order":
 { Args: { "expected_version": number,"target_personnel_id": string,"target_start_at": string,"target_work_order_id": string }; Returns: {
               "actual_end_at": string | null,
@@ -1950,6 +2277,7 @@ isOneToOne: false
 "discipline": string,
 "id": string,
 "object_id": string,
+"object_snapshot": NonNullable<Json>,
 "planned_end_at": string | null,
 "planned_start_at": string | null,
 "projected_end_at": string | null,
@@ -1977,6 +2305,9 @@ isOneToOne: false
               "accent_color": string,"enabled_services": (string)[],"logo_path": string,"primary_color": string,"roles": (Database["public"]['Enums']["app_role"])[],"tenant_id": string,"tenant_name": string,"tenant_slug": string,"timezone": string,"white_label_enabled": boolean
             }[]
                            },
+"review_object_visit_request":
+{ Args: { "decision": string,"expected_version": number,"input": Json,"target_request": string,"target_tenant": string }; Returns: undefined
+                           },
 "review_work_order":
 { Args: { "decision": string,"reason"?: string,"target_work_order_id": string }; Returns: {
               "actual_end_at": string | null,
@@ -1992,6 +2323,7 @@ isOneToOne: false
 "discipline": string,
 "id": string,
 "object_id": string,
+"object_snapshot": NonNullable<Json>,
 "planned_end_at": string | null,
 "planned_start_at": string | null,
 "projected_end_at": string | null,
@@ -2014,6 +2346,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"save_object_dossier":
+{ Args: { "input": Json,"target_tenant": string }; Returns: string
+                           },
 "save_tenant_message_template":
 { Args: { "actor_user_id": string,"reset_to_default": boolean,"target_body": string,"target_subject": string,"target_template_key": string,"target_tenant_id": string }; Returns: {
               "body": string,
@@ -2035,6 +2370,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"submit_object_visit_request":
+{ Args: { "input": Json,"request_id": string,"target_object": string,"target_order": string,"target_tenant": string }; Returns: string
+                           },
 "suggest_personnel_number":
 { Args: { "target_tenant_id": string }; Returns: string
                            },
@@ -2053,6 +2391,7 @@ isOneToOne: false
 "discipline": string,
 "id": string,
 "object_id": string,
+"object_snapshot": NonNullable<Json>,
 "planned_end_at": string | null,
 "planned_start_at": string | null,
 "projected_end_at": string | null,
@@ -2074,7 +2413,10 @@ isOneToOne: false
         to: "work_orders"
         isOneToOne: true
         isSetofReturn: false
-      } }
+      } },
+"update_object_visit_request":
+{ Args: { "expected_version": number,"input": Json,"target_request": string,"target_tenant": string }; Returns: undefined
+                           }
           }
           Enums: {
             "app_role": "tenant_admin"|"management"|"planner"|"finance"|"hr"|"staff","delivery_status": "queued"|"processing"|"sent"|"failed"|"dead_letter","invoice_status": "draft"|"final"|"sent"|"partially_paid"|"paid"|"overdue"|"credited"|"void","membership_status": "invited"|"active"|"suspended"|"revoked","payment_status": "open"|"pending"|"paid"|"failed"|"expired"|"canceled"|"refunded","quote_status": "draft"|"sent"|"awaiting_acceptance"|"accepted"|"rejected"|"expired","work_order_status": "planned"|"released"|"seen"|"travelling"|"in_progress"|"completed"|"returned"|"under_review"|"correction_required"|"approved"|"invoice_ready"|"invoiced"|"cancelled"
