@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 // @ts-expect-error Build-time inventory uses the Node-only JavaScript harness.
-import { codeSurfaces, operationalPaths, operationSurface } from "../../scripts/check-security-surface.mjs";
+import { codeSurfaces, filesUnder, operationalPaths, operationSurface } from "../../scripts/check-security-surface.mjs";
 
 describe("authorization surface change detector", () => {
   it("records exported actions, resources and observed controls without calling them", () => {
@@ -46,6 +46,8 @@ describe("authorization surface change detector", () => {
       "package.json",
       "public/sw.js",
     ]));
+    expect(filesUnder([".github/workflows"])).toContain(".github/workflows/ci.yml");
+    expect(readFileSync("scripts/check-security-surface.mjs", "utf8")).not.toContain("node:child_process");
   });
   it("makes database lint errors and security-advisor warnings mandatory CI failures", () => {
     const workflow = readFileSync(".github/workflows/_verify.yml", "utf8");

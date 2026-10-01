@@ -4042,11 +4042,11 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "e4e06b0e8c1c9afca84be030000227e79877e2ee4fc52638f5f60835dd2fd332",
+      "surfaceFingerprint": "4cc43f16433fe85183950083971c4c42c663eb59b3ab3d1bcbdc7f9784004e6b",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
-        "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh."
+        "GitHub CI run 36928774183 exposed an undeclared ripgrep dependency on the fresh ubuntu-24.04 runner before any deployment step.",
+        "The inventory now uses deterministic Node filesystem traversal; lib/auth/security-surface.test.ts exercises discovery without child_process and the 830-surface capture remains identity-stable."
       ]
     },
     {

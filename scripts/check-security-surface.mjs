@@ -1,9 +1,9 @@
 /** Structural change detector, not an authorization audit or a release approval.
  * --capture prints code/schema metadata only. Review before updating the snapshot.
  */
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import ts from "typescript";
 import { workOrderTestDatabase } from "./work-order-test-target.mjs";
@@ -56,8 +56,21 @@ const baseOperationalPaths = [
 ];
 
 export function operationalPaths() {
-  const discovered = execFileSync("rg", ["--files", ".github/workflows", "deploy"], {encoding:"utf8"}).trim().split("\n").filter(Boolean);
+  const discovered = filesUnder([".github/workflows", "deploy"]);
   return [...new Set([...baseOperationalPaths, ...discovered])].sort();
+}
+
+export function filesUnder(roots) {
+  const files = [];
+  const visit = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name, "en"))) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) visit(path);
+      else if (entry.isFile()) files.push(path);
+    }
+  };
+  for (const root of roots) visit(root);
+  return files.sort((a, b) => a.localeCompare(b, "en"));
 }
 
 export function operationSurface(path, source) {
@@ -111,7 +124,7 @@ export function codeSurfaces(path, source) {
 
 export async function inventory() {
   if (process.env.FIELDGRID_STAGING_SMOKE) throw new Error("Surface inventory is local-only");
-  const paths = execFileSync("rg", ["--files", "app", "components", "lib", "proxy.ts"], {encoding:"utf8"}).trim().split("\n").filter(p => /\.[jt]sx?$/.test(p) && !/\.(test|spec)\./.test(p) && p !== "lib/database.types.ts").sort();
+  const paths = [...filesUnder(["app", "components", "lib"]), "proxy.ts"].filter(p => /\.[jt]sx?$/.test(p) && !/\.(test|spec)\./.test(p) && p !== "lib/database.types.ts").sort();
   const code = paths.flatMap(path => codeSurfaces(path, readFileSync(path,"utf8")));
   const operations = operationalPaths().map(path => operationSurface(path, readFileSync(path,"utf8")));
   const db = await workOrderTestDatabase();

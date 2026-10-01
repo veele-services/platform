@@ -5709,7 +5709,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "43463d6e3a929a72aae4ebf76c87bcba15455d7ee34cfe5aae8cf414ab8b915a"
+      "source_sha256": "99485d1afb291eab70f2afc00ba8c5f2a10bf5b69f7817e895da134565c95bba"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
