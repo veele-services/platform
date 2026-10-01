@@ -6,7 +6,7 @@ ticket_scanner_image='clamav/clamav@sha256:ebec5bc138401b36ae987caa1a3fa3c3b2a21
 ticket_scanner_dir="$(mktemp -d /tmp/fieldgrid-ticket-ci.XXXXXX)"
 mkdir "${ticket_scanner_dir}/socket"
 ticket_scanner_user="$(id -u):$(id -g)"
-if docker info --format '{{json .SecurityOptions}}' | rg -q rootless; then
+if [[ "$(docker info --format '{{json .SecurityOptions}}')" == *rootless* ]]; then
   ticket_scanner_user='0:0'
 fi
 docker pull "$ticket_scanner_image"

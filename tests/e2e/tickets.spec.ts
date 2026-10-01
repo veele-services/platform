@@ -169,6 +169,11 @@ test("personeelsmelding met echte scan, private notitie, bewuste escalatie en on
   await assign.getByLabel("Behandelaar", { exact: true }).selectOption(users.manager.id);
   await assign.getByRole("button", { name: "Bevestigen", exact: true }).click();
   await expect(assign).toHaveCount(0);
+  // Assignment increments the ticket revision. Reload the confirmed detail
+  // before issuing the next revision-bound command instead of racing the
+  // asynchronous router refresh on slower hosted runners.
+  await manager.reload();
+  await expect(manager.getByRole("heading", { name: subject, exact: true })).toBeVisible();
   await manager.getByLabel("Zichtbaarheid", { exact: true }).selectOption("tenant");
   await manager.getByLabel("Interne notitie", { exact: true }).fill(note);
   await manager.getByRole("button", { name: "Interne notitie plaatsen", exact: true }).click();
