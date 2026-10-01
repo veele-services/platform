@@ -24,6 +24,14 @@ describe("staging deployment broker boundary", () => {
     expect(backup).not.toContain("sudo");
   });
 
+  it("passes the canonical deployment contract into the hosted preflight", () => {
+    const workflow = read(".github/workflows/deploy-staging.yml");
+    const prepare = workflow.slice(workflow.indexOf("  prepare:"), workflow.indexOf("  deploy:"));
+    expect(prepare).toContain("DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}");
+    expect(prepare).toContain("SERVICE_NAME: ${{ vars.SERVICE_NAME }}");
+    expect(prepare).toContain("HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}");
+  });
+
   it("ships root-owned broker templates with strict artifact and identity checks", () => {
     expect(statSync("deploy/fieldgrid-install-staging-release").mode & 0o111).not.toBe(0);
     const broker = read("deploy/fieldgrid-install-staging-release");

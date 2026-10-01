@@ -30,6 +30,9 @@ jobs:
       DEPLOY_TARGET: staging
       APP_ENV: development
       APP_URL: ${{ vars.APP_URL }}
+      DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
       HOSTNAME: 127.0.0.1
       PORT: ${{ vars.PORT }}
       MOLLIE_WEBHOOK_URL: ${{ format('{0}/api/mollie/webhook', vars.APP_URL) }}

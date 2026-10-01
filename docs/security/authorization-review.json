@@ -3808,11 +3808,12 @@
     },
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
-      "surfaceFingerprint": "7cd5fec31bf296d5f19c5226ebf33aa959c87a4c1541499e067ae59e4453d9de",
+      "surfaceFingerprint": "e1e0dbe60e4034212607125ee24be439d0a7e65fbfb84f265dd38c8750115d25",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
-        "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh."
+        "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh.",
+        "Hosted staging preflight receives the canonical DEPLOY_ROOT, SERVICE_NAME and HEALTHCHECK_URL only from GitHub Environment staging; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-02)."
       ]
     },
     {
