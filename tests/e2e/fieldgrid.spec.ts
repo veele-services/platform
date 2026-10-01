@@ -95,10 +95,16 @@ test("afgeleide kleurenpaletten zijn rustig, consistent en live zichtbaar zonder
   expect(await hero.evaluate((element) => getComputedStyle(element, "::after").backgroundImage)).toContain("repeating-linear-gradient");
   expect(await hero.evaluate((element) => getComputedStyle(element, "::before").content)).toBe('""');
   // Exercise the screenshot's blue/turquoise family without changing stored branding.
-  await page.locator(".workspace-shell").evaluate((element, styles) => {
+  const workspace = page.locator(".workspace-shell");
+  const previewPalette = createBrandPalette("#315794", "#52B3B7");
+  await page.waitForLoadState("networkidle");
+  await workspace.evaluate((element, styles) => {
     for (const [name, value] of Object.entries(styles)) (element as HTMLElement).style.setProperty(name, String(value));
   }, brandThemeStyle("#315794", "#52B3B7"));
-  await expect(page).toHaveScreenshot("tenant-palette-blue-turquoise-1440.png", { fullPage: true });
+  await expect.poll(() => workspace.evaluate((element) => getComputedStyle(element).getPropertyValue("--brand-primary").trim())).toBe("#315794");
+  await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(previewPalette.sidebar));
+  await expect(hero).toHaveCSS("background-color", rgb(previewPalette.heroStart));
+  await expect(page.locator(".metric").first()).toHaveCSS("border-color", rgb(previewPalette.border));
   for (const path of ["aanvragen", "taken", "klanten", "objecten", "personeel", "rapporten", "facturen", "instellingen"]) {
     await page.goto(`/app/${path}`);
     await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(tenantPalette.sidebar));

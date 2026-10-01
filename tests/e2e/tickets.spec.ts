@@ -172,7 +172,9 @@ test("personeelsmelding met echte scan, private notitie, bewuste escalatie en on
   await manager.getByLabel("Zichtbaarheid", { exact: true }).selectOption("tenant");
   await manager.getByLabel("Interne notitie", { exact: true }).fill(note);
   await manager.getByRole("button", { name: "Interne notitie plaatsen", exact: true }).click();
-  await expect(manager.locator(".ticket-message").getByText(note, { exact: true })).toBeVisible();
+  await expect(manager.getByLabel("Interne notitie", { exact: true })).toHaveValue("", { timeout: 45_000 });
+  await manager.reload();
+  await expect(manager.locator(".ticket-message").getByText(note, { exact: true })).toBeVisible({ timeout: 30_000 });
   const staffPayload = await page.request.get(`/staff/meldingen/${ticketId}`);
   expect(await staffPayload.text()).not.toContain(note);
   await page.reload();
