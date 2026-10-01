@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../lib/database.types";
+import { requireLocalApiUrl } from "./local-target";
 
 // Invitations contain one-use credentials. Never record browser/network traces.
 test.use({ trace: "off", screenshot: "off", video: "off" });
@@ -14,8 +15,7 @@ const mailbox = "http://127.0.0.1:59329";
 const password = "Fieldgrid-Invite-Test-2026";
 
 async function fixture() {
-  const url = new URL(process.env.SUPABASE_URL!);
-  if (url.hostname !== "127.0.0.1" || url.port !== "59321") throw new Error("Invitation tests require local Fieldgrid Supabase");
+  const url = requireLocalApiUrl();
   const admin = createClient<Database>(url.href, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: tenant, error } = await admin.from("tenants").select("id").eq("slug", "fieldgrid-e2e").single();
   if (error) throw new Error("Missing local test tenant");
@@ -174,9 +174,11 @@ test("failed invitation can be resent without duplicating personnel and revoked 
   const recipient = await browser.newContext();
   try {
     await loginAdmin(page);
-    await fetch(`${mailbox}/fail-next`, { method: "POST" });
+    // A confirmed 429 rejection is safely retryable; a 503 is an uncertain
+    // provider result and must not be presented as a definite failed send.
+    await fetch(`${mailbox}/reject-next`, { method: "POST" });
     await expect(await invite(page, email)).toBeHidden();
-    await expect(page.getByText(/De medewerker is aangemaakt\. De uitnodigingsmail kon niet worden verstuurd/)).toBeVisible();
+    await expect(page.getByText("De medewerker is aangemaakt. De e-mailprovider heeft de verzending geweigerd. Controleer de verzendregistratie voordat je opnieuw probeert.", { exact: true })).toBeVisible();
     const row = page.getByRole("row").filter({ hasText: email });
     await expect(row).toBeVisible();
     await row.getByRole("button", { name: "Meer", exact: true }).click();

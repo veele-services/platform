@@ -14,12 +14,13 @@ export function stagingWorkOrderTestUrl(env) {
     // Only an explicit TLS mode is accepted; never let a validated staging URL
     // resolve to a different project through encoded connection parameters.
     if (db.hash || [...db.searchParams].some(([key, value]) => key !== "sslmode" || !["require", "verify-ca", "verify-full"].includes(value)) || db.searchParams.getAll("sslmode").length > 1) throw new Error();
-    const direct = db.hostname === `db.${expected}.supabase.co`;
+    const direct = db.hostname === `db.${expected}.supabase.co` && decodeURIComponent(db.username) === "postgres" && ["", "5432"].includes(db.port);
     const pool = /^aws-[a-z0-9-]+\.pooler\.supabase\.com$/.test(db.hostname) && decodeURIComponent(db.username) === `postgres.${expected}` && db.port === "5432";
     if ((!direct && !pool) || decodeURIComponent(db.href).includes(forbidden) || (db.pathname !== "/postgres")) throw new Error();
     // Always encrypt and authenticate the remote endpoint, including when the
     // configured migration URL omits a TLS mode. Avoid pg's changing require
     // alias semantics by selecting hostname/certificate verification explicitly.
+    db.port = "5432"; // Do not inherit an ambient PGPORT after checking the target.
     db.searchParams.set("sslmode", "verify-full");
     return db.toString();
   } catch { throw new Error("Staging rooktest geweigerd: database is niet aantoonbaar het stagingproject."); }
@@ -33,6 +34,9 @@ export function stagingWorkOrderTestOptions(env) {
   url.searchParams.delete("sslmode");
   return {
     connectionString: url.toString(),
+    // A pooler can interpret ambient PGOPTIONS as another project reference.
+    // pg ignores empty options, so explicitly supply a benign startup setting.
+    options: "-c statement_timeout=15000",
     ssl: {
       rejectUnauthorized: true,
       ca: [...rootCertificates, readFileSync(new URL("./certs/supabase-root-2021.crt", import.meta.url), "utf8")],
@@ -46,15 +50,19 @@ export function safeWorkOrderConnectionError(error) {
   return new Error(`Testdatabaseverbinding mislukt (${code}); credentials worden niet gelogd.`);
 }
 
-export async function workOrderTestDatabase() {
-  let connection;
-  if (process.env.FIELDGRID_STAGING_SMOKE) connection = stagingWorkOrderTestOptions(process.env);
-  else {
-    const local = JSON.parse(execFileSync("pnpm", ["supabase", "status", "-o", "json"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
+/** Committing fixture suites may only target an explicitly identified local stack. */
+export function localWorkOrderTestUrl() {
+    if (process.env.FIELDGRID_STAGING_SMOKE) throw new Error("Deze fixturetest is uitsluitend lokaal toegestaan.");
+    const replay = process.env.FIELDGRID_LOCAL_REPLAY_DIR;
+    if (replay && (!/^\/tmp\/fieldgrid-release-migrations\.[A-Za-z0-9]+$/.test(replay) || !readFileSync(`${replay}/supabase/config.toml`, "utf8").includes('project_id = "fieldgrid-release-audit-20261001"'))) throw new Error("Ongeldige lokale migratie-replayomgeving.");
+    const local = JSON.parse(execFileSync("pnpm", ["supabase", "status", "-o", "json", ...(replay ? ["--workdir", replay] : [])], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
     const url = new URL(local.DB_URL);
-    if (url.hostname !== "127.0.0.1" || url.port !== "59322") throw new Error("Werkbontests vereisen de afgeschermde lokale database.");
-    connection = { connectionString: local.DB_URL };
-  }
+    if (!["postgres:", "postgresql:"].includes(url.protocol) || url.hostname !== "127.0.0.1" || url.port !== (replay ? "60322" : "59322") || url.pathname !== "/postgres" || url.search || url.hash) throw new Error("Werkbontests vereisen de afgeschermde lokale database.");
+    return local.DB_URL;
+}
+
+export async function workOrderTestDatabase() {
+  const connection = process.env.FIELDGRID_STAGING_SMOKE ? stagingWorkOrderTestOptions(process.env) : { connectionString: localWorkOrderTestUrl(), options: "-c statement_timeout=15000" };
   const client = new pg.Client({ ...connection, connectionTimeoutMillis: 10000, statement_timeout: 15000, idle_in_transaction_session_timeout: 60000 });
   try { await client.connect(); } catch (error) { throw safeWorkOrderConnectionError(error); }
   if (process.env.FIELDGRID_STAGING_SMOKE) {

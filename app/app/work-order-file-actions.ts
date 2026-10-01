@@ -1,4 +1,5 @@
 "use server";
+import { uploadScannedFile } from "@/lib/files/scanned-storage";
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -27,12 +28,7 @@ export async function addWorkOrderCommunication(form: FormData): Promise<{ ok: t
       try { if (file.type === "application/pdf") await PDFDocument.load(bytes); else await sharp(bytes, { limitInputPixels: 40_000_000, failOn: "warning" }).stats(); }
       catch { throw new Error("Het bestand kan niet worden gelezen. Gebruik een geldige PDF, JPG of PNG."); }
       const hash = createHash("sha256").update(bytes).digest("hex"), path = `${tenant.id}/${input.orderId}/communication/${input.mutationId}.${extension}`;
-      const upload = await db.storage.from("reports").upload(path, bytes, { contentType: file.type, upsert: false });
-      if (upload.error) {
-        if (String(upload.error.statusCode) !== "409") throw new Error("Uploaden is niet gelukt. Je invoer blijft bewaard; probeer opnieuw.");
-        const existing = await db.storage.from("reports").download(path);
-        if (existing.error || createHash("sha256").update(Buffer.from(await existing.data.arrayBuffer())).digest("hex") !== hash) throw new Error("Deze upload hoort bij andere invoer. Kies het bestand opnieuw.");
-      }
+      await uploadScannedFile(db, "reports", path, bytes, file.type);
       attachment = { path, sha256: hash, mime: file.type, size: file.size, name };
     }
     if (!input.body && !attachment) throw new Error("Vul een bericht in of kies een bestand.");

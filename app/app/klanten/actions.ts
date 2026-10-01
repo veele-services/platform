@@ -81,6 +81,39 @@ export async function customerCommand(
     return { ok: false, error: failure(e) };
   }
 }
+
+export async function updateCustomerDocumentMetadata(
+  input: unknown,
+): Promise<ActionResult> {
+  try {
+    const { db, tenant } = await actor();
+    const value = z.object({
+      id: z.uuid(),
+      version: z.number().int().positive(),
+      category: z.enum(["agreement", "correspondence", "report", "photo", "other"]),
+      visibility: z.enum(["internal", "customer"]),
+      portalObjectId: z.uuid().nullable(),
+      archived: z.boolean(),
+    }).parse(input);
+    if (value.visibility === "customer" && !value.portalObjectId)
+      return { ok: false, error: "Kies het object waarvoor dit document zichtbaar mag zijn." };
+    const result = await db.rpc("customer_document_metadata", {
+      target_tenant: tenant.id,
+      target_document: value.id,
+      expected_version: value.version,
+      input_category: value.category,
+      input_visibility: value.visibility,
+      portal_object: value.visibility === "customer" ? value.portalObjectId : null,
+      input_archived: value.archived,
+    });
+    if (result.error) throw result.error;
+    revalidatePath("/app", "layout");
+    revalidatePath("/klant", "layout");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: failure(e) };
+  }
+}
 export async function saveCustomerProfile(
   form: FormData,
 ): Promise<ActionResult<{ id: string }>> {
@@ -113,12 +146,14 @@ export async function saveCustomerProfile(
         ownerId: z.uuid().or(z.literal("")),
       })
       .parse(Object.fromEntries(form));
+    // A shared billing/visit address is one confirmation, not two provider
+    // lookups with potentially different data or confirmation timestamps.
+    const visitAddressResult = addressFromForm(form, "visitAddress");
     const [visitAddress, billingAddress] = await Promise.all([
-      addressFromForm(form, "visitAddress"),
-      addressFromForm(
-        form,
-        form.get("sameAddress") === "on" ? "visitAddress" : "billingAddress",
-      ),
+      visitAddressResult,
+      form.get("sameAddress") === "on"
+        ? visitAddressResult
+        : addressFromForm(form, "billingAddress"),
     ]);
     const extra = Object.fromEntries(
       [

@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { uploadScannedFile } from "@/lib/files/scanned-storage";
 import type { Json } from "@/lib/database.types";
 import type { ActionResult } from "@/lib/actions/result";
 import { canReadDossier, recordKinds, validateDossierInput, recordDeadline, privacyText, type RecordKind } from "@/lib/personnel/dossier";
@@ -76,8 +78,9 @@ export async function uploadDossierDocument(form:FormData):Promise<ActionResult>
   let version=1;
   if(input.previousId){const {data:previous}=await db.from("personnel_documents").select("version").eq("tenant_id",tenant.id).eq("personnel_id",person.id).eq("id",input.previousId).single();if(!previous)throw new Error("Vorige versie niet gevonden.");version=previous.version+1;}
   const path=`${tenant.id}/${person.id}/${randomBytes(16).toString("hex")}.${extension}`;
-  const bucket=db.storage.from("personnel-documents");const {error:uploadError}=await bucket.upload(path,bytes,{contentType:file.type,upsert:false});if(uploadError)throw new Error("Uploaden is niet gelukt.");
-  const {data:document,error}=await db.from("personnel_documents").insert({tenant_id:tenant.id,personnel_id:person.id,title:input.title,document_type:input.category,storage_path:path,file_name:customerDocumentFileName(file.name),mime_type:file.type,size_bytes:file.size,sha256:createHash("sha256").update(bytes).digest("hex"),created_by:context.user.id,version,previous_id:input.previousId||null,dossier_managed:true,dossier_status:"stored",visible_to_employee:false,dossier_data:{documentDate:input.documentDate,expiresOn:input.expiresOn,retention:input.retention||"Nog te beoordelen",classification:"Vertrouwelijk HR",malwareScan:"Niet aangesloten"}}).select("id").single();
+  const bucket=createAdminClient().storage.from("personnel-documents");
+  await uploadScannedFile(db,"personnel-documents",path,bytes,file.type);
+  const {data:document,error}=await db.from("personnel_documents").insert({tenant_id:tenant.id,personnel_id:person.id,title:input.title,document_type:input.category,storage_path:path,file_name:customerDocumentFileName(file.name),mime_type:file.type,size_bytes:file.size,sha256:createHash("sha256").update(bytes).digest("hex"),created_by:context.user.id,version,previous_id:input.previousId||null,dossier_managed:true,dossier_status:"stored",visible_to_employee:false,dossier_data:{documentDate:input.documentDate,expiresOn:input.expiresOn,retention:input.retention||"Nog te beoordelen",classification:"Vertrouwelijk HR",malwareScan:"Gecontroleerd met ClamAV"}}).select("id").single();
   if(error){await bucket.remove([path]);throw new Error("Documentregistratie is niet gelukt.");}
   if(input.relatedId){
    const {data:contract}=await db.from("personnel_contracts").select("dossier_data,dossier_revision").eq("tenant_id",tenant.id).eq("personnel_id",person.id).eq("id",input.relatedId).single();

@@ -56,8 +56,12 @@ test("Work-order reports: individual time, immutable versions, signing and direc
    assert.equal((await db.query("select status from public.work_orders where id=$1",[order])).rows[0].status,"in_progress");
   });
   await t.test("pause/resume are own idempotent time segments",async()=>{
-   const key=randomUUID();await call("select public.transition_work_order($1,'pause',$2,$3)",[order,await version(),key],coworker);
-   await call("select public.transition_work_order($1,'pause',1,$2)",[order,key],coworker);
+   const key=randomUUID();const first=(await call("select to_jsonb(public.transition_work_order($1,'pause',$2,$3)) data",[order,await version(),key],coworker))[0].data;
+   const retried=(await call("select to_jsonb(public.transition_work_order($1,'pause',1,$2)) data",[order,key],coworker))[0].data;
+   for(const response of [first,retried]){
+    assert.equal(response.id,order);assert.equal(response.status,'in_progress');
+    for(const field of ['created_by','planner_user_id','lead_personnel_id','commercial_terms','details'])assert.equal(response[field],null,`Execution response must not disclose ${field}`);
+   }
    assert.equal((await db.query("select count(*) from public.time_entries where assignment_id=$1 and kind='break'",[assignments[1]])).rows[0].count,"1");
    await call("select public.transition_work_order($1,'resume',$2,$3)",[order,await version(),randomUUID()],coworker);await stop(coworker);
   });

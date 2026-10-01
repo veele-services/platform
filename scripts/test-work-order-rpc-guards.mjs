@@ -1,12 +1,11 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { localWorkOrderTestUrl } from "./work-order-test-target.mjs";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 
 test("Work-order direct RPC guards reject null versions, malformed templates and expired evidence", async t => {
-  const local=JSON.parse(execFileSync("pnpm",["supabase","status","-o","json"],{encoding:"utf8",stdio:["ignore","pipe","ignore"]}));
-  const endpoint=new URL(local.DB_URL);assert.equal(endpoint.hostname,"127.0.0.1");assert.equal(endpoint.port,"59322");
+  const local={ DB_URL: localWorkOrderTestUrl() };
   const db=new pg.Client({connectionString:local.DB_URL});await db.connect();await db.query('begin');
   const tenant=randomUUID(),manager=randomUUID(),planner=randomUUID(),customer=randomUUID(),object=randomUUID(),catalog=randomUUID(),revision=randomUUID();
   const sessions=new Map([[manager,randomUUID()],[planner,randomUUID()]]);

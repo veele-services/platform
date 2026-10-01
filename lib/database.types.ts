@@ -387,13 +387,13 @@ isOneToOne: false
                   ]
                 },"customer_documents": {
                   Row: {
-                    "archived": boolean,"category": string,"created_at": string,"created_by": string,"customer_id": string,"document_on": string | null,"file_name": string,"id": string,"metadata_version": number,"mime_type": string,"previous_id": string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until": string | null,"version": number,"visibility": string
+                    "archived": boolean,"category": string,"created_at": string,"created_by": string,"customer_id": string,"document_on": string | null,"file_name": string,"id": string,"metadata_version": number,"mime_type": string,"portal_object_id": string | null,"previous_id": string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until": string | null,"version": number,"visibility": string
                   }
                   Insert: {
-                    "archived"?: boolean,"category"?: string,"created_at"?: string,"created_by": string,"customer_id": string,"document_on"?: string | null,"file_name": string,"id"?: string,"metadata_version"?: number,"mime_type": string,"previous_id"?: string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until"?: string | null,"version"?: number,"visibility"?: string
+                    "archived"?: boolean,"category"?: string,"created_at"?: string,"created_by": string,"customer_id": string,"document_on"?: string | null,"file_name": string,"id"?: string,"metadata_version"?: number,"mime_type": string,"portal_object_id"?: string | null,"previous_id"?: string | null,"sha256": string,"size_bytes": number,"storage_path": string,"tenant_id": string,"title": string,"valid_until"?: string | null,"version"?: number,"visibility"?: string
                   }
                   Update: {
-                    "archived"?: boolean,"category"?: string,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"document_on"?: string | null,"file_name"?: string,"id"?: string,"metadata_version"?: number,"mime_type"?: string,"previous_id"?: string | null,"sha256"?: string,"size_bytes"?: number,"storage_path"?: string,"tenant_id"?: string,"title"?: string,"valid_until"?: string | null,"version"?: number,"visibility"?: string
+                    "archived"?: boolean,"category"?: string,"created_at"?: string,"created_by"?: string,"customer_id"?: string,"document_on"?: string | null,"file_name"?: string,"id"?: string,"metadata_version"?: number,"mime_type"?: string,"portal_object_id"?: string | null,"previous_id"?: string | null,"sha256"?: string,"size_bytes"?: number,"storage_path"?: string,"tenant_id"?: string,"title"?: string,"valid_until"?: string | null,"version"?: number,"visibility"?: string
                   }
                   Relationships: [
                     {
@@ -765,15 +765,28 @@ isOneToOne: false
       referencedColumns: ["tenant_id","id"]
     }
                   ]
-                },"notifications": {
+                },"notification_catalog": {
                   Row: {
-                    "body": string,"channel": string,"created_at": string,"id": string,"last_error": string | null,"outbox_event_id": string | null,"read_at": string | null,"sent_at": string | null,"status": Database["public"]['Enums']["delivery_status"],"target_path": string | null,"tenant_id": string,"title": string,"user_id": string
+                    "allowed_fields": (string)[],"bundle_seconds": number,"category": string,"channels": (string)[],"code": string,"contexts": (string)[],"default_channels": (string)[],"description": string,"module": string | null,"name": string,"recipient_description": string,"status": string,"tenant_override": boolean,"ttl_minutes": number,"variables": (string)[]
                   }
                   Insert: {
-                    "body": string,"channel": string,"created_at"?: string,"id"?: string,"last_error"?: string | null,"outbox_event_id"?: string | null,"read_at"?: string | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["delivery_status"],"target_path"?: string | null,"tenant_id": string,"title": string,"user_id": string
+                    "allowed_fields"?: (string)[],"bundle_seconds"?: number,"category": string,"channels": (string)[],"code": string,"contexts": (string)[],"default_channels": (string)[],"description": string,"module"?: string | null,"name": string,"recipient_description": string,"status": string,"tenant_override"?: boolean,"ttl_minutes"?: number,"variables"?: (string)[]
                   }
                   Update: {
-                    "body"?: string,"channel"?: string,"created_at"?: string,"id"?: string,"last_error"?: string | null,"outbox_event_id"?: string | null,"read_at"?: string | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["delivery_status"],"target_path"?: string | null,"tenant_id"?: string,"title"?: string,"user_id"?: string
+                    "allowed_fields"?: (string)[],"bundle_seconds"?: number,"category"?: string,"channels"?: (string)[],"code"?: string,"contexts"?: (string)[],"default_channels"?: (string)[],"description"?: string,"module"?: string | null,"name"?: string,"recipient_description"?: string,"status"?: string,"tenant_override"?: boolean,"ttl_minutes"?: number,"variables"?: (string)[]
+                  }
+                  Relationships: [
+
+                  ]
+                },"notifications": {
+                  Row: {
+                    "ack_required": boolean,"acknowledged_at": string | null,"action_label": string | null,"archived_at": string | null,"body": string,"campaign_id": string | null,"channel": string,"clicked_at": string | null,"context": string,"created_at": string,"delivery_id": string | null,"id": string,"last_error": string | null,"outbox_event_id": string | null,"priority": string,"read_at": string | null,"revision": number,"sender_name": string,"sent_at": string | null,"source_id": string | null,"source_kind": string | null,"source_revision": string | null,"status": Database["public"]['Enums']["delivery_status"],"target_path": string | null,"tenant_id": string | null,"title": string,"type_code": string | null,"user_id": string,"withdrawn_at": string | null
+                  }
+                  Insert: {
+                    "ack_required"?: boolean,"acknowledged_at"?: string | null,"action_label"?: string | null,"archived_at"?: string | null,"body": string,"campaign_id"?: string | null,"channel": string,"clicked_at"?: string | null,"context"?: string,"created_at"?: string,"delivery_id"?: string | null,"id"?: string,"last_error"?: string | null,"outbox_event_id"?: string | null,"priority"?: string,"read_at"?: string | null,"revision"?: number,"sender_name"?: string,"sent_at"?: string | null,"source_id"?: string | null,"source_kind"?: string | null,"source_revision"?: string | null,"status"?: Database["public"]['Enums']["delivery_status"],"target_path"?: string | null,"tenant_id"?: string | null,"title": string,"type_code"?: string | null,"user_id": string,"withdrawn_at"?: string | null
+                  }
+                  Update: {
+                    "ack_required"?: boolean,"acknowledged_at"?: string | null,"action_label"?: string | null,"archived_at"?: string | null,"body"?: string,"campaign_id"?: string | null,"channel"?: string,"clicked_at"?: string | null,"context"?: string,"created_at"?: string,"delivery_id"?: string | null,"id"?: string,"last_error"?: string | null,"outbox_event_id"?: string | null,"priority"?: string,"read_at"?: string | null,"revision"?: number,"sender_name"?: string,"sent_at"?: string | null,"source_id"?: string | null,"source_kind"?: string | null,"source_revision"?: string | null,"status"?: Database["public"]['Enums']["delivery_status"],"target_path"?: string | null,"tenant_id"?: string | null,"title"?: string,"type_code"?: string | null,"user_id"?: string,"withdrawn_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -1172,13 +1185,13 @@ isOneToOne: false
                   ]
                 },"payment_attempts": {
                   Row: {
-                    "amount_cents": number,"checkout_url": string | null,"created_at": string,"created_by": string | null,"currency": string,"id": string,"idempotency_key": string,"invoice_group_id": string | null,"last_checked_at": string | null,"paid_at": string | null,"provider": string,"provider_mode": string,"provider_payload": NonNullable<Json>,"provider_payment_id": string | null,"status": Database["public"]['Enums']["payment_status"],"tenant_id": string,"updated_at": string
+                    "amount_cents": number,"checkout_url": string | null,"created_at": string,"created_by": string | null,"currency": string,"id": string,"idempotency_key": string,"invoice_group_id": string | null,"last_checked_at": string | null,"paid_at": string | null,"provider": string,"provider_check_lease": string | null,"provider_check_until": string | null,"provider_mode": string,"provider_payload": NonNullable<Json>,"provider_payment_id": string | null,"status": Database["public"]['Enums']["payment_status"],"tenant_id": string,"updated_at": string
                   }
                   Insert: {
-                    "amount_cents": number,"checkout_url"?: string | null,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"id"?: string,"idempotency_key": string,"invoice_group_id"?: string | null,"last_checked_at"?: string | null,"paid_at"?: string | null,"provider": string,"provider_mode": string,"provider_payload"?: NonNullable<Json>,"provider_payment_id"?: string | null,"status"?: Database["public"]['Enums']["payment_status"],"tenant_id": string,"updated_at"?: string
+                    "amount_cents": number,"checkout_url"?: string | null,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"id"?: string,"idempotency_key": string,"invoice_group_id"?: string | null,"last_checked_at"?: string | null,"paid_at"?: string | null,"provider": string,"provider_check_lease"?: string | null,"provider_check_until"?: string | null,"provider_mode": string,"provider_payload"?: NonNullable<Json>,"provider_payment_id"?: string | null,"status"?: Database["public"]['Enums']["payment_status"],"tenant_id": string,"updated_at"?: string
                   }
                   Update: {
-                    "amount_cents"?: number,"checkout_url"?: string | null,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"id"?: string,"idempotency_key"?: string,"invoice_group_id"?: string | null,"last_checked_at"?: string | null,"paid_at"?: string | null,"provider"?: string,"provider_mode"?: string,"provider_payload"?: NonNullable<Json>,"provider_payment_id"?: string | null,"status"?: Database["public"]['Enums']["payment_status"],"tenant_id"?: string,"updated_at"?: string
+                    "amount_cents"?: number,"checkout_url"?: string | null,"created_at"?: string,"created_by"?: string | null,"currency"?: string,"id"?: string,"idempotency_key"?: string,"invoice_group_id"?: string | null,"last_checked_at"?: string | null,"paid_at"?: string | null,"provider"?: string,"provider_check_lease"?: string | null,"provider_check_until"?: string | null,"provider_mode"?: string,"provider_payload"?: NonNullable<Json>,"provider_payment_id"?: string | null,"status"?: Database["public"]['Enums']["payment_status"],"tenant_id"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1193,6 +1206,69 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "invoice_groups"
       referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"permission_catalog": {
+                  Row: {
+                    "action": string,"dependencies": (string)[],"description": string,"domain": string,"key": string,"module": string,"name": string,"scopes": (string)[],"sensitive": boolean
+                  }
+                  Insert: {
+                    "action": string,"dependencies"?: (string)[],"description": string,"domain": string,"key": string,"module"?: string,"name": string,"scopes"?: (string)[],"sensitive"?: boolean
+                  }
+                  Update: {
+                    "action"?: string,"dependencies"?: (string)[],"description"?: string,"domain"?: string,"key"?: string,"module"?: string,"name"?: string,"scopes"?: (string)[],"sensitive"?: boolean
+                  }
+                  Relationships: [
+
+                  ]
+                },"permission_grants": {
+                  Row: {
+                    "capability": string,"created_at": string,"created_by": string | null,"enabled": boolean,"id": string,"membership_id": string | null,"revision": number,"scope": NonNullable<Json>,"source": string,"tenant_id": string | null,"updated_at": string,"user_id": string
+                  }
+                  Insert: {
+                    "capability": string,"created_at"?: string,"created_by"?: string | null,"enabled"?: boolean,"id"?: string,"membership_id"?: string | null,"revision"?: number,"scope"?: NonNullable<Json>,"source"?: string,"tenant_id"?: string | null,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "capability"?: string,"created_at"?: string,"created_by"?: string | null,"enabled"?: boolean,"id"?: string,"membership_id"?: string | null,"revision"?: number,"scope"?: NonNullable<Json>,"source"?: string,"tenant_id"?: string | null,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "permission_grants_capability_fkey"
+      columns: ["capability"]
+isOneToOne: false
+      referencedRelation: "permission_catalog"
+      referencedColumns: ["key"]
+    },{
+      foreignKeyName: "permission_grants_membership_id_fkey"
+      columns: ["membership_id"]
+isOneToOne: false
+      referencedRelation: "tenant_memberships"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "permission_grants_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"permission_role_defaults": {
+                  Row: {
+                    "capability": string,"category_codes": (string)[],"role": Database["public"]['Enums']["app_role"]
+                  }
+                  Insert: {
+                    "capability": string,"category_codes"?: (string)[],"role": Database["public"]['Enums']["app_role"]
+                  }
+                  Update: {
+                    "capability"?: string,"category_codes"?: (string)[],"role"?: Database["public"]['Enums']["app_role"]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "permission_role_defaults_capability_fkey"
+      columns: ["capability"]
+isOneToOne: false
+      referencedRelation: "permission_catalog"
+      referencedColumns: ["key"]
     }
                   ]
                 },"personnel": {
@@ -1491,13 +1567,13 @@ isOneToOne: false
                   ]
                 },"push_subscriptions": {
                   Row: {
-                    "auth_secret": string,"created_at": string,"endpoint": string,"id": string,"p256dh": string,"revoked_at": string | null,"tenant_id": string,"updated_at": string,"user_agent": string | null,"user_id": string
+                    "auth_secret": string,"created_at": string,"endpoint": string,"id": string,"p256dh": string,"revoked_at": string | null,"tenant_id": string | null,"updated_at": string,"user_agent": string | null,"user_id": string
                   }
                   Insert: {
-                    "auth_secret": string,"created_at"?: string,"endpoint": string,"id"?: string,"p256dh": string,"revoked_at"?: string | null,"tenant_id": string,"updated_at"?: string,"user_agent"?: string | null,"user_id": string
+                    "auth_secret": string,"created_at"?: string,"endpoint": string,"id"?: string,"p256dh": string,"revoked_at"?: string | null,"tenant_id"?: string | null,"updated_at"?: string,"user_agent"?: string | null,"user_id": string
                   }
                   Update: {
-                    "auth_secret"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"p256dh"?: string,"revoked_at"?: string | null,"tenant_id"?: string,"updated_at"?: string,"user_agent"?: string | null,"user_id"?: string
+                    "auth_secret"?: string,"created_at"?: string,"endpoint"?: string,"id"?: string,"p256dh"?: string,"revoked_at"?: string | null,"tenant_id"?: string | null,"updated_at"?: string,"user_agent"?: string | null,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -1847,12 +1923,15 @@ isOneToOne: false
                   ]
                 },"tenant_admin_invitations": {
                   Row: {
+                    "request_fingerprint": string | null, "bound_at": string | null,
                     "auth_user_id": string | null,"created_at": string,"email": string,"full_name": string,"id": string,"invited_at": string | null,"last_error": string | null,"status": string,"tenant_id": string,"updated_at": string
                   }
                   Insert: {
+                    "request_fingerprint"?: string | null, "bound_at"?: string | null,
                     "auth_user_id"?: string | null,"created_at"?: string,"email": string,"full_name": string,"id"?: string,"invited_at"?: string | null,"last_error"?: string | null,"status"?: string,"tenant_id": string,"updated_at"?: string
                   }
                   Update: {
+                    "request_fingerprint"?: string | null, "bound_at"?: string | null,
                     "auth_user_id"?: string | null,"created_at"?: string,"email"?: string,"full_name"?: string,"id"?: string,"invited_at"?: string | null,"last_error"?: string | null,"status"?: string,"tenant_id"?: string,"updated_at"?: string
                   }
                   Relationships: [
@@ -2009,6 +2088,266 @@ isOneToOne: true
                   }
                   Relationships: [
 
+                  ]
+                },"ticket_categories": {
+                  Row: {
+                    "archived_at": string | null,"auto_close_days": number | null,"can_escalate": boolean,"code": string,"confidential": boolean,"created_at": string,"default_assignee_id": string | null,"default_group_id": string | null,"description": string,"fallback_category_id": string | null,"fallback_group_id": string | null,"first_response_minutes": number,"id": string,"name": string,"pause_while_waiting": boolean,"resolution_minutes": number,"retention_profile": string | null,"revision": number,"route": string,"sort_order": number,"tenant_id": string | null
+                  }
+                  Insert: {
+                    "archived_at"?: string | null,"auto_close_days"?: number | null,"can_escalate"?: boolean,"code": string,"confidential"?: boolean,"created_at"?: string,"default_assignee_id"?: string | null,"default_group_id"?: string | null,"description"?: string,"fallback_category_id"?: string | null,"fallback_group_id"?: string | null,"first_response_minutes"?: number,"id"?: string,"name": string,"pause_while_waiting"?: boolean,"resolution_minutes"?: number,"retention_profile"?: string | null,"revision"?: number,"route": string,"sort_order"?: number,"tenant_id"?: string | null
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"auto_close_days"?: number | null,"can_escalate"?: boolean,"code"?: string,"confidential"?: boolean,"created_at"?: string,"default_assignee_id"?: string | null,"default_group_id"?: string | null,"description"?: string,"fallback_category_id"?: string | null,"fallback_group_id"?: string | null,"first_response_minutes"?: number,"id"?: string,"name"?: string,"pause_while_waiting"?: boolean,"resolution_minutes"?: number,"retention_profile"?: string | null,"revision"?: number,"route"?: string,"sort_order"?: number,"tenant_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ticket_categories_default_group_id_fkey"
+      columns: ["default_group_id"]
+isOneToOne: false
+      referencedRelation: "ticket_groups"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ticket_categories_fallback_category_id_fkey"
+      columns: ["fallback_category_id"]
+isOneToOne: false
+      referencedRelation: "ticket_categories"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ticket_categories_fallback_group_id_fkey"
+      columns: ["fallback_group_id"]
+isOneToOne: false
+      referencedRelation: "ticket_groups"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ticket_categories_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ticket_events": {
+                  Row: {
+                    "actor_user_id": string | null,"audience": string,"created_at": string,"id": string,"label": string,"tenant_id": string,"ticket_id": string,"type": string
+                  }
+                  Insert: {
+                    "actor_user_id"?: string | null,"audience": string,"created_at"?: string,"id"?: string,"label": string,"tenant_id": string,"ticket_id": string,"type": string
+                  }
+                  Update: {
+                    "actor_user_id"?: string | null,"audience"?: string,"created_at"?: string,"id"?: string,"label"?: string,"tenant_id"?: string,"ticket_id"?: string,"type"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ticket_events_tenant_id_ticket_id_fkey"
+      columns: ["tenant_id","ticket_id"]
+isOneToOne: false
+      referencedRelation: "tickets"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"ticket_files": {
+                  Row: {
+                    "audience": string,"category_id": string,"copied_by": string | null,"created_at": string,"deleted_at": string | null,"draft_id": string,"error_code": string | null,"expires_at": string,"id": string,"message_id": string | null,"mime_type": string,"original_name": string,"quarantine_path": string,"scan_attempts": number,"scan_available_at": string,"scan_lease": string | null,"scan_locked_until": string | null,"scan_status": string,"scanned_at": string | null,"scanner_database": string | null,"scanner_engine": string | null,"sha256": string | null,"size_bytes": number,"source_file_id": string | null,"source_sha256": string | null,"storage_deleted_at": string | null,"storage_path": string | null,"tenant_id": string,"ticket_id": string | null,"upload_sha256": string | null,"upload_size_bytes": number | null,"uploader_id": string,"uploader_session_id": string | null,"workspace": string
+                  }
+                  Insert: {
+                    "audience": string,"category_id": string,"copied_by"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"draft_id": string,"error_code"?: string | null,"expires_at"?: string,"id"?: string,"message_id"?: string | null,"mime_type": string,"original_name": string,"quarantine_path": string,"scan_attempts"?: number,"scan_available_at"?: string,"scan_lease"?: string | null,"scan_locked_until"?: string | null,"scan_status"?: string,"scanned_at"?: string | null,"scanner_database"?: string | null,"scanner_engine"?: string | null,"sha256"?: string | null,"size_bytes": number,"source_file_id"?: string | null,"source_sha256"?: string | null,"storage_deleted_at"?: string | null,"storage_path"?: string | null,"tenant_id": string,"ticket_id"?: string | null,"upload_sha256"?: string | null,"upload_size_bytes"?: number | null,"uploader_id": string,"uploader_session_id"?: string | null,"workspace": string
+                  }
+                  Update: {
+                    "audience"?: string,"category_id"?: string,"copied_by"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"draft_id"?: string,"error_code"?: string | null,"expires_at"?: string,"id"?: string,"message_id"?: string | null,"mime_type"?: string,"original_name"?: string,"quarantine_path"?: string,"scan_attempts"?: number,"scan_available_at"?: string,"scan_lease"?: string | null,"scan_locked_until"?: string | null,"scan_status"?: string,"scanned_at"?: string | null,"scanner_database"?: string | null,"scanner_engine"?: string | null,"sha256"?: string | null,"size_bytes"?: number,"source_file_id"?: string | null,"source_sha256"?: string | null,"storage_deleted_at"?: string | null,"storage_path"?: string | null,"tenant_id"?: string,"ticket_id"?: string | null,"upload_sha256"?: string | null,"upload_size_bytes"?: number | null,"uploader_id"?: string,"uploader_session_id"?: string | null,"workspace"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ticket_files_category_id_fkey"
+      columns: ["category_id"]
+isOneToOne: false
+      referencedRelation: "ticket_categories"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ticket_files_message_parent_fk"
+      columns: ["tenant_id","ticket_id","message_id"]
+isOneToOne: false
+      referencedRelation: "ticket_messages"
+      referencedColumns: ["tenant_id","ticket_id","id"]
+    },{
+      foreignKeyName: "ticket_files_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ticket_files_tenant_id_message_id_fkey"
+      columns: ["tenant_id","message_id"]
+isOneToOne: false
+      referencedRelation: "ticket_messages"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "ticket_files_tenant_id_source_file_id_fkey"
+      columns: ["tenant_id","source_file_id"]
+isOneToOne: false
+      referencedRelation: "ticket_files"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "ticket_files_tenant_id_ticket_id_fkey"
+      columns: ["tenant_id","ticket_id"]
+isOneToOne: false
+      referencedRelation: "tickets"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"ticket_group_members": {
+                  Row: {
+                    "group_id": string,"tenant_id": string | null,"user_id": string
+                  }
+                  Insert: {
+                    "group_id": string,"tenant_id"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "group_id"?: string,"tenant_id"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ticket_group_members_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: false
+      referencedRelation: "ticket_groups"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ticket_group_members_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ticket_groups": {
+                  Row: {
+                    "archived_at": string | null,"created_at": string,"id": string,"name": string,"revision": number,"tenant_id": string | null
+                  }
+                  Insert: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name": string,"revision"?: number,"tenant_id"?: string | null
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string,"revision"?: number,"tenant_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ticket_groups_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ticket_messages": {
+                  Row: {
+                    "audience": string,"author_context": string,"author_name": string,"author_user_id": string,"body": string,"created_at": string,"id": string,"tenant_id": string,"ticket_id": string
+                  }
+                  Insert: {
+                    "audience": string,"author_context"?: string,"author_name": string,"author_user_id": string,"body": string,"created_at"?: string,"id"?: string,"tenant_id": string,"ticket_id": string
+                  }
+                  Update: {
+                    "audience"?: string,"author_context"?: string,"author_name"?: string,"author_user_id"?: string,"body"?: string,"created_at"?: string,"id"?: string,"tenant_id"?: string,"ticket_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ticket_messages_tenant_id_ticket_id_fkey"
+      columns: ["tenant_id","ticket_id"]
+isOneToOne: false
+      referencedRelation: "tickets"
+      referencedColumns: ["tenant_id","id"]
+    }
+                  ]
+                },"ticket_notification_preferences": {
+                  Row: {
+                    "context": string,"email": boolean,"id": string,"in_app": boolean,"push": boolean,"tenant_id": string | null,"user_id": string
+                  }
+                  Insert: {
+                    "context": string,"email"?: boolean,"id"?: string,"in_app"?: boolean,"push"?: boolean,"tenant_id"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "context"?: string,"email"?: boolean,"id"?: string,"in_app"?: boolean,"push"?: boolean,"tenant_id"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ticket_notification_preferences_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"tickets": {
+                  Row: {
+                    "archived_at": string | null,"assigned_group_id": string | null,"assigned_user_id": string | null,"audience_activity": NonNullable<Json>,"audience_revisions": NonNullable<Json>,"category_id": string,"closed_at": string | null,"context_snapshot": NonNullable<Json>,"created_at": string,"customer_id": string | null,"first_response_at": string | null,"first_response_due_at": string | null,"id": string,"module": string,"needed_before": string | null,"next_step": string | null,"next_step_message_id": string | null,"number": string,"object_id": string | null,"paused_minutes": Json | null,"personnel_id": string | null,"priority": string,"reporter_name": string,"reporter_personnel_id": string | null,"reporter_user_id": string,"resolution_due_at": string | null,"resolution_message_id": string | null,"resolved_at": string | null,"revision": number,"route": string,"status": string,"technical_context": NonNullable<Json>,"tenant_id": string,"title": string,"updated_at": string,"wait_started_at": string | null,"work_order_id": string | null
+                  }
+                  Insert: {
+                    "archived_at"?: string | null,"assigned_group_id"?: string | null,"assigned_user_id"?: string | null,"audience_activity"?: NonNullable<Json>,"audience_revisions"?: NonNullable<Json>,"category_id": string,"closed_at"?: string | null,"context_snapshot"?: NonNullable<Json>,"created_at"?: string,"customer_id"?: string | null,"first_response_at"?: string | null,"first_response_due_at"?: string | null,"id"?: string,"module"?: string,"needed_before"?: string | null,"next_step"?: string | null,"next_step_message_id"?: string | null,"number": string,"object_id"?: string | null,"paused_minutes"?: Json | null,"personnel_id"?: string | null,"priority"?: string,"reporter_name": string,"reporter_personnel_id"?: string | null,"reporter_user_id": string,"resolution_due_at"?: string | null,"resolution_message_id"?: string | null,"resolved_at"?: string | null,"revision"?: number,"route": string,"status"?: string,"technical_context"?: NonNullable<Json>,"tenant_id": string,"title": string,"updated_at"?: string,"wait_started_at"?: string | null,"work_order_id"?: string | null
+                  }
+                  Update: {
+                    "archived_at"?: string | null,"assigned_group_id"?: string | null,"assigned_user_id"?: string | null,"audience_activity"?: NonNullable<Json>,"audience_revisions"?: NonNullable<Json>,"category_id"?: string,"closed_at"?: string | null,"context_snapshot"?: NonNullable<Json>,"created_at"?: string,"customer_id"?: string | null,"first_response_at"?: string | null,"first_response_due_at"?: string | null,"id"?: string,"module"?: string,"needed_before"?: string | null,"next_step"?: string | null,"next_step_message_id"?: string | null,"number"?: string,"object_id"?: string | null,"paused_minutes"?: Json | null,"personnel_id"?: string | null,"priority"?: string,"reporter_name"?: string,"reporter_personnel_id"?: string | null,"reporter_user_id"?: string,"resolution_due_at"?: string | null,"resolution_message_id"?: string | null,"resolved_at"?: string | null,"revision"?: number,"route"?: string,"status"?: string,"technical_context"?: NonNullable<Json>,"tenant_id"?: string,"title"?: string,"updated_at"?: string,"wait_started_at"?: string | null,"work_order_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tickets_assigned_group_id_fkey"
+      columns: ["assigned_group_id"]
+isOneToOne: false
+      referencedRelation: "ticket_groups"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tickets_category_id_fkey"
+      columns: ["category_id"]
+isOneToOne: false
+      referencedRelation: "ticket_categories"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tickets_next_step_message_id_fkey"
+      columns: ["next_step_message_id"]
+isOneToOne: false
+      referencedRelation: "ticket_messages"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tickets_resolution_message_id_fkey"
+      columns: ["resolution_message_id"]
+isOneToOne: false
+      referencedRelation: "ticket_messages"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tickets_tenant_id_customer_id_fkey"
+      columns: ["tenant_id","customer_id"]
+isOneToOne: false
+      referencedRelation: "customers"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "tickets_tenant_id_fkey"
+      columns: ["tenant_id"]
+isOneToOne: false
+      referencedRelation: "tenants"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tickets_tenant_id_object_id_fkey"
+      columns: ["tenant_id","object_id"]
+isOneToOne: false
+      referencedRelation: "objects"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "tickets_tenant_id_personnel_id_fkey"
+      columns: ["tenant_id","personnel_id"]
+isOneToOne: false
+      referencedRelation: "personnel"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "tickets_tenant_id_reporter_personnel_id_fkey"
+      columns: ["tenant_id","reporter_personnel_id"]
+isOneToOne: false
+      referencedRelation: "personnel"
+      referencedColumns: ["tenant_id","id"]
+    },{
+      foreignKeyName: "tickets_tenant_id_work_order_id_fkey"
+      columns: ["tenant_id","work_order_id"]
+isOneToOne: false
+      referencedRelation: "work_orders"
+      referencedColumns: ["tenant_id","id"]
+    }
                   ]
                 },"time_entries": {
                   Row: {
@@ -2547,6 +2886,9 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
+            file_scan_state: { Args: { target_bucket: string; target_path: string }; Returns: Json };
+            file_scan_attest: { Args: { target_bucket: string; target_path: string; expected_id: string; expected_version: string; proof: Json }; Returns: undefined };
+            file_upload_allowed: { Args: { target_bucket: string; target_path: string; visit_request?: string }; Returns: boolean };
             "accept_object_proposal":
 { Args: { "target_proposal": string,"target_tenant": string }; Returns: undefined
                            },
@@ -2622,6 +2964,11 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"prepare_provider_payment": {
+  Args: { payment_token_hash: string; expected_mode: string };
+  Returns: Database["public"]["Tables"]["payment_attempts"]["Row"];
+  SetofOptions: { from: "*"; to: "payment_attempts"; isOneToOne: true; isSetofReturn: false };
+},
 "assign_work_order_task":
 { Args: { "expected_version": number,"personnel"?: string,"target_task": string,"target_tenant": string }; Returns: undefined
                            },
@@ -2690,7 +3037,7 @@ isOneToOne: false
             }[]
                            },
 "claim_outbox":
-{ Args: { "batch_size"?: number,"lock_seconds"?: number }; Returns: {
+{ Args: { "batch_size"?: number,"include_notifications"?: boolean,"include_tickets"?: boolean,"lock_seconds"?: number,"target_tenant"?: string }; Returns: {
               "aggregate_id": string,
 "aggregate_type": string,
 "attempts": number,
@@ -3064,6 +3411,60 @@ isOneToOne: false
 "mutate_work_order":
 { Args: { "input": Json,"target_tenant": string }; Returns: Json
                            },
+"notification_command":
+{ Args: { "actor_context": string,"command": string,"payload": Json,"request_id": string,"target_tenant": string }; Returns: Json
+                           },
+"notification_deferred_mail":
+{ Args: { "input"?: Json,"operation": string,"target_mail_id"?: string,"target_tenant"?: string }; Returns: Json
+                           },
+"notification_delivery_begin":
+{ Args: { "delivery_id": string,"lease_id": string }; Returns: Json
+                           },
+"notification_delivery_claim":
+{ Args: { "batch_size"?: number,"target_tenant"?: string }; Returns: Json
+                           },
+"notification_delivery_defer":
+{ Args: { "delivery_id": string,"lease_id": string,"retry_at": string }; Returns: boolean
+                           },
+"notification_delivery_finish":
+{ Args: { "delivery_id": string,"lease_id": string,"outcome": string,"provider_id"?: string }; Returns: boolean
+                           },
+"notification_delivery_freeze":
+{ Args: { "delivery_id": string,"input": Json,"lease_id": string }; Returns: Json
+                           },
+"notification_delivery_prepare":
+{ Args: { "request_id": string }; Returns: number
+                           },
+"notification_device_logout":
+{ Args: { "actor_id": string,"session_id": string }; Returns: undefined
+                           },
+"notification_mail_snapshot":
+{ Args: { "delivery_id": string,"draft": Json,"target_tenant": string }; Returns: Json
+                           },
+"notification_outbox_prepare":
+{ Args: { "target_event": string }; Returns: number
+                           },
+"notification_policy_check":
+{ Args: { "channel": string,"recipient_user_id"?: string,"target_context": string,"target_tenant": string,"type_code": string }; Returns: Json
+                           },
+"notification_prepare_dossier":
+{ Args: { "batch_size"?: number,"target_tenant"?: string }; Returns: number
+                           },
+"notification_provider_gate":
+{ Args: { "channel": string,"delivery_key": string,"input"?: Json,"operation": string,"recipient_user_id": string,"source_id": string,"target_context": string,"target_tenant": string,"type_code": string }; Returns: Json
+                           },
+"notification_push_device":
+{ Args: { "actor_context": string,"actor_id": string,"input"?: Json,"operation": string,"session_id": string,"target_tenant": string }; Returns: Json
+                           },
+"notification_query":
+{ Args: { "actor_context": string,"operation": string,"payload"?: Json,"target_tenant": string }; Returns: Json
+                           },
+"notification_template_resolve":
+{ Args: { "channel": string,"target_context": string,"target_tenant": string,"type_code": string }; Returns: Json
+                           },
+"notification_verification":
+{ Args: { "actor": string,"actor_context": string,"input": Json,"operation": string,"session_id": string,"target_tenant": string }; Returns: Json
+                           },
 "object_agreement_options":
 { Args: { "target_object": string,"target_tenant": string }; Returns: {
               "id": string,"scope": string,"task_revision_id": string,"title": string,"version": number
@@ -3088,6 +3489,14 @@ isOneToOne: false
 "object_visit_signals":
 { Args: { "target_order": string,"target_tenant": string }; Returns: Json
                            },
+"personnel_availability": {
+  Args: { target_tenant: string };
+  Returns: { id: string; tenant_id: string; personnel_id: string; starts_at: string; ends_at: string; kind: string; note: string | null; approved_at: string | null; created_at: string; dossier_source_id: string | null }[];
+};
+"personnel_document_file": {
+  Args: { target_tenant: string; target_document: string };
+  Returns: { id: string; tenant_id: string; personnel_id: string; storage_path: string; file_name: string | null; mime_type: string | null; sha256: string | null }[];
+};
 "personnel_dossier_owners":
 { Args: { "target_tenant": string }; Returns: {
               "id": string,"label": string
@@ -3118,9 +3527,14 @@ isOneToOne: false
 "process_object_reminders":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"process_ticket_deadlines":
+{ Args: { "target_tenant"?: string }; Returns: Json
+                           },
 "provision_platform_tenant":
 { Args: { "accent_color": string,"actor_user_id": string,"admin_email": string,"admin_name": string,"enabled_services": (string)[],"primary_color": string,"request_key": string,"sender_email"?: string,"tenant_domain"?: string,"tenant_name": string,"tenant_slug": string }; Returns: string
                            },
+"complete_platform_admin_invitation":
+{ Args: { "target_tenant": string; "actor_user_id": string; "target_user": string }; Returns: boolean },
 "provision_tenant":
 { Args: { "actor_user_id": string,"owner_user_id": string,"tenant_name": string,"tenant_slug": string }; Returns: string
                            },
@@ -3371,6 +3785,12 @@ isOneToOne: false
 "route_cache_read":
 { Args: { "keys": (string)[] }; Returns: Json
                            },
+"claim_provider_payment_check":
+{ Args: { "lease_id": string,"target_attempt": string }; Returns: Json
+                           },
+"customer_document_metadata":
+{ Args: { "expected_version": number,"input_archived": boolean,"input_category": string,"input_visibility": string,"portal_object": string | null,"target_document": string,"target_tenant": string }; Returns: undefined
+                           },
 "save_object_dossier":
 { Args: { "input": Json,"target_tenant": string }; Returns: string
                            },
@@ -3401,8 +3821,14 @@ isOneToOne: false
 "staff_workspace":
 { Args: { "target_tenant": string }; Returns: Json
                            },
+"set_shift_interest":
+{ Args: { "interested": boolean,"target_shift": string,"target_tenant": string }; Returns: undefined
+                           },
+"release_provider_payment_check":
+{ Args: { "lease_id": string,"target_attempt": string }; Returns: undefined
+                           },
 "store_travel_estimates":
-{ Args: { "actor"?: string,"legs": Json,"manual_action"?: string,"revision": number,"t": string }; Returns: boolean
+{ Args: { "actor"?: string,"actor_session"?: string,"legs": Json,"manual_action"?: string,"revision": number,"t": string }; Returns: boolean
                            },
 "submit_object_visit_request":
 { Args: { "input": Json,"request_id": string,"target_object": string,"target_order": string,"target_tenant": string }; Returns: string
@@ -3412,6 +3838,51 @@ isOneToOne: false
                            },
 "suggest_personnel_number":
 { Args: { "target_tenant_id": string }; Returns: string
+                           },
+"ticket_command":
+{ Args: { "actor_context": string,"command": string,"payload": Json,"request_id": string,"target_tenant": string }; Returns: Json
+                           },
+"ticket_delivery_begin":
+{ Args: { "delivery_id": string,"lease_id": string }; Returns: Json
+                           },
+"ticket_delivery_claim":
+{ Args: { "batch_size"?: number,"target_tenant"?: string }; Returns: Json
+                           },
+"ticket_delivery_defer":
+{ Args: { "delivery_id": string,"lease_id": string,"retry_at": string }; Returns: boolean
+                           },
+"ticket_delivery_finish":
+{ Args: { "delivery_id": string,"lease_id": string,"outcome": string,"provider_id"?: string }; Returns: boolean
+                           },
+"ticket_file_cleanup":
+{ Args: { "batch_size"?: number,"target_tenant"?: string }; Returns: Json
+                           },
+"ticket_file_cleanup_done":
+{ Args: { "file_id": string }; Returns: undefined
+                           },
+"ticket_file_command":
+{ Args: { "actor_context": string,"command": string,"input": Json,"request_id"?: string,"target_tenant": string }; Returns: Json
+                           },
+"ticket_file_server_finalize":
+{ Args: { "actor_id": string,"content_hash": string,"file_id": string,"session_id": string }; Returns: Json
+                           },
+"ticket_outbox_prepare":
+{ Args: { "target_event": string }; Returns: number
+                           },
+"ticket_push_subscription":
+{ Args: { "action": string,"ctx": string,"input": Json,"targettenant": string }; Returns: Json
+                           },
+"ticket_query":
+{ Args: { "actor_context": string,"operation": string,"payload"?: Json,"target_tenant": string }; Returns: Json
+                           },
+"ticket_scan_claim":
+{ Args: { "batch_size"?: number,"target_file"?: string }; Returns: Json
+                           },
+"ticket_scan_finish":
+{ Args: { "file_id": string,"lease_id": string,"outcome": string,"result"?: Json }; Returns: boolean
+                           },
+"ticket_verification":
+{ Args: { "actor": string,"input": Json,"operation": string,"session_id": string,"target_tenant": string }; Returns: Json
                            },
 "transition_work_order":
 { Args: { "action": string,"expected_version": number,"idempotency_key": string,"note"?: string,"reason_code"?: string,"target_work_order_id": string }; Returns: {
@@ -3539,7 +4010,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "app_role": "tenant_admin"|"management"|"planner"|"finance"|"hr"|"staff","delivery_status": "queued"|"processing"|"sent"|"failed"|"dead_letter","invoice_status": "draft"|"final"|"sent"|"partially_paid"|"paid"|"overdue"|"credited"|"void","membership_status": "invited"|"active"|"suspended"|"revoked","payment_status": "open"|"pending"|"paid"|"failed"|"expired"|"canceled"|"refunded","quote_status": "draft"|"sent"|"awaiting_acceptance"|"accepted"|"rejected"|"expired"|"change_requested","work_order_status": "planned"|"released"|"seen"|"travelling"|"in_progress"|"completed"|"returned"|"under_review"|"correction_required"|"approved"|"invoice_ready"|"invoiced"|"cancelled"
+            "app_role": "tenant_admin"|"management"|"planner"|"finance"|"hr"|"staff","delivery_status": "queued"|"processing"|"sent"|"failed"|"dead_letter"|"suppressed"|"uncertain"|"unreachable"|"cancelled","invoice_status": "draft"|"final"|"sent"|"partially_paid"|"paid"|"overdue"|"credited"|"void","membership_status": "invited"|"active"|"suspended"|"revoked","payment_status": "open"|"pending"|"paid"|"failed"|"expired"|"canceled"|"refunded","quote_status": "draft"|"sent"|"awaiting_acceptance"|"accepted"|"rejected"|"expired"|"change_requested","work_order_status": "planned"|"released"|"seen"|"travelling"|"in_progress"|"completed"|"returned"|"under_review"|"correction_required"|"approved"|"invoice_ready"|"invoiced"|"cancelled"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -3659,7 +4130,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "app_role": ["tenant_admin", "management", "planner", "finance", "hr", "staff"],"delivery_status": ["queued", "processing", "sent", "failed", "dead_letter"],"invoice_status": ["draft", "final", "sent", "partially_paid", "paid", "overdue", "credited", "void"],"membership_status": ["invited", "active", "suspended", "revoked"],"payment_status": ["open", "pending", "paid", "failed", "expired", "canceled", "refunded"],"quote_status": ["draft", "sent", "awaiting_acceptance", "accepted", "rejected", "expired", "change_requested"],"work_order_status": ["planned", "released", "seen", "travelling", "in_progress", "completed", "returned", "under_review", "correction_required", "approved", "invoice_ready", "invoiced", "cancelled"]
+            "app_role": ["tenant_admin", "management", "planner", "finance", "hr", "staff"],"delivery_status": ["queued", "processing", "sent", "failed", "dead_letter", "suppressed", "uncertain", "unreachable", "cancelled"],"invoice_status": ["draft", "final", "sent", "partially_paid", "paid", "overdue", "credited", "void"],"membership_status": ["invited", "active", "suspended", "revoked"],"payment_status": ["open", "pending", "paid", "failed", "expired", "canceled", "refunded"],"quote_status": ["draft", "sent", "awaiting_acceptance", "accepted", "rejected", "expired", "change_requested"],"work_order_status": ["planned", "released", "seen", "travelling", "in_progress", "completed", "returned", "under_review", "correction_required", "approved", "invoice_ready", "invoiced", "cancelled"]
           }
         }
 } as const

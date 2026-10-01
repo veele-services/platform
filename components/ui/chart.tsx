@@ -14,6 +14,14 @@ const THEMES = {
 const INITIAL_DIMENSION = { width: 320, height: 200 } as const
 type TooltipNameType = number | string
 
+const cssIdentifier = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "")
+const cssColor = (value: string | undefined) => {
+  if (!value) return null
+  return /^(?:#[0-9a-f]{3,8}|var\(--[a-z0-9_-]+\)|hsl\(var\(--[a-z0-9_-]+\)\))$/i.test(value)
+    ? value
+    : null
+}
+
 export type ChartConfig = Record<
   string,
   {
@@ -59,7 +67,8 @@ function ChartContainer({
   }
 }) {
   const uniqueId = React.useId()
-  const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
+  const requestedId = cssIdentifier(id ?? "")
+  const chartId = `chart-${requestedId || uniqueId.replace(/:/g, "")}`
 
   return (
     <ChartContext.Provider value={{ config }}>
@@ -84,37 +93,35 @@ function ChartContainer({
 }
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(
-    ([, config]) => config.theme ?? config.color
-  )
+  const colorConfig = Object.entries(config)
+    .map(([key, item]) => [cssIdentifier(key), item] as const)
+    .filter(([key, item]) => key && (item.theme ?? item.color))
 
   if (!colorConfig.length) {
     return null
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(([theme, media]) => {
-            const rule = `
+  const stylesheet = Object.entries(THEMES)
+    .map(([theme, media]) => {
+      const rule = `
 [data-chart=${id}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
-    const color =
+    const color = cssColor(
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ??
       itemConfig.color
+    )
     return color ? `  --color-${key}: ${color};` : null
   })
+  .filter(Boolean)
   .join("\n")}
 }
 `
-            return media ? `@media ${media} {\n${rule}}\n` : rule
-          })
-          .join("\n"),
-      }}
-    />
-  )
+      return media ? `@media ${media} {\n${rule}}\n` : rule
+    })
+    .join("\n")
+
+  return <style>{stylesheet}</style>
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip

@@ -1,0 +1,4190 @@
+{
+  "schemaVersion": 2,
+  "source": "non-activated custom-role cutover inventory from the captured local prototype schema and working tree; release authorization review is tracked separately and this is not staging validation",
+  "principals": [
+    {
+      "rolname": "anon",
+      "rolsuper": false,
+      "rolbypassrls": false
+    },
+    {
+      "rolname": "authenticated",
+      "rolsuper": false,
+      "rolbypassrls": false
+    },
+    {
+      "rolname": "postgres",
+      "rolsuper": false,
+      "rolbypassrls": true
+    },
+    {
+      "rolname": "service_role",
+      "rolsuper": false,
+      "rolbypassrls": true
+    }
+  ],
+  "functions": [
+    {
+      "name": "private.can_access_customer",
+      "arguments": "target_tenant_id uuid, target_customer_id uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928202927_fieldgrid_v1_rls_storage.sql:111"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.can_access_object",
+      "arguments": "target_tenant_id uuid, target_object_id uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928202927_fieldgrid_v1_rls_storage.sql:128"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.can_access_personnel",
+      "arguments": "target_tenant_id uuid, target_personnel_id uuid, sensitive boolean",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928202927_fieldgrid_v1_rls_storage.sql:145"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.can_access_storage_object",
+      "arguments": "bucket text, object_name text, write_access boolean",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928202927_fieldgrid_v1_rls_storage.sql:845"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.can_access_work_order",
+      "arguments": "target_tenant_id uuid, target_work_order_id uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928202927_fieldgrid_v1_rls_storage.sql:100"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.can_manage_customer_document",
+      "arguments": "object_name text",
+      "security_definer": false,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260929214421_customer_dossier.sql:68"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.commercial_access",
+      "arguments": "t uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930051932_dossier_360_alignment.sql:161"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.commercial_member",
+      "arguments": "t uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930095514_commercial_requests_quotes_2.sql:206"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.customer_command",
+      "arguments": "target_tenant uuid, request_id uuid, command text, input jsonb",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930134752_customer_360.sql:252"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.customer_guard",
+      "arguments": "",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930134752_customer_360.sql:363"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.customer_manage",
+      "arguments": "t uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930134752_customer_360.sql:408"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.dossier_access",
+      "arguments": "t uuid",
+      "security_definer": false,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260929234105_personnel_dossier_360.sql:311"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.finalize_invoice_snapshot",
+      "arguments": "target_invoice_id uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930053101_dossier_execution_consistency.sql:42",
+        "supabase/migrations/20260930051932_dossier_360_alignment.sql:190",
+        "supabase/migrations/20260930134752_customer_360.sql:433",
+        "supabase/migrations/20260930095514_commercial_requests_quotes_2.sql:328"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.has_role",
+      "arguments": "target_tenant_id uuid, required_roles app_role[]",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928202927_fieldgrid_v1_rls_storage.sql:46"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.is_member",
+      "arguments": "target_tenant_id uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928202927_fieldgrid_v1_rls_storage.sql:35"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.member_roles",
+      "arguments": "target_tenant_id uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928202927_fieldgrid_v1_rls_storage.sql:19"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.notification_customer_due",
+      "arguments": "t uuid, cid uuid, actor uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:535"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.notification_domain_assignment",
+      "arguments": "",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:1936"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.notification_domain_planning_contact",
+      "arguments": "t uuid, wo uuid, contact uuid, actor uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:2023"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.notification_domain_source_allowed",
+      "arguments": "t uuid, code text, source uuid, revision text, recipient uuid, ctx text",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:526",
+        "supabase/migrations/20260930212610_central_notifications.sql:1881"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.notification_domain_task",
+      "arguments": "",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:1956"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.notification_domain_time",
+      "arguments": "",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:1970"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.notification_domain_work_order",
+      "arguments": "",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:1911"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.notification_mail_source_allowed",
+      "arguments": "mail_id uuid, recipient text, type_code text",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:257",
+        "supabase/migrations/20260930212610_central_notifications.sql:919"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.notification_operational_source_allowed",
+      "arguments": "t uuid, code text, kind text, source uuid, revision text, recipient uuid, ctx text",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:519",
+        "supabase/migrations/20260930212610_central_notifications.sql:1404"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.notification_seed_membership",
+      "arguments": "m uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:183"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.notification_source_allowed",
+      "arguments": "t uuid, code text, kind text, source uuid, revision text, recipient uuid, ctx text",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:546"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.object_manage",
+      "arguments": "t uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930040157_object_dossier_access_and_followup.sql:37",
+        "supabase/migrations/20260930031009_object_dossier_360.sql:481"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.object_notify",
+      "arguments": "t uuid, o uuid, w uuid, event_key text",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:576",
+        "supabase/migrations/20260930031009_object_dossier_360.sql:494"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.object_vault_context",
+      "arguments": "t uuid, u uuid, s uuid, o uuid, w uuid, i uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930040157_object_dossier_access_and_followup.sql:71",
+        "supabase/migrations/20260930031009_object_dossier_360.sql:531"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.planning_access",
+      "arguments": "t uuid",
+      "security_definer": false,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930014826_day_planboard.sql:110"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.review_work_order_base",
+      "arguments": "target_work_order_id uuid, decision text, reason text",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930051932_dossier_360_alignment.sql:410"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.staff_work_order_result",
+      "arguments": "w work_orders",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:635",
+        "supabase/migrations/20260930160534_work_orders_projection.sql:5"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.ticket_context_links",
+      "arguments": "tid uuid, ctx text, actor uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930192504_tickets_support.sql:413"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.ticket_new",
+      "arguments": "t uuid, ctx text, p jsonb, actor uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930192504_tickets_support.sql:705"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.ticket_role_revocation",
+      "arguments": "",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930192504_tickets_support.sql:911"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.ticket_seed_membership",
+      "arguments": "m uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930192504_tickets_support.sql:257"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.work_order_access",
+      "arguments": "t uuid, financial boolean",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:714"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.work_order_clone",
+      "arguments": "t uuid, source_id uuid, title text, instructions text, requested date, kind text, copy_template boolean, copy_contacts boolean, copy_personnel boolean",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:791"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "private.work_order_execution_actor",
+      "arguments": "t uuid, w uuid, u uuid, s uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:828"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.answer_work_order_checklist",
+      "arguments": "target_tenant uuid, input jsonb",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:1542"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.attach_invoice_pdf",
+      "arguments": "target_invoice_id uuid, storage_path text, sha256 text",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928202928_fieldgrid_v1_domain_functions.sql:730"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.bind_object_customer",
+      "arguments": "target_tenant uuid, target_object uuid, email_address text, is_active boolean, allow_secrets boolean",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930040157_object_dossier_access_and_followup.sql:163"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.change_work_order_signature_policy",
+      "arguments": "target_order uuid, expected_version bigint, mode text, employee_required boolean, reason text, mutation_id uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:1609"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.commercial_options",
+      "arguments": "target_tenant uuid, query text, customer uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930095514_commercial_requests_quotes_2.sql:949"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.confirm_shift_interest",
+      "arguments": "target_shift_id uuid, target_personnel_id uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928211620_fieldgrid_v1_booking_and_workflows.sql:78"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.current_event_recipients",
+      "arguments": "target_event uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930051932_dossier_360_alignment.sql:524",
+        "supabase/migrations/20260930160207_work_orders.sql:1680"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.customer_owners",
+      "arguments": "target_tenant uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930134752_customer_360.sql:689"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.dispatch_work_order",
+      "arguments": "target_work_order_id uuid, target_personnel_id uuid, expected_version bigint, idempotency_key text",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930014826_day_planboard.sql:354",
+        "supabase/migrations/20260928202928_fieldgrid_v1_domain_functions.sql:132",
+        "supabase/migrations/20260930160534_work_orders_projection.sql:46"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.dossier_chain",
+      "arguments": "target_tenant uuid, target_customer uuid, target_object uuid, target_personnel uuid, target_order uuid",
+      "security_definer": false,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930051932_dossier_360_alignment.sql:552"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.get_object_document",
+      "arguments": "target_tenant uuid, target_document uuid, target_order uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930040157_object_dossier_access_and_followup.sql:200",
+        "supabase/migrations/20260930033837_object_dossier_contracts.sql:157"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.object_customer_accounts",
+      "arguments": "target_tenant uuid, target_object uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930040157_object_dossier_access_and_followup.sql:226"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.object_dossier_owners",
+      "arguments": "target_tenant uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930033837_object_dossier_contracts.sql:185"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.object_vault_operation",
+      "arguments": "target_tenant uuid, actor uuid, session_id uuid, target_object uuid, target_order uuid, target_item uuid, operation text, input jsonb",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930040157_object_dossier_access_and_followup.sql:244",
+        "supabase/migrations/20260930031009_object_dossier_360.sql:695"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.object_visit_context",
+      "arguments": "target_tenant uuid, target_object uuid, target_order uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930051932_dossier_360_alignment.sql:649",
+        "supabase/migrations/20260930040157_object_dossier_access_and_followup.sql:350",
+        "supabase/migrations/20260930160207_work_orders.sql:1872",
+        "supabase/migrations/20260930031009_object_dossier_360.sql:803"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.personnel_dossier_owners",
+      "arguments": "target_tenant uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260929234105_personnel_dossier_360.sql:511"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.personnel_qualification_gaps",
+      "arguments": "target_tenant uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260929234105_personnel_dossier_360.sql:563"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.process_object_reminders",
+      "arguments": "",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930212610_central_notifications.sql:586",
+        "supabase/migrations/20260930040157_object_dossier_access_and_followup.sql:395",
+        "supabase/migrations/20260930033837_object_dossier_contracts.sql:203"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.publish_announcement",
+      "arguments": "target_announcement_id uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928202928_fieldgrid_v1_domain_functions.sql:842"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.register_manual_payment",
+      "arguments": "target_tenant_id uuid, payment_date timestamp with time zone, reference text, allocations jsonb, idempotency_key text",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260928202928_fieldgrid_v1_domain_functions.sql:756"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.resolve_tenant_context",
+      "arguments": "requested_tenant_id uuid, requested_host text",
+      "security_definer": false,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260929204920_add_tenant_white_label_entitlement.sql:41",
+        "supabase/migrations/20260928202928_fieldgrid_v1_domain_functions.sql:57",
+        "supabase/migrations/20260929151545_platform_backoffice_templates.sql:175"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.review_work_order_report",
+      "arguments": "target_work_order_id uuid, target_report_id uuid, decision text, reason text",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:1969"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.save_work_order",
+      "arguments": "target_tenant uuid, input jsonb",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:2001",
+        "supabase/migrations/20260930160534_work_orders_projection.sql:145"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.staff_workspace",
+      "arguments": "target_tenant uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:2101"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.suggest_personnel_number",
+      "arguments": "target_tenant_id uuid",
+      "security_definer": false,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260929222312_personnel_numbering.sql:82"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.ticket_query",
+      "arguments": "target_tenant uuid, actor_context text, operation text, payload jsonb",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930192504_tickets_support.sql:503"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.travel_context",
+      "arguments": "t uuid, u uuid, s uuid, d date, p uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930073943_private_day_departure.sql:16",
+        "supabase/migrations/20260930071900_addresses_basic_travel.sql:402"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.waive_work_order_signature",
+      "arguments": "target_report_id uuid, reason text",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:2235"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.work_order_dossier",
+      "arguments": "target_tenant uuid, target_order uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:2293"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.work_order_exception_command",
+      "arguments": "target_tenant uuid, input jsonb",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:2330"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.work_order_list",
+      "arguments": "target_tenant uuid, filters jsonb",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:2386"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.work_order_operational_rows",
+      "arguments": "target_tenant uuid, target_customer uuid, target_object uuid, page_offset integer, page_size integer, open_only boolean",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160534_work_orders_projection.sql:243"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.work_order_operational_task_data",
+      "arguments": "target_tenant uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160534_work_orders_projection.sql:268"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.work_order_options",
+      "arguments": "target_tenant uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:2427"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.work_order_report",
+      "arguments": "target_work_order_id uuid",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:2572"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.work_order_signature_settings",
+      "arguments": "target_tenant uuid, target_object uuid, input jsonb",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:2757"
+      ],
+      "customRoleCutover": "pending"
+    },
+    {
+      "name": "public.work_order_template_command",
+      "arguments": "target_tenant uuid, command_id uuid, command text, input jsonb",
+      "security_definer": true,
+      "owner": "postgres",
+      "origins": [
+        "supabase/migrations/20260930160207_work_orders.sql:2814"
+      ],
+      "customRoleCutover": "pending"
+    }
+  ],
+  "policies": [
+    {
+      "schemaname": "public",
+      "tablename": "announcement_reads",
+      "policyname": "announcement_reads_insert_self",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((user_id = ( SELECT auth.uid() AS uid)) AND ( SELECT private.is_member(announcement_reads.tenant_id) AS is_member))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "announcements",
+      "policyname": "announcements_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(announcements.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "announcements",
+      "policyname": "announcements_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(announcements.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "announcements",
+      "policyname": "announcements_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(announcements.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(announcements.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "announcements",
+      "policyname": "announcements_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(( SELECT private.has_role(announcements.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role) OR ((withdrawn_at IS NULL) AND (published_at IS NOT NULL) AND (published_at <= clock_timestamp()) AND (( SELECT private.member_roles(announcements.tenant_id) AS member_roles) && audience_roles)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "appointment_slots",
+      "policyname": "appointment_slots_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(appointment_slots.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "appointment_slots",
+      "policyname": "appointment_slots_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(appointment_slots.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "appointment_slots",
+      "policyname": "appointment_slots_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(appointment_slots.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(appointment_slots.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "appointment_slots",
+      "policyname": "appointment_slots_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.has_role(appointment_slots.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "attachments",
+      "policyname": "attachments_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(( SELECT private.has_role(attachments.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role) OR ((uploaded_by = ( SELECT auth.uid() AS uid)) AND ( SELECT private.is_work_order_assignee(attachments.tenant_id, attachments.work_order_id) AS is_work_order_assignee)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "attachments",
+      "policyname": "attachments_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(attachments.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "attachments",
+      "policyname": "attachments_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(( SELECT private.has_role(attachments.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role) OR ((uploaded_by = ( SELECT auth.uid() AS uid)) AND ( SELECT private.is_work_order_assignee(attachments.tenant_id, attachments.work_order_id) AS is_work_order_assignee)))",
+      "with_check": "(( SELECT private.has_role(attachments.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role) OR ((uploaded_by = ( SELECT auth.uid() AS uid)) AND ( SELECT private.is_work_order_assignee(attachments.tenant_id, attachments.work_order_id) AS is_work_order_assignee)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "audit_events",
+      "policyname": "audit_events_management_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.has_role(audit_events.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "certificates",
+      "policyname": "certificates_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(certificates.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "certificates",
+      "policyname": "certificates_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(certificates.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "certificates",
+      "policyname": "certificates_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(certificates.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(certificates.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "customer_contacts",
+      "policyname": "customer_contacts_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(customer_contacts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "customer_contacts",
+      "policyname": "customer_contacts_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(customer_contacts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "customer_contacts",
+      "policyname": "customer_contacts_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(customer_contacts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(customer_contacts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "customer_documents",
+      "policyname": "customer_documents_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT private.has_role(customer_documents.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "customer_documents",
+      "policyname": "customer_documents_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.has_role(customer_documents.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "customer_notes",
+      "policyname": "customer_notes_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((created_by = ( SELECT auth.uid() AS uid)) AND ( SELECT private.has_role(customer_notes.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "customer_notes",
+      "policyname": "customer_notes_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.has_role(customer_notes.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "customers",
+      "policyname": "customers_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(customers.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "customers",
+      "policyname": "customers_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(customers.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "customers",
+      "policyname": "customers_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(customers.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(customers.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "dispatches",
+      "policyname": "dispatches_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(dispatches.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "dispatches",
+      "policyname": "dispatches_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(dispatches.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "dispatches",
+      "policyname": "dispatches_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(dispatches.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(dispatches.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "extra_work_rules",
+      "policyname": "extra_work_rules_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(extra_work_rules.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "extra_work_rules",
+      "policyname": "extra_work_rules_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(extra_work_rules.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "extra_work_rules",
+      "policyname": "extra_work_rules_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(extra_work_rules.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(extra_work_rules.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "extra_work_rules",
+      "policyname": "extra_work_rules_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.is_member(extra_work_rules.tenant_id) AS is_member)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "function_catalog",
+      "policyname": "function_catalog_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(function_catalog.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "function_catalog",
+      "policyname": "function_catalog_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(function_catalog.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "function_catalog",
+      "policyname": "function_catalog_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(function_catalog.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(function_catalog.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "function_catalog",
+      "policyname": "function_catalog_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.is_member(function_catalog.tenant_id) AS is_member)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "invoice_group_items",
+      "policyname": "invoice_group_items_finance",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "( SELECT private.has_role(invoice_group_items.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(invoice_group_items.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "invoice_groups",
+      "policyname": "invoice_groups_finance",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "( SELECT private.has_role(invoice_groups.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(invoice_groups.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "invoice_lines",
+      "policyname": "invoice_lines_finance",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "( SELECT private.has_role(invoice_lines.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(invoice_lines.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "invoice_sequences",
+      "policyname": "invoice_sequences_finance",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "( SELECT private.has_role(invoice_sequences.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(invoice_sequences.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "invoices",
+      "policyname": "invoices_finance",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "( SELECT private.has_role(invoices.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(invoices.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "notifications",
+      "policyname": "notifications_self_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(((user_id = ( SELECT auth.uid() AS uid)) AND ( SELECT private.is_member(notifications.tenant_id) AS is_member)) OR private.ticket_platform_notification_visible(id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "notifications",
+      "policyname": "notifications_self_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "((user_id = ( SELECT auth.uid() AS uid)) AND ( SELECT private.is_member(notifications.tenant_id) AS is_member))",
+      "with_check": "((user_id = ( SELECT auth.uid() AS uid)) AND ( SELECT private.is_member(notifications.tenant_id) AS is_member))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "object_customer_bindings",
+      "policyname": "object_bindings_manage",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role])",
+      "with_check": "(private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AND (created_by = auth.uid()))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "object_documents",
+      "policyname": "object360_document_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(private.object_manage(tenant_id) AND ((category <> 'security'::text) OR private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role])))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "object_documents",
+      "policyname": "object360_document_write",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "(private.object_manage(tenant_id) AND ((category <> 'security'::text) OR private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role])))",
+      "with_check": "(private.object_manage(tenant_id) AND ((category <> 'security'::text) OR private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role])))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "objects",
+      "policyname": "objects_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(objects.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "objects",
+      "policyname": "objects_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(objects.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "objects",
+      "policyname": "objects_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(objects.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(objects.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "open_shifts",
+      "policyname": "open_shifts_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(open_shifts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "open_shifts",
+      "policyname": "open_shifts_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(open_shifts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "open_shifts",
+      "policyname": "open_shifts_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(open_shifts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(open_shifts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "open_shifts",
+      "policyname": "open_shifts_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(( SELECT private.has_role(open_shifts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role) OR ((status = 'open'::text) AND (EXISTS ( SELECT 1\n   FROM personnel_functions pf\n  WHERE ((pf.tenant_id = open_shifts.tenant_id) AND (pf.personnel_id = ( SELECT private.current_personnel_id(open_shifts.tenant_id) AS current_personnel_id)) AND (pf.function_id = open_shifts.function_id)))) AND (NOT (EXISTS ( SELECT 1\n   FROM unnest(open_shifts.required_certificate_codes) required_code(required_code)\n  WHERE (NOT (EXISTS ( SELECT 1\n           FROM qualifications q\n          WHERE ((q.tenant_id = open_shifts.tenant_id) AND (q.personnel_id = ( SELECT private.current_personnel_id(open_shifts.tenant_id) AS current_personnel_id)) AND (q.code = required_code.required_code) AND ((q.valid_until IS NULL) OR (q.valid_until >= CURRENT_DATE)))))))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "payment_allocations",
+      "policyname": "payment_allocations_finance",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "( SELECT private.has_role(payment_allocations.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(payment_allocations.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "payment_attempts",
+      "policyname": "payment_attempts_finance",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "( SELECT private.has_role(payment_attempts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(payment_attempts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel",
+      "policyname": "personnel_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(personnel.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel",
+      "policyname": "personnel_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(personnel.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel",
+      "policyname": "personnel_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(personnel.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(personnel.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_contracts",
+      "policyname": "personnel_contracts_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(personnel_contracts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_contracts",
+      "policyname": "personnel_contracts_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(personnel_contracts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_contracts",
+      "policyname": "personnel_contracts_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(personnel_contracts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(personnel_contracts.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_documents",
+      "policyname": "personnel_documents_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(personnel_documents.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_documents",
+      "policyname": "personnel_documents_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(personnel_documents.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_documents",
+      "policyname": "personnel_documents_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(personnel_documents.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(personnel_documents.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_documents",
+      "policyname": "personnel_documents_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(( SELECT private.has_role(personnel_documents.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role) OR (visible_to_employee AND (personnel_id = ( SELECT private.current_personnel_id(personnel_documents.tenant_id) AS current_personnel_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_functions",
+      "policyname": "personnel_functions_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(personnel_functions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_functions",
+      "policyname": "personnel_functions_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(personnel_functions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_functions",
+      "policyname": "personnel_functions_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(personnel_functions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(personnel_functions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_notes",
+      "policyname": "personnel_notes_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(personnel_notes.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_notes",
+      "policyname": "personnel_notes_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(personnel_notes.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_notes",
+      "policyname": "personnel_notes_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(personnel_notes.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(personnel_notes.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_travel_days",
+      "policyname": "travel_days_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "(private.object_session_active() AND private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'hr'::app_role]))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_travel_days",
+      "policyname": "travel_days_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(private.object_session_active() AND private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'hr'::app_role]))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "personnel_travel_days",
+      "policyname": "travel_days_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(private.object_session_active() AND private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'hr'::app_role]))",
+      "with_check": "(private.object_session_active() AND private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'hr'::app_role]))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "push_subscriptions",
+      "policyname": "push_subscriptions_self",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "((tenant_id IS NOT NULL) AND (user_id = ( SELECT auth.uid() AS uid)) AND ( SELECT private.is_member(push_subscriptions.tenant_id) AS is_member))",
+      "with_check": "((tenant_id IS NOT NULL) AND (user_id = ( SELECT auth.uid() AS uid)) AND ( SELECT private.is_member(push_subscriptions.tenant_id) AS is_member))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "qualification_requirements",
+      "policyname": "catalog_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role, 'planner'::app_role])",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "qualification_types",
+      "policyname": "catalog_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role, 'planner'::app_role])",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "qualifications",
+      "policyname": "qualifications_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(qualifications.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "qualifications",
+      "policyname": "qualifications_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(qualifications.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "qualifications",
+      "policyname": "qualifications_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(qualifications.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(qualifications.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "reminders",
+      "policyname": "reminders_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(reminders.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "reminders",
+      "policyname": "reminders_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(reminders.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "reminders",
+      "policyname": "reminders_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(reminders.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(reminders.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "reminders",
+      "policyname": "reminders_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((assigned_user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT private.has_role(reminders.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_entries",
+      "policyname": "report_entries_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) OR ((author_user_id = ( SELECT auth.uid() AS uid)) AND private.staff_report_editable(tenant_id, work_order_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_entries",
+      "policyname": "report_entries_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(report_entries.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "report_entries",
+      "policyname": "report_entries_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) OR ((author_user_id = ( SELECT auth.uid() AS uid)) AND private.staff_report_editable(tenant_id, work_order_id)))",
+      "with_check": "(private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) OR ((author_user_id = ( SELECT auth.uid() AS uid)) AND private.staff_report_editable(tenant_id, work_order_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "review_decisions",
+      "policyname": "review_decisions_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(review_decisions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "review_decisions",
+      "policyname": "review_decisions_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(review_decisions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "review_decisions",
+      "policyname": "review_decisions_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(review_decisions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(review_decisions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "shift_interests",
+      "policyname": "shift_interests_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(( SELECT private.has_role(shift_interests.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role) OR (personnel_id = ( SELECT private.current_personnel_id(shift_interests.tenant_id) AS current_personnel_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "shift_interests",
+      "policyname": "shift_interests_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(shift_interests.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "shift_interests",
+      "policyname": "shift_interests_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((personnel_id = ( SELECT private.current_personnel_id(shift_interests.tenant_id) AS current_personnel_id)) OR ( SELECT private.has_role(shift_interests.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "shift_interests",
+      "policyname": "shift_interests_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(( SELECT private.has_role(shift_interests.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role) OR (personnel_id = ( SELECT private.current_personnel_id(shift_interests.tenant_id) AS current_personnel_id)))",
+      "with_check": "(( SELECT private.has_role(shift_interests.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role) OR ((personnel_id = ( SELECT private.current_personnel_id(shift_interests.tenant_id) AS current_personnel_id)) AND (status = ANY (ARRAY['interested'::text, 'withdrawn'::text]))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "signatures",
+      "policyname": "signatures_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(( SELECT private.has_role(signatures.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role) OR ((captured_by = ( SELECT auth.uid() AS uid)) AND ( SELECT private.is_work_order_assignee(signatures.tenant_id, signatures.work_order_id) AS is_work_order_assignee)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "signatures",
+      "policyname": "signatures_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(signatures.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "signatures",
+      "policyname": "signatures_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(signatures.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(signatures.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "status_events",
+      "policyname": "status_events_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(status_events.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "status_events",
+      "policyname": "status_events_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(status_events.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "status_events",
+      "policyname": "status_events_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(status_events.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(status_events.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "status_events",
+      "policyname": "status_events_personal_execution",
+      "permissive": "RESTRICTIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) OR (EXISTS ( SELECT 1\n   FROM work_order_assignments a\n  WHERE ((a.tenant_id = status_events.tenant_id) AND (a.id = status_events.assignment_id) AND (a.personnel_id = private.current_personnel_id(a.tenant_id))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "task_catalog",
+      "policyname": "task_catalog_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(task_catalog.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "task_catalog",
+      "policyname": "task_catalog_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(task_catalog.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "task_catalog",
+      "policyname": "task_catalog_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(task_catalog.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(task_catalog.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "task_catalog",
+      "policyname": "task_catalog_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.is_member(task_catalog.tenant_id) AS is_member)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "task_revisions",
+      "policyname": "task_revision_financial_projection",
+      "permissive": "RESTRICTIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role])",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "task_revisions",
+      "policyname": "task_revisions_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(task_revisions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "task_revisions",
+      "policyname": "task_revisions_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(task_revisions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "task_revisions",
+      "policyname": "task_revisions_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(task_revisions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(task_revisions.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "task_revisions",
+      "policyname": "task_revisions_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.is_member(task_revisions.tenant_id) AS is_member)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_branding",
+      "policyname": "tenant_branding_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(tenant_branding.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_branding",
+      "policyname": "tenant_branding_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(tenant_branding.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_branding",
+      "policyname": "tenant_branding_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(tenant_branding.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(tenant_branding.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_branding",
+      "policyname": "tenant_branding_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.is_member(tenant_branding.tenant_id) AS is_member)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_domains",
+      "policyname": "tenant_domains_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(tenant_domains.tenant_id, ARRAY['tenant_admin'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_domains",
+      "policyname": "tenant_domains_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(tenant_domains.tenant_id, ARRAY['tenant_admin'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_domains",
+      "policyname": "tenant_domains_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(tenant_domains.tenant_id, ARRAY['tenant_admin'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(tenant_domains.tenant_id, ARRAY['tenant_admin'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_domains",
+      "policyname": "tenant_domains_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.is_member(tenant_domains.tenant_id) AS is_member)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_memberships",
+      "policyname": "tenant_memberships_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(tenant_memberships.tenant_id, ARRAY['tenant_admin'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_memberships",
+      "policyname": "tenant_memberships_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(tenant_memberships.tenant_id, ARRAY['tenant_admin'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_memberships",
+      "policyname": "tenant_memberships_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(tenant_memberships.tenant_id, ARRAY['tenant_admin'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(tenant_memberships.tenant_id, ARRAY['tenant_admin'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_memberships",
+      "policyname": "tenant_memberships_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((user_id = ( SELECT auth.uid() AS uid)) OR ( SELECT private.has_role(tenant_memberships.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'hr'::app_role]) AS has_role))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_message_templates",
+      "policyname": "tenant_message_templates_member_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(( SELECT private.is_member(tenant_message_templates.tenant_id) AS is_member) OR ( SELECT private.is_platform_admin() AS is_platform_admin))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_settings",
+      "policyname": "tenant_settings_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(tenant_settings.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_settings",
+      "policyname": "tenant_settings_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(tenant_settings.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_settings",
+      "policyname": "tenant_settings_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(tenant_settings.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(tenant_settings.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenant_settings",
+      "policyname": "tenant_settings_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.is_member(tenant_settings.tenant_id) AS is_member)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenants",
+      "policyname": "tenants_read_membership",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "( SELECT private.is_member(tenants.id) AS is_member)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "tenants",
+      "policyname": "tenants_update_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(tenants.id, ARRAY['tenant_admin'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(tenants.id, ARRAY['tenant_admin'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "time_entries",
+      "policyname": "time_entries_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(time_entries.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "time_entries",
+      "policyname": "time_entries_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(time_entries.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "time_entries",
+      "policyname": "time_entries_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(time_entries.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'hr'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(time_entries.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'hr'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "time_entries",
+      "policyname": "time_entries_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((personnel_id = ( SELECT private.current_personnel_id(time_entries.tenant_id) AS current_personnel_id)) OR ( SELECT private.has_role(time_entries.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'hr'::app_role, 'finance'::app_role]) AS has_role))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "travel_depots",
+      "policyname": "depots_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(private.object_session_active() AND private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "travel_depots",
+      "policyname": "depots_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(private.object_session_active() AND private.is_member(tenant_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "travel_depots",
+      "policyname": "depots_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "(private.object_session_active() AND private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]))",
+      "with_check": "(private.object_session_active() AND private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "travel_legs",
+      "policyname": "travel_legs_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(travel_legs.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "travel_legs",
+      "policyname": "travel_legs_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(travel_legs.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "travel_legs",
+      "policyname": "travel_legs_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(travel_legs.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(travel_legs.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "travel_legs",
+      "policyname": "travel_legs_personal_execution",
+      "permissive": "RESTRICTIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]) OR (EXISTS ( SELECT 1\n   FROM work_order_assignments a\n  WHERE ((a.tenant_id = travel_legs.tenant_id) AND (a.id = travel_legs.assignment_id) AND (a.personnel_id = private.current_personnel_id(a.tenant_id))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "travel_legs",
+      "policyname": "travel_legs_read",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(private.object_session_active() AND (private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'hr'::app_role]) OR (EXISTS ( SELECT 1\n   FROM work_order_assignments a\n  WHERE ((a.tenant_id = travel_legs.tenant_id) AND (a.id = travel_legs.assignment_id) AND (a.personnel_id = private.current_personnel_id(a.tenant_id)) AND (a.status <> 'cancelled'::text) AND private.is_work_order_assignee(a.tenant_id, a.work_order_id))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_order_allowed_extra_work",
+      "policyname": "work_order_allowed_extra_work_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(work_order_allowed_extra_work.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_order_allowed_extra_work",
+      "policyname": "work_order_allowed_extra_work_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(work_order_allowed_extra_work.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_order_allowed_extra_work",
+      "policyname": "work_order_allowed_extra_work_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(work_order_allowed_extra_work.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(work_order_allowed_extra_work.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_order_assignments",
+      "policyname": "assignments_personal_execution",
+      "permissive": "RESTRICTIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((personnel_id = private.current_personnel_id(tenant_id)) OR private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role, 'finance'::app_role]))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_order_assignments",
+      "policyname": "work_order_assignments_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(work_order_assignments.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_order_assignments",
+      "policyname": "work_order_assignments_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(work_order_assignments.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_order_assignments",
+      "policyname": "work_order_assignments_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(work_order_assignments.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(work_order_assignments.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_order_tasks",
+      "policyname": "work_order_task_financial_projection",
+      "permissive": "RESTRICTIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role])",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_order_tasks",
+      "policyname": "work_order_tasks_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(work_order_tasks.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_order_tasks",
+      "policyname": "work_order_tasks_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(work_order_tasks.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_order_tasks",
+      "policyname": "work_order_tasks_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(work_order_tasks.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(work_order_tasks.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_orders",
+      "policyname": "work_orders_manage_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "DELETE",
+      "qual": "( SELECT private.has_role(work_orders.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_orders",
+      "policyname": "work_orders_manage_insert",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "( SELECT private.has_role(work_orders.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_orders",
+      "policyname": "work_orders_manage_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "( SELECT private.has_role(work_orders.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)",
+      "with_check": "( SELECT private.has_role(work_orders.tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'planner'::app_role]) AS has_role)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "work_orders",
+      "policyname": "work_orders_staff_projection",
+      "permissive": "RESTRICTIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "private.has_role(tenant_id, ARRAY['tenant_admin'::app_role, 'management'::app_role, 'finance'::app_role])",
+      "with_check": null
+    }
+  ],
+  "codeChecks": [
+    {
+      "path": "components/fieldgrid/customers/dossier.tsx",
+      "line": 93,
+      "pattern": "canReadFinance(tenant.roles) &&",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/customers/dossier.tsx",
+      "line": 95,
+      "pattern": "commercial = canReadFinance(tenant.roles),",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/customers/list.tsx",
+      "line": 87,
+      "pattern": "const canDelete = tenant.roles.some((r) =>",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "lib/platform/data.ts",
+      "line": 50,
+      "pattern": "if (!context.isPlatformAdmin) throw new Error(\"Alleen Fieldgrid-platformbeheer heeft toegang.\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "lib/platform/data.ts",
+      "line": 78,
+      "pattern": "const displayName = typeof data.user.user_metadata?.full_name === \"string\" ? data.user.user_metadata.full_name.trim() : \"\";",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/planboard/day-planboard.tsx",
+      "line": 705,
+      "pattern": "tenant.roles.some((r) =>",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/backoffice-shell.tsx",
+      "line": 143,
+      "pattern": "if (view === \"klanten\") return <CustomersPage data={data} timezone={tenant.timezone} roles={tenant.roles}/>;",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/backoffice-shell.tsx",
+      "line": 146,
+      "pattern": "if (view === \"personeel\") return <PersonnelPage data={data} roles={tenant.roles}/>;",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/backoffice-shell.tsx",
+      "line": 161,
+      "pattern": "{tenant.roles.some(r=>[\"tenant_admin\",\"management\"].includes(r))&&<TravelSettings/>}",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/backoffice-shell.tsx",
+      "line": 162,
+      "pattern": "{tenant.enabledServices.includes(\"personeel\") && (context.isPlatformAdmin || tenant.roles.some((role) => [\"tenant_admin\", \"management\"].includes(role))) && <PersonnelNumberSettings",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/backoffice-shell.tsx",
+      "line": 163,
+      "pattern": "{tenant.enabledServices.includes(\"planning\") && tenant.roles.some(role => [\"tenant_admin\", \"management\"].includes(role)) && <WorkOrderSignatureSettings/>}",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/backoffice-shell.tsx",
+      "line": 168,
+      "pattern": "<aside className={`workspace-sidebar ${mobileNav ? \"open\" : \"\"}`}><div className=\"workspace-brand\"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><n",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/platform/page.tsx",
+      "line": 12,
+      "pattern": "if (!context.isPlatformAdmin) redirect(\"/app\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/commercial/detail.tsx",
+      "line": 57,
+      "pattern": "{q?.status===\"accepted\"&&[\"week\",\"month\"].includes(q.price_basis)&&tenant.roles.some(r=>[\"tenant_admin\",\"management\",\"finance\"].includes(r))&&tenant.enabledServices.includes(\"finan",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/objects/dossier.tsx",
+      "line": 44,
+      "pattern": "{tenant.roles.some(r=>[\"tenant_admin\",\"management\"].includes(r))&&<section className=\"dossier-card\">{section(\"Klanttoegang tot dit object\",\"Alleen voor een gecontroleerd bestaand a",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/tickets/routes.tsx",
+      "line": 22,
+      "pattern": "return <TicketStandaloneShell access={access} canPlatformAdmin={context.isPlatformAdmin}>{children}</TicketStandaloneShell>;",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/work-orders/dossier.tsx",
+      "line": 71,
+      "pattern": "<section className=\"wo-card\"><h2>Contactpersonen</h2><div className=\"wo-list\">{data.contacts.map(c => <article key={c.id} className=\"wo-record\"><strong>{c.name}</strong><small>{c.r",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/work-orders/wizard.tsx",
+      "line": 33,
+      "pattern": "const [contacts, setContacts] = useState<ContactChoice[]>(() => dossier?.contacts.map(c => ({ id: c.id, roles: c.roles.filter(r => r in contactRoleLabels) as ContactChoice[\"roles\"]",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/work-orders/wizard.tsx",
+      "line": 140,
+      "pattern": "<fieldset className=\"wo-wizard-step\" hidden={step !== 3}><legend>Contacten en instructies</legend><div className=\"wo-contact-list wide\">{customerContacts.map(c => { const selected ",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "components/fieldgrid/work-orders/wizard.tsx",
+      "line": 161,
+      "pattern": "<fieldset className=\"wo-wizard-step\" hidden={step !== 6}><legend>Controleer de werkbon</legend><div className=\"wo-summary wide\"><section><dl><div><dt>Klant</dt><dd>{customer?.name}",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/api/addresses/route.ts",
+      "line": 24,
+      "pattern": "!c.tenant.roles.some((r) =>",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "lib/auth/context.ts",
+      "line": 28,
+      "pattern": "isPlatformAdmin: boolean;",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "lib/auth/context.ts",
+      "line": 50,
+      "pattern": "return tenant ? [{ tenantId: tenant.id, tenantName: tenant.name, tenantSlug: tenant.slug, roles: membership.roles }] : [];",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "lib/auth/context.ts",
+      "line": 75,
+      "pattern": "roles: resolved.roles,",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "lib/auth/context.ts",
+      "line": 88,
+      "pattern": "isPlatformAdmin: Boolean(platformAdmin),",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "lib/auth/context.ts",
+      "line": 92,
+      "pattern": "export function hasAnyRole(context: AuthContext, roles: AppRole[]): boolean {",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "lib/auth/context.ts",
+      "line": 93,
+      "pattern": "return Boolean(context.tenant?.roles.some((role) => roles.includes(role)));",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "lib/work-orders/report-actions.ts",
+      "line": 17,
+      "pattern": "try{const actor=await context();if(!actor.tenant?.roles.includes(\"staff\"))throw new Error(\"Personeelsuitvoering vereist\");const v=z.object({orderId:z.uuid(),version:z.number().int(",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/auth/invite/actions.ts",
+      "line": 31,
+      "pattern": "if (membership?.status !== \"active\" || !membership.roles.includes(\"staff\") || !person || ![\"invited\", \"active\"].includes(person.status)) {",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/staff/page.tsx",
+      "line": 11,
+      "pattern": "if (!context.tenant.roles.includes(\"staff\")) redirect(\"/app\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/staff/actions.ts",
+      "line": 17,
+      "pattern": "if (!context.tenant || !context.tenant.enabledServices.includes(\"personeel\") || !context.tenant.roles.includes(\"staff\")) throw new Error(\"Personeelstoegang vereist\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/travel-actions.ts",
+      "line": 18,
+      "pattern": "if (!c.tenant || !c.tenant.roles.some((r) => roles.includes(r)))",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/travel-actions.ts",
+      "line": 287,
+      "pattern": "const privateAccess = tenant.roles.some((r) =>",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/travel-actions.ts",
+      "line": 339,
+      "pattern": "const privateAccess = tenant.roles.some((r) =>",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/work-order-file-actions.ts",
+      "line": 15,
+      "pattern": "if (!tenant?.enabledServices.includes(\"planning\") || !tenant.roles.some(r => [\"tenant_admin\", \"management\", \"planner\"].includes(r))) throw new Error(\"Geen toegang tot werkboncommun",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/page.tsx",
+      "line": 11,
+      "pattern": "if (context.isPlatformAdmin) redirect(\"/platform\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/page.tsx",
+      "line": 14,
+      "pattern": "if (context.tenant.roles.length === 1 && context.tenant.roles[0] === \"staff\") redirect(\"/staff\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/finance-actions.ts",
+      "line": 6,
+      "pattern": "import { getAuthContext, hasAnyRole, type AuthContext, type TenantContext } from \"@/lib/auth/context\";",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/finance-actions.ts",
+      "line": 25,
+      "pattern": "if (!context.tenant || !context.tenant.enabledServices.includes(\"finance\") || !hasAnyRole(context, [\"tenant_admin\", \"management\", \"finance\"])) throw new Error(\"De module Facturatie",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/opvolging/page.tsx",
+      "line": 8,
+      "pattern": "if (!context.tenant || !context.tenant.roles.some(r => [\"tenant_admin\", \"management\", \"hr\", \"planner\", \"finance\"].includes(r))) notFound();",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/operations-actions.ts",
+      "line": 8,
+      "pattern": "import { getAuthContext, hasAnyRole, type AppRole, type AuthContext, type TenantContext } from \"@/lib/auth/context\";",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/operations-actions.ts",
+      "line": 20,
+      "pattern": "if (!context.tenant || !hasAnyRole(context, roles)) throw new Error(\"Onvoldoende rechten voor deze actie\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/operations-actions.ts",
+      "line": 268,
+      "pattern": "const { error: membershipError } = await supabase.from(\"tenant_memberships\").upsert({ tenant_id: context.tenant.id, user_id: account.userId, roles: [...new Set<AppRole>([...(member",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/operations-actions.ts",
+      "line": 291,
+      "pattern": "if (membership?.status !== \"active\" || !membership.roles.includes(\"staff\")) throw new Error(\"Dit account heeft geen actieve toegang tot het personeelsportaal.\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/work-order-actions.ts",
+      "line": 13,
+      "pattern": "if (!tenant?.enabledServices.includes(\"planning\") || !tenant.roles.some(r => [\"tenant_admin\", \"management\", \"planner\", \"finance\", ...(staff ? [\"staff\"] : [])].includes(r))) throw n",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/klanten/actions.ts",
+      "line": 19,
+      "pattern": "!canManageCustomers(ctx.tenant.roles) ||",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/aanvragen/page.tsx",
+      "line": 9,
+      "pattern": "const context=await getAuthContext();if(!context.tenant)redirect(context.isPlatformAdmin?\"/platform\":\"/app\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/aanvragen/page.tsx",
+      "line": 10,
+      "pattern": "if(!context.tenant.enabledServices.includes(\"planning\")||!context.tenant.roles.some(r=>[\"tenant_admin\",\"management\",\"planner\",\"finance\"].includes(r)))notFound();",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/werkbonnen/layout.tsx",
+      "line": 9,
+      "pattern": "if (!context.tenant?.enabledServices.includes(\"planning\") || !context.tenant.roles.some(r => [\"tenant_admin\", \"management\", \"planner\", \"finance\"].includes(r))) notFound();",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/personeel/acties/page.tsx",
+      "line": 10,
+      "pattern": "const context=await getAuthContext();if(!context.tenant||!context.tenant.enabledServices.includes(\"personeel\")||!canReadDossier(context.tenant.roles))notFound();",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/taken/templates/page.tsx",
+      "line": 9,
+      "pattern": "if (!context.tenant?.enabledServices.includes(\"planning\") || !context.tenant.roles.some(r => [\"tenant_admin\",\"management\",\"planner\"].includes(r))) notFound();",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/dossier-actions.ts",
+      "line": 22,
+      "pattern": "if (!context.tenant || !context.tenant.roles.some(r => [\"tenant_admin\", \"management\", \"finance\"].includes(r))) throw new Error();",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/werkbonnen/[workOrderId]/page.tsx",
+      "line": 10,
+      "pattern": "if (!context.tenant?.enabledServices.includes(\"planning\") || !context.tenant.roles.some(r => [\"tenant_admin\", \"management\", \"planner\", \"finance\"].includes(r)) || !/^[a-f0-9-]{36}$/",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/werkbonnen/page.tsx",
+      "line": 9,
+      "pattern": "if (!context.tenant?.enabledServices.includes(\"planning\") || !context.tenant.roles.some(r => [\"tenant_admin\", \"management\", \"planner\", \"finance\"].includes(r))) notFound();",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/personeel/[personnelId]/page.tsx",
+      "line": 12,
+      "pattern": "if(!context.tenant||!context.tenant.enabledServices.includes(\"personeel\")||!canReadDossier(context.tenant.roles)||!/^[a-f0-9-]{36}$/i.test(personnelId))notFound();",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/personeel/[personnelId]/page.tsx",
+      "line": 14,
+      "pattern": "const [workspace,data]=await Promise.all([getWorkspaceData(context.tenant.id),getDossierData(context.tenant.id,person.id,context.tenant.roles)]);",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/personeel/dossier-actions.ts",
+      "line": 17,
+      "pattern": "if(!context.tenant || !canReadDossier(context.tenant.roles)||!context.tenant.enabledServices.includes(\"personeel\")) throw new Error(\"Je hebt geen toegang tot dit personeelsdossier.",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/personeel/dossier-actions.ts",
+      "line": 45,
+      "pattern": "if(!member || (key===\"ownerId\"&&!canReadDossier(member.roles))) throw new Error(\"Selecteer een actieve verantwoordelijke binnen jouw organisatie.\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/planning/page.tsx",
+      "line": 14,
+      "pattern": "if (!context.tenant) redirect(context.isPlatformAdmin ? \"/platform\" : \"/app\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/planning/page.tsx",
+      "line": 17,
+      "pattern": "!context.tenant.roles.some((r) =>",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/[view]/page.tsx",
+      "line": 35,
+      "pattern": "if (context.isPlatformAdmin) redirect(\"/platform\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/[view]/page.tsx",
+      "line": 38,
+      "pattern": "if (context.tenant.roles.length === 1 && context.tenant.roles[0] === \"staff\") redirect(\"/staff\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/[view]/page.tsx",
+      "line": 43,
+      "pattern": "if (view === \"werkbonnen\" && context.tenant.roles.some(role => [\"tenant_admin\", \"management\", \"hr\", \"planner\"].includes(role))) {",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/objecten/page.tsx",
+      "line": 17,
+      "pattern": "const context=await getAuthContext();if(!context.tenant||!canManageObjects(context.tenant.roles)||!context.tenant.enabledServices.includes(\"planning\"))notFound();",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/objecten/actions.ts",
+      "line": 18,
+      "pattern": "if(!context.tenant||!canManageObjects(context.tenant.roles)||!context.tenant.enabledServices.includes(\"planning\"))throw new Error(\"Je hebt geen toegang tot dit objectdossier.\");",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/objecten/actions.ts",
+      "line": 57,
+      "pattern": "if(!tenant.roles.some(r=>[\"tenant_admin\",\"management\"].includes(r)))return fail();",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/objecten/actions.ts",
+      "line": 71,
+      "pattern": "const {db,tenant,context}=await authorize(v.objectId);if(v.category===\"security\"&&!tenant.roles.some(r=>[\"tenant_admin\",\"management\"].includes(r)))return fail();",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/planning/actions.ts",
+      "line": 18,
+      "pattern": "!context.tenant.roles.some((r) =>",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/klanten/page.tsx",
+      "line": 21,
+      "pattern": "!canManageCustomers(context.tenant.roles) ||",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/klanten/[customerId]/page.tsx",
+      "line": 25,
+      "pattern": "!canManageCustomers(context.tenant.roles) ||",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/klanten/[customerId]/page.tsx",
+      "line": 34,
+      "pattern": "canReadFinance(context.tenant.roles),",
+      "customRoleCutover": "pending"
+    },
+    {
+      "path": "app/app/objecten/[objectId]/page.tsx",
+      "line": 10,
+      "pattern": "if(!context.tenant||!canManageObjects(context.tenant.roles)||!context.tenant.enabledServices.includes(\"planning\")||!/^[a-f0-9-]{36}$/i.test(objectId))notFound();",
+      "customRoleCutover": "pending"
+    }
+  ],
+  "catalog": [
+    {
+      "key": "platform.notifications.cancel",
+      "domain": "platform",
+      "name": "Platformcampagnes intrekken",
+      "description": "Platformcampagnes intrekken",
+      "module": "notifications",
+      "action": "cancel",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.notifications.delivery.read",
+      "domain": "platform",
+      "name": "Technische afleverstatus bekijken",
+      "description": "Technische afleverstatus bekijken",
+      "module": "notifications",
+      "action": "read",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.notifications.delivery.retry",
+      "domain": "platform",
+      "name": "Afleverfouten herstellen",
+      "description": "Afleverfouten herstellen",
+      "module": "notifications",
+      "action": "retry",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.notifications.manage_global",
+      "domain": "platform",
+      "name": "Globale notificatiepolicy beheren",
+      "description": "Globale notificatiepolicy beheren",
+      "module": "notifications",
+      "action": "manage_global",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.notifications.manage_tenant",
+      "domain": "platform",
+      "name": "Tenantuitzonderingen beheren",
+      "description": "Tenantuitzonderingen beheren",
+      "module": "notifications",
+      "action": "manage_tenant",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.notifications.permissions",
+      "domain": "platform",
+      "name": "Platformnotificatierechten delegeren",
+      "description": "Afzonderlijke platformnotificatierechten binnen expliciet delegatiebereik.",
+      "module": "notifications",
+      "action": "permissions",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.notifications.read",
+      "domain": "platform",
+      "name": "Platformcampagnes bekijken",
+      "description": "Platformcampagnes bekijken",
+      "module": "notifications",
+      "action": "read",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.notifications.schedule",
+      "domain": "platform",
+      "name": "Platformcampagnes plannen",
+      "description": "Platformcampagnes plannen",
+      "module": "notifications",
+      "action": "schedule",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.notifications.send",
+      "domain": "platform",
+      "name": "Managementcontacten berichten",
+      "description": "Managementcontacten berichten",
+      "module": "notifications",
+      "action": "send",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.notifications.send_all_tenants",
+      "domain": "platform",
+      "name": "Alle tenants berichten",
+      "description": "Alle tenants berichten",
+      "module": "notifications",
+      "action": "send_all_tenants",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.notifications.templates.manage",
+      "domain": "platform",
+      "name": "Platformtemplates beheren",
+      "description": "Platformtemplates beheren",
+      "module": "notifications",
+      "action": "manage",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.support.config",
+      "domain": "platform",
+      "name": "Support configureren",
+      "description": "Technische configuratie zonder supportinhoud.",
+      "module": "tickets",
+      "action": "config",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.support.critical",
+      "domain": "platform",
+      "name": "Kritieke platformprioriteit",
+      "description": "Kritieke impact van gedeelde support vaststellen.",
+      "module": "tickets",
+      "action": "critical",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [
+        "platform.support.read",
+        "platform.support.manage"
+      ],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.support.manage",
+      "domain": "platform",
+      "name": "Platform-support behandelen",
+      "description": "Toewijzen, prioriteren, oplossen en sluiten.",
+      "module": "tickets",
+      "action": "manage",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [
+        "platform.support.read"
+      ],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.support.note",
+      "domain": "platform",
+      "name": "Platformnotities",
+      "description": "Alleen platforminterne notities op toegestane supporttickets.",
+      "module": "tickets",
+      "action": "note",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [
+        "platform.support.read"
+      ],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.support.permissions",
+      "domain": "platform",
+      "name": "Platform-supportrechten delegeren",
+      "description": "Expliciete delegatie na verificatie; geen eigen uitbreiding.",
+      "module": "tickets",
+      "action": "permissions",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.support.read",
+      "domain": "platform",
+      "name": "Gedeelde support lezen",
+      "description": "Uitsluitend expliciet gedeelde platform-supporttickets.",
+      "module": "tickets",
+      "action": "read",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.support.redact",
+      "domain": "platform",
+      "name": "Supportberichten afschermen",
+      "description": "Alleen expliciet gedeelde supportberichten afschermen.",
+      "module": "tickets",
+      "action": "redact",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [
+        "platform.support.read"
+      ],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "platform.support.reply",
+      "domain": "platform",
+      "name": "Platform-support beantwoorden",
+      "description": "Antwoorden op gedeelde supporttickets.",
+      "module": "tickets",
+      "action": "reply",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [
+        "platform.support.read"
+      ],
+      "resource": "platform",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "authorization.audit.read",
+      "domain": "tenant",
+      "name": "Beheerhistorie bekijken",
+      "description": "Bekijk rollenwijzigingen zonder de historie te kunnen wissen.",
+      "module": "authorization",
+      "action": "read",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "authorization",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "backoffice.access",
+      "domain": "tenant",
+      "name": "Backoffice openen",
+      "description": "Opent de backofficecontext; geeft geen dossierinzage.",
+      "module": "authorization",
+      "action": "access",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "backoffice",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "permissions.read",
+      "domain": "tenant",
+      "name": "Rechten bekijken",
+      "description": "Bekijk het register en de uitleg van toewijsbare tenantrechten.",
+      "module": "authorization",
+      "action": "read",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "permissions",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "roles.archive",
+      "domain": "tenant",
+      "name": "Rollen archiveren",
+      "description": "Archiveer een rol nadat actieve toewijzingen zijn vervangen of ingetrokken.",
+      "module": "authorization",
+      "action": "archive",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "roles",
+      "classification": "administrative",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "roles.assign",
+      "domain": "tenant",
+      "name": "Rollen toewijzen",
+      "description": "Ken gecontroleerde rollen en bereiken toe aan een lidmaatschap.",
+      "module": "authorization",
+      "action": "assign",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "roles",
+      "classification": "administrative",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "roles.create",
+      "domain": "tenant",
+      "name": "Rollen aanmaken",
+      "description": "Maak een eigen rol binnen je delegatiebereik.",
+      "module": "authorization",
+      "action": "create",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "roles",
+      "classification": "administrative",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "roles.duplicate",
+      "domain": "tenant",
+      "name": "Rollen dupliceren",
+      "description": "Maak een zelfstandige kopie binnen je delegatiebereik.",
+      "module": "authorization",
+      "action": "duplicate",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "roles",
+      "classification": "administrative",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "roles.permissions.delegate",
+      "domain": "tenant",
+      "name": "Rechten delegeren",
+      "description": "Delegeer uitsluitend de expliciet vastgelegde tenantrechten en bereiken; geeft zelf geen inzage.",
+      "module": "authorization",
+      "action": "delegate",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "roles",
+      "classification": "administrative",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "roles.read",
+      "domain": "tenant",
+      "name": "Rollen bekijken",
+      "description": "Bekijk rollen en de expliciete rechten en bereiken.",
+      "module": "authorization",
+      "action": "read",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "roles",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "roles.unassign",
+      "domain": "tenant",
+      "name": "Rollen intrekken",
+      "description": "Trek een roltoewijzing in, zonder historie te verwijderen.",
+      "module": "authorization",
+      "action": "unassign",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "roles",
+      "classification": "administrative",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "roles.update",
+      "domain": "tenant",
+      "name": "Rollen wijzigen",
+      "description": "Wijzig een rol voor alle gebruikers van die rol.",
+      "module": "authorization",
+      "action": "update",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "roles",
+      "classification": "administrative",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "users.read",
+      "domain": "tenant",
+      "name": "Gebruikers bekijken",
+      "description": "Bekijk tenantleden voor roltoewijzingen.",
+      "module": "authorization",
+      "action": "read",
+      "scopes": [
+        "tenant"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "users",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": [
+        "scripts/sql/authorization-roles.sql"
+      ]
+    },
+    {
+      "key": "notifications.cancel",
+      "domain": "tenant",
+      "name": "Campagnes intrekken",
+      "description": "Campagnes intrekken",
+      "module": "notifications",
+      "action": "cancel",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.delivery.read",
+      "domain": "tenant",
+      "name": "Aflevering bekijken",
+      "description": "Aflevering bekijken",
+      "module": "notifications",
+      "action": "read",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.delivery.retry",
+      "domain": "tenant",
+      "name": "Bevestigde afleverfouten herstellen",
+      "description": "Bevestigde afleverfouten herstellen",
+      "module": "notifications",
+      "action": "retry",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.permissions",
+      "domain": "tenant",
+      "name": "Notificatierechten delegeren",
+      "description": "Afzonderlijke notificatierechten binnen eigen delegatiebereik; recente verificatie vereist.",
+      "module": "notifications",
+      "action": "permissions",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.platform.receive",
+      "domain": "tenant",
+      "name": "Managementberichten van Fieldgrid ontvangen",
+      "description": "Managementberichten van Fieldgrid ontvangen",
+      "module": "notifications",
+      "action": "receive",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.read_own",
+      "domain": "tenant",
+      "name": "Eigen notificaties lezen",
+      "description": "Eigen notificaties lezen",
+      "module": "notifications",
+      "action": "read_own",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.schedule",
+      "domain": "tenant",
+      "name": "Notificaties plannen",
+      "description": "Notificaties plannen",
+      "module": "notifications",
+      "action": "schedule",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.send_bulk",
+      "domain": "tenant",
+      "name": "Selecties berichten",
+      "description": "Selecties berichten",
+      "module": "notifications",
+      "action": "send_bulk",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.send_customers",
+      "domain": "tenant",
+      "name": "Klantcontacten berichten",
+      "description": "Klantcontacten berichten",
+      "module": "notifications",
+      "action": "send_customers",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.send_staff",
+      "domain": "tenant",
+      "name": "Personeel berichten",
+      "description": "Personeel berichten",
+      "module": "notifications",
+      "action": "send_staff",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.sent.read",
+      "domain": "tenant",
+      "name": "Verzendhistorie lezen",
+      "description": "Verzendhistorie lezen",
+      "module": "notifications",
+      "action": "read",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.settings.manage",
+      "domain": "tenant",
+      "name": "Notificatieregels beheren",
+      "description": "Notificatieregels beheren",
+      "module": "notifications",
+      "action": "manage",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "notifications.templates.override",
+      "domain": "tenant",
+      "name": "Toegestane templates aanpassen",
+      "description": "Toegestane templates aanpassen",
+      "module": "notifications",
+      "action": "override",
+      "scopes": [
+        "tenant",
+        "personnel",
+        "object",
+        "customer"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "notifications",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.config",
+      "domain": "tenant",
+      "name": "Meldingen configureren",
+      "description": "Categorieën en routing beheren, zonder inhoudelijk leesrecht.",
+      "module": "tickets",
+      "action": "config",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "tickets",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.internal.assign",
+      "domain": "tenant",
+      "name": "Behandelaars toewijzen",
+      "description": "Toewijzing verleent geen lees- of behandelrecht.",
+      "module": "tickets",
+      "action": "assign",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": false,
+      "dependencies": [
+        "tickets.internal.read"
+      ],
+      "resource": "tickets",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.internal.close",
+      "domain": "tenant",
+      "name": "Personeelsmeldingen sluiten",
+      "description": "Oplossen, sluiten en heropenen met reden.",
+      "module": "tickets",
+      "action": "close",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": false,
+      "dependencies": [
+        "tickets.internal.read"
+      ],
+      "resource": "tickets",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.internal.critical",
+      "domain": "tenant",
+      "name": "Kritieke personeelsprioriteit",
+      "description": "Alleen een bevoegde behandelaar mag kritieke bedrijfsimpact vaststellen.",
+      "module": "tickets",
+      "action": "critical",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [
+        "tickets.internal.read",
+        "tickets.internal.manage"
+      ],
+      "resource": "tickets",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.internal.hr",
+      "domain": "tenant",
+      "name": "Vertrouwelijke HR-meldingen",
+      "description": "Extra vereiste bovenop het normale ticketrecht; eigen scope blijft bepalend.",
+      "module": "tickets",
+      "action": "hr",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [
+        "tickets.internal.read"
+      ],
+      "resource": "tickets",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.internal.manage",
+      "domain": "tenant",
+      "name": "Personeelsmeldingen behandelen",
+      "description": "Status, prioriteit en categorie aanpassen.",
+      "module": "tickets",
+      "action": "manage",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": false,
+      "dependencies": [
+        "tickets.internal.read"
+      ],
+      "resource": "tickets",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.internal.note",
+      "domain": "tenant",
+      "name": "Interne notities",
+      "description": "Tenantnotities lezen en schrijven; nooit automatisch delen.",
+      "module": "tickets",
+      "action": "note",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": false,
+      "dependencies": [
+        "tickets.internal.read"
+      ],
+      "resource": "tickets",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.internal.read",
+      "domain": "tenant",
+      "name": "Personeelsmeldingen lezen",
+      "description": "Alleen binnen de toegewezen categorie- en recordscope.",
+      "module": "tickets",
+      "action": "read",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": false,
+      "dependencies": [],
+      "resource": "tickets",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.internal.reply",
+      "domain": "tenant",
+      "name": "Personeelsmeldingen beantwoorden",
+      "description": "Openbare antwoorden aan de melder.",
+      "module": "tickets",
+      "action": "reply",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": false,
+      "dependencies": [
+        "tickets.internal.read"
+      ],
+      "resource": "tickets",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.internal.share",
+      "domain": "tenant",
+      "name": "Delen met Fieldgrid",
+      "description": "Geselecteerde niet-HR-inhoud doorsturen met afzonderlijk supportrecht.",
+      "module": "tickets",
+      "action": "share",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": false,
+      "dependencies": [
+        "tickets.internal.read"
+      ],
+      "resource": "tickets",
+      "classification": "normal",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.permissions",
+      "domain": "tenant",
+      "name": "Ticketrechten delegeren",
+      "description": "Begrensde rechten toekennen na recente verificatie; geen zelfuitbreiding.",
+      "module": "tickets",
+      "action": "permissions",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "tickets",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.redact",
+      "domain": "tenant",
+      "name": "Berichten afschermen",
+      "description": "Ongewenste persoonsgegevens afschermen met behoud van afgeschermde audit.",
+      "module": "tickets",
+      "action": "redact",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "tickets",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.support.create",
+      "domain": "tenant",
+      "name": "Fieldgrid-support starten",
+      "description": "Een nieuwe vraag aan Fieldgrid indienen.",
+      "module": "tickets",
+      "action": "create",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "tickets",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.support.critical",
+      "domain": "tenant",
+      "name": "Kritieke supportprioriteit",
+      "description": "Kritieke impact namens de tenant vaststellen.",
+      "module": "tickets",
+      "action": "critical",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [
+        "tickets.support.read",
+        "tickets.support.manage"
+      ],
+      "resource": "tickets",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.support.manage",
+      "domain": "tenant",
+      "name": "Fieldgrid-support beheren",
+      "description": "Tenantzijde opvolgen, sluiten en heropenen.",
+      "module": "tickets",
+      "action": "manage",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [
+        "tickets.support.read"
+      ],
+      "resource": "tickets",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.support.note",
+      "domain": "tenant",
+      "name": "Tenantnotities bij support",
+      "description": "Alleen voor bevoegde tenantcontacten; niet zichtbaar voor Fieldgrid.",
+      "module": "tickets",
+      "action": "note",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [
+        "tickets.support.read"
+      ],
+      "resource": "tickets",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.support.read",
+      "domain": "tenant",
+      "name": "Fieldgrid-support lezen",
+      "description": "Alleen supporttickets binnen de expliciete scope.",
+      "module": "tickets",
+      "action": "read",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [],
+      "resource": "tickets",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    },
+    {
+      "key": "tickets.support.reply",
+      "domain": "tenant",
+      "name": "Fieldgrid-support beantwoorden",
+      "description": "Reageren namens de tenant.",
+      "module": "tickets",
+      "action": "reply",
+      "scopes": [
+        "tenant",
+        "category",
+        "record"
+      ],
+      "sensitive": true,
+      "dependencies": [
+        "tickets.support.read"
+      ],
+      "resource": "tickets",
+      "classification": "sensitive",
+      "status": "active",
+      "definition_version": 1,
+      "conditions": [],
+      "code_origins": []
+    }
+  ]
+}

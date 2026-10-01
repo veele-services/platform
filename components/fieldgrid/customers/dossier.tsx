@@ -51,9 +51,10 @@ import {
 import { CustomerAgreements } from "./agreements";
 import { CommercialDossierPanel } from "../commercial/dossier-panel";
 import { DossierChainPanel } from "../dossier-chain";
+import { TicketContextPanel } from "../tickets/context";
 import { ObjectForm } from "../objects/forms";
 import { uploadCustomerDocument } from "@/app/app/operations-actions";
-import { customerCommand } from "@/app/app/klanten/actions";
+import { customerCommand, updateCustomerDocumentMetadata } from "@/app/app/klanten/actions";
 import { CUSTOMER_DOCUMENT_ACCEPT } from "@/lib/customers/documents";
 
 function Empty({ children }: { children: ReactNode }) {
@@ -1330,7 +1331,7 @@ export function CustomerDossier({
                           {d.archived
                             ? "Gearchiveerd"
                             : d.visibility === "customer"
-                              ? "Gedeeld met klant"
+                              ? `Gedeeld voor ${data.objects.find((o) => o.id === d.portal_object_id)?.name ?? "gekozen object"}`
                               : "Intern"}
                         </td>
                         <td>
@@ -1358,7 +1359,7 @@ export function CustomerDossier({
                               Nieuwe versie
                             </button>
                           )}
-                          <DocumentMetadata document={d} />
+                          <DocumentMetadata document={d} objects={data.objects} />
                         </td>
                       </tr>
                     ))}
@@ -1375,6 +1376,7 @@ export function CustomerDossier({
           />
         </>
       )}
+      {tab === "communicatie" && <TicketContextPanel kind="customer" id={c.id}/>}
       {tab === "communicatie" && (
         <>
           <section className="dossier-card">
@@ -1618,7 +1620,7 @@ function CustomerDocumentForm({
     </CustomerDialog>
   );
 }
-function DocumentMetadata({ document: d }: { document: CustomerDocument }) {
+function DocumentMetadata({ document: d, objects }: { document: CustomerDocument; objects: CustomerData["objects"] }) {
   const router = useRouter(),
     [pending, start] = useTransition();
   return (
@@ -1635,22 +1637,20 @@ function DocumentMetadata({ document: d }: { document: CustomerDocument }) {
               form.get("visibility") === "customer" &&
               d.visibility !== "customer" &&
               !confirm(
-                "Dit bestand delen met alle expliciet gekoppelde portaalgebruikers van deze klant? Controleer dat het geen interne of gevoelige informatie bevat.",
+                "Dit bestand delen met portaalgebruikers die expliciet aan het gekozen object zijn gekoppeld? Controleer dat het geen interne of gevoelige informatie bevat.",
               )
             )
               return;
             start(async () => {
-              const r = await customerCommand(
-                "document_metadata",
-                {
-                  id: d.id,
-                  version: d.metadata_version,
-                  category: form.get("category"),
-                  visibility: form.get("visibility"),
-                  archived: form.get("archived") === "on",
-                },
-                crypto.randomUUID(),
-              );
+              const visibility = String(form.get("visibility"));
+              const r = await updateCustomerDocumentMetadata({
+                id: d.id,
+                version: d.metadata_version,
+                category: form.get("category"),
+                visibility,
+                portalObjectId: visibility === "customer" ? form.get("portalObjectId") || null : null,
+                archived: form.get("archived") === "on",
+              });
               if (!r.ok) toast.error(r.error);
               else {
                 toast.success("Documentinstellingen opgeslagen");
@@ -1674,6 +1674,13 @@ function DocumentMetadata({ document: d }: { document: CustomerDocument }) {
             <select name="visibility" defaultValue={d.visibility}>
               <option value="internal">Alleen intern</option>
               <option value="customer">Delen met klant</option>
+            </select>
+          </label>
+          <label>
+            Klantobject
+            <select name="portalObjectId" defaultValue={d.portal_object_id ?? ""}>
+              <option value="">Kies bij delen een object</option>
+              {objects.map((object) => <option key={object.id} value={object.id}>{object.name}</option>)}
             </select>
           </label>
           <label className="dossier-check">

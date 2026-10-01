@@ -1,20 +1,21 @@
 import {test,expect,type Page} from "@playwright/test";
-import {randomUUID} from "node:crypto";
+import {createHash,randomUUID} from "node:crypto";
 import pg from "pg";
 import {createClient} from "@supabase/supabase-js";
 import type {Database} from "../../lib/database.types";
+import {requireLocalDatabaseUrl} from "./local-target";
 
 test("commerciële lijst, aanvraag, bevroren PDF-mail, expliciet akkoord en één operationele opdracht",async({page,browser,request})=>{
  test.setTimeout(240000);
  page.setDefaultTimeout(20000);
- const dbUrl=new URL(process.env.DATABASE_URL!);expect(dbUrl.hostname).toBe("127.0.0.1");expect(dbUrl.port).toBe("59322");
+ const dbUrl=requireLocalDatabaseUrl();
  const db=new pg.Client({connectionString:dbUrl.href});await db.connect();
  const admin=createClient<Database>(process.env.SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}});
- const tenant=randomUUID(),customer=randomUUID(),object=randomUUID();const email=`commercial-${tenant}@fieldgrid.test`;
+ const tenant=randomUUID(),customer=randomUUID(),object=randomUUID(),slug=`commercial-${tenant}`;const email=`commercial-${tenant}@fieldgrid.test`;
  const owner=(await db.query("select id from auth.users where email='platform-admin@fieldgrid.test'")).rows[0].id;
  const signIn=async(p:Page)=>{await p.context().addCookies([{name:"fieldgrid_tenant_id",value:tenant,url:"http://127.0.0.1:3000"}]);await p.goto("/login?next=/app/aanvragen");await p.getByLabel("E-mailadres").fill("platform-admin@fieldgrid.test");await p.getByLabel("Wachtwoord").fill("Fieldgrid-E2E-2026");await p.getByRole("button",{name:"Inloggen"}).click();await expect(p).toHaveURL(url=>url.pathname==="/app/aanvragen",{timeout:30000});};
  try{
-  await db.query("insert into public.tenants(id,slug,name) values($1,$2,'Fictieve commerciële testorganisatie')",[tenant,`commercial-${tenant}`]);
+  await db.query("insert into public.tenants(id,slug,name) values($1,$2,'Fictieve commerciële testorganisatie')",[tenant,slug]);
   await db.query("insert into public.tenant_settings(tenant_id,enabled_services) values($1,array['planning','finance','rapportage'])",[tenant]);await db.query("insert into public.tenant_branding(tenant_id) values($1)",[tenant]);
   await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,array['tenant_admin','management','planner','finance']::public.app_role[],'active')",[tenant,owner]);
   await db.query("select private.insert_default_message_templates($1,$2)",[tenant,owner]);
@@ -43,6 +44,17 @@ test("commerciële lijst, aanvraag, bevroren PDF-mail, expliciet akkoord en éé
   const storedPdf=await page.request.get(`/api/files/commercial/${quote.id}?asset=pdf`);expect(storedPdf.status()).toBe(200);expect(await storedPdf.body()).toEqual(Buffer.from(mail.attachments[0].content,"base64"));
   expect((await request.get(`/api/files/commercial/${quote.id}?asset=pdf`)).status()).toBe(404);
   const body=mail.content.find((c:{type:string})=>c.type==="text/plain").value as string;const url=body.match(/http:\/\/127\.0\.0\.1:3000\/quote\/[A-Za-z0-9_-]+/)?.[0];expect(Boolean(url)).toBe(true);
+  const quoteToken=url!.split('/').at(-1)!,bookingToken=randomUUID().replaceAll('-','')+randomUUID().replaceAll('-',''),bookingTokenId=randomUUID(),slot=randomUUID();
+  await db.query("insert into public.appointment_slots(id,tenant_id,starts_at,ends_at) values($1,$2,now()+interval '1 day',now()+interval '1 day 1 hour')",[slot,tenant]);
+  await db.query("insert into public.external_action_tokens(id,tenant_id,purpose,subject_id,token_hash,expires_at) values($1,$2,'booking',$3,$4,now()+interval '1 day')",[bookingTokenId,tenant,savedRequest.id,createHash('sha256').update(bookingToken).digest('hex')]);
+  await db.query("insert into public.booking_options(tenant_id,token_id,slot_id) values($1,$2,$3)",[tenant,bookingTokenId,slot]);
+  expect((await request.get(`/booking/${bookingToken}`)).status()).toBe(200);
+  expect((await admin.from('tenant_settings').update({enabled_services:['finance','rapportage']}).eq('tenant_id',tenant)).error).toBeNull();
+  const disabledQuote=await request.get(url!),disabledQuoteBody=await disabledQuote.text();expect(disabledQuote.status()).toBe(200);expect(disabledQuoteBody).toContain('Offerte niet beschikbaar');expect(disabledQuoteBody).not.toContain('Fictieve werkzaamheden met korting');
+  expect((await request.get(`/api/files/commercial/${quote.id}?token=${quoteToken}&asset=pdf`)).status()).toBe(404);
+  expect((await request.get(`/booking/${bookingToken}`)).status()).toBe(404);
+  expect((await admin.from('tenant_settings').update({enabled_services:['planning','finance','rapportage']}).eq('tenant_id',tenant)).error).toBeNull();
+  expect((await request.get(url!)).status()).toBe(200);expect((await request.get(`/booking/${bookingToken}`)).status()).toBe(200);
   const customerContext=await browser.newContext();const customerPage=await customerContext.newPage();await customerPage.goto(url!);await expect(customerPage.getByRole("article",{name:"Offertevoorbeeld"})).toBeVisible();expect((await db.query('select status from public.quotes where id=$1',[quote.id])).rows[0].status).toBe("awaiting_acceptance");
   await customerPage.getByLabel("Naam beslisser",{exact:true}).fill("Fictieve akkoordgever");await customerPage.getByRole("checkbox").check();await customerPage.getByRole("button",{name:"Akkoord bevestigen"}).click();await expect(customerPage.getByText(/Je besluit over deze offerteversie is vastgelegd/).first()).toBeVisible();await customerContext.close();
   await page.reload();dialog=page.getByRole("dialog");await expect(dialog.getByRole("button",{name:"Omzetten naar opdracht"})).toBeVisible();await dialog.getByRole("button",{name:"Omzetten naar opdracht"}).click();await dialog.getByRole("button",{name:"Bevestigen en opslaan"}).click();await expect(dialog.getByRole("link",{name:"Naar planning / Inplannen"})).toBeVisible();

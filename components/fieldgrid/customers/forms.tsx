@@ -115,6 +115,9 @@ export function CustomerWizard({
     [duplicates, setDuplicates] = useState<CustomerList["rows"]>([]),
     [review, setReview] = useState<Record<string, string>>({});
   const { ref, changed, saved } = useFormChanges();
+  const canArchive = tenant.roles.some((role) =>
+    ["tenant_admin", "management"].includes(role),
+  );
   const prefs = (customer?.billing_preferences ?? {}) as Record<
     string,
     string | boolean
@@ -427,12 +430,32 @@ export function CustomerWizard({
           <label>
             Relatiestatus
             <select name="status" defaultValue={customer?.status || "lead"}>
-              {Object.entries(customerStates).map(([k, v]) => (
-                <option value={k} key={k}>
-                  {v}
-                </option>
-              ))}
+              {Object.entries(customerStates)
+                .filter(
+                  ([key]) =>
+                    canArchive ||
+                    key !== "archived" ||
+                    customer?.status === "archived",
+                )
+                .map(([k, v]) => (
+                  <option
+                    value={k}
+                    key={k}
+                    disabled={
+                      !canArchive &&
+                      customer?.status === "archived" &&
+                      k !== "archived"
+                    }
+                  >
+                    {v}
+                  </option>
+                ))}
             </select>
+            {!canArchive && customer?.status === "archived" && (
+              <small>
+                Alleen een beheerder kan deze klant opnieuw activeren.
+              </small>
+            )}
           </label>
           <label>
             Accountverantwoordelijke

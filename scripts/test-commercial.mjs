@@ -1,13 +1,12 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { localWorkOrderTestUrl } from './work-order-test-target.mjs';
 import { randomUUID, createHash } from 'node:crypto';
 import test from 'node:test';
 import pg from 'pg';
 import { submitFixtureReport } from './work-order-report-fixture.mjs';
 
 test('Commercial workflow: persisted prices, revisions, scope and transactional decisions', async t => {
- const local=JSON.parse(execFileSync('pnpm',['supabase','status','-o','json'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}));
- const url=new URL(local.DB_URL);assert.equal(url.hostname,'127.0.0.1');assert.equal(url.port,'59322');
+ const local={ DB_URL: localWorkOrderTestUrl() };
  const db=new pg.Client({connectionString:local.DB_URL});await db.connect();
  const tenant=randomUUID(),other=randomUUID(),manager=randomUUID(),staff=randomUUID(),session=randomUUID(),staffSession=randomUUID(),customer=randomUUID(),customer2=randomUUID(),object=randomUUID(),object2=randomUUID();
  const request=randomUUID(),quote=randomUUID();let nextQuote;
@@ -56,12 +55,28 @@ test('Commercial workflow: persisted prices, revisions, scope and transactional 
    await db.query("update public.mail_deliveries set status='sent',sent_at=now() where id=$1",[claimed.id]);
    await assert.rejects(command('request_delete',{id:sentId,version:1}),e=>e.code==='23514');
    await command('request_archive',{id:sentId,version:1});
-   assert.equal((await detail(sentId,'request')).deliveries[0].status,'sent');
+   assert.equal((await detail(sentId,'request')).deliveries.find(delivery=>delivery.id===claimed.id).status,'sent');
   });
   await t.test('draft prices use decimal line discounts and VAT groups; no universal VAT; draft revisions CAS',async()=>{
    await command('quote_save',input);const d=await detail(quote);assert.equal(d.record.subtotal_cents,6158);assert.equal(d.record.vat_cents,843);assert.equal(d.record.total_cents,7001);
    assert.equal(d.record.terms.secret_code,undefined);assert.equal(d.record.status,'draft');
    await assert.rejects(command('quote_save',{...input,id:randomUUID()}),e=>e.code==='23514');
+  });
+  await t.test('planner-only commercial uploads retain their exact module and parent authorization',async()=>{
+   await db.query("update public.tenant_memberships set roles=array['planner']::public.app_role[] where tenant_id=$1 and user_id=$2",[tenant,manager]);
+   try{
+    for(const [kind,id] of [['request',request],['quote',quote]]){
+     assert.equal((await call('select public.file_upload_allowed($1,$2) allowed',['commercial-documents',`${tenant}/${kind}/${id}/fixture.pdf`]))[0].allowed,true);
+     assert.equal((await call('select public.file_upload_allowed($1,$2) allowed',['commercial-documents',`${other}/${kind}/${id}/fixture.pdf`]))[0].allowed,false);
+    }
+    await db.query("select set_config('request.jwt.claims','{\"role\":\"service_role\"}',false)");
+    await db.query("update public.tenant_settings set enabled_services=array['personeel'] where tenant_id=$1",[tenant]);
+    assert.equal((await call('select public.file_upload_allowed($1,$2) allowed',['commercial-documents',`${tenant}/quote/${quote}/fixture.pdf`]))[0].allowed,false);
+   }finally{
+    await db.query("update public.tenant_settings set enabled_services=array['planning','personeel','finance','rapportage'] where tenant_id=$1",[tenant]);
+    await db.query("select set_config('request.jwt.claims','{}',false)");
+    await db.query("update public.tenant_memberships set roles=array['tenant_admin','management','finance']::public.app_role[] where tenant_id=$1 and user_id=$2",[tenant,manager]);
+   }
   });
   await t.test('publication freezes safe data, GET does not decide, replacement invalidates only open versions',async()=>{
    await command('publish',{id:quote,version:1});const d=await detail(quote);
@@ -136,6 +151,59 @@ test('Commercial workflow: persisted prices, revisions, scope and transactional 
    await command('publish',{id:revised.id,version:1});assert.equal((await detail(q)).record.superseded_at,null);
    const oldHash=createHash('sha256').update(randomUUID()).digest('hex');await db.query("insert into public.external_action_tokens(tenant_id,purpose,subject_id,token_hash,expires_at) values($1,'quote_acceptance',$2,$3,now()-interval '1 second')",[tenant,revised.id,oldHash]);
    await assert.rejects(call('select public.commercial_external_decision($1,$2,$3)',[oldHash,tenant,payload],manager,'service_role'),e=>e.code==='23514');
+  });
+  await t.test('disabling Planning revokes public intake, quote and booking mutations including retries',async()=>{
+   const publicInput={name:'FICTITIOUS module prospect',email:'module-prospect@commercial.test',phone:'',subject:'Fictitious module intake',description:'Original public module question',discipline:'Test',work_kind:'once'};
+   const publicHash=createHash('sha256').update(randomUUID()).digest('hex'),existingIntake=randomUUID(),blockedIntake=randomUUID();
+   const submit=id=>call('select public.commercial_public_intake($1,$2,$3,$4)',[tenant,id,publicInput,publicHash],manager,'service_role');
+   await submit(existingIntake);
+
+   const pendingQuote=randomUUID(),acceptedQuote=randomUUID();
+   for(const id of [pendingQuote,acceptedQuote]){await command('quote_save',{...input,id,request_id:'',subject:`FICTITIOUS module quote ${id}`});await command('publish',{id,version:1});}
+   const pendingQuoteHash=createHash('sha256').update(randomUUID()).digest('hex'),acceptedQuoteHash=createHash('sha256').update(randomUUID()).digest('hex');
+   for(const [id,hash] of [[pendingQuote,pendingQuoteHash],[acceptedQuote,acceptedQuoteHash]])await db.query("insert into public.external_action_tokens(tenant_id,purpose,subject_id,token_hash,expires_at,recipient) values($1,'quote_acceptance',$2,$3,now()+interval '1 day','module@commercial.test')",[tenant,id,hash]);
+   const decision={name:'Fictitious Module Customer',decision:'accepted',confirmed:true};
+   await call('select public.commercial_external_decision($1,$2,$3)',[acceptedQuoteHash,tenant,decision],manager,'service_role');
+
+   const bookedRequest=randomUUID(),pendingRequest=randomUUID(),bookedSlot=randomUUID(),pendingSlot=randomUUID(),bookedToken=randomUUID(),pendingToken=randomUUID();
+   for(const id of [bookedRequest,pendingRequest])await command('request_save',{id,version:0,customer_id:customer,object_id:object,owner_id:manager,subject:'FICTITIOUS module booking',description:'Fictitious module booking question',discipline:'Test',source:'phone',priority:'normal',work_kind:'once',next_action:'Opname plannen'});
+   for(const id of [bookedSlot,pendingSlot])await db.query("insert into public.appointment_slots(id,tenant_id,starts_at,ends_at,capacity) values($1,$2,now()+interval '3 days',now()+interval '3 days 1 hour',1)",[id,tenant]);
+   for(const [id,requestId,slotId] of [[bookedToken,bookedRequest,bookedSlot],[pendingToken,pendingRequest,pendingSlot]]){
+    await db.query("insert into public.external_action_tokens(id,tenant_id,purpose,subject_id,token_hash,expires_at) values($1,$2,'booking',$3,$4,now()+interval '1 day')",[id,tenant,requestId,createHash('sha256').update(id).digest('hex')]);
+    await db.query('insert into public.booking_options(tenant_id,token_id,slot_id) values($1,$2,$3)',[tenant,id,slotId]);
+   }
+   const book=(requestId,slotId,tokenId)=>call('select (public.book_appointment_slot($1,$2,$3,$4)).id id',[tenant,requestId,slotId,tokenId],manager,'service_role');
+   await book(bookedRequest,bookedSlot,bookedToken);
+   const before=(await db.query(`select
+    (select count(*)::int from public.customers where tenant_id=$1) customers,
+    (select count(*)::int from public.customer_contacts where tenant_id=$1) contacts,
+    (select count(*)::int from public.requests where tenant_id=$1) requests,
+    (select count(*)::int from public.commercial_events where tenant_id=$1) events,
+    (select count(*)::int from private.commercial_intake_limits where tenant_id=$1) limits`,[tenant])).rows[0];
+   await call("update public.tenant_settings set enabled_services=array['personeel'] where tenant_id=$1",[tenant],manager,'service_role');
+   try{
+    await assert.rejects(submit(existingIntake),e=>e.code==='42501');
+    await assert.rejects(submit(blockedIntake),e=>e.code==='42501');
+    await assert.rejects(call('select public.commercial_external_decision($1,$2,$3)',[acceptedQuoteHash,tenant,decision],manager,'service_role'),e=>e.code==='42501');
+    await assert.rejects(call('select public.commercial_external_decision($1,$2,$3)',[pendingQuoteHash,tenant,decision],manager,'service_role'),e=>e.code==='42501');
+    await assert.rejects(book(bookedRequest,bookedSlot,bookedToken),e=>e.code==='42501');
+    await assert.rejects(book(pendingRequest,pendingSlot,pendingToken),e=>e.code==='42501');
+    assert.deepEqual((await db.query(`select
+     (select count(*)::int from public.customers where tenant_id=$1) customers,
+     (select count(*)::int from public.customer_contacts where tenant_id=$1) contacts,
+     (select count(*)::int from public.requests where tenant_id=$1) requests,
+     (select count(*)::int from public.commercial_events where tenant_id=$1) events,
+     (select count(*)::int from private.commercial_intake_limits where tenant_id=$1) limits`,[tenant])).rows[0],before);
+    assert.equal((await db.query('select consumed_at from public.external_action_tokens where token_hash=$1',[pendingQuoteHash])).rows[0].consumed_at,null);
+    assert.equal((await db.query('select status from public.quotes where id=$1',[pendingQuote])).rows[0].status,'awaiting_acceptance');
+    assert.equal((await db.query('select booked_count from public.appointment_slots where id=$1',[pendingSlot])).rows[0].booked_count,0);
+    assert.equal((await db.query('select consumed_at from public.external_action_tokens where id=$1',[pendingToken])).rows[0].consumed_at,null);
+   }finally{
+    await call("update public.tenant_settings set enabled_services=array['planning','personeel','finance','rapportage'] where tenant_id=$1",[tenant],manager,'service_role');
+   }
+   assert.equal((await submit(existingIntake)).length,1);
+   assert.equal((await call('select public.commercial_external_decision($1,$2,$3) result',[acceptedQuoteHash,tenant,decision],manager,'service_role'))[0].result.decision,'accepted');
+   assert.equal((await book(bookedRequest,bookedSlot,bookedToken))[0].id,bookedSlot);
   });
   await t.test('mail claims never replay uncertain sends and track a provider acceptance separately',async()=>{
    const q=randomUUID();await command('quote_save',{...input,id:q,request_id:''});await command('publish',{id:q,version:1});await db.query("update public.quotes set pdf_path='FICTITIOUS-PRIVATE-PATH' where id=$1",[q]);

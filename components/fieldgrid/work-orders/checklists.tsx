@@ -3,12 +3,14 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { answerWorkOrderChecklist } from "@/app/app/work-order-actions";
 import type { ChecklistInstance, ChecklistQuestion } from "@/lib/work-orders/model";
+import { checklistQuestionState } from "@/lib/work-orders/model";
 import "./work-orders.css";
 import "./templates.css";
 
 type Photo = { id: string; file_name: string; mime_type: string };
 function Question({ checklist, question, editable, attachments }: { checklist: ChecklistInstance; question: ChecklistQuestion; editable: boolean; attachments: Photo[] }) {
   const existing = checklist.answers.find(a => a.questionId === question.id);
+  const state = checklistQuestionState(checklist, question);
   const [value, setValue] = useState<string | number | boolean | null>(existing && ["string", "number", "boolean"].includes(typeof existing.value) ? existing.value as string | number | boolean : null);
   const [na, setNA] = useState(existing?.notApplicable ?? false), [reason, setReason] = useState(existing?.reason ?? ""), [photo, setPhoto] = useState(existing?.attachmentId ?? ""), [error, setError] = useState(""), [saved, setSaved] = useState(false), [pending, startTransition] = useTransition();
   const [mutationId, setMutationId] = useState(() => crypto.randomUUID());
@@ -21,7 +23,7 @@ function Question({ checklist, question, editable, attachments }: { checklist: C
   return <section className="wo-checklist-question">
     <label htmlFor={id}><strong>{question.label}{question.required ? " *" : ""}</strong></label>
     {question.help && <p id={`${id}-help`} className="dossier-muted">{question.help}</p>}
-    {editable ? <>
+    {state.answered && !existing ? <p className="dossier-muted">Deze vraag is al ingevuld. Alleen je eigen antwoorden zijn hier zichtbaar. Vraag de backoffice om een eventuele correctie.</p> : editable && state.editable ? <>
       {question.allowNA && <label className="check"><input type="checkbox" checked={na} onChange={e => { setNA(e.target.checked); changed(); }}/>{" "}Niet van toepassing</label>}
       {na ? <label>Waarom niet van toepassing?<textarea value={reason} onChange={e => { setReason(e.target.value); changed(); }} maxLength={2000} required/></label> : <>
         {question.type === "check" && <label className="check"><input id={id} type="checkbox" checked={value === true} onChange={e => { setValue(e.target.checked); changed(); }}/> Gecontroleerd</label>}
@@ -40,6 +42,6 @@ function Question({ checklist, question, editable, attachments }: { checklist: C
 export function ChecklistPanel({ orderId, checklists, editable, attachments }: { orderId: string; checklists: ChecklistInstance[]; editable: boolean; attachments: Photo[] }) {
   return <div className="wo-list" data-order={orderId}>
     {!checklists.length && <p>Geen checklists aan deze werkbon gekoppeld.</p>}
-    {checklists.map(c => <section className="wo-card" key={c.id} aria-label={c.name}><h3>{c.name} <small>Versie {c.version}</small></h3>{c.questions.filter(q => !q.condition || c.answers.find(a => a.questionId === q.condition!.questionId)?.value === q.condition.equals).map(q => <Question key={`${q.id}:${c.answers.find(a => a.questionId === q.id)?.version ?? 0}`} checklist={c} question={q} editable={editable} attachments={attachments}/>)}</section>)}
+    {checklists.map(c => <section className="wo-card" key={c.id} aria-label={c.name}><h3>{c.name} <small>Versie {c.version}</small></h3>{c.questions.filter(q => checklistQuestionState(c,q).visible).map(q => <Question key={`${q.id}:${c.answers.find(a => a.questionId === q.id)?.version ?? 0}`} checklist={c} question={q} editable={editable} attachments={attachments}/>)}</section>)}
   </div>;
 }

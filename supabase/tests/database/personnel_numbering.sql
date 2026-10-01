@@ -5,6 +5,9 @@ insert into auth.users (id, email) values
   ('f1000000-0000-4000-8000-000000000001', 'number-admin@fieldgrid.test'),
   ('f1000000-0000-4000-8000-000000000002', 'number-hr@fieldgrid.test'),
   ('f1000000-0000-4000-8000-000000000003', 'number-staff@fieldgrid.test');
+-- Real sessions: authenticated RLS must reject stale or missing sessions.
+insert into auth.sessions(id,user_id) select id,id from auth.users where id in ('f1000000-0000-4000-8000-000000000001','f1000000-0000-4000-8000-000000000002','f1000000-0000-4000-8000-000000000003');
+
 insert into public.tenants (id, slug, name) values
   ('fa000000-0000-4000-8000-000000000001', 'number-a', 'Number A'),
   ('fb000000-0000-4000-8000-000000000001', 'number-b', 'Number B');
@@ -16,7 +19,7 @@ insert into public.tenant_memberships (tenant_id, user_id, roles, status) values
   ('fa000000-0000-4000-8000-000000000001', 'f1000000-0000-4000-8000-000000000003', array['staff']::public.app_role[], 'active');
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"f1000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"f1000000-0000-4000-8000-000000000001","session_id":"f1000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 select is(public.suggest_personnel_number('fa000000-0000-4000-8000-000000000001'), 'P-0001', 'default prefix and start');
 select is(public.suggest_personnel_number('fa000000-0000-4000-8000-000000000001'), 'P-0001', 'preview does not consume number');
 select is((select count(*)::int from private.personnel_number_counters), 0, 'preview has no writes');
@@ -42,13 +45,13 @@ select throws_ok($$select public.suggest_personnel_number('fb000000-0000-4000-80
 select throws_ok($$insert into public.personnel (tenant_id, full_name) values ('fb000000-0000-4000-8000-000000000001', 'Cross tenant')$$, '23514', null, 'cannot allocate in another tenant');
 select is((select count(*)::int from private.personnel_number_counters where tenant_id = 'fb000000-0000-4000-8000-000000000001'), 0, 'counters are tenant scoped');
 
-select set_config('request.jwt.claims', '{"sub":"f1000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"f1000000-0000-4000-8000-000000000002","session_id":"f1000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
 select lives_ok($$insert into public.personnel (tenant_id, full_name) values ('fa000000-0000-4000-8000-000000000001', 'HR created')$$, 'HR can allocate without settings-write permission');
 select is((select employee_number from public.personnel where full_name = 'HR created'), 'MW-0121', 'HR allocation correct');
 with changed as (update public.tenant_settings set personnel_number_prefix = 'HR-' returning tenant_id)
 select is((select count(*)::int from changed), 0, 'HR cannot change numbering settings');
 
-select set_config('request.jwt.claims', '{"sub":"f1000000-0000-4000-8000-000000000003","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"f1000000-0000-4000-8000-000000000003","session_id":"f1000000-0000-4000-8000-000000000003","role":"authenticated"}', true);
 select throws_ok($$select public.suggest_personnel_number('fa000000-0000-4000-8000-000000000001')$$, '42501', null, 'staff cannot preview personnel numbering');
 select is((select count(*)::int from private.personnel_number_counters), 0, 'staff cannot read counters');
 select throws_ok($$insert into public.personnel (tenant_id, full_name) values ('fa000000-0000-4000-8000-000000000001', 'Staff creation')$$, '42501', null, 'staff cannot allocate numbers');
@@ -76,7 +79,7 @@ select throws_ok($$insert into public.personnel (tenant_id, full_name) values ('
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 update public.tenant_settings set enabled_services = array['planning'] where tenant_id = 'fa000000-0000-4000-8000-000000000001';
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"f1000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"f1000000-0000-4000-8000-000000000001","session_id":"f1000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 select throws_ok($$select public.suggest_personnel_number('fa000000-0000-4000-8000-000000000001')$$, '42501', null, 'disabled module blocks preview');
 select is((select count(*)::int from private.personnel_number_counters), 0, 'disabled module hides counters');
 reset role;

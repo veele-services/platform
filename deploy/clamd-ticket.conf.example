@@ -1,0 +1,29 @@
+# Operator-provisioned daemon, not automatically installed by deployment.
+# Use a supported, pinned ClamAV version with freshclam-managed definitions.
+Foreground yes
+User clamav
+LocalSocket /run/clamav/clamd.ctl
+LocalSocketGroup clamav
+LocalSocketMode 0660
+DatabaseDirectory /var/lib/clamav
+ScanPDF yes
+HeuristicAlerts yes
+AlertEncryptedDoc yes
+AlertExceedsMax yes
+StreamMaxLength 10M
+MaxFileSize 20M
+MaxScanSize 50M
+MaxRecursion 10
+MaxFiles 1000
+MaxScanTime 20000
+MaxThreads 2
+MaxQueue 4
+ReadTimeout 30
+CommandReadTimeout 5
+LogTime yes
+# Never log scanned bytes, metadata, original filenames or clean-file details.
+LogClean no
+LogVerbose no
+GenerateMetadataJson no
+LeaveTemporaryFiles no
+# No TCPSocket: the clamd protocol does not authenticate or encrypt TCP.

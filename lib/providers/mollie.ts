@@ -14,8 +14,10 @@ export type MolliePayment = {
 
 async function mollieRequest(path: string, init?: RequestInit): Promise<MolliePayment> {
   const apiKey = requireProvider("MOLLIE_API_KEY");
+  const timeout = AbortSignal.timeout(10_000);
   const response = await fetch(`https://api.mollie.com/v2${path}`, {
     ...init,
+    signal: init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout,
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", ...(init?.headers ?? {}) },
     cache: "no-store",
   });

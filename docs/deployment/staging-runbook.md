@@ -1,5 +1,9 @@
 # Fieldgrid V1 staging runbook
 
+The completed first-host transition and its still-pending worker-resume gate are
+recorded in
+[staging-handoff-evidence-2026-10-01.md](staging-handoff-evidence-2026-10-01.md).
+
 This runbook prepares the existing staging VPS for the new Fieldgrid V1
 runtime. It does not reuse, stop or remove a legacy application. Inspect live
 paths and services before every operator command and keep production out of
@@ -16,24 +20,32 @@ The GitHub Environment `staging` is already populated. In repository settings:
 3. Protect `staging` against direct development. Promotions must use a commit
    already contained in `main`.
 
-The deploy job reads configuration only from GitHub Environment `staging`.
-Never create a VPS `.env` by hand; the workflow writes the runtime file
-atomically without printing its values.
+Credentialed preparation and acceptance jobs read configuration only from
+GitHub Environment `staging` and run on fresh GitHub-hosted runners. The
+persistent VPS runner receives no Environment secrets. Never create a VPS
+`.env` by hand; the root broker decrypts and installs the workflow-generated
+runtime file atomically without printing its values.
 
 ## 2. VPS runtime identity and filesystem
 
-Use a dedicated Linux identity named `fieldgrid` for both the runner service
-and the application. Install Node.js 24, `rsync`, `curl`, and PostgreSQL client
-tools compatible with the hosted Supabase PostgreSQL version. The runner needs
-outbound HTTPS access but port 3301 must remain private.
+Use `fieldgrid` for the application and a **different non-root UID** for the
+runner service. Only the runtime belongs to `clamav`; sharing a UID cannot
+satisfy scanner isolation. Install Node.js 24, `rsync`, `curl`, `openssl`, GitHub
+CLI and PostgreSQL client tools compatible with the hosted Supabase PostgreSQL
+version. The runner needs outbound HTTPS access but port 3301 must remain
+private.
 
-Create these paths, owned by `fieldgrid:fieldgrid` and inaccessible to other
-unprivileged users:
+The persistent runner must not belong to `fieldgrid` or `clamav`. Give it an
+own primary group and access only to the untrusted incoming directory. Installed
+releases, runtime configuration and backups are owned by a broker/runtime
+identity and are not readable or writable by the runner:
 
 ```text
-/opt/fieldgrid/staging/releases
-/opt/fieldgrid/staging/shared
-/opt/fieldgrid/staging/backups
+/opt/fieldgrid/staging            root:root                         0711
+/opt/fieldgrid/staging/incoming   fieldgrid-runner:fieldgrid-runner 0700
+/opt/fieldgrid/staging/releases   root:fieldgrid                    0750
+/opt/fieldgrid/staging/shared     root:fieldgrid                    0750
+/opt/fieldgrid/staging/backups    root:root                         0700
 ```
 
 Install the repository templates as system units:
@@ -44,18 +56,205 @@ Install the repository templates as system units:
 - `deploy/fieldgrid-worker@.timer` →
   `/etc/systemd/system/fieldgrid-worker@.timer`
 
-Run `systemctl daemon-reload`, but do not enable or start either unit before the
-first release and runtime file exist. The deploy starts the web instance; after
-that deployment is healthy, enable the web service and enable/start the worker
-timer.
+Initial host bootstrap is an operator action: units cannot start before a
+release and its generated runtime file exist. The current staging host has
+already completed that bootstrap. Before promoting the ticket release, the web
+instance and installed worker timer must already exist. The operator confirmed
+on 1 October that both still use `shared/fieldgrid.env`; the new `runtime.env`
+does not yet exist. Follow the coordinated transition in [ClamAV](clamav.md):
+pause the timer, install the reviewed unit references without restarting, let
+deployment generate the new file, and resume the timer after healthy web
+activation. Preflight checks the installed timer target; final acceptance
+requires an active timer and a fresh successful invocation.
+The ticket pipeline does not bootstrap a replacement VPS or bypass this gate;
+restore a replacement host through a separately reviewed operator procedure.
 
-Give the `fieldgrid` runner identity passwordless sudo permission for exactly:
+Install the reviewed combined broker from `deploy/` root-owned and non-writable
+by the runner. Give the runner passwordless sudo permission only for this exact
+no-argument executable:
 
 ```text
-/usr/bin/systemctl restart fieldgrid@staging.service
+/usr/local/sbin/fieldgrid-install-staging-release
 ```
 
-Do not grant general passwordless sudo.
+Remove the old direct `systemctl restart` rule and any retired runtime/backup
+broker rules. Do not grant general passwordless sudo. The broker validates all
+paths, identities, three GitHub attestations, encrypted payloads and release
+metadata before it uses its fixed systemctl action.
+
+### One-time hardened handoff (operator)
+
+Perform this in one maintenance window while the runner and worker timer are
+stopped. Resolve the reviewed checkout explicitly; do not paste secrets and do
+not run these commands against production.
+
+1. Set `package_dir` to the absolute extracted path of the verified operator
+   package. Give `fieldgrid-runner` its own primary group, keep the existing
+   `r-x` ACL on `/home/fieldgrid`, and remove all `fieldgrid`/`clamav`
+   supplementary groups. Install the reviewed runner drop-in and restart that
+   same runner service:
+
+   ```sh
+   package_dir=/var/tmp/fieldgrid-staging-operator-handoff-REVIEWED
+   getent group fieldgrid-runner >/dev/null || sudo groupadd fieldgrid-runner
+   sudo usermod --gid fieldgrid-runner --groups '' fieldgrid-runner
+   sudo chown -R fieldgrid-runner:fieldgrid-runner /home/fieldgrid/actions-runner
+   sudo install -d -o root -g root -m 0755 \
+     /etc/systemd/system/actions.runner.veele-services-platform.fieldgrid-staging-veele.service.d
+   sudo install -o root -g root -m 0644 \
+     "$package_dir/deploy/fieldgrid-staging-runner-user.conf" \
+     /etc/systemd/system/actions.runner.veele-services-platform.fieldgrid-staging-veele.service.d/20-runner-user.conf
+   sudo systemctl daemon-reload
+   sudo systemctl restart actions.runner.veele-services-platform.fieldgrid-staging-veele.service
+   ```
+
+2. Create or correct the five paths to the owners/modes listed above. The
+   `0711` staging root permits access to the known `incoming` path without
+   permitting a directory listing; each protected child still denies the
+   runner. Preserve release file execute bits while removing group/other write:
+
+   ```sh
+   sudo install -d -o root -g root -m 0711 /opt/fieldgrid/staging
+   sudo install -d -o fieldgrid-runner -g fieldgrid-runner -m 0700 /opt/fieldgrid/staging/incoming
+   sudo install -d -o root -g fieldgrid -m 0750 /opt/fieldgrid/staging/releases
+   sudo install -d -o root -g fieldgrid -m 0750 /opt/fieldgrid/staging/shared
+   sudo install -d -o root -g root -m 0700 /opt/fieldgrid/staging/backups
+   sudo chown -R root:fieldgrid /opt/fieldgrid/staging/releases /opt/fieldgrid/staging/shared
+   sudo chmod -R u=rwX,g=rX,o= /opt/fieldgrid/staging/releases /opt/fieldgrid/staging/shared
+   sudo chown -R root:root /opt/fieldgrid/staging/backups
+   sudo chmod -R u=rwX,go= /opt/fieldgrid/staging/backups
+   sudo chown -R fieldgrid-runner:fieldgrid-runner /opt/fieldgrid/staging/incoming
+   sudo chmod -R u=rwX,go= /opt/fieldgrid/staging/incoming
+   ```
+
+   Recursively transfer every installed release and the active `current`
+   symlink to `root:fieldgrid`, removing group/other write bits. Transfer any
+   retained backups to `root:root` mode `0600`. Transfer the old runtime file to
+   `root:fieldgrid` mode `0640`; the runner must no longer be able to list or
+   read it.
+3. Create the root-only handoff identity once. Refuse to overwrite an existing
+   key: inspect and deliberately rotate instead. A new installation can use:
+
+   ```sh
+   sudo install -d -o root -g root -m 0700 /etc/fieldgrid
+   sudo test ! -e /etc/fieldgrid/staging-handoff.key
+   sudo test ! -e /etc/fieldgrid/staging-handoff.crt
+   sudo openssl req -x509 -newkey rsa:3072 -nodes -sha256 -days 397 \
+     -subj '/CN=Fieldgrid staging release handoff' \
+     -keyout /etc/fieldgrid/staging-handoff.key \
+     -out /etc/fieldgrid/staging-handoff.crt
+   sudo chown root:root /etc/fieldgrid/staging-handoff.key /etc/fieldgrid/staging-handoff.crt
+   sudo chmod 0600 /etc/fieldgrid/staging-handoff.key
+   sudo chmod 0644 /etc/fieldgrid/staging-handoff.crt
+   sudo openssl x509 -in /etc/fieldgrid/staging-handoff.crt -noout -checkend 86400
+   ```
+
+   Copy only the public certificate to a trusted administrator workstation,
+   encode it as one-line base64 and set GitHub Environment `staging` variable
+   `STAGING_HANDOFF_ENCRYPTION_CERT_B64`. With an authenticated `gh` on that
+   workstation this can be done without a command-line value:
+
+   ```sh
+   base64 -w0 staging-handoff.crt | gh variable set \
+     STAGING_HANDOFF_ENCRYPTION_CERT_B64 --env staging \
+     --repo veele-services/platform
+   ```
+
+   Never copy the private key off the VPS or into GitHub. Certificate rotation
+   requires installing the new key/certificate and updating the public variable
+   as one coordinated change before a promotion.
+4. Install the reviewed broker and both separated contract controls root-owned:
+
+   ```sh
+   sudo install -o root -g root -m 0755 \
+     "$package_dir/deploy/fieldgrid-install-staging-release" \
+     /usr/local/sbin/fieldgrid-install-staging-release
+   sudo install -d -o root -g root -m 0755 /usr/local/libexec/fieldgrid
+   sudo install -o root -g root -m 0755 \
+     "$package_dir/scripts/check-staging-root-contract.sh" \
+     /usr/local/libexec/fieldgrid/check-staging-root-contract.sh
+   sudo install -o root -g root -m 0755 \
+     "$package_dir/scripts/check-staging-runner-contract.sh" \
+     /usr/local/libexec/fieldgrid/check-staging-runner-contract.sh
+   ```
+
+5. Install GitHub CLI on the VPS. Generate the current GitHub attestation trust
+   material with `gh attestation trusted-root` into a temporary operator-owned
+   file, then install it as
+   `/etc/fieldgrid/github-attestation-trusted-root.jsonl`, owner `root:root`,
+   mode `0644`. Never place a GitHub token in this file. The private repository
+   is in an Enterprise organization, so the protected workflow can create the
+   required private-Sigstore build provenance.
+6. Replace `/etc/sudoers.d/fieldgrid-runner` atomically with the packaged exact
+   no-argument broker rule. No root-check, shell, systemctl or wildcard rule is
+   allowed:
+
+   ```sh
+   sudo install -o root -g root -m 0440 \
+     "$package_dir/deploy/fieldgrid-runner.sudoers" \
+     /etc/sudoers.d/.fieldgrid-runner.candidate
+   sudo visudo -cf /etc/sudoers.d/.fieldgrid-runner.candidate
+   sudo mv -T /etc/sudoers.d/.fieldgrid-runner.candidate /etc/sudoers.d/fieldgrid-runner
+   sudo visudo -cf /etc/sudoers.d/fieldgrid-runner
+   ```
+
+7. Pause `fieldgrid-worker@staging.timer`, install the reviewed web/worker unit
+   templates and run `systemctl daemon-reload`. Do not restart either service
+   before deployment has created `shared/runtime.env`:
+
+   ```sh
+   sudo systemctl stop fieldgrid-worker@staging.timer
+   sudo install -o root -g root -m 0644 "$package_dir/deploy/fieldgrid@.service" /etc/systemd/system/fieldgrid@.service
+   sudo install -o root -g root -m 0644 "$package_dir/deploy/fieldgrid-worker@.service" /etc/systemd/system/fieldgrid-worker@.service
+   sudo install -o root -g root -m 0644 "$package_dir/deploy/fieldgrid-worker@.timer" /etc/systemd/system/fieldgrid-worker@.timer
+   sudo systemctl daemon-reload
+   ```
+
+8. Run the root-only control first. It alone verifies `/etc/fieldgrid`, the
+   handoff key/certificate, attestation trusted root, broker and protected
+   runtime metadata. It accepts the protected legacy `fieldgrid.env` during the
+   coordinated first transition and must be rerun after deployment has created
+   `runtime.env`:
+
+   ```sh
+   sudo /usr/bin/env -i \
+     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+     /usr/bin/bash /usr/local/libexec/fieldgrid/check-staging-root-contract.sh
+   ```
+
+9. Run the unprivileged control as `fieldgrid-runner` with only canonical
+   non-secret values. It must not traverse `/etc/fieldgrid` or read runtime
+   metadata. It proves denial for `shared`, `releases` and `backups`, performs a
+   bounded create/remove probe below `incoming`, checks public unit references
+   and requires exactly one no-argument sudo broker rule:
+
+   ```sh
+   sudo -u fieldgrid-runner /usr/bin/env -i \
+     PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+     DEPLOY_TARGET=staging \
+     DEPLOY_ROOT=/opt/fieldgrid/staging \
+     SERVICE_NAME=fieldgrid@staging.service \
+     CLAMAV_ENABLED=true \
+     CLAMAV_SOCKET=/run/clamav/clamd.ctl \
+     /usr/bin/bash /usr/local/libexec/fieldgrid/check-staging-runner-contract.sh
+   ```
+
+The first protected promotion creates plaintext runtime/backup only on a fresh
+GitHub-hosted runner, encrypts both to the public handoff certificate and
+attests release plus ciphertext there. The persistent runner transfers those
+bytes only. The combined root broker verifies all three attestations, decrypts
+root-only and installs `runtime.env`, a root-only backup and a root-owned
+release. Resume the worker timer only after the new web process is healthy; the
+workflow then requires a fresh successful worker invocation before it can
+complete.
+
+An already installed release SHA is never reactivated from a retained handoff.
+The broker also requires the signed GitHub observer timestamp of every
+attestation to be no older than six hours (and not more than five minutes in the
+future). A delayed deployment must rerun the protected workflow. A retry after
+activation or a rollback therefore requires a new reviewed commit and a new
+hosted-runner attestation; use a forward fix instead of replaying an older
+release package.
 
 ## 3. DNS and Caddy
 
@@ -73,7 +272,7 @@ graceful reload.
 
 ## 4. Dedicated staging runner
 
-Register the runner at repository level under the `fieldgrid` identity with
+Run the existing runner under its separate runner identity (not `fieldgrid`) with
 these labels:
 
 ```text
@@ -84,6 +283,9 @@ Do not attach `fieldgrid-staging` to a production or legacy runner. Install the
 current GitHub Actions runner release (compatible with Node 24 actions) as a
 boot-enabled service and verify in GitHub that it is online and idle. The
 existing generic/offline legacy runner is not a fallback.
+This runner is a transfer-only boundary: workflow code on it must contain no
+Environment-secret references, builds, migrations, backups or attestation
+creation.
 
 ## 5. Supabase provider checks
 
@@ -115,13 +317,16 @@ git push origin <green-main-sha>:refs/heads/staging
 ```
 
 The `Verify and deploy staging` workflow reruns the full CI suite, including
-all Playwright flows. Only after that job succeeds does the environment-bound
-deploy job start. It activates the exact SHA atomically and rejects a health
-response unless `status`, `environment`, `database`, and `release` all match.
+all Playwright flows. Only after that job succeeds does a fresh hosted prepare
+job build, back up, migrate, encrypt and attest. The self-hosted job only
+transfers the handoff and invokes the broker. A final fresh hosted acceptance
+job rejects the deployment unless `status`, `environment`, `database`,
+`scanner`, and `release` all match.
 
-If activation fails, the script restores the previous code symlink. A database
-migration is forward-only and is not automatically rolled back; investigate
-before another promotion.
+If activation fails after a forward-only migration, the candidate remains
+selected for diagnosis. The workflow never restores older, potentially
+incompatible code automatically; use a reviewed forward fix or a separately
+proven compatible operator action.
 
 ## 7. First administrator and tenant
 
@@ -140,3 +345,50 @@ A remaining `LOGO` placeholder means branding acceptance is incomplete.
 Complete `docs/staging-acceptance.md`. Only after explicit staging acceptance
 may a separate production architecture, GitHub Environment, branch and runner
 be designed.
+
+## Ticket scanner and delivery readiness
+
+The ticket release gate additionally requires an operator-provisioned supported
+ClamAV daemon and freshclam updater. Deployment does not install these, grant
+sudo, or change system units. Run the scanner under its own identity, without
+access to Fieldgrid runtime credentials. Permit the `fieldgrid` identity to use
+only `/run/clamav/clamd.ctl` (`clamav:clamav`, `0660`), never a TCP port. The
+staging runner uses a different UID and has no `clamav` membership/access. Start from
+`deploy/clamd-ticket.conf.example`; verify the actual loaded configuration has
+PDF scanning, heuristic/encrypted-document alerts and `AlertExceedsMax yes`.
+Keep daemon resources bounded and definitions refreshed. Do not log original
+filenames, file contents, scanner JSON metadata or clean-file details.
+
+Set `CLAMAV_ENABLED=true` and `CLAMAV_SOCKET=/run/clamav/clamd.ctl` in GitHub Environment `staging`; optional timeout and
+definition-age limits are documented in the architecture. Do not manually copy
+secrets into VPS environment files. The generated file is encrypted on the
+hosted preparation runner and becomes `shared/runtime.env` only after root-only
+decryption by the combined broker.
+The application healthcheck performs EICAR rejection and clean PNG/PDF
+acceptance under the actual runtime identity and sandbox. The staging runner
+only verifies configuration and host identity; it must never be given scanner
+access for preflight. A missing/stale/erroring scanner blocks acceptance.
+See [ClamAV operator steps](clamav.md) before installing updated unit templates.
+
+Tickets share `/api/worker` and the existing timer. Check a fresh successful
+invocation after deploying, not just an active timer or historical unit result.
+The deploy gate observes the timer without starting or changing system units:
+`scripts/check-worker-timer.sh` requires a successful execution that **started
+after** the new web-service activation. An old successful result is insufficient.
+It observes for up to ten minutes, allowing a bounded provider/scan batch to
+finish and the operator to resume a timer paused for the runtime transition.
+It fails closed if no fresh success appears. The `--installed` preflight mode
+checks only the installed unit and exact worker target, never runtime success.
+The existing loopback POST is admitted by the hostname proxy only for the exact
+staging worker route/port and a valid worker secret; the handler authenticates
+the secret again. This exception gives no access to tenant pages or other APIs.
+Review only generic counters/status codes: pending/error scans remain private;
+uncertain mail/push means provider acceptance could not be established and is
+not automatically retried. Reconcile with the provider before any explicit
+future retry mechanism. Notification contents and HR subjects are never log
+fields. Test with controlled fixtures/sinks, never real employee recipients.
+
+Upload cleanup removes only unbound artifacts older than 24 hours or drafts
+explicitly discarded by their owner. A live scan lease delays deletion to avoid
+a late-write race. Removing a draft frees its upload quota immediately.
+Bound messages/support copies have no invented automatic retention purge.

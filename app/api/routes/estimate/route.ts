@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { travelDay, travelGeometry, manualTravel } from "@/lib/travel/service";
+import { readBoundedJson, RequestBodyTooLargeError } from "@/lib/http/request-body";
 export async function POST(request: Request) {
   const headers = { "cache-control": "private, no-store" };
   try {
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
           })
           .refine((v) => v.minutes === null || v.reason.length >= 3),
       ])
-      .parse(await request.json());
+      .parse(await readBoundedJson(request, 4096));
     if (input.action === "day")
       return Response.json(await travelDay(input.day, input.personId), {
         headers,
@@ -54,6 +55,8 @@ export async function POST(request: Request) {
     await manualTravel(input);
     return Response.json({ ok: true }, { headers });
   } catch (e) {
+    if (e instanceof RequestBodyTooLargeError)
+      return Response.json({ error: "Deze aanvraag is te groot." }, { status: 413, headers });
     const error =
       e instanceof z.ZodError
         ? "Controleer de reisgegevens."

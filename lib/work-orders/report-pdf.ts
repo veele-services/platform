@@ -30,6 +30,6 @@ export async function renderWorkOrderReportPdf(report: ReportVersion,assets: Arr
    page.drawImage(embedded,{x:46,y:y-dimensions.height,width:dimensions.width,height:dimensions.height});y-=dimensions.height+22;
  }
  doc.getPages().forEach((p,i)=>p.drawText(`${report.snapshot.number} · v${report.version} · ${i+1}/${doc.getPageCount()}`,{x:46,y:32,size:8,font}));
- doc.setTitle(`Werkrapport ${report.snapshot.number} v${report.version}`);doc.setSubject(`Inhoudsreferentie ${report.contentHash}`);doc.setProducer("Fieldgrid");
+ doc.setTitle(`Werkrapport ${report.snapshot.number} v${report.version}`);doc.setSubject(`${report.projection&&report.projection!=="original"?"Afgeleide privacyweergave; referentie oorspronkelijke rapportversie":"Inhoudsreferentie"} ${report.contentHash}`);doc.setProducer("Fieldgrid");
  return doc.save({useObjectStreams:false});
 }

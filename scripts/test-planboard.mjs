@@ -1,19 +1,11 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { localWorkOrderTestUrl } from "./work-order-test-target.mjs";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 
 test("planboard: real PostgreSQL authorization, transactions, races and integration", async (t) => {
-  const local = JSON.parse(
-    execFileSync("pnpm", ["supabase", "status", "-o", "json"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }),
-  );
-  const url = new URL(local.DB_URL);
-  assert.equal(url.hostname, "127.0.0.1");
-  assert.equal(url.port, "59322");
+  const local = { DB_URL: localWorkOrderTestUrl() };
   const admin = new pg.Client({ connectionString: local.DB_URL });
   await admin.connect();
   const tenant = randomUUID(),
@@ -666,6 +658,11 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
     );
   } finally {
     try {
+      await admin.query("delete from private.notification_deliveries where tenant_id=any($1)", [[tenant, otherTenant]]);
+      await admin.query("delete from private.notification_requests where tenant_id=any($1)", [[tenant, otherTenant]]);
+      await admin.query("delete from private.notification_planning_events where tenant_id=any($1)", [[tenant, otherTenant]]);
+      await admin.query("delete from private.notification_captured_outbox where tenant_id=any($1)", [[tenant, otherTenant]]);
+      await admin.query("delete from private.notification_domain_events where tenant_id=any($1)", [[tenant, otherTenant]]);
       await admin.query(
         "delete from public.planning_changes where tenant_id=any($1)",
         [[tenant, otherTenant]],

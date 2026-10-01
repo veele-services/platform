@@ -34,7 +34,7 @@ export async function POST(request:Request){
    const subject="Je verificatiecode voor beveiligde objectgegevens";
    const text=`Je verificatiecode is ${code}.\n\nDeze code is maximaal vijf minuten geldig. Vul hem alleen in de geopende omgeving van je organisatie in. Deel de code niet. Heb je geen code aangevraagd? Neem contact op met je leidinggevende.\n\nDit bericht bevat geen alarm- of toegangscode.`;
    const html=renderTenantEmailHtml({brand:{company:tenant.name,domain:new URL(tenantAppUrl(tenant.slug)).host,primary:brand.primary_color,accent:brand.accent_color,senderEmail:env.SENDGRID_FROM_EMAIL,emailLogoUrl:brand.logo_path?`${env.APP_URL}/api/branding/${tenant.id}/email-logo`:null},kind:"object_otp",message:{subject,body:text},targetUrl:tenantAppUrl(tenant.slug,"/staff"),allowLocalLinks:env.DEPLOY_TARGET==="local"});
-   await sendEmail({to:String(result.email),fromEmail:env.SENDGRID_FROM_EMAIL,fromName:brand.sender_name||tenant.name,subject,text,html,deliveryKey:`object-otp:${result.challengeId}`,disableTracking:true});
+   await sendEmail({to:String(result.email),fromEmail:env.SENDGRID_FROM_EMAIL,fromName:brand.sender_name||tenant.name,subject,text,html,deliveryKey:`object-otp:${result.challengeId}`,disableTracking:true,policy:{kind:"security",flow:"object_otp",tenantId:tenant.id}});
    const delivered=await call("delivered",{challengeId:result.challengeId});if(!delivered.ok)throw new Error("Toegang gewijzigd");
    return reply({ok:true,challengeId:result.challengeId,expiresAt:result.expiresAt});
   }catch{

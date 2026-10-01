@@ -1,6 +1,6 @@
 begin;
 
-select plan(26);
+select plan(28);
 
 select has_table('public', 'tenants', 'tenants table exists');
 select has_table('public', 'work_orders', 'work orders table exists');
@@ -14,6 +14,9 @@ insert into auth.users (
   ('00000000-0000-0000-0000-000000000000', '10000000-0000-4000-8000-000000000002', 'authenticated', 'authenticated', 'staff-a@fieldgrid.test', crypt('Fieldgrid123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', '10000000-0000-4000-8000-000000000003', 'authenticated', 'authenticated', 'finance-a@fieldgrid.test', crypt('Fieldgrid123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', '20000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'admin-b@fieldgrid.test', crypt('Fieldgrid123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now());
+
+-- Real sessions: authenticated RLS must reject stale or missing sessions.
+insert into auth.sessions(id,user_id) select id,id from auth.users where id in ('10000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002','10000000-0000-4000-8000-000000000003','20000000-0000-4000-8000-000000000001');
 
 insert into public.tenants (id, slug, name) values
   ('a0000000-0000-4000-8000-000000000001', 'tenant-a', 'Tenant A'),
@@ -76,7 +79,7 @@ select is(
 );
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000001","session_id":"10000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 select is((select count(*)::integer from public.tenants), 1, 'tenant A administrator sees one tenant');
 select is((select count(*)::integer from public.customers), 1, 'tenant A administrator cannot read tenant B customers');
 select throws_ok(
@@ -86,19 +89,24 @@ select throws_ok(
   'tenant A administrator cannot insert into tenant B'
 );
 
-select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000002","session_id":"10000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
 select is((select count(*)::integer from public.work_orders), 0, 'staff must use the safe assigned-order projection instead of raw work orders');
-select is((select count(*)::integer from public.customers), 1, 'staff sees only the customer of an assigned work order');
+select is((select count(*)::integer from public.customers), 0, 'staff uses minimal customer projection, not the raw CRM table');
 select is((select count(*)::integer from public.objects), 1, 'staff sees only the object of an assigned work order');
 select is((select count(*)::integer from public.invoices), 0, 'staff cannot read invoices');
-select is((select count(*)::integer from public.personnel_documents), 1, 'staff can read an explicitly visible own document');
+select is((select count(*)::integer from public.personnel_documents), 0, 'staff cannot read raw document records with internal HR metadata');
+select is(jsonb_array_length(public.staff_workspace('a0000000-0000-4000-8000-000000000001')->'personnelDocuments'), 1, 'staff can list an explicitly visible own document through the minimal projection');
+select is((select count(*)::integer from public.personnel_document_file(
+  'a0000000-0000-4000-8000-000000000001',
+  (public.staff_workspace('a0000000-0000-4000-8000-000000000001')->'personnelDocuments'->0->>'id')::uuid
+)), 1, 'staff can download the explicitly shared own document through the guarded descriptor');
 select ok(
   (select private.can_access_storage_object('personnel-documents', 'a0000000-0000-4000-8000-000000000001/a1000000-0000-4000-8000-000000000001/contract.pdf', false)),
   'staff can read the matching private own-document object'
 );
 select ok(
-  (select private.can_access_storage_object('reports', 'a0000000-0000-4000-8000-000000000001/a4000000-0000-4000-8000-000000000001/test.jpg', false)),
-  'staff can read report storage for an assigned work order'
+  not (select private.can_access_storage_object('reports', 'a0000000-0000-4000-8000-000000000001/a4000000-0000-4000-8000-000000000001/test.jpg', false)),
+  'assignment alone does not grant access to arbitrary report files'
 );
 select ok(
   not (select private.can_access_storage_object('reports', 'b0000000-0000-4000-8000-000000000001/b4000000-0000-4000-8000-000000000001/test.jpg', false)),
@@ -117,12 +125,12 @@ select ok(
   'staff cannot overwrite tenant branding'
 );
 
-select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-000000000003","session_id":"10000000-0000-4000-8000-000000000003","role":"authenticated"}', true);
 select is((select count(*)::integer from public.personnel_notes), 0, 'finance cannot read confidential personnel notes');
 select is((select count(*)::integer from public.personnel_documents), 0, 'finance cannot read confidential personnel documents');
 select is((select count(*)::integer from public.invoices), 1, 'finance can read own-tenant invoices');
 
-select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"20000000-0000-4000-8000-000000000001","session_id":"20000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 select is((select count(*)::integer from public.personnel_documents), 0, 'another tenant administrator cannot read personnel documents');
 select ok(
   not (select private.can_access_storage_object('branding', 'a0000000-0000-4000-8000-000000000001/logo.png', false)),

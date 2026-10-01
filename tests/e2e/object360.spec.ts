@@ -3,6 +3,7 @@ import {randomUUID} from "node:crypto";
 import pg from "pg";
 import {createClient} from "@supabase/supabase-js";
 import type {Database} from "../../lib/database.types";
+import {requireLocalDatabaseUrl} from "./local-target";
 
 // Even fictitious OTPs/secret values must not end up in browser traces or videos.
 test.use({trace:"off",screenshot:"off",video:"off"});
@@ -11,12 +12,12 @@ let db:pg.Client,tenant:string,manager:string,customerUser:string;
 const customerEmail=`object-customer-${randomUUID()}@fieldgrid.test`;
 const fixtureCustomer="e2000000-0000-4000-8000-000000000001",fixturePerson="e1000000-0000-4000-8000-000000000001";
 test.beforeAll(async()=>{
- const url=new URL(process.env.DATABASE_URL!);expect(url.hostname).toBe("127.0.0.1");expect(url.port).toBe("59322");
+ const url=requireLocalDatabaseUrl();
  db=new pg.Client({connectionString:url.href});await db.connect();
  tenant=(await db.query("select id from public.tenants where slug='fieldgrid-e2e'")).rows[0].id;
  manager=(await db.query("select id from auth.users where email='platform-admin@fieldgrid.test'")).rows[0].id;
  await db.query("insert into public.objects(id,tenant_id,customer_id,object_number,name,address) values($1,$2,$3,'OBJ-360-E2E','Object 360 testlocatie','{\"street\":\"Teststraat 20\",\"city\":\"Utrecht\",\"postal_code\":\"1234 AB\"}')",[object,tenant,fixtureCustomer]);
- for(const [i,id]of [order,secondOrder].entries())await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at,created_by) values($1,$2,$3,$4,$5,'Onderhoud','released',now()-interval '10 minutes',now()+interval '2 hours',now()-interval '10 minutes',now()+interval '2 hours',$6)",[id,tenant,fixtureCustomer,object,`OBJ360-${i+1}`,manager]);
+ for(const [i,id]of [order,secondOrder].entries())await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at,published_at,planning_state,created_by) values($1,$2,$3,$4,$5,'Onderhoud','released',now()-interval '10 minutes',now()+interval '2 hours',now()-interval '10 minutes',now()+interval '2 hours',now(),'final',$6)",[id,tenant,fixtureCustomer,object,`OBJ360-${i+1}`,manager]);
  await db.query("insert into public.work_order_assignments(id,tenant_id,work_order_id,personnel_id,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at) values($1,$2,$3,$4,'released',now()-interval '10 minutes',now()+interval '2 hours',now()-interval '10 minutes',now()+interval '2 hours')",[assignment,tenant,order,fixturePerson]);
  await db.query("insert into public.dispatches(tenant_id,work_order_id,assignment_id,dispatched_by,idempotency_key) values($1,$2,$3,$4,$5)",[tenant,order,assignment,manager,randomUUID()]);
  const api=createClient<Database>(process.env.SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}});

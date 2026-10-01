@@ -1,5 +1,8 @@
 "use client";
 import { TravelSettings } from "./travel-settings";
+import { TicketNavigation } from "./tickets/navigation";
+import { NotificationBell } from "./notifications/inbox";
+import { NotificationNavigation } from "./notifications/navigation";
 import { WorkOrderSignatureSettings } from "./work-orders/settings";
 
 import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
@@ -30,7 +33,7 @@ import {
   createExtraWorkRule, allowExtraWork,
 } from "@/app/app/operations-actions";
 
-export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging";
+export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging" | "meldingen" | "support" | "notificaties";
 
 const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboard; href: string }> = [
   { id: "overzicht", label: "Overzicht", icon: LayoutDashboard, href: "/app" },
@@ -46,6 +49,9 @@ const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboa
   { id: "nieuws", label: "Nieuws", icon: Megaphone, href: "/app/nieuws" },
   { id: "opvolging", label: "Opvolging", icon: ClipboardCheck, href: "/app/opvolging" },
   { id: "instellingen", label: "Instellingen", icon: Settings, href: "/app/instellingen" },
+  { id: "meldingen", label: "Personeelsmeldingen", icon: Bell, href: "/app/meldingen" },
+  { id: "support", label: "Fieldgrid-support", icon: Bell, href: "/app/support" },
+  { id: "notificaties", label: "Notificaties", icon: Bell, href: "/app/notificaties" },
 ];
 
 const serviceByView: Partial<Record<BackofficeView, string>> = {
@@ -100,7 +106,7 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
   const [mobileNav, setMobileNav] = useState(false);
   const [search, setSearch] = useState("");
   const tenant = context.tenant;
-  const visibleNav = nav.filter((item) => !serviceByView[item.id] || tenant.enabledServices.includes(serviceByView[item.id]!));
+  const visibleNav = nav.filter((item) => !["meldingen", "support", "notificaties"].includes(item.id) && (!serviceByView[item.id] || tenant.enabledServices.includes(serviceByView[item.id]!)));
   const customerById = useMemo(() => new Map(data.customers.map((item) => [item.id, item])), [data.customers]);
   const objectById = useMemo(() => new Map(data.objects.map((item) => [item.id, item])), [data.objects]);
   const current = nav.find((item) => item.id === view)!;
@@ -159,8 +165,8 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
   })();
 
   return <div className="workspace-shell" style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
-    <aside className={`workspace-sidebar ${mobileNav ? "open" : ""}`}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><nav>{visibleNav.map((item) => <Link prefetch={view === "planning" ? false : undefined} key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}</nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small>{!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}</footer></aside>
-    <div className="workspace-main"><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu"><Menu size={20}/></button><span className="breadcrumb">Fieldgrid <ChevronRight size={13}/> <strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><Bell size={18}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
+    <aside className={`workspace-sidebar ${mobileNav ? "open" : ""}`}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><nav>{visibleNav.map((item) => <Link prefetch={view === "planning" ? false : undefined} key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}<TicketNavigation workspace="tenant" current={view} actorKey={`${tenant.id}:${context.user.id}`}/><NotificationNavigation workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/></nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small>{!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}</footer></aside>
+    <div className="workspace-main"><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu"><Menu size={20}/></button><span className="breadcrumb">Fieldgrid <ChevronRight size={13}/> <strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
   </div>;
 }
 

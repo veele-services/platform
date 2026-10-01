@@ -27,6 +27,7 @@ import {
 } from "@/lib/customers/model";
 import { customerCommand } from "@/app/app/klanten/actions";
 import { CustomerWizard } from "./forms";
+import { customerScroll, rememberCustomerScroll } from "@/lib/auth/browser-state";
 
 export function CustomersList({
   data,
@@ -49,12 +50,12 @@ export function CustomersList({
   const [wizard, setWizard] = useState(create),
     [pending, start] = useTransition();
   const back = `${path}${params.size ? `?${params}` : ""}`,
-    key = `customer-scroll:${back}`;
+    key = `${tenant.id}:${back}`;
   useEffect(() => {
-    const y = sessionStorage.getItem(key);
+    const y = customerScroll(key);
     if (y) window.scrollTo(0, Number(y));
   }, [key]);
-  const remember = () => sessionStorage.setItem(key, String(window.scrollY));
+  const remember = () => rememberCustomerScroll(key, window.scrollY);
   const href = (id: string, edit = false) =>
     `/app/klanten/${id}?return=${encodeURIComponent(back)}${edit ? "&edit=1" : ""}`;
   const page = (next: number) => {

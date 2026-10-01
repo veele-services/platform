@@ -6,6 +6,7 @@ import {z} from "zod";
 import {createAdminClient} from "@/lib/supabase/admin";
 import {TENANT_SLUG_HEADER} from "@/lib/tenancy/hostname";
 import {getServerEnv} from "@/lib/env/server";
+import {commercialModuleEnabled} from "@/lib/commercial/access";
 import type {ActionResult} from "@/lib/actions/result";
 
 export async function submitPublicRequest(form:FormData):Promise<ActionResult>{
@@ -14,6 +15,7 @@ export async function submitPublicRequest(form:FormData):Promise<ActionResult>{
   const h=await headers();const slug=h.get(TENANT_SLUG_HEADER);if(!slug)throw new Error("Open het aanvraagformulier van het bedrijf.");
   const admin=createAdminClient();const {data:tenant}=await admin.from("tenants").select("id").eq("slug",slug).eq("status","active").single();
   const key=getServerEnv().ADMIN_API_SECRET;if(!tenant||!key)throw new Error("Het aanvraagformulier is tijdelijk niet beschikbaar.");
+  if(!await commercialModuleEnabled(admin,tenant.id))throw new Error("Het aanvraagformulier is tijdelijk niet beschikbaar.");
   // Never persist/log network identifiers. The proxy appends the connecting IP.
   const ip=h.get("x-forwarded-for")?.split(",").at(-1)?.trim()||"unknown";
   const clientHash=createHmac("sha256",key).update(`${tenant.id}:${ip}`).digest("hex");

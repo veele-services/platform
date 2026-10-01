@@ -365,8 +365,17 @@ export async function saveTravelDaySettings(
     const r =
       form.get("reset") === "yes"
         ? v.version
-          ? await query
-              .delete()
+          ? await (privateAccess
+              ? query.delete()
+              : query.update({
+                  standard_vehicle: null,
+                  departure_kind: null,
+                  departure_depot_id: null,
+                  return_to_departure: null,
+                  version: v.version + 1,
+                  updated_by: user.id,
+                  updated_at: new Date().toISOString(),
+                }))
               .eq("tenant_id", tenant.id)
               .eq("personnel_id", v.personnelId)
               .eq("day", v.day)

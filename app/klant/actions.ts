@@ -1,4 +1,5 @@
 "use server";
+import { uploadScannedFile } from "@/lib/files/scanned-storage";
 import {randomUUID} from "node:crypto";
 import {revalidatePath} from "next/cache";
 import {z} from "zod";
@@ -34,7 +35,7 @@ export async function uploadVisitAttachment(form:FormData):Promise<ActionResult>
  try{const v=z.object({objectId:z.string().uuid(),orderId:z.string().uuid(),requestId:z.string().uuid(),title:z.string().trim().min(2).max(180)}).parse(Object.fromEntries(form));const {db,admin,tenant}=await getObjectActor();
  const {error}=await db.rpc("object_visit_context",{target_tenant:tenant.id,target_object:v.objectId,target_order:v.orderId});if(error)throw new Error("Geen toegang");
  const file=form.get("document");if(!(file instanceof File)||file.size<1||file.size>CUSTOMER_DOCUMENT_MAX_BYTES)throw new Error("Bestand ontbreekt");validateDossierDocumentName(v.title,file.name);const bytes=new Uint8Array(await file.arrayBuffer());const ext=customerDocumentExtension(file.type,bytes);const path=`${tenant.id}/${v.objectId}/${randomUUID()}.${ext}`;
- const bucket=admin.storage.from("object-documents");const upload=await bucket.upload(path,bytes,{contentType:file.type,upsert:false});if(upload.error)throw new Error("Upload mislukt");
+ const bucket=admin.storage.from("object-documents");await uploadScannedFile(db,"object-documents",path,bytes,file.type,v.requestId);
  const registered=await db.rpc("register_visit_attachment",{target_tenant:tenant.id,target_request:v.requestId,input:{title:v.title,path,mime:file.type,fileName:customerDocumentFileName(file.name),size:file.size}});
  if(registered.error){await bucket.remove([path]);throw new Error("Registratie mislukt");}revalidatePath("/klant");revalidatePath(`/app/objecten/${v.objectId}`);return {ok:true};
  }catch{return {ok:false,error:"Bijlage niet opgeslagen. Gebruik PDF, JPG of PNG van maximaal 10 MB en controleer of je toegang nog geldig is."};}

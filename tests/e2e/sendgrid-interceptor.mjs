@@ -1,5 +1,7 @@
 // Loaded ONLY by Playwright's Next.js subprocess, never by normal dev/build/deploy.
-if (process.env.FIELDGRID_TEST_SENDGRID !== "1" || process.env.DEPLOY_TARGET !== "local" || process.env.SUPABASE_URL !== "http://127.0.0.1:59321") {
+const replay=/^\/tmp\/fieldgrid-release-migrations\.[A-Za-z0-9]+$/.test(process.env.FIELDGRID_LOCAL_REPLAY_DIR??"");
+const expectedSupabase=replay?"http://127.0.0.1:60321":"http://127.0.0.1:59321";
+if (process.env.FIELDGRID_TEST_SENDGRID !== "1" || process.env.DEPLOY_TARGET !== "local" || process.env.SUPABASE_URL !== expectedSupabase) {
   throw new Error("SendGrid test interception requires the local Fieldgrid test environment");
 }
 const originalFetch = globalThis.fetch;

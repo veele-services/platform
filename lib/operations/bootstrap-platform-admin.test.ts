@@ -11,6 +11,8 @@ describe("platformbeheerbootstrap", () => {
         encoding: "utf8",
         env: {
           ...process.env,
+          DEPLOY_TARGET: "staging",
+          APP_ENV: "development",
           SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
           SUPABASE_SERVICE_ROLE_KEY: "local-test-key",
           FIELDGRID_ADMIN_EMAIL: "admin@example.invalid",
@@ -23,7 +25,9 @@ describe("platformbeheerbootstrap", () => {
     const output = `${result.stdout}${result.stderr}`;
 
     expect(result.status).not.toBe(0);
-    expect(output).toContain("Platformbeheerbootstrap weigert het geconfigureerde Supabaseproject");
+    expect(output).toContain("Supabase-URL is niet aantoonbaar het stagingproject; verbinding geweigerd.");
     expect(output).not.toContain("Top-level await");
+    expect(output).not.toContain("test-password-only");
+    expect(output).not.toContain("local-test-key");
   });
 });

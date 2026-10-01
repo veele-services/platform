@@ -4,6 +4,7 @@ import pg from "pg";
 import { createClient } from "@supabase/supabase-js";
 import { PDFDocument } from "pdf-lib";
 import type { Database } from "../../lib/database.types";
+import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
 
 test.use({actionTimeout:15000});
 const customer=randomUUID(),object=randomUUID(),order=randomUUID(),task=randomUUID(),assignment=randomUUID();
@@ -11,7 +12,7 @@ const person="e1000000-0000-4000-8000-000000000001";
 const revision="e5000000-0000-4000-8000-000000000001";
 let db:pg.Client,tenant:string,manager:string;
 test.beforeAll(async()=>{
- const url=new URL(process.env.DATABASE_URL!);expect(url.hostname).toBe("127.0.0.1");expect(url.port).toBe("59322");db=new pg.Client({connectionString:url.href});await db.connect();
+ const url=requireLocalDatabaseUrl();db=new pg.Client({connectionString:url.href});await db.connect();
  tenant=(await db.query("select id from public.tenants where slug='fieldgrid-e2e'")).rows[0].id;manager=(await db.query("select id from auth.users where email='platform-admin@fieldgrid.test'")).rows[0].id;
  await db.query("insert into public.customers(id,tenant_id,customer_number,name,billing_email) values($1,$2,'KL-CHAIN','Dossier Ketenproef','chain@fieldgrid.test')",[customer,tenant]);
  await db.query("insert into public.objects(id,tenant_id,customer_id,object_number,name,address) values($1,$2,$3,'OB-CHAIN','Ketenproef locatie','{\"street\":\"Teststraat 30\",\"city\":\"Utrecht\"}')",[object,tenant,customer]);
@@ -28,7 +29,7 @@ test.afterAll(async()=>{if(!db)return;try{
  if(invoices.some(i=>i.pdf_storage_path))await api.storage.from("invoices").remove(invoices.flatMap(i=>i.pdf_storage_path?[i.pdf_storage_path]:[]));
  await db.query("delete from public.invoice_lines where invoice_id=any($1)",[invoices.map(i=>i.id)]);await db.query("delete from public.invoices where customer_id=$1",[customer]);await db.query("delete from public.review_decisions where work_order_id=$1",[order]);
  // Only this isolated fixture's immutable report and task contribution may be removed.
- const url=new URL(process.env.DATABASE_URL!);expect(url.hostname).toBe("127.0.0.1");expect(url.port).toBe("59322");
+ requireLocalDatabaseUrl();
  expect((await db.query("select slug from public.tenants where id=$1",[tenant])).rows[0].slug).toBe("fieldgrid-e2e");
  await db.query("begin");try{await db.query("set local session_replication_role='replica'");
   await db.query("delete from public.work_order_report_versions where tenant_id=$1 and work_order_id=$2",[tenant,order]);
@@ -39,7 +40,7 @@ test.afterAll(async()=>{if(!db)return;try{
 }finally{await db.end();}});
 
 async function stopAndSubmitStaffReport(){
- const apiUrl=new URL(process.env.SUPABASE_URL!);expect(apiUrl.hostname).toBe("127.0.0.1");expect(apiUrl.port).toBe("59321");
+ const apiUrl=requireLocalApiUrl();
  const staff=createClient<Database>(apiUrl.href,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{auth:{persistSession:false,autoRefreshToken:false}});
  const signedIn=await staff.auth.signInWithPassword({email:"field-worker@fieldgrid.test",password:"Fieldgrid-E2E-2026"});expect(signedIn.error).toBeNull();
  try{

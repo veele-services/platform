@@ -1,4 +1,5 @@
 import "server-only";
+import { getBrandingLogoUrl } from "@/lib/branding/logo";
 
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/database.types";
@@ -66,12 +67,12 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     ]);
     if (brandingResult.error) throw new Error("Huisstijl niet beschikbaar");
     const branding = brandingResult.data;
-    const logo = branding?.logo_path ? await supabase.storage.from("branding").createSignedUrl(branding.logo_path, 3600) : null;
+    const logo = await getBrandingLogoUrl(supabase, branding?.logo_path);
     return {
       customers: [], contacts: [], customerNotes: [], customerDocuments: [], objects: [], requests: [], quotes: [], tasks: [], taskRevisions: [],
       personnel: [], personnelFunctions: [], functions: [], qualifications: [], workOrders: [], assignments: [], workOrderTasks: [], dispatches: [], reports: [], attachments: [], signatures: [], reviews: [],
       invoices: [], invoiceLines: [], payments: [], allocations: [], announcements: [], reminders: [], openShifts: [], shiftInterests: [], timeEntries: [], notifications: [], personnelDocuments: [], availability: [], announcementReads: [], extraWorkRules: [], allowedExtraWork: [], travelLegs: [], settings: null,
-      ...(projection as Partial<WorkspaceData>), branding, brandingLogoUrl: logo?.data?.signedUrl ?? null,
+      ...(projection as Partial<WorkspaceData>), branding, brandingLogoUrl: logo,
     };
   }
   const taskProjection=operationalTaskData(supabase,tenantId);
@@ -83,7 +84,7 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     supabase.from("quotes").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(250),
     supabase.from("task_catalog").select("*").eq("tenant_id", tenantId).order("code"),
     taskProjection.then(p=>({data:p.taskRevisions,error:null})),
-    supabase.from("personnel").select("id,tenant_id,user_id,employee_number,full_name,email,phone,status,start_date,end_date,emergency_contact,created_at,updated_at,version,standard_vehicle,departure_kind,departure_depot_id,return_to_departure").eq("tenant_id", tenantId).order("full_name"),
+    supabase.from("personnel").select("id,tenant_id,user_id,employee_number,full_name,email,phone,status,start_date,end_date,created_at,updated_at,version,standard_vehicle,departure_kind,departure_depot_id,return_to_departure").eq("tenant_id", tenantId).order("full_name"),
     supabase.from("function_catalog").select("*").eq("tenant_id", tenantId).order("name"),
     supabase.from("qualifications").select("*").eq("tenant_id", tenantId),
     operationalOrderRows(supabase,tenantId),
@@ -107,7 +108,7 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     supabase.from("tenant_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("tenant_branding").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("personnel_documents").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }),
-    supabase.from("availability").select("*").eq("tenant_id", tenantId).order("starts_at"),
+    supabase.rpc("personnel_availability", { target_tenant: tenantId }),
     supabase.from("announcement_reads").select("*").eq("tenant_id", tenantId),
     supabase.from("extra_work_rules").select("*").eq("tenant_id", tenantId).eq("active", true),
     supabase.from("work_order_allowed_extra_work").select("*").eq("tenant_id", tenantId),
@@ -122,19 +123,17 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     return result.data;
   };
   const branding = singleton(results[29]);
-  const signedLogo = branding?.logo_path
-    ? await supabase.storage.from("branding").createSignedUrl(branding.logo_path, 3600)
-    : null;
+  const signedLogo = await getBrandingLogoUrl(supabase, branding?.logo_path);
   return {
     customers: rows(results[0]), contacts: rows(results[1]), objects: rows(results[2]),
     requests: rows(results[3]), quotes: rows(results[4]), tasks: rows(results[5]), taskRevisions: rows(results[6]),
-    personnel: rows(results[7]).map(p=>({...p,home_address:{},alternate_departure_address:{}})), functions: rows(results[8]), qualifications: rows(results[9]),
+    personnel: rows(results[7]).map(p=>({...p,emergency_contact:{},home_address:{},alternate_departure_address:{}})), functions: rows(results[8]), qualifications: rows(results[9]),
     workOrders: rows(results[10]), assignments: rows(results[11]), workOrderTasks: rows(results[12]), dispatches: rows(results[13]),
     reports: rows(results[14]), attachments: rows(results[15]), signatures: rows(results[16]), reviews: rows(results[17]),
     invoices: rows(results[18]), invoiceLines: rows(results[19]), payments: rows(results[20]), allocations: rows(results[21]),
     announcements: rows(results[22]), reminders: rows(results[23]), openShifts: rows(results[24]), shiftInterests: rows(results[25]),
     timeEntries: rows(results[26]), notifications: rows(results[27]), settings: singleton(results[28]), branding,
-    brandingLogoUrl: signedLogo?.data?.signedUrl ?? null,
+    brandingLogoUrl: signedLogo,
     personnelDocuments: rows(results[30]), availability: rows(results[31]), announcementReads: rows(results[32]),
     extraWorkRules: rows(results[33]), allowedExtraWork: rows(results[34]),
     travelLegs: rows(results[35]),

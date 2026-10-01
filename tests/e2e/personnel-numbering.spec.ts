@@ -1,12 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../lib/database.types";
+import { requireLocalApiUrl } from "./local-target";
 
 test("personeelsnummering is instelbaar, automatisch en per medewerker aanpasbaar", async ({ page }) => {
   test.setTimeout(60_000);
-  const url = new URL(process.env.SUPABASE_URL!);
-  expect(url.hostname).toBe("127.0.0.1");
-  expect(url.port).toBe("59321");
+  const url = requireLocalApiUrl();
   const admin = createClient<Database>(url.href, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
   const { data: tenant, error } = await admin.from("tenants").select("id").eq("slug", "fieldgrid-e2e").single();
   if (error) throw error;

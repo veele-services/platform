@@ -1,4 +1,5 @@
 import "server-only";
+import { getBrandingLogoUrl } from "@/lib/branding/logo";
 import { createClient } from "@/lib/supabase/server";
 import type { WorkspaceData } from "@/lib/data/workspace";
 import type { PlanboardData, PlanningQuery } from "./model";
@@ -32,11 +33,7 @@ export async function getPlanningShellData(
     .eq("tenant_id", tenantId)
     .maybeSingle();
   if (error) throw new Error("Huisstijl kon niet worden geladen.");
-  const logo = branding?.logo_path
-    ? await db.storage
-        .from("branding")
-        .createSignedUrl(branding.logo_path, 3600)
-    : null;
+  const logo = await getBrandingLogoUrl(db, branding?.logo_path);
   return {
     customers: [],
     contacts: [],
@@ -77,6 +74,6 @@ export async function getPlanningShellData(
     travelLegs: [],
     settings: null,
     branding,
-    brandingLogoUrl: logo?.data?.signedUrl ?? null,
+    brandingLogoUrl: logo,
   };
 }

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { loadEnvConfig } from "@next/env";
+import { readFileSync } from "node:fs";
 import type { Database } from "../../lib/database.types";
 
 const ADMIN_EMAIL = "platform-admin@fieldgrid.test";
@@ -21,7 +22,9 @@ export default async function globalSetup() {
   const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("Lokale Supabase-config ontbreekt voor E2E");
-  if(new URL(url).hostname!=="127.0.0.1" || new URL(url).port!=="59321")throw new Error("E2E fixtures require the isolated local Fieldgrid database");
+  const replay=process.env.FIELDGRID_LOCAL_REPLAY_DIR;
+  if(replay&&(!/^\/tmp\/fieldgrid-release-migrations\.[A-Za-z0-9]+$/.test(replay)||!readFileSync(`${replay}/supabase/config.toml`,"utf8").includes('project_id = "fieldgrid-release-audit-20261001"')))throw new Error("Ongeldige lokale E2E-replayomgeving");
+  if(new URL(url).hostname!=="127.0.0.1" || new URL(url).port!==(replay?"60321":"59321"))throw new Error("E2E fixtures require the isolated local Fieldgrid database");
   const admin = createClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   const owner = await user(admin, ADMIN_EMAIL);
   const worker = await user(admin, STAFF_EMAIL);

@@ -1,0 +1,281 @@
+{
+  "format": 1,
+  "algorithm": "sha256-json-statements",
+  "migrations": [
+    {
+      "version": "20260928202819",
+      "name": "fieldgrid_v1_core",
+      "sha256": "85a8bcc51d680b049f33036b6ef9bff51fef0671add7b50a3390916d8ce33dd1"
+    },
+    {
+      "version": "20260928202927",
+      "name": "fieldgrid_v1_rls_storage",
+      "sha256": "e46678c18c762172cae8a39f2a9c587d29f7ce10eb73d45e8aef3cc27b141e71"
+    },
+    {
+      "version": "20260928202928",
+      "name": "fieldgrid_v1_domain_functions",
+      "sha256": "f482e5d0b25ccb874a447893e4a8f9a7de394c3e8c463f100b960a51551d9837"
+    },
+    {
+      "version": "20260928211620",
+      "name": "fieldgrid_v1_booking_and_workflows",
+      "sha256": "8afe09bea51dc4fd33148be4a5102b336ef25a280e795ca51db0a831c21da0d7"
+    },
+    {
+      "version": "20260928223000",
+      "name": "fieldgrid_v1_operational_completeness",
+      "sha256": "7ac646e994c378b9cb5da8da78636781464745dfa080b9a8a0da21cdf560dbb1"
+    },
+    {
+      "version": "20260929151545",
+      "name": "platform_backoffice_templates",
+      "sha256": "8790d3b4379e3ea79ebd43999bf79501bf856674ee6e1dc3bec2ae80066639a8"
+    },
+    {
+      "version": "20260929204920",
+      "name": "add_tenant_white_label_entitlement",
+      "sha256": "7c35ae770c343a8402ccd4574e59f604059b9a5058051f522c1b1d5e5e1a6432"
+    },
+    {
+      "version": "20260929214421",
+      "name": "customer_dossier",
+      "sha256": "27b3cd58138d1d2ef02bfbeef211ba07ab0ba1d8987941e0ea982b0c5c2a2eeb"
+    },
+    {
+      "version": "20260929222312",
+      "name": "personnel_numbering",
+      "sha256": "7e1bcdbd7383348e8b6b0f2a06bc6ba2e2109dd465e80fcb4e2b64f433715872"
+    },
+    {
+      "version": "20260929234105",
+      "name": "personnel_dossier_360",
+      "sha256": "133c8ed6d3dbafd5026eb175104ca0d8721e707845cd1362b4f2b50d4e1b9a24"
+    },
+    {
+      "version": "20260930000504",
+      "name": "personnel_dossier_deadlines",
+      "sha256": "f6681b40862047dd42fedcd74e3ae968732550fb7a56b0d8124377fa4388b183"
+    },
+    {
+      "version": "20260930014826",
+      "name": "day_planboard",
+      "sha256": "f86dc7bdb5c8487f1e47af49854b645539c15f9ee43fb643f8975d8f437b503e"
+    },
+    {
+      "version": "20260930015228",
+      "name": "day_planboard_write_contract",
+      "sha256": "ba31339023d84e9ca56cdd3cb895daa4110a1e533daec0e5be339abb96019698"
+    },
+    {
+      "version": "20260930031009",
+      "name": "object_dossier_360",
+      "sha256": "16f1fbfdb2d5012c79baa6de4dc8792884396393bdc35d7421ef3b90f8617ef0"
+    },
+    {
+      "version": "20260930033837",
+      "name": "object_dossier_contracts",
+      "sha256": "bbc32e56b8bc5311e9b6aeece57a46d2afa0b3c87ffbdbc079698954c97a5ae5"
+    },
+    {
+      "version": "20260930040157",
+      "name": "object_dossier_access_and_followup",
+      "sha256": "90dcaa8782ee59650d9c75e5ae834bc3f01ce62f4eae79530d5e4959118f4a81"
+    },
+    {
+      "version": "20260930040847",
+      "name": "object_document_version_guards",
+      "sha256": "7809638b0359c622919525aed4185f500760a1482fa29ca76675dac2431cb8b6"
+    },
+    {
+      "version": "20260930051932",
+      "name": "dossier_360_alignment",
+      "sha256": "416fde1e37da44d36a50d314c46caddcf212291220f561907f35c8d6a403f31a"
+    },
+    {
+      "version": "20260930053101",
+      "name": "dossier_execution_consistency",
+      "sha256": "d4b772aa543470fa0c1623727bef10bebe538b28ee559cec81fa3ff3414d0a88"
+    },
+    {
+      "version": "20260930053704",
+      "name": "dossier_checklist_retry",
+      "sha256": "231f6bde41507387956da74aa4afcc2a06e92af5630e7fa70f4ac3b4a6b9b870"
+    },
+    {
+      "version": "20260930053934",
+      "name": "dossier_historical_allocations",
+      "sha256": "3508563b13f11a3baef5e37132366d7ef2cefa31cf1983f395885e9697117625"
+    },
+    {
+      "version": "20260930054425",
+      "name": "dossier_visit_contract_limits",
+      "sha256": "17f323fd10e34af8af5dbcf9974682902b43d0771d25afc980544c7da2ce257e"
+    },
+    {
+      "version": "20260930071900",
+      "name": "addresses_basic_travel",
+      "sha256": "cbe895f1f89dd54fe4bca12cbb591e0a9ac3f9bb3f52172abbab1971b864cb5b"
+    },
+    {
+      "version": "20260930073943",
+      "name": "private_day_departure",
+      "sha256": "49c7af7ed4bff40e9515dfe24ab4613a99c2510b604c5f7a626b89f816996a77"
+    },
+    {
+      "version": "20260930095513",
+      "name": "commercial_requests_quotes_1",
+      "sha256": "23a6a1081bc95f938e942822033583e50acfd0a9d2095b8a58b1e29c765d8393"
+    },
+    {
+      "version": "20260930095514",
+      "name": "commercial_requests_quotes_2",
+      "sha256": "c8b725c3d5a267a3d3a591ea144e1ced0231d9a30c351acebbb2f5de2c0cf15f"
+    },
+    {
+      "version": "20260930101401",
+      "name": "commercial_workflow_completion",
+      "sha256": "9830bd8fde849dda662ef99c8940dc22ea07dbf5c5c2cc847ec0449659e420e9"
+    },
+    {
+      "version": "20260930101815",
+      "name": "commercial_validation_contract",
+      "sha256": "353f3184c7bf2f1badb4e521e850f0a3d3f48116b71fac9b927f81c56c26bd77"
+    },
+    {
+      "version": "20260930102817",
+      "name": "commercial_history_retention",
+      "sha256": "4fb340564f0fe45ee643c9f3f83b19d55fbae95fd1499b7da3112e13ae101aa8"
+    },
+    {
+      "version": "20260930134752",
+      "name": "customer_360",
+      "sha256": "18dedd7a6117f09bc0375366cbe4d3c07143def7d00d4a71bbb990c8f8cf979b"
+    },
+    {
+      "version": "20260930142326",
+      "name": "customer_active_followup",
+      "sha256": "d5dbf69202375940088d8176fd4f746cb2883d988eab777b7b1b6e83cc5900f0"
+    },
+    {
+      "version": "20260930160207",
+      "name": "work_orders",
+      "sha256": "659938d505fb3aa7ce33140f68f5278429e813caec8f99329e48fd9841fd7cdf"
+    },
+    {
+      "version": "20260930160534",
+      "name": "work_orders_projection",
+      "sha256": "1faa8f187780cf5f7746a001e3d5b499d3b6b60dd849dc372f100a209fe3d412"
+    },
+    {
+      "version": "20260930161002",
+      "name": "work_order_internal_attachments",
+      "sha256": "676ea0772c6dd71650809175bee08b70f4a93da870bdeca7d6955d1db38866e0"
+    },
+    {
+      "version": "20260930161440",
+      "name": "work_order_attachment_guard",
+      "sha256": "8757a3a3208cfefc057b9d517d0bb8af51342fc5c14f95d41a955338ca0021e2"
+    },
+    {
+      "version": "20260930192504",
+      "name": "tickets_support",
+      "sha256": "f6e65c6024dd34546cd783d3a61515e4b3b5e8a361113f701f661a1d897ac961"
+    },
+    {
+      "version": "20260930192516",
+      "name": "ticket_files_delivery",
+      "sha256": "ecbaab020aae606a9ac4d585fece2cbc8857d9c2dd9942e3a7f04e9eb76795c1"
+    },
+    {
+      "version": "20260930212609",
+      "name": "notification_delivery_states",
+      "sha256": "60169cfcbb871f6fecd556ddbc74dee1497033824a639301a2b8e6478a49381d"
+    },
+    {
+      "version": "20260930212610",
+      "name": "central_notifications",
+      "sha256": "6f69c939dade91b81ba00384ed30c63767da4bba515105d5e2d2f33701eae593"
+    },
+    {
+      "version": "20261001013206",
+      "name": "release_security_privacy",
+      "sha256": "5028bfee30f03c483905a0b4db6a1faed5612d807fb780a7b32b2fbf59749d06"
+    },
+    {
+      "version": "20261001020414",
+      "name": "release_scanned_files",
+      "sha256": "8a483e23373ec82ebdf06edf4439abdb9bcc61925aa6a867494eee7b31622019"
+    },
+    {
+      "version": "20261001024345",
+      "name": "release_travel_authorization",
+      "sha256": "f74dc6c4223eaa5ab8357836ab15874be52b95b9c450991aae8c720aa0bcdb57"
+    },
+    {
+      "version": "20261001030651",
+      "name": "release_payment_boundaries",
+      "sha256": "a79ac55d502a73144a11de13556bcfa73637710891d9bf825ef69e4d79bc506f"
+    },
+    {
+      "version": "20261001032049",
+      "name": "release_payment_retries",
+      "sha256": "ebe71f8269145fe3eb038aad17ac970fe39ac10f8e86b42079a107c5bf83fa53"
+    },
+    {
+      "version": "20261001035345",
+      "name": "release_personnel_privacy",
+      "sha256": "3a776a157f7b096a5be88bd192fc809345e6e61110033b596baa4c4ed1a66d7c"
+    },
+    {
+      "version": "20261001042234",
+      "name": "release_absence_privacy",
+      "sha256": "05e9b7b99f620d4c9d27d52ecb67145952db0f2669a830858b8f672bd2120710"
+    },
+    {
+      "version": "20261001045303",
+      "name": "release_platform_lifecycle",
+      "sha256": "b1125d255057906ab9b6d0fc40527a17c633e740e405d7a53e65af2b41a3aeb0"
+    },
+    {
+      "version": "20261001071807",
+      "name": "release_module_boundaries",
+      "sha256": "bf03eb61b412fad5fc41a352e8864de0033564148c2ef03bd250cd0abc0454da"
+    },
+    {
+      "version": "20261001072936",
+      "name": "release_module_summaries",
+      "sha256": "c3db2e5bdd4b87f33f9b4c2bc1208bd63293d78387db375dcc71cb8594302260"
+    },
+    {
+      "version": "20261001073930",
+      "name": "release_exception_privacy",
+      "sha256": "ced47a684fdf942a39e1efcd68467d8381e37203f31d1853afa172b8e9bec0c4"
+    },
+    {
+      "version": "20261001080158",
+      "name": "release_resource_lifecycle",
+      "sha256": "d39cc2abdb0c9c81fda65a795338cbf9a4e2922b6da6d304d728f3d91b7a6666"
+    },
+    {
+      "version": "20261001082702",
+      "name": "release_notification_boundaries",
+      "sha256": "81e824cf634d471aa193b42b862bbf3c8e8c5eb645a292c95288fe748a59ccbe"
+    },
+    {
+      "version": "20261001091500",
+      "name": "release_public_commercial_entitlements",
+      "sha256": "1502f5448f8982c3232a0960c96cf1565a01ad7f55473c93dbc550b087e28530"
+    },
+    {
+      "version": "20261001124500",
+      "name": "release_security_gate",
+      "sha256": "53754cd3ac7f4145686b358b89267d768d75a195c5d8c78cb787974d0b257aab"
+    },
+    {
+      "version": "20261001152000",
+      "name": "object_document_download_scope",
+      "sha256": "a2037d7a155ae22c2a924e5053d0dde94179d15a1137382b468bdd875955d5a8"
+    }
+  ]
+}

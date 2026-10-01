@@ -1,4 +1,5 @@
 "use client";
+import { cosmeticPlanningPreferences } from "@/lib/auth/browser-state";
 import { useTravelDay, TravelBadge, TravelList, TravelDialog, VehicleIcon } from "../travel";
 import { vehicles } from "@/lib/travel/model";
 import {
@@ -110,7 +111,7 @@ function storedPreferences(key: string): Preferences {
       height: Math.min(500, Math.max(148, Number(p.height) || 156)),
       collapsed: p.collapsed === true,
       view: p.view in planningViews ? p.view : "unassigned",
-      search: typeof p.search === "string" ? p.search.slice(0, 200) : "",
+      search: "",
       status:
         typeof p.status === "string" && p.status in executionStatuses
           ? p.status
@@ -251,12 +252,11 @@ export function DayPlanboard({
       try {
         localStorage.setItem(
           storageKey,
-          JSON.stringify({
+          JSON.stringify(cosmeticPlanningPreferences({
             ...prefs,
             view: query.view,
-            search: query.search,
             status: query.status,
-          }),
+          })),
         );
       } catch {
         /* The board remains usable when storage is unavailable. */
@@ -623,6 +623,7 @@ export function DayPlanboard({
         ref={board}
         onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
         aria-label="Dagplanning"
+        aria-busy={!hydrated || loading || busy || travel.loading}
         tabIndex={0}
       >
         <div

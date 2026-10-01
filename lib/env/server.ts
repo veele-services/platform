@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { isStagingTicketScannerPath } from "@/lib/tickets/scanner-path";
 
 const serverSchema = z.object({
   APP_ENV: z.enum(["development", "production"]),
@@ -22,6 +23,10 @@ const serverSchema = z.object({
   SENDGRID_FROM_EMAIL: z.string().email().optional(),
   SENDGRID_FROM_NAME: z.string().min(2).default("Fieldgrid"),
   SENDGRID_API_BASE: z.enum(["https://api.sendgrid.com/", "https://api.eu.sendgrid.com/"]).default("https://api.sendgrid.com/"),
+  SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY: z.preprocess(v => v === "" ? undefined : v, z.string().min(40).max(2000).optional()),
+  SUPABASE_SEND_EMAIL_HOOK_SECRET: z.preprocess(v => v === "" ? undefined : v, z.string().min(40).optional()),
+  EMAIL_UNSUBSCRIBE_SIGNING_KEY: z.preprocess(v => v === "" ? undefined : v, z.string().min(40).optional()),
+  MAIL_MARKETING_ENABLED: z.enum(["true", "false"]).default("false"),
   GOOGLE_MAPS_SERVER_API_KEY: z.string().min(8).optional(),
   GOOGLE_ROUTES_ENABLED: z.enum(["true", "false"]).default("false"),
   OPENROUTESERVICE_API_KEY: z.preprocess(v => v === "" ? undefined : v, z.string().min(10).optional()),
@@ -42,6 +47,10 @@ const serverSchema = z.object({
   NOTIFICATION_WORKER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(50).default(8),
   NOTIFICATION_WORKER_BASE_RETRY_SECONDS: z.coerce.number().int().min(1).max(3600).default(30),
   NOTIFICATION_WORKER_MAX_RETRY_SECONDS: z.coerce.number().int().min(30).max(86400).default(3600),
+  CLAMAV_ENABLED: z.enum(["true", "false"]).default("false"),
+  CLAMAV_SOCKET: z.preprocess(v => v === "" ? undefined : v, z.string().startsWith("/").max(100).optional()),
+  CLAMAV_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60000).default(30000),
+  CLAMAV_MAX_DATABASE_AGE_HOURS: z.coerce.number().int().min(1).max(168).default(72),
 });
 
 export type ServerEnv = z.infer<typeof serverSchema>;
@@ -65,6 +74,9 @@ export function getServerEnv(): ServerEnv {
     throw new Error("Refusing to use FORBIDDEN_SUPABASE_PROJECT_REF");
   }
   if (parsed.DEPLOY_TARGET === "staging") {
+    if (parsed.CLAMAV_ENABLED !== "true" || !isStagingTicketScannerPath(parsed.CLAMAV_SOCKET ?? "")) {
+      throw new Error("Staging requires CLAMAV_ENABLED=true and CLAMAV_SOCKET=/run/clamav/clamd.ctl");
+    }
     if (parsed.APP_ENV !== "development") throw new Error("Staging requires APP_ENV=development");
     if (parsed.APP_URL !== "https://staging.fieldgrid.nl") throw new Error("Unexpected staging APP_URL");
     if (parsed.HOSTNAME !== "127.0.0.1" || parsed.PORT !== 3301) throw new Error("Unexpected staging bind address");

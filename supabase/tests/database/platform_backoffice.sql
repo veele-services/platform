@@ -13,11 +13,14 @@ insert into auth.users (
   ('00000000-0000-0000-0000-000000000000', '90000000-0000-4000-8000-000000000001', 'authenticated', 'authenticated', 'platform@fieldgrid.test', crypt('Fieldgrid123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now()),
   ('00000000-0000-0000-0000-000000000000', '90000000-0000-4000-8000-000000000002', 'authenticated', 'authenticated', 'beheerder@fieldgrid.test', crypt('Fieldgrid123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now());
 
+-- Real sessions: authenticated RLS must reject stale or missing sessions.
+insert into auth.sessions(id,user_id) select id,id from auth.users where id in ('90000000-0000-4000-8000-000000000001','90000000-0000-4000-8000-000000000002');
+
 insert into public.platform_admins (user_id)
 values ('90000000-0000-4000-8000-000000000001');
 
 set local role service_role;
-select set_config('request.jwt.claims', '{"sub":"90000000-0000-4000-8000-000000000001","role":"service_role"}', true);
+select set_config('request.jwt.claims', '{"sub":"90000000-0000-4000-8000-000000000001","session_id":"90000000-0000-4000-8000-000000000001","role":"service_role"}', true);
 
 select lives_ok(
   $$select public.provision_platform_tenant(
@@ -115,7 +118,7 @@ join public.personnel p on p.tenant_id = t.id and p.employee_number = 'TEST-P001
 where t.slug = 'testorganisatie';
 
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"90000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"90000000-0000-4000-8000-000000000002","session_id":"90000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
 
 select is((select count(*)::integer from public.tenant_message_templates), 4, 'tenant administrator can read own templates');
 select is((select white_label_enabled from public.resolve_tenant_context((select id from public.tenants where slug = 'testorganisatie'), null)), true, 'resolved tenant context contains the whitelabel entitlement');
@@ -128,14 +131,14 @@ select throws_ok(
   $$update public.tenant_settings set enabled_services = array['planning','personeel']::text[]
     where tenant_id = (select id from public.tenants where slug = 'testorganisatie')$$,
   '42501',
-  'Module entitlements are managed by the platform',
+  'Tenantkoppeling, modules en whitelabel worden door het platform beheerd',
   'tenant administrator cannot enable a paid module through the Data API'
 );
 select throws_ok(
   $$update public.tenant_settings set white_label_enabled = false
     where tenant_id = (select id from public.tenants where slug = 'testorganisatie')$$,
   '42501',
-  'Whitelabel entitlement is managed by the platform',
+  'Tenantkoppeling, modules en whitelabel worden door het platform beheerd',
   'tenant administrator cannot grant or revoke whitelabel through the Data API'
 );
 select throws_ok(
@@ -157,11 +160,11 @@ select lives_ok(
 );
 
 set local role service_role;
-select set_config('request.jwt.claims', '{"sub":"90000000-0000-4000-8000-000000000001","role":"service_role"}', true);
+select set_config('request.jwt.claims', '{"sub":"90000000-0000-4000-8000-000000000001","session_id":"90000000-0000-4000-8000-000000000001","role":"service_role"}', true);
 update public.tenant_settings set enabled_services = '{}'::text[]
 where tenant_id = (select id from public.tenants where slug = 'testorganisatie');
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"90000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"90000000-0000-4000-8000-000000000002","session_id":"90000000-0000-4000-8000-000000000002","role":"authenticated"}', true);
 
 select throws_ok(
   $$select public.reschedule_work_order(

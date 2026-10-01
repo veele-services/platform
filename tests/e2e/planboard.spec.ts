@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
+import { requireLocalDatabaseUrl } from "./local-target";
 
 // Only disposable fixtures in the isolated local Supabase project, never staging.
 const day = "2031-03-04",
@@ -9,9 +10,7 @@ const day = "2031-03-04",
 let db: pg.Client, tenant: string;
 let hiddenPeople: Array<{ id: string; status: string }> = [];
 test.beforeAll(async () => {
-  const url = new URL(process.env.DATABASE_URL!);
-  expect(url.hostname).toBe("127.0.0.1");
-  expect(url.port).toBe("59322");
+  const url = requireLocalDatabaseUrl();
   db = new pg.Client({ connectionString: url.toString() });
   await db.connect();
   tenant = (
@@ -83,6 +82,17 @@ test.afterAll(async () => {
     await db.end();
   }
 });
+async function expectPlanboardReady(page: Page) {
+  // The initial server projection may be followed by preference hydration and
+  // travel loading. Wait for the actual UI state, not an arbitrary delay.
+  await expect(page.locator(".pb-board")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".pb-state")).toHaveText(
+    /^2 medewerkers · .*Europe\/Amsterdam$/,
+  );
+  await page.evaluate(async () => { await document.fonts.ready; });
+  await expect(page.locator(".pb-board")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".pb-alert")).toHaveCount(0);
+}
 async function open(page: Page) {
   await page.goto(
     `/login?next=${encodeURIComponent(`/app/planning?day=${day}`)}`,
@@ -95,9 +105,7 @@ async function open(page: Page) {
   ).toBeVisible();
   await page.getByLabel("Planningsdag").fill(day);
   await expect(page.locator(`[data-order-id="${orders[0]}"]`)).toBeVisible();
-  await expect(
-    page.getByRole("status").filter({ hasText: /Gegevens vernieuwen/ }),
-  ).toHaveCount(0);
+  await expectPlanboardReady(page);
 }
 test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bonacties", async ({
   page,
@@ -150,6 +158,7 @@ test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bon
       el.scrollLeft = innerWidth < 768 ? 174 : 0;
     });
     await page.getByRole("heading", { name: "Planbord", exact: true }).click();
+    await expectPlanboardReady(page);
     await expect(page).toHaveScreenshot(`day-planboard-${width}.png`, {
       fullPage: true,
     });
@@ -192,7 +201,8 @@ test("bonnenweergave en filters zijn onafhankelijk en tellen de juiste resultate
   await expect(page.locator(".pb-filter-button b")).toHaveText("1");
   await page.reload();
   await expect(page.getByLabel("Bonnenweergave")).toHaveValue("all");
-  await expect(page.locator(".pb-count")).toHaveText("1 bon");
+  await expect(page.locator(".pb-count")).toHaveText("2 bonnen");
+  await expect(page.locator(".pb-filter-button b")).toHaveCount(0);
 });
 test("minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebruiken dezelfde uitvoering", async ({
   page,

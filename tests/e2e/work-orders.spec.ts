@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createHash, randomUUID } from "node:crypto";
 import { PDFDocument } from "pdf-lib";
 import pg from "pg";
+import { requireLocalDatabaseUrl } from "./local-target";
 import sharp from "sharp";
 
 const title = `Werkbon dossier ${randomUUID().slice(0, 8)}`;
@@ -11,9 +12,7 @@ const personId = randomUUID(), day = "2033-10-05";
 let db: pg.Client, tenant: string, extraUserId: string, orderId: string;
 const createdOrders: string[] = [];
 test.beforeAll(async () => {
-  const database = new URL(process.env.DATABASE_URL!);
-  expect(database.hostname).toBe("127.0.0.1");
-  expect(database.port).toBe("59322");
+  const database = requireLocalDatabaseUrl();
   db = new pg.Client({ connectionString: database.toString() });
   await db.connect();
   tenant = (await db.query("select id from public.tenants where slug='fieldgrid-e2e'")).rows[0].id;
@@ -45,9 +44,7 @@ test.afterAll(async () => {
     const templates = (await db.query("select id from public.work_order_templates where tenant_id=$1 and name=$2", [tenant, templateName])).rows.map(r => r.id);
     if (templates.length) {
       // Only the isolated local fixture may bypass immutable-template retention.
-      const database = new URL(process.env.DATABASE_URL!);
-      expect(database.hostname).toBe("127.0.0.1");
-      expect(database.port).toBe("59322");
+      requireLocalDatabaseUrl();
       expect((await db.query("select slug from public.tenants where id=$1", [tenant])).rows[0].slug).toBe("fieldgrid-e2e");
       await db.query("begin");
       try {

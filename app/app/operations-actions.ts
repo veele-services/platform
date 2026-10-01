@@ -8,6 +8,7 @@ import { z } from "zod";
 import { getAuthContext, hasAnyRole, type AppRole, type AuthContext, type TenantContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { uploadScannedFile } from "@/lib/files/scanned-storage";
 import type { ActionResult } from "@/lib/actions/result";
 import { message } from "@/lib/actions/result";
 import { validateDossierDocumentName, CUSTOMER_DOCUMENT_MAX_BYTES, customerDocumentExtension, customerDocumentFileName } from "@/lib/customers/documents";
@@ -177,7 +178,7 @@ export async function dispatchWorkOrder(formData: FormData): Promise<ActionResul
     await authorized(["tenant_admin", "management", "planner"], ["planning"]);
     const input = z.object({ workOrderId: z.string().uuid(), personnelId: z.string().uuid(), version: z.coerce.number().int() }).parse(Object.fromEntries(formData));
     const supabase = await createClient();
-    const { error } = await supabase.rpc("dispatch_work_order", { target_work_order_id: input.workOrderId, target_personnel_id: input.personnelId, expected_version: input.version, idempotency_key: `dispatch-${input.workOrderId}-${input.version}` });
+    const { error } = await supabase.rpc("dispatch_work_order", { target_work_order_id: input.workOrderId, target_personnel_id: input.personnelId, expected_version: input.version, idempotency_key: `dispatch-${input.workOrderId}-${input.personnelId}-${input.version}` });
     if (error) throw error;
     revalidatePath("/app"); revalidatePath("/staff");
     return { ok: true };
@@ -357,14 +358,14 @@ export async function uploadTenantLogo(formData: FormData): Promise<ActionResult
     if (!extension) throw new Error("Gebruik een PNG-, JPG- of WebP-logo");
 
     const supabase = await createClient();
-    const { data: branding, error: brandingError } = await supabase.from("tenant_branding").select("logo_path").eq("tenant_id", context.tenant.id).single();
+    const { error: brandingError } = await supabase.from("tenant_branding").select("logo_path").eq("tenant_id", context.tenant.id).single();
     if (brandingError) throw brandingError;
     const path = `${context.tenant.id}/logo-${crypto.randomUUID()}.${extension}`;
-    const { error: uploadError } = await supabase.storage.from("branding").upload(path, file, { contentType: file.type, upsert: false, cacheControl: "3600" });
-    if (uploadError) throw uploadError;
+    await uploadScannedFile(supabase, "branding", path, new Uint8Array(await file.arrayBuffer()), file.type);
     const { error: updateError } = await supabase.from("tenant_branding").update({ logo_path: path }).eq("tenant_id", context.tenant.id);
     if (updateError) throw updateError;
-    if (branding.logo_path && branding.logo_path !== path) await supabase.storage.from("branding").remove([branding.logo_path]);
+    // Historical offers, invoices and notification snapshots may still refer to
+    // the previous immutable logo. Replacement is not permission to delete it.
     revalidatePath("/app"); revalidatePath("/staff");
     return { ok: true };
   } catch (error) { return { ok: false, error: message(error) }; }
@@ -458,14 +459,13 @@ export async function uploadCustomerDocument(formData: FormData): Promise<Action
     if (customerError) throw customerError;
     if (!customer) throw new Error("Klant niet gevonden binnen deze tenant");
     const path = `${context.tenant.id}/${customer.id}/${randomBytes(16).toString("hex")}.${extension}`;
-    const bucket = supabase.storage.from("customer-documents");
+    const bucket = createAdminClient().storage.from("customer-documents");
     if(input.requestId){
       const existing=await supabase.from("customer_documents").select("id,created_by,customer_id,sha256,title,previous_id").eq("tenant_id",context.tenant.id).eq("id",input.requestId).maybeSingle();
       if(existing.error)throw existing.error;
       if(existing.data){if(existing.data.created_by!==context.user.id||existing.data.customer_id!==customer.id||existing.data.sha256!==createHash("sha256").update(bytes).digest("hex")||existing.data.title!==input.title||existing.data.previous_id!==(input.previousId||null))throw new Error("Deze uploadpoging is al gebruikt. Open een nieuw uploadvenster.");return {ok:true};}
     }
-    const { error: uploadError } = await bucket.upload(path, bytes, { contentType: file.type, upsert: false });
-    if (uploadError) throw uploadError;
+    await uploadScannedFile(supabase, "customer-documents", path, bytes, file.type);
     const { error } = await supabase.from("customer_documents").insert({
       id:input.requestId,category:input.category,tenant_id: context.tenant.id, customer_id: customer.id, title: input.title, storage_path: path, previous_id:input.previousId||null,document_on:input.documentOn||null,valid_until:input.validUntil||null,
       file_name: customerDocumentFileName(file.name), mime_type: file.type, size_bytes: file.size,
@@ -611,10 +611,9 @@ export async function uploadPersonnelDocument(formData: FormData): Promise<Actio
     const documentId = randomBytes(16).toString("hex");
     const path = `${context.tenant.id}/${input.personnelId}/${documentId}.${extension}`;
     const supabase = await createClient();
-    const { error: uploadError } = await supabase.storage.from("personnel-documents").upload(path, bytes, { contentType: file.type, upsert: false });
-    if (uploadError) throw uploadError;
+    await uploadScannedFile(supabase, "personnel-documents", path, bytes, file.type);
     const { error } = await supabase.from("personnel_documents").insert({ tenant_id: context.tenant.id, personnel_id: input.personnelId, title: input.title, document_type: input.documentType, storage_path: path, visible_to_employee: input.visibleToEmployee === "on", created_by: context.user.id, file_name: file.name, mime_type: file.type, size_bytes: file.size, sha256: createHash("sha256").update(bytes).digest("hex") });
-    if (error) { await supabase.storage.from("personnel-documents").remove([path]); throw error; }
+    if (error) { await createAdminClient().storage.from("personnel-documents").remove([path]); throw error; }
     revalidatePath("/app"); revalidatePath("/staff");
     return { ok: true };
   } catch (error) { return { ok: false, error: message(error) }; }

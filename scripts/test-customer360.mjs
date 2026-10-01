@@ -1,20 +1,12 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { localWorkOrderTestUrl } from "./work-order-test-target.mjs";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 import { submitFixtureReport } from './work-order-report-fixture.mjs';
 
 test("Customer 360 uses persistent sources, guarded relationships and exact revisions", async (t) => {
-  const local = JSON.parse(
-    execFileSync("pnpm", ["supabase", "status", "-o", "json"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }),
-  );
-  const url = new URL(local.DB_URL);
-  assert.equal(url.hostname, "127.0.0.1");
-  assert.equal(url.port, "59322");
+  const local = { DB_URL: localWorkOrderTestUrl() };
   const db = new pg.Client({ connectionString: local.DB_URL });
   await db.connect();
   await db.query("begin");
@@ -433,12 +425,9 @@ test("Customer 360 uses persistent sources, guarded relationships and exact revi
           ),
           (e) => e.code === "42501",
         );
-        await command("document_metadata", {
-          id: doc,
-          version: 1,
-          category: "agreement",
-          visibility: "customer",
-        });
+        await call("select public.customer_document_metadata($1,$2,$3,$4,$5,$6,$7)", [
+          tenant, doc, 1, "agreement", "customer", object, false,
+        ]);
         const data = await portalData();
         assert.equal(data.documents.length, 1);
         assert.equal(
@@ -679,7 +668,7 @@ test("Customer 360 uses persistent sources, guarded relationships and exact revi
         assert.equal(
           (
             await db.query(
-              "select count(*) from public.notifications where tenant_id=$1 and title='Een klantdossier vraagt aandacht'",
+              "select count(*) from private.notification_requests where tenant_id=$1 and type_code='customer.followup'",
               [tenant],
             )
           ).rows[0].count,
@@ -693,10 +682,38 @@ test("Customer 360 uses persistent sources, guarded relationships and exact revi
         });
         await notify();
         await notify();
+        const envelopes = (await db.query(
+          "select id from private.notification_requests where tenant_id=$1 and type_code='customer.followup'",
+          [tenant],
+        )).rows;
+        assert.equal(envelopes.length, 1);
+        // A reminder is now a central envelope, not a bypassing direct INSERT.
+        // Exercise only this rollback fixture's in-app channel; no provider call.
+        await db.query("savepoint notification_worker");
+        try {
+          await db.query("set local role service_role");
+          await db.query("select set_config('request.jwt.claims','{\"role\":\"service_role\"}',true)");
+          await db.query("select public.notification_delivery_prepare($1)", [envelopes[0].id]);
+          await db.query("reset role");
+          await db.query("update private.notification_deliveries set available_at=now()-interval '1 second' where request_id=$1", [envelopes[0].id]);
+          const inApp = (await db.query("select id from private.notification_deliveries where request_id=$1 and channel='in_app'", [envelopes[0].id])).rows[0];
+          await db.query("set local role service_role");
+          const claims = (await db.query("select public.notification_delivery_claim(100,$1) jobs", [tenant])).rows[0].jobs;
+          const claim = claims.find(x => x.id === inApp.id);
+          assert.ok(claim);
+          await db.query("select public.notification_delivery_begin($1,$2)", [claim.id, claim.lease]);
+          await db.query("reset role");
+          await db.query("select set_config('request.jwt.claims','{}',true)");
+          await db.query("release savepoint notification_worker");
+        } catch (error) {
+          await db.query("rollback to savepoint notification_worker");
+          await db.query("release savepoint notification_worker");
+          throw error;
+        }
         assert.equal(
           (
             await db.query(
-              "select count(*) from public.notifications where tenant_id=$1 and title='Een klantdossier vraagt aandacht'",
+              "select count(*) from public.notifications where tenant_id=$1 and type_code='customer.followup'",
               [tenant],
             )
           ).rows[0].count,

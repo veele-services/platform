@@ -2,6 +2,8 @@ begin;
 
 select plan(4);
 insert into public.tenants (id, slug, name) values ('f0000000-0000-4000-8000-000000000001', 'mail-test', 'Mail Test');
+-- Ordinary invoice delivery requires the tenant's finance module and notification policy.
+insert into public.tenant_settings (tenant_id) values ('f0000000-0000-4000-8000-000000000001');
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"role":"authenticated","sub":"00000000-0000-4000-8000-000000000099"}', true);

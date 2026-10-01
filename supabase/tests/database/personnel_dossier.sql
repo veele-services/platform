@@ -4,6 +4,9 @@ insert into auth.users(id,email) values
  ('d0100000-0000-4000-8000-000000000001','dossier-hr@fieldgrid.test'),
  ('d0100000-0000-4000-8000-000000000002','dossier-staff@fieldgrid.test'),
  ('d0100000-0000-4000-8000-000000000003','dossier-planner@fieldgrid.test');
+-- Real sessions: authenticated RLS must reject stale or missing sessions.
+insert into auth.sessions(id,user_id) select id,id from auth.users where id in ('d0100000-0000-4000-8000-000000000001','d0100000-0000-4000-8000-000000000002','d0100000-0000-4000-8000-000000000003');
+
 insert into public.tenants(id,slug,name) values ('d0200000-0000-4000-8000-000000000001','dossier-a','Dossier A'),('d0200000-0000-4000-8000-000000000002','dossier-b','Dossier B');
 insert into public.tenant_settings(tenant_id) values('d0200000-0000-4000-8000-000000000001'),('d0200000-0000-4000-8000-000000000002');
 insert into public.tenant_memberships(tenant_id,user_id,roles,status) values
@@ -21,7 +24,7 @@ insert into public.work_orders(id,tenant_id,work_order_number,customer_id,object
  ('d1200000-0000-4000-8000-000000000001','d0200000-0000-4000-8000-000000000001','W-DOS','d1000000-0000-4000-8000-000000000001','d1100000-0000-4000-8000-000000000001','Service','2090-06-30 22:00+02','2090-07-01 00:00+02','2090-06-30 22:00+02','2090-07-01 00:00+02','d0100000-0000-4000-8000-000000000001');
 
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"d0100000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"d0100000-0000-4000-8000-000000000001","session_id":"d0100000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select lives_ok($$insert into public.personnel_dossier_items(id,tenant_id,personnel_id,kind,title,dossier_managed,dossier_status,dossier_data) values('d0400000-0000-4000-8000-000000000001','d0200000-0000-4000-8000-000000000001','d0300000-0000-4000-8000-000000000001','profile','Profile',true,'active','{"name":"Changed employee","employeeNumber":"DOS-1","email":"employee@fieldgrid.test","employmentStatus":"active"}')$$,'profile saves');
 select is((select full_name from public.personnel where id='d0300000-0000-4000-8000-000000000001'),'Changed employee','canonical identity is updated atomically');
 select throws_ok($$insert into public.personnel_dossier_items(tenant_id,personnel_id,kind,title,dossier_managed) values('d0200000-0000-4000-8000-000000000001','d0300000-0000-4000-8000-000000000003','task','Cross tenant',true)$$,'23503',null,'cross-tenant employee relation fails');
@@ -58,7 +61,13 @@ select throws_ok($$insert into public.personnel_contracts(tenant_id,personnel_id
 select lives_ok($$select * from public.personnel_dossier_summary('d0200000-0000-4000-8000-000000000001')$$,'list summaries return only permitted business metadata');
 
 insert into public.personnel_documents(id,tenant_id,personnel_id,title,document_type,storage_path,created_by,dossier_managed,dossier_status) values('d0600000-0000-4000-8000-000000000001','d0200000-0000-4000-8000-000000000001','d0300000-0000-4000-8000-000000000001','Employment contract','contract','d0200000-0000-4000-8000-000000000001/d0300000-0000-4000-8000-000000000001/contract.pdf','d0100000-0000-4000-8000-000000000001',true,'stored');
-select lives_ok($$insert into storage.objects(bucket_id,name) values('personnel-documents','d0200000-0000-4000-8000-000000000001/d0300000-0000-4000-8000-000000000001/contract.pdf')$$,'HR can upload private document');
+select throws_ok($$insert into storage.objects(bucket_id,name) values('personnel-documents','d0200000-0000-4000-8000-000000000001/d0300000-0000-4000-8000-000000000001/contract.pdf')$$,'42501',null,'HR cannot bypass server scanning');
+-- Synthetic receipt for authorization testing; real AV has a separate test.
+reset role;
+insert into storage.objects(bucket_id,name,version) values('personnel-documents','d0200000-0000-4000-8000-000000000001/d0300000-0000-4000-8000-000000000001/contract.pdf','FICTITIOUS');
+insert into private.file_scan_receipts(object_id,object_version,sha256,size_bytes,mime_type,engine,database_version,database_at)
+select id,version,repeat('a',64),1234,'application/pdf','FICTITIOUS POLICY FIXTURE','FICTITIOUS',now() from storage.objects where bucket_id='personnel-documents' and name='d0200000-0000-4000-8000-000000000001/d0300000-0000-4000-8000-000000000001/contract.pdf';
+set local role authenticated;
 select is((select count(*)::int from storage.objects where bucket_id='personnel-documents' and name like 'd0200000-%'),1,'HR can read private file');
 select set_config('storage.allow_delete_query','true',true);
 with removed as(delete from storage.objects where bucket_id='personnel-documents' and name like 'd0200000-%' returning id)
@@ -90,7 +99,7 @@ select is((select count(*)::int from public.personnel_qualification_gaps('d02000
 update public.qualification_requirements set active=false where id='d1300000-0000-4000-8000-000000000001';
 select is((select count(*)::int from public.personnel_qualification_gaps('d0200000-0000-4000-8000-000000000001')),1,'pausing an obsolete requirement releases future planning without deleting history');
 
-select set_config('request.jwt.claims','{"sub":"d0100000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"d0100000-0000-4000-8000-000000000002","session_id":"d0100000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 select is((select count(*)::int from public.personnel_dossier_items),0,'employee cannot read own HR dossier');
 select is((select count(*)::int from public.personnel_dossier_history),0,'employee cannot read private versions');
 select is((select count(*)::int from public.personnel_contracts where dossier_managed),0,'employee cannot read HR contract details');
@@ -101,16 +110,21 @@ select is((select count(*)::int from public.personnel_dossier_deliveries),0,'emp
 select is((select count(*)::int from public.personnel_dossier_summary('d0200000-0000-4000-8000-000000000001')),0,'employee cannot read list summaries');
 select throws_ok($$insert into public.personnel_dossier_items(tenant_id,personnel_id,kind,title,dossier_managed) values('d0200000-0000-4000-8000-000000000001','d0300000-0000-4000-8000-000000000001','task','Staff write',true)$$,'42501',null,'staff cannot write own HR dossier');
 select throws_ok($$select * from public.claim_personnel_dossier_deliveries(25)$$,'42501',null,'workers are service-role only');
-select set_config('request.jwt.claims','{"sub":"d0100000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+select set_config('request.jwt.claims','{"sub":"d0100000-0000-4000-8000-000000000003","session_id":"d0100000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 select is((select count(*)::int from public.personnel_dossier_items),0,'planner cannot read HR information');
 select is((select count(*)::int from public.personnel_qualification_gaps('d0200000-0000-4000-8000-000000000001')),1,'planner sees only operational qualification gaps');
 select throws_ok($$select * from public.personnel_qualification_gaps('d0200000-0000-4000-8000-000000000002')$$,'42501',null,'cannot inspect another tenant planning');
 reset role;
 select set_config('request.jwt.claims','{"role":"service_role"}',true);
 update public.personnel_dossier_deliveries set available_at=now()-interval '1 hour' where status='scheduled';
+create temporary table dossier_worker_expected as select d.id from public.personnel_dossier_deliveries d where d.tenant_id='d0200000-0000-4000-8000-000000000001' and d.status='scheduled' and exists(select 1 from auth.users u where u.id=d.recipient_user_id or lower(u.email)=lower(d.recipient));
 set local role service_role;
-select is((select count(*)::int from public.claim_personnel_dossier_deliveries(100)),14,'worker claims due records once');
-select is((select count(*)::int from public.claim_personnel_dossier_deliveries(100)),0,'repeated processing cannot claim in-flight records');
+select is((select count(*)::int from public.claim_personnel_dossier_deliveries(100)),0,'old dossier provider path cannot bypass central notification policy');
+select public.notification_prepare_dossier(100,'d0200000-0000-4000-8000-000000000001');
+select is(public.notification_prepare_dossier(100,'d0200000-0000-4000-8000-000000000001'),0,'repeated source processing never creates duplicate central deliveries');
 reset role;
+select is((select count(*)::int from private.notification_requests where tenant_id='d0200000-0000-4000-8000-000000000001' and source_kind='dossier' and source_id in(select id from dossier_worker_expected)),(select count(*)::int from dossier_worker_expected),'all current due records with real recipient accounts have exactly one central request; prior source revisions remain historical');
+select ok((select count(*)>0 from private.notification_deliveries where tenant_id='d0200000-0000-4000-8000-000000000001'),'central delivery records are durable');
+select is((select count(*)::int from public.personnel_dossier_deliveries where tenant_id='d0200000-0000-4000-8000-000000000001' and status='scheduled'),0,'unbound external dossier addresses are cancelled instead of leaking private follow-up links');
 select * from finish();
 rollback;

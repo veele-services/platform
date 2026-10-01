@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import pg from "pg";
+import { requireLocalDatabaseUrl } from "./local-target";
 import { randomUUID } from "node:crypto";
 const day = "2032-05-10",
   person = "e1000000-0000-4000-8000-000000000001",
@@ -27,9 +28,7 @@ const address = {
   status: "confirmed",
 };
 test.beforeAll(async () => {
-  const url = new URL(process.env.DATABASE_URL!);
-  expect(url.hostname).toBe("127.0.0.1");
-  expect(url.port).toBe("59322");
+  const url = requireLocalDatabaseUrl();
   db = new pg.Client({ connectionString: url.toString() });
   await db.connect();
   tenant = (

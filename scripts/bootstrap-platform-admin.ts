@@ -1,10 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-
-try {
-  process.loadEnvFile(".env.local");
-} catch {
-  // CI and deployed environments inject variables directly.
-}
+import { assertStagingProject } from "../lib/env/staging-database";
 
 const url = process.env.SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -21,6 +16,7 @@ const supabaseServiceKey = serviceKey;
 const adminEmail = email;
 const adminPassword = password;
 
+assertStagingProject(process.env);
 const actualProjectRef = new URL(url).hostname.match(/^([a-z0-9]{20})\.supabase\.co$/)?.[1];
 if (!actualProjectRef || actualProjectRef !== expectedProjectRef || actualProjectRef === forbiddenProjectRef || expectedProjectRef === forbiddenProjectRef) {
   throw new Error("Platformbeheerbootstrap weigert het geconfigureerde Supabaseproject");
@@ -49,8 +45,7 @@ async function main() {
   process.stdout.write("Platformbeheerder gereed.\n");
 }
 
-main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : "onbekende fout";
-  process.stderr.write(`Platformbeheerbootstrap mislukt: ${message}\n`);
+main().catch(() => {
+  process.stderr.write("Platformbeheerbootstrap mislukt. Controleer stagingconfiguratie en Auth; providergegevens worden niet gelogd.\n");
   process.exitCode = 1;
 });

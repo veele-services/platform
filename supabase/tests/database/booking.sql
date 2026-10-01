@@ -3,6 +3,7 @@ begin;
 select plan(10);
 
 insert into public.tenants (id, slug, name) values ('d0000000-0000-4000-8000-000000000001', 'booking-test', 'Booking Test');
+insert into public.tenant_settings (tenant_id, enabled_services) values ('d0000000-0000-4000-8000-000000000001', array['planning']::text[]);
 insert into public.customers (id, tenant_id, customer_number, name) values ('d1000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000001', 'KL-B01', 'Boekingsklant');
 insert into public.objects (id, tenant_id, customer_id, object_number, name, address) values ('d2000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000001', 'd1000000-0000-4000-8000-000000000001', 'OB-B01', 'Boekingsobject', '{}');
 insert into public.requests (id, tenant_id, request_number, customer_id, object_id, discipline, description) values ('d3000000-0000-4000-8000-000000000001', 'd0000000-0000-4000-8000-000000000001', 'AAN-B01', 'd1000000-0000-4000-8000-000000000001', 'd2000000-0000-4000-8000-000000000001', 'Service', 'Veilige boeking');

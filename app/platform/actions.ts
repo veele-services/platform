@@ -1,4 +1,5 @@
 "use server";
+import { uploadScannedFile } from "@/lib/files/scanned-storage";
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -7,9 +8,10 @@ import { message } from "@/lib/actions/result";
 import { validateTemplateDraft, type TemplateKey } from "@/lib/communications/templates";
 import { requirePlatformAdmin } from "@/lib/platform/data";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { tenantAppUrl } from "@/lib/tenancy/hostname";
 
-const moduleId = z.enum(["planning", "personeel", "rapportage", "finance"]);
+const moduleId = z.enum(["planning", "personeel", "rapportage", "finance", "tickets"]);
 const color = z.string().regex(/^#[0-9A-Fa-f]{6}$/);
 const optionalEmail = z.string().trim().email().or(z.literal(""));
 const optionalDomain = z.string().trim().toLowerCase().regex(/^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/).or(z.literal(""));
@@ -23,7 +25,7 @@ const onboardingSchema = z.object({
   adminEmail: z.string().trim().email(),
   primaryColor: color,
   accentColor: color,
-  enabledServices: z.array(moduleId).max(4),
+  enabledServices: z.array(moduleId).max(5),
   senderEmail: optionalEmail,
 });
 
@@ -41,29 +43,37 @@ async function existingUserIdByEmail(email: string) {
   return null;
 }
 
-async function inviteTenantAdministrator(tenantId: string, slug: string, name: string, email: string) {
+async function inviteTenantAdministrator(tenantId: string, actor: { id: string; email: string | null }) {
   const admin = createAdminClient();
-  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: tenantAppUrl(slug, "/auth/confirm"),
-    data: { full_name: name },
-  });
-  const userId = invited.user?.id ?? await existingUserIdByEmail(email);
-  if (!userId) throw inviteError ?? new Error("De tenantbeheerder kon niet worden uitgenodigd.");
-  const { error: membershipError } = await admin.from("tenant_memberships").upsert({
-    tenant_id: tenantId,
-    user_id: userId,
-    roles: ["tenant_admin", "management"],
-    status: "active",
-    activated_at: new Date().toISOString(),
-  }, { onConflict: "tenant_id,user_id" });
-  if (membershipError) throw membershipError;
-  const { error: invitationError } = await admin.from("tenant_admin_invitations").update({
-    status: "invited",
-    auth_user_id: userId,
-    invited_at: new Date().toISOString(),
-    last_error: null,
-  }).eq("tenant_id", tenantId).eq("email", email.toLowerCase());
-  if (invitationError) throw invitationError;
+  const [{ data: tenant, error: tenantError }, { data: invitation, error: invitationError }] = await Promise.all([
+    admin.from("tenants").select("slug,status").eq("id", tenantId).single(),
+    admin.from("tenant_admin_invitations").select("id,full_name,email,status,bound_at").eq("tenant_id", tenantId).single(),
+  ]);
+  if (tenantError || invitationError) throw tenantError ?? invitationError;
+  if (tenant.status !== "active") throw new Error("De tenant is niet actief.");
+  // An exact request replay may return the tenant, but never recreate its
+  // original administrator after the tenant has changed/revoked membership.
+  if (invitation.bound_at || ["invited", "active"].includes(invitation.status)) return;
+  try {
+    let userId: string | null = actor.email?.toLowerCase() === invitation.email ? actor.id : null;
+    if (!userId) {
+      const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(invitation.email, {
+        redirectTo: tenantAppUrl(tenant.slug, "/auth/confirm"),
+        data: { full_name: invitation.full_name },
+      });
+      userId = invited.user?.id ?? await existingUserIdByEmail(invitation.email);
+      if (!userId) throw inviteError ?? new Error("De tenantbeheerder kon niet worden uitgenodigd.");
+    }
+    const { error } = await admin.rpc("complete_platform_admin_invitation", {
+      target_tenant: tenantId, actor_user_id: actor.id, target_user: userId,
+    });
+    if (error) throw error;
+  } catch (cause) {
+    // A delayed failed attempt cannot overwrite a concurrently completed one.
+    await admin.from("tenant_admin_invitations").update({ status: "failed", last_error: message(cause).slice(0, 1000) })
+      .eq("id", invitation.id).is("bound_at", null).in("status", ["pending", "failed"]);
+    throw cause;
+  }
 }
 
 export async function createPlatformTenant(input: unknown): Promise<PlatformMutationResult<{ tenantId: string }>> {
@@ -91,31 +101,10 @@ export async function createPlatformTenant(input: unknown): Promise<PlatformMuta
     });
     if (error || !tenantId) throw error ?? new Error("Tenantprovisioning gaf geen tenant-ID terug.");
     let warning: string | undefined;
-    if (data.adminEmail.toLowerCase() === context.user.email?.toLowerCase()) {
-      const [{ error: membershipError }, { error: invitationError }] = await Promise.all([
-        admin.from("tenant_memberships").upsert({
-          tenant_id: tenantId,
-          user_id: context.user.id,
-          roles: ["tenant_admin", "management"],
-          status: "active",
-          activated_at: new Date().toISOString(),
-        }, { onConflict: "tenant_id,user_id" }),
-        admin.from("tenant_admin_invitations").update({
-          status: "active",
-          auth_user_id: context.user.id,
-          invited_at: new Date().toISOString(),
-          last_error: null,
-        }).eq("tenant_id", tenantId),
-      ]);
-      if (membershipError || invitationError) throw membershipError ?? invitationError;
-    } else {
-      try {
-        await inviteTenantAdministrator(tenantId, data.slug, data.adminName, data.adminEmail.toLowerCase());
-      } catch (cause) {
-        const invitationError = message(cause);
-        await admin.from("tenant_admin_invitations").update({ status: "failed", last_error: invitationError.slice(0, 1000) }).eq("tenant_id", tenantId);
-        warning = "De tenant is veilig aangemaakt, maar de beheerdersuitnodiging moet opnieuw worden verstuurd.";
-      }
+    try {
+      await inviteTenantAdministrator(tenantId, context.user);
+    } catch {
+      warning = "De tenant is veilig aangemaakt, maar de beheerdersuitnodiging is nog niet afgerond. Controleer de foutmelding en probeer opnieuw.";
     }
     revalidatePath("/platform");
     return { ok: true, tenantId, warning };
@@ -126,15 +115,9 @@ export async function createPlatformTenant(input: unknown): Promise<PlatformMuta
 
 export async function retryTenantAdminInvitation(tenantIdInput: unknown): Promise<PlatformMutationResult> {
   try {
-    await requirePlatformAdmin();
+    const context = await requirePlatformAdmin();
     const tenantId = z.string().uuid().parse(tenantIdInput);
-    const admin = createAdminClient();
-    const [{ data: tenant, error: tenantError }, { data: invitation, error: invitationError }] = await Promise.all([
-      admin.from("tenants").select("slug").eq("id", tenantId).single(),
-      admin.from("tenant_admin_invitations").select("full_name,email").eq("tenant_id", tenantId).single(),
-    ]);
-    if (tenantError || invitationError) throw tenantError ?? invitationError;
-    await inviteTenantAdministrator(tenantId, tenant.slug, invitation.full_name, invitation.email);
+    await inviteTenantAdministrator(tenantId, context.user);
     revalidatePath("/platform");
     return { ok: true };
   } catch (error) {
@@ -197,8 +180,9 @@ export async function uploadPlatformTenantLogo(formData: FormData): Promise<Plat
     const admin = createAdminClient();
     const path = `${tenantId}/logo-${crypto.randomUUID()}.${extension}`;
     const bytes = new Uint8Array(await file.arrayBuffer());
-    const { error: uploadError } = await admin.storage.from("branding").upload(path, bytes, { contentType: file.type, upsert: false });
-    if (uploadError) throw uploadError;
+    await uploadScannedFile(await createClient(), "branding", path, bytes, file.type);
+    const currentContext = await requirePlatformAdmin();
+    if (currentContext.user.id !== context.user.id) throw new Error("Je platformtoegang is gewijzigd. Het logo is niet gekoppeld.");
     const { error } = await admin.from("tenant_branding").update({ logo_path: path }).eq("tenant_id", tenantId);
     if (error) throw error;
     await admin.from("audit_events").insert({ tenant_id: tenantId, actor_user_id: context.user.id, action: "tenant.logo.updated", entity_type: "tenant_branding", entity_id: tenantId, after_data: { storage_path: path, mime_type: file.type, size_bytes: file.size } });
@@ -212,7 +196,7 @@ export async function uploadPlatformTenantLogo(formData: FormData): Promise<Plat
 export async function updatePlatformTenantModules(input: unknown): Promise<PlatformMutationResult> {
   try {
     const context = await requirePlatformAdmin();
-    const data = z.object({ tenantId: z.string().uuid(), enabledServices: z.array(moduleId).max(4) }).parse(input);
+    const data = z.object({ tenantId: z.string().uuid(), enabledServices: z.array(moduleId).max(5) }).parse(input);
     const services = [...new Set(data.enabledServices)];
     if (services.includes("finance") && (!services.includes("planning") || !services.includes("rapportage"))) throw new Error("Facturatie vereist Planning en Rapportage.");
     if (services.includes("rapportage") && !services.includes("planning")) throw new Error("Rapportage vereist Planning.");

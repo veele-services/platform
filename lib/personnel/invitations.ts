@@ -7,6 +7,11 @@ import { getServerEnv } from "@/lib/env/server";
 import { tenantAppUrl } from "@/lib/tenancy/hostname";
 import { sendEmail } from "@/lib/providers/sendgrid";
 import { renderPersonnelInvitation } from "@/lib/communications/personnel-invitation";
+import { freezeMailSnapshot, mailFailureOutcome, mailFailureMessage } from "@/lib/notifications/mail-snapshot";
+import { resolveMailTemplate, renderNotificationMailText } from "@/lib/notifications/mail-template";
+import { freezeEmailLogo } from "@/lib/notifications/brand-asset";
+import { deferNotificationMail } from "@/lib/notifications/deferred-mail";
+import { renderTenantEmailHtml } from "@/lib/communications/email";
 
 export function requirePersonnelEmail() {
   const env = getServerEnv();
@@ -48,7 +53,7 @@ export async function deliverPersonnelInvitation(input: {
     // Fragments are not sent in HTTP requests, access logs or Referer headers.
     url.hash = new URLSearchParams({ token_hash: input.tokenHash }).toString();
   }
-  const mail = renderPersonnelInvitation({
+  let mail = renderPersonnelInvitation({
     brand: {
       company: input.tenant.name, domain: new URL(tenantAppUrl(input.tenant.slug)).hostname,
       primary: branding.primary_color, accent: branding.accent_color,
@@ -59,21 +64,37 @@ export async function deliverPersonnelInvitation(input: {
     targetUrl: url.href, existingAccount: !input.tokenHash, allowLocalLinks: env.DEPLOY_TARGET === "local",
   });
   const deliveryKey = `personnel-${input.person.id}-${randomUUID()}`;
-  const { error: logError } = await admin.from("mail_deliveries").insert({
+  const { data: delivery, error: logError } = await admin.from("mail_deliveries").insert({
     tenant_id: input.tenant.id, recipient: input.person.email, template: "personnel_invitation",
     status: "processing", attempts: 1, idempotency_key: deliveryKey,
     // Never persist the activation token or a rendered email containing it.
-    render_snapshot: { subject: mail.subject, personnel_id: input.person.id },
+    render_snapshot: { subject: mail.subject, personnel_id: input.person.id, notification_kind:input.tokenHash?"security":"notification" },
     branding_snapshot: { primary_color: branding.primary_color, accent_color: branding.accent_color, logo_path: branding.logo_path },
-  });
+  }).select("id").single();
   if (logError) throw new Error("De uitnodiging kon niet worden geregistreerd. Probeer opnieuw.");
   let sent: { id: string };
+  let providerStarted=false;
   try {
-    sent = await sendEmail({ ...mail, to: input.person.email, fromEmail: env.SENDGRID_FROM_EMAIL,
-      fromName: branding.sender_name || input.tenant.name, deliveryKey, disableTracking: true });
-  } catch {
-    await admin.from("mail_deliveries").update({ status: "failed", last_error: "De e-mailprovider heeft de uitnodiging niet bevestigd." }).eq("tenant_id", input.tenant.id).eq("idempotency_key", deliveryKey);
-    throw new Error("De uitnodigingsmail kon niet worden verstuurd. Probeer het opnieuw via ‘Meer → Uitnodiging opnieuw versturen’.");
+    if (!input.tokenHash) {
+      const template=await resolveMailTemplate(admin,input.tenant.id,"personnel.invitation","staff");
+      const values={bedrijfsnaam:input.tenant.name,medewerkernaam:input.person.full_name,personeelsnummer:input.person.employee_number};
+      const subject=renderNotificationMailText(template.title,template.variables,values),body=renderNotificationMailText(template.body,template.variables,values);
+      const logo=await freezeEmailLogo(admin,input.tenant.id,input.tenant.slug,branding.logo_path);
+      const html=renderTenantEmailHtml({kind:"personnel_invitation",existingAccount:true,brand:{company:input.tenant.name,domain:new URL(tenantAppUrl(input.tenant.slug)).hostname,primary:branding.primary_color,accent:branding.accent_color,senderEmail:env.SENDGRID_FROM_EMAIL,emailLogoUrl:logo},message:{subject,body},targetUrl:url.href,targetLabel:template.cta_label,allowLocalLinks:env.DEPLOY_TARGET==="local"});
+      const frozen=await freezeMailSnapshot(admin,input.tenant.id,delivery!.id,{fromEmail:env.SENDGRID_FROM_EMAIL,fromName:branding.sender_name||input.tenant.name,to:input.person.email,subject,text:`${body}\n\n${url.href}`,html,targetUrl:url.href,templateRevision:template.revision,templateVersionId:template.version_id,templateBaseVersionId:template.base_version_id,attachmentPath:null,attachmentFilename:null});
+      mail={subject:frozen.subject,text:frozen.text,html:frozen.html};
+    }
+    providerStarted=true;sent = await sendEmail({ ...mail, to: input.person.email, fromEmail: env.SENDGRID_FROM_EMAIL,
+      fromName: branding.sender_name || input.tenant.name, deliveryKey, disableTracking: true,
+      policy: input.tokenHash ? { kind: "security", flow: "invitation", tenantId: input.tenant.id } : { kind: "notification", tenantId: input.tenant.id, type: "personnel.invitation", context: "staff", sourceId: delivery!.id } });
+  } catch (cause) {
+    if (!input.tokenHash && await deferNotificationMail(cause,input.tenant.id,delivery!.id,"personnel.invitation","staff")) {
+      return {warning:"De uitnodigingsmail staat klaar en wordt na de persoonlijke rusttijden verzonden. Het personeelsaccount is gekoppeld."};
+    }
+    const status = providerStarted?mailFailureOutcome(cause):"failed";
+    const failure=providerStarted?mailFailureMessage(status):"De uitnodiging kon niet worden voorbereid; er is nog geen verzending gestart.";
+    await admin.from("mail_deliveries").update({ status, last_error: failure }).eq("tenant_id", input.tenant.id).eq("idempotency_key", deliveryKey).eq("status", "processing");
+    throw new Error(failure);
   }
   const { error: updateError } = await admin.from("mail_deliveries").update({
     status: "sent", provider_message_id: sent.id, sent_at: new Date().toISOString(),

@@ -1,0 +1,55 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { z } from "zod";
+import { getAuthContext } from "@/lib/auth/context";
+import { getPlanningShellData } from "@/lib/planning/data";
+import { brandThemeStyle } from "@/lib/branding/palette";
+import { getNotificationAccess, getNotificationCampaign, getNotificationCampaigns, getNotificationDeliveries, getNotificationDetail, getNotificationInbox, getNotificationPreferences, getNotificationSettings, getNotificationTemplates } from "@/lib/notifications/data";
+import { getNotificationPermissions } from "@/lib/notifications/data";
+import { channelLabels, notificationPaths, notificationQueryFromSearch, tabLabels, type NotificationAccess, type NotificationQuery, type NotificationWorkspace } from "@/lib/notifications/model";
+import { BackofficeShell } from "@/components/fieldgrid/backoffice-shell";
+import { FieldgridBrand, ProductBrand } from "@/components/fieldgrid/brand";
+import { NotificationBell, InboxActions, InboxRows, NotificationDetail } from "./inbox";
+import { CampaignDetail, CampaignTable, NewCampaignButton } from "./campaigns";
+import { canCreateCampaign } from "@/lib/notifications/presentation";
+import { Deliveries, Policies, Preferences, Rules, TenantPolicySelector } from "./settings";
+import { Templates } from "./templates";
+import { Permissions } from "./permissions";
+import "./notifications.css";
+
+export type NotificationSearch = Record<string, string | string[] | undefined>;
+function url(access: NotificationAccess, query: NotificationQuery, changes: Record<string, string | number>) { const p = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== undefined && value !== "").map(([key, value]) => [key, String(value)])); Object.entries(changes).forEach(([key, value]) => p.set(key, String(value))); return `${notificationPaths[access.workspace]}?${p}`; }
+function Pagination({ access, query, total }: { access: NotificationAccess; query: NotificationQuery; total: number }) { const pages = Math.max(1, Math.ceil(total / query.pageSize)); return <nav className="nt-pagination" aria-label="Notificatiepagina’s"><span>{total} resultaten · pagina {query.page} van {pages}</span><div className="nt-actions">{query.page > 1 && <Link className="secondary-button" href={url(access, query, { page: query.page - 1 })}>Vorige</Link>}{query.page < pages && <Link className="secondary-button" href={url(access, query, { page: query.page + 1 })}>Volgende</Link>}</div></nav>; }
+function Filters({ access, query, categories = [] }: { access: NotificationAccess; query: NotificationQuery; categories?: Array<{ id: string; label: string }> }) { return <form className="nt-toolbar" action={notificationPaths[access.workspace]}><input type="hidden" name="tab" value={query.tab}/><label>Zoeken<input name="search" type="search" defaultValue={query.search} maxLength={160} placeholder="Onderwerp of afzender"/></label>{query.tab === "inbox" && <><label>Weergave<select name="view" defaultValue={query.view}><option value="all">Alle ontvangen</option><option value="unread">Ongelezen</option><option value="action">Actie gevraagd</option><option value="archived">Archief</option></select></label>{categories.length > 0 && <label>Categorie<select name="category" defaultValue={query.category}><option value="">Alle categorieën</option>{categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}</>}{query.tab === "delivery" && <><label>Kanaal<select name="channel" defaultValue={query.channel ?? ""}><option value="">Alle kanalen</option>{Object.entries(channelLabels).map(([c, label]) => <option key={c} value={c}>{label}</option>)}</select></label><label>Status<select name="status" defaultValue={query.status ?? ""}><option value="">Alle statussen</option><option value="queued">In wachtrij</option><option value="deferred">Uitgesteld</option><option value="processing">In verwerking</option><option value="accepted">Aangeboden aan provider</option><option value="failed">Mislukt</option><option value="uncertain">Onzeker</option><option value="suppressed">Onderdrukt</option><option value="unreachable">Niet bereikbaar</option><option value="expired">Verlopen</option><option value="revoked">Ingetrokken</option></select></label></>}<button className="secondary-button">Filters toepassen</button></form>; }
+
+export async function NotificationRouteLayout({ workspace, children }: { workspace: NotificationWorkspace; children: ReactNode }) {
+  const access = await getNotificationAccess(workspace);
+  if (!access.allowed) notFound();
+  if (workspace === "backoffice") { const context = await getAuthContext(); if (!context.tenant || context.tenant.id !== access.tenant?.id) notFound(); const shell = await getPlanningShellData(context.tenant.id); return <BackofficeShell context={{ ...context, tenant: context.tenant }} data={shell} initialView="notificaties">{children}</BackofficeShell>; }
+  const home = workspace === "staff" ? "/staff" : workspace === "customer" ? "/klant" : "/platform";
+  return <div className="nt-standalone" style={brandThemeStyle(access.tenant?.primaryColor, access.tenant?.accentColor)}><header>{access.tenant ? <FieldgridBrand tenantName={access.tenant.name} logoUrl={access.tenant.logoUrl}/> : <ProductBrand/>}<nav><Link href={home}>{workspace === "staff" ? "Mijn werk" : workspace === "customer" ? "Mijn afspraken" : "Platform"}</Link><NotificationBell workspace={workspace} actorKey={`${access.userId}:${access.tenant?.id ?? "platform"}`}/><form method="post" action="/auth/signout"><button className="secondary-button">Uitloggen</button></form></nav></header><main>{children}</main></div>;
+}
+export async function NotificationIndexRoute({ workspace, searchParams }: { workspace: NotificationWorkspace; searchParams: Promise<NotificationSearch> }) {
+  const access = await getNotificationAccess(workspace); if (!access.allowed) notFound();
+  const raw = await searchParams; let query: NotificationQuery;
+  try { query = notificationQueryFromSearch(raw); } catch { return <section className="nt-panel"><h1>Controleer de notificatiefilters</h1><p role="alert">Een filter of paginanummer is ongeldig.</p><Link className="secondary-button" href={notificationPaths[workspace]}>Filters herstellen</Link></section>; }
+  if (!access.tabs.includes(query.tab)) { if (!raw.tab && access.tabs[0]) redirect(`${notificationPaths[workspace]}?tab=${access.tabs[0]}`); notFound(); }
+  let content: ReactNode;
+  if (query.tab === "inbox") { const data = await getNotificationInbox(workspace, query); content = <section className="nt-panel"><Filters access={access} query={query} categories={data.categories}/><div className="nt-panel-heading"><p className="nt-muted">{data.unreadCount} ongelezen</p><InboxActions access={access} unreadCount={data.unreadCount}/></div><InboxRows access={access} data={data}/>{!data.items.length && <p className="nt-empty">Geen notificaties binnen deze selectie.</p>}<Pagination access={access} query={query} total={data.total}/></section>; }
+  else if (query.tab === "sent" || query.tab === "scheduled") { const data = await getNotificationCampaigns(workspace, query); content = <section className="nt-panel"><Filters access={access} query={query}/><CampaignTable access={access} data={data}/><Pagination access={access} query={query} total={data.total}/></section>; }
+  else if (query.tab === "templates") content = <Templates access={access} data={await getNotificationTemplates(workspace)}/>;
+  else if (query.tab === "permissions") content = <Permissions access={access} data={await getNotificationPermissions(workspace)}/>;
+  else if (query.tab === "delivery") { const data = await getNotificationDeliveries(workspace, query); content = <><Filters access={access} query={query}/><Deliveries access={access} data={data}/><Pagination access={access} query={query} total={data.total}/></>; }
+  else {
+    const selectedTenantId = workspace === "platform" && query.tab === "tenants" ? query.tenantId : undefined;
+    let data: Awaited<ReturnType<typeof getNotificationSettings>>;
+    try { data = await getNotificationSettings(workspace, selectedTenantId); }
+    catch (error) { if (error && typeof error === "object" && "code" in error && ["42501", "P0002"].includes(String(error.code))) notFound(); throw error; }
+    content = query.tab === "rules" ? <><Rules access={access} data={data}/>{workspace !== "platform" && <Policies access={access} data={data}/>}</> : query.tab === "tenants" ? <><TenantPolicySelector access={access} data={data} selectedTenantId={selectedTenantId}/>{selectedTenantId ? <Policies key={selectedTenantId} access={access} data={data} tenantOnly selectedTenantId={selectedTenantId}/> : <p className="nt-notice">Kies een tenant om de effectieve regels en afwijkingen te bekijken of aan te passen.</p>}</> : <Policies access={access} data={data}/>;
+  }
+  return <div className="nt-page" aria-busy="false"><header className="nt-header"><div><h1>{workspace === "platform" ? "Notificatiebeheer" : workspace === "backoffice" ? "Communicatie / notificaties" : "Mijn notificaties"}</h1><p>Berichten, persoonlijke aandachtspunten en actuele bezorgstatus.</p></div><div className="nt-actions">{access.permissions.includes("read_own") && <Link className="secondary-button" href={`${notificationPaths[workspace]}/instellingen`}>Mijn voorkeuren</Link>}{canCreateCampaign(access) && <NewCampaignButton access={access}/>}</div></header><nav className="nt-tabs" aria-label="Notificatieonderdelen">{access.tabs.map(tab => <Link key={tab} href={`${notificationPaths[workspace]}?tab=${tab}`} aria-current={query.tab === tab ? "page" : undefined}>{tabLabels[tab]}</Link>)}</nav>{content}</div>;
+}
+export async function NotificationDetailRoute({ workspace, params }: { workspace: NotificationWorkspace; params: Promise<{ id: string }> }) { const { id } = await params; if (!z.uuid().safeParse(id).success) notFound(); const access = await getNotificationAccess(workspace); if (!access.allowed || !access.permissions.includes("read_own")) notFound(); const data = await getNotificationDetail(workspace, id); if (!data) notFound(); return <NotificationDetail access={access} data={data}/>; }
+export async function NotificationCampaignRoute({ workspace, params }: { workspace: NotificationWorkspace; params: Promise<{ id: string }> }) { const { id } = await params; if (!z.uuid().safeParse(id).success) notFound(); const access = await getNotificationAccess(workspace); if (!access.allowed) notFound(); const data = await getNotificationCampaign(workspace, id); if (!data) notFound(); return <CampaignDetail access={access} data={data}/>; }
+export async function NotificationPreferencesRoute({ workspace }: { workspace: NotificationWorkspace }) { const access = await getNotificationAccess(workspace); if (!access.allowed || !access.permissions.includes("read_own")) notFound(); return <Preferences access={access} data={await getNotificationPreferences(workspace)}/>; }

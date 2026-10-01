@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { tenantAppUrl, TENANT_SLUG_HEADER } from "@/lib/tenancy/hostname";
+import { safeNext } from "@/lib/auth/safe-next";
 
 export type AuthState = { error?: string; success?: string };
 
@@ -13,10 +14,6 @@ const loginSchema = z.object({
   password: z.string().min(1),
   next: z.string().optional(),
 });
-
-function safeNext(value?: string): string {
-  return value?.startsWith("/") && !value.startsWith("//") ? value : "/app";
-}
 
 export async function signIn(_: AuthState, formData: FormData): Promise<AuthState> {
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));

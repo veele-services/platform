@@ -1,9 +1,11 @@
 // FICTITIOUS provider responses, ONLY imported by the isolated Playwright server.
 // Normal dev/build/deploy never imports this module.
 import "./sendgrid-interceptor.mjs";
+const replay=/^\/tmp\/fieldgrid-release-migrations\.[A-Za-z0-9]+$/.test(process.env.FIELDGRID_LOCAL_REPLAY_DIR??"");
+const expectedSupabase=replay?"http://127.0.0.1:60321":"http://127.0.0.1:59321";
 if (
   process.env.DEPLOY_TARGET !== "local" ||
-  process.env.SUPABASE_URL !== "http://127.0.0.1:59321" ||
+  process.env.SUPABASE_URL !== expectedSupabase ||
   process.env.OPENROUTESERVICE_API_KEY !== "fictional-travel-e2e-only"
 )
   throw new Error(

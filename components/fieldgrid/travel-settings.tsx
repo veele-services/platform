@@ -699,8 +699,14 @@ export function DayMobilityForm({
         className="secondary-button"
         disabled={pending}
       >
-        Dagafwijkingen wissen
+        {data.privateAccess ? "Dagafwijkingen wissen" : "Reisinstellingen herstellen"}
       </button>
+      {!data.privateAccess && (
+        <p className="travel-notice">
+          Herstellen gebruikt het standaardvervoer en vertrekpunt van de
+          medewerker. Een eventueel privévertrekadres blijft bewaard voor beheer.
+        </p>
+      )}
     </form>
   );
 }

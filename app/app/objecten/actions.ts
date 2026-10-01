@@ -1,4 +1,5 @@
 "use server";
+import { uploadScannedFile } from "@/lib/files/scanned-storage";
 
 import { addressFromForm } from "@/lib/addresses/form";
 import { randomUUID } from "node:crypto";
@@ -74,7 +75,7 @@ export async function uploadObjectDocument(form:FormData):Promise<ActionResult>{
  const bytes=new Uint8Array(await file.arrayBuffer());const ext=customerDocumentExtension(file.type,bytes);const path=`${tenant.id}/${v.objectId}/${randomUUID()}.${ext}`;
  let version=1;
  if(v.previousId){const r=await db.from("object_documents").select("version,category").eq("tenant_id",tenant.id).eq("object_id",v.objectId).eq("id",v.previousId).single();if(!r.data||r.data.category==="security"&&v.category!=="security")return fail();version=r.data.version+1;}
- const admin=createAdminClient();const bucket=admin.storage.from("object-documents");const upload=await bucket.upload(path,bytes,{contentType:file.type,upsert:false});if(upload.error)return fail();
+ const admin=createAdminClient();const bucket=admin.storage.from("object-documents");await uploadScannedFile(db,"object-documents",path,bytes,file.type);
  const r=await db.from("object_documents").insert({tenant_id:tenant.id,object_id:v.objectId,title:v.title,category:v.category,node_id:v.nodeId||null,record_id:v.recordId||null,work_order_id:v.orderId||null,previous_id:v.previousId||null,version,valid_until:v.validUntil||null,service:v.service,storage_path:path,mime_type:file.type,file_name:customerDocumentFileName(file.name),size_bytes:file.size,created_by:context.user.id});
  if(r.error){await bucket.remove([path]);return fail();}refresh(v.objectId);return {ok:true};}catch{return fail();}
 }

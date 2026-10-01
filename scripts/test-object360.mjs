@@ -1,15 +1,14 @@
 import assert from "node:assert/strict";
-import {execFileSync} from "node:child_process";
+import { localWorkOrderTestUrl } from "./work-order-test-target.mjs";
 import {randomUUID} from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 
 test("Object 360: real database boundaries, visit requests and session-bound vault",async t=>{
- const local=JSON.parse(execFileSync("pnpm",["supabase","status","-o","json"],{encoding:"utf8",stdio:["ignore","pipe","ignore"]}));
- const url=new URL(local.DB_URL);assert.equal(url.hostname,"127.0.0.1");assert.equal(url.port,"59322");
+ const local={ DB_URL: localWorkOrderTestUrl() };
  const db=new pg.Client({connectionString:local.DB_URL});await db.connect();
- const tenant=randomUUID(),other=randomUUID(),manager=randomUUID(),staff=randomUUID(),customerUser=randomUUID(),unassigned=randomUUID();
- const users=[manager,staff,customerUser,unassigned],sessions=Object.fromEntries(users.map(u=>[u,randomUUID()]));
+ const tenant=randomUUID(),other=randomUUID(),manager=randomUUID(),staff=randomUUID(),customerUser=randomUUID(),customerPeer=randomUUID(),unassigned=randomUUID();
+ const users=[manager,staff,customerUser,customerPeer,unassigned],sessions=Object.fromEntries(users.map(u=>[u,randomUUID()]));
  const customer=randomUUID(),object=randomUUID(),otherObject=randomUUID(),person=randomUUID(),order=randomUUID(),secondOrder=randomUUID(),assignment=randomUUID(),task=randomUUID(),revision=randomUUID();
  const fictitiousCode="482731",fictitiousValue="FICTIONAL-TEST-OBJECT-VALUE";
  let item;
@@ -31,10 +30,11 @@ test("Object 360: real database boundaries, visit requests and session-bound vau
   await db.query("insert into public.personnel(id,tenant_id,user_id,full_name,status) values($1,$2,$3,'Fictitious employee','active')",[person,tenant,staff]);
   await db.query("insert into public.task_catalog(id,tenant_id,code,name,discipline) values($1,$2,'OB-TEST','Test task','Onderhoud')",[task,tenant]);
   await db.query("insert into public.task_revisions(id,tenant_id,task_id,revision,duration_minutes,price_cents) values($1,$2,$3,1,30,1000)",[revision,tenant,task]);
-  for(const id of [order,secondOrder])await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at,created_by) values($1,$2,$3,$4,$5,'Onderhoud','released',now()-interval '10 minutes',now()+interval '2 hours',now()-interval '10 minutes',now()+interval '2 hours',$6)",[id,tenant,customer,object,`WO-${id}`,manager]);
+  for(const id of [order,secondOrder])await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at,published_at,planning_state,created_by) values($1,$2,$3,$4,$5,'Onderhoud','released',now()-interval '10 minutes',now()+interval '2 hours',now()-interval '10 minutes',now()+interval '2 hours',now(),'final',$6)",[id,tenant,customer,object,`WO-${id}`,manager]);
   await db.query("insert into public.work_order_assignments(id,tenant_id,work_order_id,personnel_id,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at) values($1,$2,$3,$4,'released',now()-interval '10 minutes',now()+interval '2 hours',now()-interval '10 minutes',now()+interval '2 hours')",[assignment,tenant,order,person]);
   await db.query("insert into public.dispatches(tenant_id,work_order_id,assignment_id,dispatched_by,idempotency_key) values($1,$2,$3,$4,$5)",[tenant,order,assignment,manager,randomUUID()]);
   await call("insert into public.object_customer_bindings(tenant_id,object_id,user_id,manage_secrets) values($1,$2,$3,true)",[tenant,object,customerUser]);
+  await call("insert into public.object_customer_bindings(tenant_id,object_id,user_id,manage_secrets) values($1,$2,$3,false)",[tenant,object,customerPeer]);
 
   await t.test("object identity, optional structure, cycles and immutable version history",async()=>{
    const building=randomUUID(),room=randomUUID();
@@ -52,6 +52,9 @@ test("Object 360: real database boundaries, visit requests and session-bound vau
    const id=randomUUID();const input={title:"Fictitious attention",body:"Only this test visit",kind:"extra",priority:"normal"};
    const submit=()=>call("select public.submit_object_visit_request($1,$2,$3,$4,$5) id",[tenant,object,order,id,input],customerUser);
    const result=await Promise.all([submit(),submit()]);assert.equal(result[0][0].id,result[1][0].id);
+   await assert.rejects(call("select public.acknowledge_object_request($1,$2,1)",[tenant,id],customerPeer),e=>e.code==="42501");
+   assert.equal((await call("select public.file_upload_allowed('object-documents',$1,$2) allowed",[`${tenant}/${object}/${randomUUID()}.pdf`,id],customerPeer))[0].allowed,false);
+   await assert.rejects(call("select public.register_visit_attachment($1,$2,$3)",[tenant,id,{title:"FICTITIOUS cross-owner attachment",path:`${tenant}/${object}/${randomUUID()}.pdf`,mime:"application/pdf",fileName:"fixture.pdf",size:10}],customerPeer),e=>e.code==="42501");
    const otherVisit=(await call("select public.object_visit_context($1,$2,$3) result",[tenant,object,secondOrder],customerUser))[0].result;
    assert.equal(otherVisit.requests.length,0);
    await assert.rejects(call("select public.submit_object_visit_request($1,$2,$3,$4,$5)",[tenant,otherObject,order,randomUUID(),input],customerUser),e=>e.code==="42501");
@@ -100,7 +103,8 @@ test("Object 360: real database boundaries, visit requests and session-bound vau
    const request=(await db.query("select id from public.object_visit_requests where work_order_id=$1 limit 1",[order])).rows[0].id;
    const doc=randomUUID();await db.query("insert into public.object_documents(id,tenant_id,object_id,work_order_id,request_id,title,category,storage_path,mime_type,file_name,size_bytes,created_by) values($1,$2,$3,$4,$5,'Test attachment','photo',$6,'application/pdf','fixture.pdf',20,$7)",[doc,tenant,object,order,request,`${tenant}/${object}/${randomUUID()}.pdf`,manager]);
    const get=async(actor,whichOrder=order)=>(await call("select public.get_object_document($1,$2,$3) result",[tenant,doc,whichOrder],actor))[0].result;
-   assert.ok(await get(customerUser));assert.ok(await get(staff));assert.equal(await get(customerUser,secondOrder),null);assert.equal(await get(unassigned),null);
+   const own=await get(customerUser);assert.ok(own);assert.deepEqual(own.scope,[tenant,object]);
+   assert.deepEqual((await get(manager)).scope,[tenant,object]);assert.ok(await get(staff));assert.equal(await get(customerUser,secondOrder),null);assert.equal(await get(unassigned),null);
    await db.query("update auth.sessions set not_after=now()-interval '1 second' where id=$1",[sessions[customerUser]]);assert.equal(await get(customerUser),null);await db.query("update auth.sessions set not_after=null where id=$1",[sessions[customerUser]]);
    const context=(await call("select public.object_visit_context($1,$2,$3) result",[tenant,object,order],customerUser))[0].result;
    assert.equal(context.requests.find(r=>r.id===request).documents[0].id,doc);assert.equal(JSON.stringify(context).includes(`${tenant}/${object}/`),false);
@@ -127,6 +131,30 @@ test("Object 360: real database boundaries, visit requests and session-bound vau
    await db.query("update public.dispatches set revoked_at=now() where assignment_id=$1",[assignment]);await expectDenied(()=>vault("request",{code:fictitiousCode}));await db.query("update public.dispatches set revoked_at=null where assignment_id=$1",[assignment]);
    await db.query("update public.personnel set status='inactive' where id=$1",[person]);await expectDenied(()=>vault("request",{code:fictitiousCode}));await db.query("update public.personnel set status='active' where id=$1",[person]);
    await db.query("update auth.sessions set not_after=now()-interval '1 second' where id=$1",[sessions[staff]]);await expectDenied(()=>vault("request",{code:fictitiousCode}));await db.query("update auth.sessions set not_after=null where id=$1",[sessions[staff]]);
+  });
+  await t.test("vault metadata cannot enumerate unscoped items by supplying a scoped item",async()=>{
+   const hidden=randomUUID();
+   await db.query("insert into private.object_secret_items(id,tenant_id,object_id,name,kind,owner_user_id) values($1,$2,$3,'FICTITIOUS unassigned item','access',$4)",[hidden,tenant,object,manager]);
+   try {
+    const ordinary=await vault('metadata',{},staff,{item:null});assert.deepEqual(ordinary.items.map(x=>x.id),[item]);
+    const selected=await vault('metadata',{},staff,{item});assert.deepEqual(selected.items.map(x=>x.id),[item]);
+    await expectDenied(()=>vault('metadata',{},staff,{item:hidden}));
+    for(const actor of [manager,customerUser])assert.equal((await vault('metadata',{},actor,{item:null})).items.length,2);
+   } finally {await db.query('delete from private.object_secret_items where id=$1',[hidden]);}
+  });
+  await t.test("removing the staff role revokes visit and existing OTP grants without changing the JWT",async()=>{
+   await loosenRequestLimit();const g=await grant();await loosenRequestLimit();const pending=await challenge();
+   await db.query("update public.tenant_memberships set roles=array['finance']::public.app_role[] where tenant_id=$1 and user_id=$2",[tenant,staff]);
+   try {
+    await expectDenied(()=>vault('check',{grantId:g}));await expectDenied(()=>vault('read',{grantId:g}));
+    await expectDenied(()=>vault('verify',{challengeId:pending,code:fictitiousCode}));
+    await expectDenied(()=>vault('metadata',{},staff,{item}));
+    assert.deepEqual((await vault('metadata',{},staff,{item:null})).items,[]);
+    await assert.rejects(call('select public.object_visit_context($1,$2,$3)',[tenant,object,order],staff),e=>e.code==='42501');
+   } finally {await db.query("update public.tenant_memberships set roles=array['staff','finance']::public.app_role[] where tenant_id=$1 and user_id=$2",[tenant,staff]);}
+   assert.equal((await vault('metadata',{},staff,{item})).ok,true);
+   assert.ok((await call('select public.object_visit_context($1,$2,$3) result',[tenant,object,order],staff))[0].result);
+   await db.query("update public.tenant_memberships set roles=array['staff']::public.app_role[] where tenant_id=$1 and user_id=$2",[tenant,staff]);
   });
   await t.test("vault window uses actual assignment bounds and bounded explicit extensions",async()=>{
    const old=(await db.query("select projected_start_at,projected_end_at from public.work_order_assignments where id=$1",[assignment])).rows[0];
@@ -167,12 +195,21 @@ test("Object 360: real database boundaries, visit requests and session-bound vau
    const sg=await grant();await db.query("update public.work_order_assignments set status='completed' where id=$1",[assignment]);await expectDenied(()=>vault("read",{grantId:sg}));
   });
  }finally{
+  try {
   // Only this test's generated IDs; never reset a database or touch remote projects.
   const vaultIds=(await db.query("select v.vault_id from private.object_secret_versions v join private.object_secret_items i on i.id=v.item_id where i.tenant_id=$1",[tenant])).rows.map(r=>r.vault_id);
+  await db.query("delete from private.notification_deliveries where tenant_id=any($1)",[[tenant,other]]);
+  await db.query("delete from private.notification_requests where tenant_id=any($1)",[[tenant,other]]);
+  await db.query("delete from private.notification_planning_events where tenant_id=any($1)",[[tenant,other]]);
+  await db.query("delete from private.notification_captured_outbox where tenant_id=any($1)",[[tenant,other]]);
+  await db.query("delete from private.notification_domain_events where tenant_id=any($1)",[[tenant,other]]);
+  await db.query("delete from private.notification_template_versions where template_id in(select id from private.notification_templates where tenant_id=any($1))",[[tenant,other]]);
+  await db.query("delete from private.notification_templates where tenant_id=any($1)",[[tenant,other]]);
   for(const table of ["object_access_grants","object_otp_challenges","object_access_audit","object_notification_keys"])await db.query(`delete from private.${table} where tenant_id=$1`,[tenant]);
   await db.query("delete from private.object_secret_scopes where assignment_id=$1",[assignment]);await db.query("delete from private.object_access_extensions where assignment_id=$1",[assignment]);
   await db.query("delete from private.object_secret_versions where item_id in(select id from private.object_secret_items where tenant_id=$1)",[tenant]);await db.query("delete from private.object_secret_items where tenant_id=$1",[tenant]);await db.query("delete from private.object_vault_state where object_id=any($1)",[[object,otherObject]]);await db.query("delete from vault.secrets where id=any($1)",[vaultIds]);
   for(const table of ["object_documents","object_request_proposals","object_visit_requests","object_instruction_receipts","object_records","object_nodes","object_customer_bindings","object_history","audit_events"])await db.query(`delete from public.${table} where tenant_id=$1`,[tenant]);
-  await db.query("delete from public.work_orders where tenant_id=$1",[tenant]);await db.query("delete from public.objects where tenant_id=$1",[tenant]);await db.query("delete from public.task_revisions where tenant_id=$1",[tenant]);await db.query("delete from public.customers where tenant_id=$1",[tenant]);await db.query("delete from public.tenants where id=any($1)",[[tenant,other]]);await db.query("delete from auth.users where id=any($1)",[users]);await db.end();
+  await db.query("delete from public.work_orders where tenant_id=$1",[tenant]);await db.query("delete from public.objects where tenant_id=$1",[tenant]);await db.query("delete from public.task_revisions where tenant_id=$1",[tenant]);await db.query("delete from public.customers where tenant_id=$1",[tenant]);await db.query("delete from public.tenants where id=any($1)",[[tenant,other]]);await db.query("delete from auth.users where id=any($1)",[users]);
+  } finally { await db.end(); }
  }
 });

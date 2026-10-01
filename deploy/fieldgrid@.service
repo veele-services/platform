@@ -1,25 +1,30 @@
 [Unit]
 Description=Fieldgrid web application (%i)
-After=network-online.target
-Wants=network-online.target
+After=network-online.target clamav-daemon.service
+Wants=network-online.target clamav-freshclam.service
+Requires=clamav-daemon.service
 
 [Service]
 Type=simple
 User=fieldgrid
 Group=fieldgrid
+SupplementaryGroups=clamav
 WorkingDirectory=/opt/fieldgrid/%i/current
-EnvironmentFile=/opt/fieldgrid/%i/shared/fieldgrid.env
+EnvironmentFile=/opt/fieldgrid/%i/shared/runtime.env
 Environment=NODE_ENV=production
+ExecStartPre=/usr/bin/test -S /run/clamav/clamd.ctl
+ExecStartPre=/usr/bin/test -w /run/clamav/clamd.ctl
 ExecStart=/usr/bin/env node server.js
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=30
 KillSignal=SIGTERM
 NoNewPrivileges=true
+UMask=0077
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/fieldgrid/%i
+ReadOnlyPaths=/opt/fieldgrid/%i
 
 [Install]
 WantedBy=multi-user.target

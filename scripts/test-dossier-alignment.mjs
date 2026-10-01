@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { localWorkOrderTestUrl } from "./work-order-test-target.mjs";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 import { submitFixtureReport } from './work-order-report-fixture.mjs';
 
 test("Dossier 360: shared sources, approval, partial allocation and current access", async t => {
- const local=JSON.parse(execFileSync("pnpm",["supabase","status","-o","json"],{encoding:"utf8",stdio:["ignore","pipe","ignore"]}));
- const url=new URL(local.DB_URL);assert.equal(url.hostname,"127.0.0.1");assert.equal(url.port,"59322");
+ const local={ DB_URL: localWorkOrderTestUrl() };
  const db=new pg.Client({connectionString:local.DB_URL});await db.connect();
  const tenant=randomUUID(),other=randomUUID(),manager=randomUUID(),staff=randomUUID(),customerUser=randomUUID(),planner=randomUUID();
  const users=[manager,staff,customerUser,planner],sessions=Object.fromEntries(users.map(id=>[id,randomUUID()]));
@@ -25,7 +24,7 @@ test("Dossier 360: shared sources, approval, partial allocation and current acce
   await db.query("insert into public.task_catalog(id,tenant_id,code,name,discipline) values($1,$2,'ALIGN','Daily service','Onderhoud')",[catalog,tenant]);
   await db.query("insert into public.task_revisions(id,tenant_id,task_id,revision,duration_minutes,price_cents) values($1,$2,$3,1,30,1000)",[revision,tenant,catalog]);
   await db.query("insert into public.customer_documents(id,tenant_id,customer_id,title,storage_path,file_name,mime_type,size_bytes,sha256,created_by) values($1,$2,$3,'Fictitious agreement',$4,'agreement.pdf','application/pdf',20,$5,$6)",[document,tenant,customer,`${tenant}/${customer}/${randomUUID().replaceAll('-','')}.pdf`,'a'.repeat(64),manager]);
-  for(const id of [order,secondOrder])await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at,created_by) values($1,$2,$3,$4,$5,'Onderhoud','released',now()-interval '5 minutes',now()+interval '30 minutes',now()-interval '5 minutes',now()+interval '30 minutes',$6)",[id,tenant,customer,object,`W-${id}`,manager]);
+  for(const id of [order,secondOrder])await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at,published_at,planning_state,created_by) values($1,$2,$3,$4,$5,'Onderhoud','released',now()-interval '5 minutes',now()+interval '30 minutes',now()-interval '5 minutes',now()+interval '30 minutes',now(),'final',$6)",[id,tenant,customer,object,`W-${id}`,manager]);
   await db.query("insert into public.work_order_assignments(id,tenant_id,work_order_id,personnel_id,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at) values($1,$2,$3,$4,'in_progress',now()-interval '5 minutes',now()+interval '30 minutes',now()-interval '5 minutes',now()+interval '30 minutes')",[assignment,tenant,order,person]);
   await db.query("insert into public.dispatches(tenant_id,work_order_id,assignment_id,dispatched_by,idempotency_key) values($1,$2,$3,$4,$5)",[tenant,order,assignment,manager,randomUUID()]);
   await db.query("update public.work_orders set status='in_progress' where id=$1",[order]);

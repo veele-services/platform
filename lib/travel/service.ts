@@ -61,6 +61,25 @@ function redact(leg: TravelLeg, force = false): TravelLeg {
       : { destinationLabel: "Privévertrekpunt (afgeschermd)" }),
   };
 }
+type TravelActor = Awaited<ReturnType<typeof travelActor>>;
+// Planning revisions do not change when memberships or sessions are revoked.
+// Compare the live authorization scope separately, without caching private data.
+function accessScope(actor: TravelActor) {
+  const c = actor.context;
+  return JSON.stringify([
+    actor.tenant.id, actor.user.id, actor.sessionId, c.canManage,
+    c.people.map((p) => [p.id, p.privateAllowed]).sort(),
+    c.assignments.map((a) => [a.id, a.personnelId, a.workOrderId, a.objectId]).sort(),
+    c.depots.map((d) => d.id).sort(),
+  ]);
+}
+async function assertCurrent(actor: TravelActor, day: string, personId?: string) {
+  const current = await travelActor(day, personId);
+  if (current.context.revision !== actor.context.revision)
+    throw new Error("De planning is intussen gewijzigd. Probeer opnieuw.");
+  if (accessScope(current) !== accessScope(actor))
+    throw new Error("Je toegang tot deze reisplanning is gewijzigd. Open de planning opnieuw.");
+}
 export async function travelDay(day: string, personId?: string) {
   const actor = await travelActor(day, personId),
     c = actor.context,
@@ -89,15 +108,25 @@ export async function travelDay(day: string, personId?: string) {
   const legs: TravelLeg[] = planned.map((s) => {
     const sig = signature(s, c),
       old = saved.get(`${s.assignmentId}:${s.direction}`);
-    if (s.locked && old?.estimate_snapshot)
-      return redact(
-        {
-          ...(old.estimate_snapshot as unknown as TravelLeg),
-          locked: true,
-          privateAllowed: false,
-        },
-        true,
-      );
+    if (s.locked && old?.estimate_snapshot) {
+      const history = old.estimate_snapshot as unknown as TravelLeg;
+      const referencesAllowed = history.assignmentId === s.assignmentId &&
+        history.personnelId === s.personnelId && history.workOrderId === s.workOrderId &&
+        history.day === s.day && history.direction === s.direction &&
+        (history.previousAssignmentId === null || c.assignments.some(
+          (a) => a.id === history.previousAssignmentId && a.personnelId === s.personnelId,
+        ));
+      if (referencesAllowed)
+        return redact({ ...history, locked: true, privateAllowed: false }, true);
+      // Keep the original evidence in storage, but do not disclose references
+      // to an earlier visit after its assignment/dispatch access was revoked.
+      return redact({
+        ...s, signature: sig, state: "historical_unknown", seconds: null,
+        metres: null, calculatedAt: null, refreshing: false,
+        reason: "De historische rit is niet beschikbaar binnen je huidige toegang.",
+        ...timing(null, s.marginMinutes, s.previousEnd, s.plannedStart),
+      });
+    }
     const cached =
       s.profile && s.origin && s.destination
         ? provider.cache.get(routeKey(s))
@@ -152,6 +181,7 @@ export async function travelDay(day: string, personId?: string) {
         : {}),
     });
   });
+  await assertCurrent(actor, day, personId);
   const writable = legs.filter((l) => !l.locked).map((l) => redact(l, true));
   if (writable.length) {
     const result = await actor.admin.rpc("store_travel_estimates", {
@@ -164,9 +194,7 @@ export async function travelDay(day: string, personId?: string) {
         "De planning is intussen gewijzigd. Reisgegevens worden opnieuw geladen.",
       );
   }
-  const current = await travelActor(day, personId);
-  if (current.context.revision !== c.revision)
-    throw new Error("De planning is intussen gewijzigd. Probeer opnieuw.");
+  await assertCurrent(actor, day, personId);
   return {
     revision: c.revision,
     day,
@@ -264,6 +292,7 @@ export async function manualTravel(input: {
     legs: [leg] as unknown as Json,
     manual_action: seconds === null ? "clear" : "set",
     actor: actor.user.id,
+    actor_session: actor.sessionId,
   });
   if (saved.error || !saved.data)
     throw new Error(

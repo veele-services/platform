@@ -2,6 +2,7 @@
 import { ArrivalSettings } from "../travel-settings";
 import { WorkOrderSignatureSettings } from "../work-orders/settings";
 import {DossierChainPanel} from "../dossier-chain";
+import { TicketContextPanel } from "../tickets/context";
 import {CommercialDossierPanel} from "../commercial/dossier-panel";
 import {useState,type ReactNode} from "react";
 import Link from "next/link";
@@ -55,6 +56,7 @@ export function ObjectDossier({data,tenant,tab}:{data:ObjectData;tenant:TenantCo
  {tab==="tijdlijn"&&<section className="dossier-card">{section("Tijdlijn","Objectwijzigingen en opvolging. Technische toegangslogs en geheime waarden staan hier nooit.")}{data.history.map(h=>{const s=valuesOf(h.snapshot);return <article className="dossier-event" key={h.id}><History size={18}/><div><strong>{String(s.title||s.name||"Objectregistratie")} · {h.event==="created"?"toegevoegd":"bijgewerkt"}</strong><small>{objectDate(h.created_at,tenant.timezone)} · versie {h.version}</small></div><button className="resource-action" onClick={()=>void history(h.source_id)}>Versies</button></article>;})}{!data.history.length&&<Empty>Nog geen dossierwijzigingen sinds de invoering van Object 360.</Empty>}</section>}
  {["overzicht","diensten","afspraken"].includes(tab)&&data.qualificationGaps.length>0&&<section className="dossier-card"><h2>Inzetbaarheid vraagt aandacht</h2>{data.qualificationGaps.map(g=>{const a=data.assignments.find(a=>a.id===g.assignment_id);return <p key={`${g.assignment_id}:${g.code}`}><Link href={`/app/werkbonnen/${a?.work_order_id}`}>{data.orders.find(w=>w.id===a?.work_order_id)?.work_order_number}</Link> · {data.personnel.find(p=>p.id===g.personnel_id)?.full_name} · {g.code}: {g.hard_requirement?"verplicht bewijs ontbreekt voor de volledige periode":"bewijs controleren"}</p>;})}</section>}
  {tab==="diensten"&&<DossierChainPanel scope={{objectId:o.id}} view="agreements" timezone={tenant.timezone}/>}
+ {tab==="instructies"&&<TicketContextPanel kind="object" id={o.id}/>}
  {tab==="instructies"&&<DossierChainPanel scope={{objectId:o.id}} view="actions" timezone={tenant.timezone}/>}
  {tab==="documenten"&&<DossierChainPanel scope={{objectId:o.id}} view="documents" excludeSource="object" timezone={tenant.timezone}/>}
  {historyError&&<p role="alert">{historyError}</p>}

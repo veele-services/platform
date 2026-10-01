@@ -22,18 +22,28 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: local-ci-service-role-key-with-at-least-twenty-characters
       GOOGLE_ROUTES_ENABLED: "false"
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Verify staging root/runner contracts with real Linux permissions
+        run: bash scripts/test-staging-contract-linux.sh
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
           version: 11.25.0
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24.7.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Reject recognized credential formats in release sources
+        run: node scripts/check-source-secrets.mjs
+      - name: Check dependencies for high or critical advisories
+        run: pnpm audit --audit-level high
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Start real isolated ticket antivirus and verify current definitions
+        run: bash scripts/start-ticket-test-scanner.sh
       - name: Start clean local Supabase
         run: pnpm supabase start
       - name: Verify a forward work-order upgrade preserves historical evidence
@@ -42,20 +52,53 @@ jobs:
           node scripts/test-work-orders-upgrade.mjs seed
           pnpm supabase migration up --local
           node scripts/test-work-orders-upgrade.mjs verify
-      - run: pnpm db:reset
+      - name: Verify notification upgrade preserves history and tenant overrides
+        run: |
+          pnpm supabase db reset --local --version 20260930192516 --yes
+          node scripts/test-notifications-upgrade.mjs seed
+          pnpm supabase migration up --local
+          node scripts/test-notifications-upgrade.mjs verify
+          pnpm supabase db reset --local --yes
+      - name: Verify platform upgrade preserves invitation history and revoked authority
+        run: |
+          pnpm supabase db reset --local --version 20261001042234 --yes
+          node scripts/test-platform-upgrade.mjs seed
+          pnpm supabase migration up --local
+          node scripts/test-platform-upgrade.mjs verify
+          pnpm supabase db reset --local --yes
       - run: pnpm test:db
-      - run: pnpm supabase db lint --local --level warning
-      - run: pnpm supabase db advisors --local --level warn
+      - name: Verify immutable migration statement manifest against the clean replay
+        run: pnpm db:verify-manifest
+      - name: Check authorization entrypoints, resources and grant classifications
+        run: node scripts/check-security-surface.mjs
+      - name: Require an explicit completed review status for every authorization surface
+        run: pnpm security:review
+      - name: Verify real Auth, Data API, Storage and Realtime privacy boundaries
+        run: pnpm test:security:http
+      - run: pnpm supabase db lint --local --level warning --fail-on error
+      - name: Fail on database security-advisor warnings or errors
+        run: pnpm supabase db advisors --local --type security --level warn --fail-on warn
       - run: pnpm build
+      - name: Reject recognized privileged credentials in public browser artifacts
+        run: node scripts/check-release-secrets.mjs --browser
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
       - name: Run required browser flows
         run: pnpm test:e2e
+      - name: Stop this job's isolated scanner
+        if: always()
+        run: |
+          if docker container inspect fieldgrid-ticket-ci-scanner >/dev/null 2>&1; then
+            docker stop fieldgrid-ticket-ci-scanner
+            docker rm fieldgrid-ticket-ci-scanner
+          fi
       - name: Ensure no retired tenant or mail-provider naming
         # Match names, not fragments of DOM API identifiers such as activeElement.
+        # Operator evidence may name an existing VPS/runner/repository. Those
+        # infrastructure identities are not product branding or provider code.
         # Git is already required by checkout; do not silently skip a missing rg.
         run: |
-          if git grep -n -i -E '\bv[e]ele\b|\br[e]send\b' -- . ':!pnpm-lock.yaml'; then
+          if git grep -n -i -E '\bv[e]ele\b|\br[e]send\b' -- app components lib public scripts; then
             exit 1
           else
             result=$?

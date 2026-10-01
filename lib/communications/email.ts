@@ -67,10 +67,11 @@ function paragraphHtml(value: string) {
 
 export function renderTenantEmailHtml(input: {
   brand: EmailBrand;
-  kind: Extract<TemplateKey, "invoice" | "quote"> | "personnel_invitation" | "dossier_reminder" | "object_otp" | "commercial_event";
+  kind: Extract<TemplateKey, "invoice" | "quote"> | "personnel_invitation" | "dossier_reminder" | "object_otp" | "commercial_event" | "notification_event" | "ticket_event" | "ticket_otp" | "auth_event" | "auth_otp";
   message: EmailMessage;
   values?: TemplateValues;
   targetUrl?: string;
+  targetLabel?: string;
   mode?: EmailRenderMode;
   existingAccount?: boolean;
   allowLocalLinks?: boolean;
@@ -81,17 +82,21 @@ export function renderTenantEmailHtml(input: {
     ? { ...PREVIEW_VALUES, bedrijfsnaam: company }
     : { ...input.values, bedrijfsnaam: input.values?.bedrijfsnaam ?? company };
   const strict = mode !== "template";
-  const subject = input.kind === "commercial_event" ? input.message.subject : renderTemplateText(input.message.subject, values, strict);
-  const body = input.kind === "commercial_event" ? input.message.body : renderTemplateText(input.message.body, values, strict);
+  const literal = ["commercial_event", "notification_event", "ticket_event", "ticket_otp", "auth_event", "auth_otp"].includes(input.kind);
+  const subject = literal ? input.message.subject : renderTemplateText(input.message.subject, values, strict);
+  const body = literal ? input.message.body : renderTemplateText(input.message.body, values, strict);
   const primary = validColor(input.brand.primary, FIELDGRID_PRIMARY);
   const accent = validColor(input.brand.accent, FIELDGRID_SECONDARY);
   const onAccent = textOn(accent);
   const personnelInvitation = input.kind === "personnel_invitation";
   const dossierReminder = input.kind === "dossier_reminder";
-  const objectOtp = input.kind === "object_otp";
-  const preheader = input.kind === "commercial_event" ? "Een bericht over uw aanvraag, offerte of afspraak." : objectOtp ? "Bevestig je toegang in de geopende omgeving." : dossierReminder ? "Een dossieractie vraagt aandacht." : personnelInvitation ? `Je bent uitgenodigd voor het personeelsportaal van ${company}.` : input.kind === "invoice" ? "Uw factuur is beschikbaar." : "Uw prijsopgave staat klaar.";
-  const eyebrow = input.kind === "commercial_event" ? "UW AANVRAAG EN AFSPRAKEN" : objectOtp ? "TIJDELIJKE VERIFICATIECODE" : dossierReminder ? "DOSSIERHERINNERING" : personnelInvitation ? "UITNODIGING PERSONEELSPORTAAL" : input.kind === "invoice" ? "UW FACTUUR" : "UW PRIJSOPGAVE";
-  const cta = input.kind === "commercial_event" ? "Registratie bekijken" : dossierReminder ? "Open personeelsdossier" : personnelInvitation ? (input.existingAccount ? "Personeelsportaal openen" : "Personeelsaccount activeren") : input.kind === "invoice" ? "Factuur veilig betalen" : "Prijsopgave bekijken";
+  const objectOtp = input.kind === "object_otp" || input.kind === "ticket_otp" || input.kind === "auth_otp";
+  const auth = input.kind === "auth_event";
+  const ticket = input.kind === "ticket_event" || input.kind === "notification_event";
+  const preheader = auth ? "Een bericht over de beveiliging van je account." : ticket ? "Er staat een melding voor je klaar in de beveiligde omgeving." : input.kind === "commercial_event" ? "Een bericht over uw aanvraag, offerte of afspraak." : objectOtp ? "Bevestig je toegang in de geopende omgeving." : dossierReminder ? "Een dossieractie vraagt aandacht." : personnelInvitation ? `Je bent uitgenodigd voor het personeelsportaal van ${company}.` : input.kind === "invoice" ? "Uw factuur is beschikbaar." : "Uw prijsopgave staat klaar.";
+  const eyebrow = auth ? "JE ACCOUNT" : ticket ? "BEVEILIGDE MELDING" : input.kind === "commercial_event" ? "UW AANVRAAG EN AFSPRAKEN" : objectOtp ? "TIJDELIJKE VERIFICATIECODE" : dossierReminder ? "DOSSIERHERINNERING" : personnelInvitation ? "UITNODIGING PERSONEELSPORTAAL" : input.kind === "invoice" ? "UW FACTUUR" : "UW PRIJSOPGAVE";
+  const defaultCta = ticket ? "Melding bekijken" : input.kind === "commercial_event" ? "Registratie bekijken" : dossierReminder ? "Open personeelsdossier" : personnelInvitation ? (input.existingAccount ? "Personeelsportaal openen" : "Personeelsaccount activeren") : input.kind === "invoice" ? "Factuur veilig betalen" : "Prijsopgave bekijken";
+  const cta = escapeHtml(input.targetLabel?.trim().slice(0,80) || defaultCta);
   const targetToken = personnelInvitation || dossierReminder ? "{portaallink}" : input.kind === "invoice" ? "{betaallink}" : "{offertelink}";
   const target = mode === "template"
     ? targetToken

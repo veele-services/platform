@@ -1,19 +1,11 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { localWorkOrderTestUrl } from "./work-order-test-target.mjs";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 
 test("travel: tenant isolation, private addresses, cache leases and version-safe estimates", async (t) => {
-  const local = JSON.parse(
-    execFileSync("pnpm", ["supabase", "status", "-o", "json"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }),
-  );
-  const url = new URL(local.DB_URL);
-  assert.equal(url.hostname, "127.0.0.1");
-  assert.equal(url.port, "59322");
+  const local = { DB_URL: localWorkOrderTestUrl() };
   const db = new pg.Client({ connectionString: local.DB_URL });
   await db.connect();
   await db.query("begin");
@@ -310,6 +302,53 @@ test("travel: tenant isolation, private addresses, cache leases and version-safe
         assert.equal(changed.latitude, null);
       },
     );
+    await t.test("authorization can change without changing the planning revision", async () => {
+      const before = await context(manager);
+      await db.query("savepoint role_change");
+      try {
+        await db.query("update public.tenant_memberships set roles=array['planner']::public.app_role[] where tenant_id=$1 and user_id=$2", [tenant, manager]);
+        const after = await context(manager);
+        assert.equal(after.revision, before.revision);
+        assert.equal(before.people.find(p => p.id === person).privateAllowed, true);
+        assert.equal(after.people.find(p => p.id === person).privateAllowed, false);
+      } finally { await db.query("rollback to savepoint role_change"); }
+    });
+    for (const [label, sql, params] of [
+      ["lost manager role", "update public.tenant_memberships set roles=array['hr']::public.app_role[] where tenant_id=$1 and user_id=$2", [tenant, manager]],
+      ["inactive membership", "update public.tenant_memberships set status='revoked' where tenant_id=$1 and user_id=$2", [tenant, manager]],
+      ["deleted session", "delete from auth.sessions where id=$1", [sessions[manager]]],
+      ["expired session", "update auth.sessions set not_after=now()-interval '1 minute' where id=$1", [sessions[manager]]],
+      ["banned account", "update auth.users set banned_until=now()+interval '1 day' where id=$1", [manager]],
+      ["deleted account", "update auth.users set deleted_at=now() where id=$1", [manager]],
+      ["anonymous account", "update auth.users set is_anonymous=true where id=$1", [manager]],
+      ["suspended tenant", "update public.tenants set status='suspended' where id=$1", [tenant]],
+      ["disabled planning", "update public.tenant_settings set enabled_services=array['personeel'] where tenant_id=$1", [tenant]],
+    ]) {
+      await t.test(`manual set and clear reauthorize after ${label}`, async () => {
+        const prior = await context(manager);
+        const payload = JSON.stringify([{ assignmentId: assignment, personnelId: person, day: '2031-01-01', direction: 'before' }]);
+        await db.query("savepoint revoke_write");
+        try {
+          await db.query(sql, params);
+          for (const action of ['set', 'clear']) {
+            await assert.rejects(call("select public.store_travel_estimates($1,$2,$3,$4,$5,$6)", [tenant, prior.revision, payload, action, manager, sessions[manager]], manager, 'service_role'), e => e.code === '42501');
+          }
+          assert.equal((await db.query("select count(*)::int n from public.audit_events where tenant_id=$1 and action like 'travel.manual.%'", [tenant])).rows[0].n, 0);
+        } finally { await db.query("rollback to savepoint revoke_write"); }
+      });
+    }
+    await t.test("manual RPC rejects missing or mismatched session and the old writer has no bypass grants", async () => {
+      const prior = await context(manager);
+      const payload = JSON.stringify([{ assignmentId: assignment, personnelId: person, day: '2031-01-01', direction: 'before' }]);
+      for (const session of [null, sessions[staff], randomUUID()]) {
+        await assert.rejects(call("select public.store_travel_estimates($1,$2,$3,'set',$4,$5)", [tenant, prior.revision, payload, manager, session], manager, 'service_role'), e => e.code === '42501');
+      }
+      await assert.rejects(call("select public.store_travel_estimates($1,$2,$3,'clear',$4)", [tenant, prior.revision, payload, manager], manager, 'service_role'), e => e.code === '42501');
+      for (const role of ['anon', 'authenticated', 'service_role']) {
+        assert.equal((await db.query("select has_function_privilege($1,'private.store_travel_estimates(uuid,bigint,jsonb,text,uuid)','EXECUTE') allowed", [role])).rows[0].allowed, false);
+      }
+      assert.equal((await call("select public.store_travel_estimates($1,$2,'[]') ok", [tenant, prior.revision], manager, 'service_role'))[0].ok, true);
+    });
     await t.test(
       "CAS rejects stale planning; manual and provider fields remain independent",
       async () => {
@@ -332,8 +371,8 @@ test("travel: tenant isolation, private addresses, cache leases and version-safe
         const store = async (v, rev = c.revision, action = null) =>
           (
             await call(
-              "select public.store_travel_estimates($1,$2,$3,$4,$5) ok",
-              [tenant, rev, JSON.stringify([v]), action, manager],
+              "select public.store_travel_estimates($1,$2,$3,$4,$5,$6) ok",
+              [tenant, rev, JSON.stringify([v]), action, manager, sessions[manager]],
               manager,
               "service_role",
             )

@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { createPublicKey } from "node:crypto";
+import { isStagingTicketScannerPath } from "../lib/tickets/scanner-path";
+import { stagingDatabaseUrl } from "../lib/env/staging-database";
 
 const schema = z.object({
   DEPLOY_TARGET: z.literal("staging"),
@@ -27,6 +30,11 @@ const schema = z.object({
   SENDGRID_FROM_EMAIL: z.string().email(),
   SENDGRID_FROM_NAME: z.literal("Fieldgrid"),
   SENDGRID_API_BASE: z.enum(["https://api.sendgrid.com/", "https://api.eu.sendgrid.com/"]).default("https://api.sendgrid.com/"),
+  SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY: z.string().min(40).max(2000),
+  SUPABASE_SEND_EMAIL_HOOK_SECRET: z.string().regex(/^v1,whsec_[A-Za-z0-9+/]+={0,2}$/),
+  MAIL_MARKETING_ENABLED: z.literal("false"),
+  CLAMAV_ENABLED: z.literal("true"),
+  CLAMAV_SOCKET: z.string().refine(isStagingTicketScannerPath),
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(20),
   VAPID_PUBLIC_KEY: z.string().min(20),
   VAPID_PRIVATE_KEY: z.string().min(20),
@@ -37,7 +45,15 @@ const schema = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]),
 });
 
-const env = schema.parse(process.env);
+const parsed = schema.safeParse(process.env);
+if (!parsed.success) throw new Error(`Preflightconfiguratie ontbreekt of is ongeldig: ${[...new Set(parsed.error.issues.map(issue => issue.path.join(".")))].join(", ")}. Waarden worden niet gelogd.`);
+const env = parsed.data;
+try {
+  const key = env.SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY;
+  const parsedKey = key.includes("BEGIN PUBLIC KEY") ? createPublicKey(key) : createPublicKey({ key: Buffer.from(key, "base64"), format: "der", type: "spki" });
+  if (parsedKey.asymmetricKeyType !== "ec") throw new Error();
+} catch { throw new Error("SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY moet een geldige publieke ECDSA-verificatiesleutel zijn."); }
+if (Buffer.from(env.SUPABASE_SEND_EMAIL_HOOK_SECRET.slice("v1,whsec_".length), "base64").length < 32) throw new Error("SUPABASE_SEND_EMAIL_HOOK_SECRET heeft geen geldige sleutellengte.");
 if (env.APP_URL !== "https://staging.fieldgrid.nl") throw new Error("Staging vereist de canonieke APP_URL");
 if (env.PORT !== 3301) throw new Error("Staging moet op poort 3301 luisteren");
 if (env.DEPLOYMENT_VERSION !== env.RELEASE_SHA) throw new Error("DEPLOYMENT_VERSION moet gelijk zijn aan de uit te rollen release-SHA");
@@ -54,15 +70,7 @@ if (projectRef === env.FORBIDDEN_SUPABASE_PROJECT_REF || env.EXPECTED_SUPABASE_P
   throw new Error("Supabase-projectref is expliciet verboden voor deze omgeving");
 }
 
-function assertDatabaseProject(name: string, value: string) {
-  const url = new URL(value);
-  const direct = url.hostname === `db.${env.EXPECTED_SUPABASE_PROJECT_REF}.supabase.co`;
-  const pooled = decodeURIComponent(url.username).endsWith(`.${env.EXPECTED_SUPABASE_PROJECT_REF}`);
-  if (!direct && !pooled) throw new Error(`${name} is niet aantoonbaar gekoppeld aan het verwachte Supabaseproject`);
-}
-assertDatabaseProject("MIGRATION_DATABASE_URL", env.MIGRATION_DATABASE_URL);
-assertDatabaseProject("BACKUP_DATABASE_URL", env.BACKUP_DATABASE_URL);
-assertDatabaseProject("DATABASE_URL", env.DATABASE_URL);
+for (const name of ["MIGRATION_DATABASE_URL", "BACKUP_DATABASE_URL", "DATABASE_URL"] as const) stagingDatabaseUrl(name, process.env);
 
 const appRoot = env.APP_URL.replace(/\/$/, "");
 if (env.MOLLIE_WEBHOOK_URL !== `${appRoot}/api/mollie/webhook`) throw new Error("MOLLIE_WEBHOOK_URL moet naar de webhookroute van APP_URL wijzen");
@@ -71,4 +79,6 @@ if (!env.MOLLIE_API_KEY.startsWith("test_")) throw new Error("Staging vereist ee
 if (env.NEXT_PUBLIC_VAPID_PUBLIC_KEY !== env.VAPID_PUBLIC_KEY) throw new Error("Publieke en server-VAPID-public key moeten gelijk zijn");
 if (env.DEPLOY_ROOT !== "/opt/fieldgrid/staging") throw new Error("Staging vereist de canonieke DEPLOY_ROOT");
 
-console.log(`Preflight geslaagd voor ${env.DEPLOY_TARGET}; release ${env.RELEASE_SHA.slice(0, 12)}.`);
+// The staging runner has NO scanner access. Real scans run in the web runtime
+// and are mandatory in the post-activation SHA + health gate.
+console.log(`Configuratiepreflight geslaagd voor ${env.DEPLOY_TARGET}; release ${env.RELEASE_SHA.slice(0, 12)}. Runtime-scannercontrole volgt bij activatie.`);

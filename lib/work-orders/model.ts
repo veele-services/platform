@@ -37,7 +37,14 @@ export type WorkOrderOptions = {
   tasks: Array<{ id: string; revisionId: string; code: string; name: string; discipline: string; unit: string; durationMinutes: number; priceCents?: number; vatBasisPoints?: number }>;
   templates: WorkTemplate[]; disciplines: string[]; finance: boolean; defaultSignatureMode: "none" | "optional" | "required"; canManageSignature: boolean; defaultPaymentTermsDays: number;
 };
-export type ChecklistInstance = { id: string; revisionId: string; name: string; version: number; questions: ChecklistQuestion[]; answers: Array<{ questionId: string; value: Json; notApplicable: boolean; reason: string; attachmentId?: string; version: number; actor: string; updatedAt: string }> };
+export type ChecklistQuestionState = { questionId: string; visible: boolean; answered: boolean; editable: boolean };
+export type ChecklistInstance = { id: string; revisionId: string; name: string; version: number; questions: ChecklistQuestion[]; questionStates?: ChecklistQuestionState[]; answers: Array<{ questionId: string; value: Json; notApplicable: boolean; reason: string; attachmentId?: string; version: number; actor: string; updatedAt: string }> };
+export function checklistQuestionState(checklist: ChecklistInstance, question: ChecklistQuestion): ChecklistQuestionState {
+  // Restricted staff responses contain server-evaluated conditions, not peers'
+  // answers. Full backoffice dossiers retain their existing answer-based view.
+  if (checklist.questionStates) return checklist.questionStates.find(state => state.questionId === question.id) ?? { questionId: question.id, visible: false, answered: false, editable: false };
+  return { questionId: question.id, visible: !question.condition || checklist.answers.some(a => a.questionId === question.condition!.questionId && a.value === question.condition!.equals), answered: checklist.answers.some(a => a.questionId === question.id), editable: true };
+}
 export type WorkOrderDossier = {
   order: WorkOrderListRow & { description: string; labels: string[]; instructions: string; customerReference: string; purchaseOrder: string; costCenter: string; locationLabel: string; leadPersonnelId: string | null; plannerId: string | null; requestedDate: string | null; windowStart: string | null; windowEnd: string | null; windowKind: "arrival" | "execution" | "unknown"; durationMinutes: number | null; signatureMode: "inherit" | "none" | "optional" | "required"; employeeSignatureRequired: boolean; publishedAt: string | null; templateSnapshot: Json; templateRevisionId: string | null; requestId: string | null; quoteId: string | null };
   contacts: Array<{ id: string; name: string; roles: string[]; email: string | null; phone: string | null }>;
@@ -71,5 +78,5 @@ export const saveWorkOrderSchema = z.object({
 export type SaveWorkOrderInput = z.input<typeof saveWorkOrderSchema>;
 export type WorkOrderResult = { ok: true; id: string; version: number } | { ok: false; error: string; code?: string; warnings?: Array<{ key: string; message: string }> };
 export type SignatureSettings = { mode: "inherit" | "none" | "optional" | "required"; employeeRequired: boolean; allowWaivers: boolean; waiverUsers: string[]; affectedDrafts: number; canManage: boolean; reviewers: Array<{ id: string; name: string }> };
-export type WorkOrderExceptionData = { canManage: boolean; items: Array<{ id: string; kind: "no_access" | "absence" | "material" | "unsafe" | "damage" | "customer_cancelled" | "delay" | "other"; description: string; ownerId: string; state: "open" | "resolved"; blocking: boolean; attachmentId: string | null; resolution: string | null; version: number; createdAt: string; resolvedAt: string | null }> };
+export type WorkOrderExceptionData = { canManage: boolean; items: Array<{ id: string; kind: "no_access" | "absence" | "material" | "unsafe" | "damage" | "customer_cancelled" | "delay" | "other"; description: string; ownerId: string | null; state: "open" | "resolved"; blocking: boolean; attachmentId: string | null; resolution: string | null; version: number; createdAt: string; resolvedAt: string | null }> };
 export function workOrderReturn(value?: string) { return value && /^\/app\/(?:werkbonnen|klanten|objecten|personeel|planning)(?:[/?]|$)/.test(value) && !/[\\\r\n]/.test(value) ? value : "/app/werkbonnen"; }

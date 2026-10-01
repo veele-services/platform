@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${DEPLOY_ROOT:?DEPLOY_ROOT ontbreekt}"
-case "$DEPLOY_ROOT" in /|/home|/opt|/var) echo "Onveilig DEPLOY_ROOT" >&2; exit 2;; esac
-
-target="$DEPLOY_ROOT/shared/fieldgrid.env"
-mkdir -p "$(dirname "$target")"
-temporary="$(mktemp "${target}.tmp.XXXXXX")"
+: "${RUNNER_TEMP:?RUNNER_TEMP ontbreekt}"
+: "${RUNTIME_ENV_OUTPUT_PATH:?RUNTIME_ENV_OUTPUT_PATH ontbreekt}"
+runner_temp="$(realpath -m -- "$RUNNER_TEMP")"
+target="$(realpath -m -- "$RUNTIME_ENV_OUTPUT_PATH")"
+[[ "$runner_temp" != / && "$target" = "$runner_temp/fieldgrid-staging-runtime.env" ]] || { echo "Onveilig runtime-uitvoerpad" >&2; exit 2; }
+temporary="$(mktemp "$runner_temp/fieldgrid-runtime.XXXXXX")"
 chmod 600 "$temporary"
 trap 'rm -f "$temporary"' EXIT
 
@@ -27,15 +27,17 @@ runtime_keys=(
   EXPECTED_SUPABASE_PROJECT_REF FORBIDDEN_SUPABASE_PROJECT_REF
   MOLLIE_API_KEY MOLLIE_WEBHOOK_URL
   SENDGRID_API_KEY SENDGRID_FROM_EMAIL SENDGRID_FROM_NAME SENDGRID_API_BASE
+  SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY SUPABASE_SEND_EMAIL_HOOK_SECRET MAIL_MARKETING_ENABLED
   GOOGLE_MAPS_SERVER_API_KEY GOOGLE_ROUTES_ENABLED
   OPENROUTESERVICE_API_KEY OPENROUTESERVICE_BASE_URL ROUTING_PROVIDER ROUTING_CACHE_DAYS
   ROUTING_MATRIX_MINUTE_LIMIT ROUTING_MATRIX_DAY_LIMIT ROUTING_DIRECTIONS_MINUTE_LIMIT ROUTING_DIRECTIONS_DAY_LIMIT
   NEXT_PUBLIC_VAPID_PUBLIC_KEY VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT
   ADMIN_API_SECRET NOTIFICATION_WORKER_LIMIT NOTIFICATION_WORKER_MAX_ATTEMPTS
   NOTIFICATION_WORKER_BASE_RETRY_SECONDS NOTIFICATION_WORKER_MAX_RETRY_SECONDS
+  CLAMAV_ENABLED CLAMAV_SOCKET CLAMAV_TIMEOUT_MS CLAMAV_MAX_DATABASE_AGE_HOURS
 )
 for key in "${runtime_keys[@]}"; do write_value "$key"; done
 
 mv -f "$temporary" "$target"
 trap - EXIT
-echo "Runtime-omgeving atomisch bijgewerkt."
+echo "Runtime-omgeving gemaakt voor versleutelde overdracht."

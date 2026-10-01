@@ -5,8 +5,11 @@ const env = vi.hoisted(() => ({
   requireProvider: vi.fn(() => "SG.test-key-with-mail-send-rights"),
 }));
 
+const transport = vi.hoisted(() => ({ rpc: vi.fn(async (_db: unknown, _name: string, args: { operation: string }) => args.operation === "begin" ? { allowed: true, id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", attempt_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" } : { ok: true }) }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/env/server", () => env);
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({}) }));
+vi.mock("@/lib/tickets/rpc", () => ({ ticketRpc: transport.rpc }));
 
 import { sendEmail } from "./sendgrid";
 
@@ -19,6 +22,7 @@ const input = {
   html: "<!doctype html><html lang=\"nl\"><body>Factuur FG-1</body></html>",
   attachment: { filename: "FG-1.pdf", bytes: new Uint8Array([37, 80, 68, 70]) },
   deliveryKey: "invoice-1-version-1",
+  policy: { kind: "security", flow: "invitation" } as const,
 };
 
 afterEach(() => {
@@ -40,7 +44,7 @@ describe("SendGrid provider", () => {
     const body = JSON.parse(String(init?.body));
     expect(body.personalizations[0]).toEqual({
       to: [{ email: "klant@example.test" }],
-      custom_args: { fieldgrid_delivery: "invoice-1-version-1" },
+      custom_args: { fieldgrid_delivery: "invoice-1-version-1", fieldgrid_transport: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
     });
     expect(body.attachments[0]).toMatchObject({ filename: "FG-1.pdf", content: "JVBERg==", type: "application/pdf" });
     expect(body.content).toEqual([

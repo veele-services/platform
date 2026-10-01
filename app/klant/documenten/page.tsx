@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getObjectActor } from "@/lib/objects/auth";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { FieldgridBrand } from "@/components/fieldgrid/brand";
+import { NotificationBell } from "@/components/fieldgrid/notifications/inbox";
+import { NotificationNavigation } from "@/components/fieldgrid/notifications/navigation";
 import { commercialDate, money } from "@/lib/commercial/model";
 type PortalData = {
   documents: Array<{
@@ -70,6 +72,8 @@ export default async function CustomerDocuments() {
         <Link href="/klant" className="secondary-button">
           Mijn afspraken
         </Link>
+        <NotificationNavigation workspace="customer" actorKey={`${tenant.id}:${actor.user.id}`}/>
+        <NotificationBell workspace="customer" actorKey={`${tenant.id}:${actor.user.id}`}/>
       </div>
       <div className="object-dossier">
         <header>
