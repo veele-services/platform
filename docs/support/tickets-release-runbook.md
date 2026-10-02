@@ -24,7 +24,9 @@ Gebruik `deploy/clamd-ticket.conf.example` als gecontroleerde referentie,
 niet als bewijs dat de service bestaat. Bevestig socketrechten, resourcegrenzen,
 PDF-/heuristische controle, overschrijdingsmeldingen en actuele definities.
 De runtime-healthcheck moet echt EICAR weigeren en een geldig PNG/PDF accepteren.
-De runner doet alleen configuratie-/identiteitscontrole, zonder socketverbinding.
+De runner doet alleen configuratie-/identiteits-/unitcontrole en attesteert de
+niet-schrijfbare scannerdirectory plus exacte socketmetadata/access-indicators,
+zonder socketverbinding.
 Zie [het actuele ClamAV-operatorcontract](../deployment/clamav.md) voor de aparte
 gebruikers, `runtime.env`-overgang en systemd-referenties.
 

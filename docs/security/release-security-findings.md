@@ -12,7 +12,12 @@ geen bewijs van het werkelijk uitgerolde stagingschema. Daarna heeft de
 afgeschermde workflow voor kandidaat `f7fd0b2f` de stagingprojectguards,
 pre-migratiebackup, forwardmigraties en de complete 55-migratiehistorie
 bevestigd. Activatie stopte vervolgens fail-closed op de broker vóór installatie
-van release, runtime of backup en vóór een servicerestart. De bevindingentabel
+van release, runtime of backup en vóór een servicerestart. Na installatie van
+de gecorrigeerde broker heeft kandidaat `bd7f69f6` opnieuw volledige CI en de
+afgeschermde stagingworkflow doorlopen. De broker installeerde release, runtime
+en backup, maar de webstart stopte vóór Node omdat de geïnstalleerde unit
+`test -w` ten onrechte als positieve ClamAV Unix-socketcontrole gebruikte.
+Public health gaf 502 en acceptance is overgeslagen. De bevindingentabel
 hieronder blijft het lokale reparatiebewijs beschrijven; stagingacceptatie en
 het totale vrijgavebesluit blijven **NO-GO**.
 
@@ -87,7 +92,7 @@ en bedieningspunt, geen geaccepteerde integriteits- of toegangsuitzondering.
   vond nul rapporteerbare bevindingen in de gewijzigde/ongetrackte implementatie
   en de beveiligingskritieke grenzen. De codedekking is partieel omdat niet ieder
   ongewijzigd presentatie-, documentatie- en fixturebestand opnieuw regel voor
-  regel is onderzocht. Alle 834 ontdekte autorisatie-/data-/releaseoppervlakken hebben
+  regel is onderzocht. Alle 835 ontdekte autorisatie-/data-/releaseoppervlakken hebben
   afzonderlijk een afgeronde reviewstatus en bewijsset; een inventaris of
   nulbevindingenscan is desondanks geen formele risicoacceptatie.
 - Configureerbaar rollenbeheer is geen onderdeel van deze release: het
@@ -103,18 +108,34 @@ en bedieningspunt, geen geaccepteerde integriteits- of toegangsuitzondering.
   afgehandeld. Antivirus detecteert bekende patronen, niet alle mogelijke schade.
 - De operator heeft VPS-identiteiten, actuele procesgroepen, socketrechten,
   staging-specifieke unitverwijzingen en beide gescheiden contractcontroles
-  bevestigd. De gecorrigeerde brokerinstallatie, socketrechten na
-  daemonherstart, scannerdefinities, echte providerhooks en runtimeacceptatie
-  blijven open; zie operationele runbooks.
+  bevestigd met de toen geïnstalleerde checker. De lokaal geharde runnerchecker
+  vereist daarnaast een niet-vervangbare scannerdirectory en exacte socket-
+  metadata/access-indicators en moet nog via het checksummed operatorpakket
+  worden geïnstalleerd en opnieuw op de host draaien.
+  De gecorrigeerde broker is geïnstalleerd en heeft de tweede
+  kandidaat veilig overgedragen. De staging-specifieke webunit moet nu worden
+  bijgewerkt van de ongeschikte `test -w`-predicate naar de verpakte, begrensde
+  clamd-`PING`/`PONG`-preflight. De runnercontrole is aangescherpt op exacte
+  groepen, bovenliggende map en exacte socketmetadata zonder verbinding; een
+  echte Unix-sockettest bewijst de negatieve grens, permissiedrift en
+  vervangingsrisico. Socketrechten na daemonherstart,
+  scannerdefinities, echte providerhooks en runtimeacceptatie blijven open; zie
+  operationele runbooks.
 - De staging-runner met eigen label is nu online. De operator bevestigt
   UID-/groepsscheiding, socketrechten, `r-x` op `/home/fieldgrid`, een echte
   schrijf-/verwijderproef en de GitHub-verbinding. Units, stagingbackup en de
-  complete migratiehistorie zijn inmiddels bewezen; installatie van
-  `runtime.env`, een geïsoleerde restoreproef, verse workeruitvoering en exacte
-  SHA-health moeten nog volgen.
-- Kandidaat `f7fd0b2f` had volledige GitHub-CI en is exact naar staging
-  gepromoveerd, maar werd niet geactiveerd. De brokerreparatie krijgt daarom een
-  nieuwe beoordeelde SHA; stagingacceptatie ontbreekt nog. Details staan in
+  complete migratiehistorie zijn inmiddels bewezen; `runtime.env` is door de
+  broker geïnstalleerd. Een geïsoleerde restoreproef, verse workeruitvoering en
+  exacte SHA-health moeten nog volgen.
+- De finale ClamAV-forward-fix diffscan
+  `0bccadf0-62e4-437a-b038-32007b495141` vond na herstel van socket- én
+  parent-directorygrenzen nul rapporteerbare bevindingen in alle tien
+  uitvoerbare/test-diffoppervlakken. Dit is lokaal bronbewijs; de nieuwe checker
+  moet nog via het SHA-gebonden operatorpakket op de VPS worden uitgevoerd.
+- Kandidaat `bd7f69f6` had volledige GitHub-CI en bereikte veilige installatie,
+  maar niet webactivatie. De ClamAV-preflight-forward-fix krijgt daarom een
+  nieuwe beoordeelde SHA en moet de volledige keten opnieuw doorlopen;
+  stagingacceptatie ontbreekt nog. Details staan in
   `release-security-verification.md`.
 
 ## Aanvullende bevindingen: ernst en bewijs
@@ -214,5 +235,6 @@ Alle bovenstaande reparaties zijn lokaal opnieuw getoetst; impact van
 restrictie: oude onveilig brede toegang verdwijnt, de historische gegevens
 blijven behouden. Geen vrijgave van staging of formele risicoacceptatie.
 
-Geen formele risicoacceptatie namens de eigenaar, geen volledige veiligheidsclaim,
-geen commit/push/deploy en geen productieactie.
+Geen formele risicoacceptatie namens de eigenaar en geen volledige
+veiligheidsclaim. De twee vastgelegde stagingpromoties leveren nog geen
+geaccepteerde deployment op; productie is niet benaderd of gewijzigd.

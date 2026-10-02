@@ -34,6 +34,7 @@ const baseOperationalPaths = [
   "scripts/backup-database.ts",
   "scripts/bootstrap-platform-admin.ts",
   "scripts/check-authorization-review.mjs",
+  "scripts/check-clamav-socket.mjs",
   "scripts/check-release-secrets.mjs",
   "scripts/check-routing-provider.ts",
   "scripts/check-security-surface.mjs",

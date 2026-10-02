@@ -5624,7 +5624,7 @@
     {
       "id": "operation:deploy/fieldgrid-install-staging-release",
       "classification": "operation",
-      "source_sha256": "8f44ccbc7b98dbc6bedca8b85e4437b8cf5823143ede91cfee9566b1ebe96a34"
+      "source_sha256": "90e024ac3b0439d341290554af9235f1be81f6788330ceaf1a55b193e400873f"
     },
     {
       "id": "operation:deploy/fieldgrid-runner.sudoers",
@@ -5649,7 +5649,7 @@
     {
       "id": "operation:deploy/fieldgrid@.service",
       "classification": "operation",
-      "source_sha256": "9aa27a2b6b006873c8abd881b84395e3f74de4408f415d85469acb5fce65536b"
+      "source_sha256": "a99419b9c3778d18f70bd9a37564877a150ce96cd57243402775195015c84162"
     },
     {
       "id": "operation:lib/env/staging-database.ts",
@@ -5717,6 +5717,11 @@
       "source_sha256": "694130248859c4654e6c4082660864f3f5d0cd1325ec1c0b01fa853397772d35"
     },
     {
+      "id": "operation:scripts/check-clamav-socket.mjs",
+      "classification": "operation",
+      "source_sha256": "da2ce620eb83ca84455efd31495d86e14676b5fab4ac3f9a27e890f8aa97b7dd"
+    },
+    {
       "id": "operation:scripts/check-release-secrets.mjs",
       "classification": "operation",
       "source_sha256": "044a2daeedea1f08717fa1945200e14b83c0c7228a70677a73c182eef42a7a26"
@@ -5729,7 +5734,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "ca083c1c61176c1ee6c71d9e0117e4cb64ad17cd5ea9ea37fb56b92cbc28c9f4"
+      "source_sha256": "a97233ee2d8f3d415e0da8543eb33dd687c2cfd782ddb45cc67ee166e99171d3"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -5744,7 +5749,7 @@
     {
       "id": "operation:scripts/check-staging-runner-contract.sh",
       "classification": "operation",
-      "source_sha256": "aa6b747f8fbbb6b8ebe8f1a7f2fce90a5b77f3a7f240b70b75b3c789282df657"
+      "source_sha256": "a7da30bad51e905938fff140ba41fe37c7f0885c5209da51156701f67c0c6393"
     },
     {
       "id": "operation:scripts/check-ticket-scanner.ts",
@@ -5784,7 +5789,7 @@
     {
       "id": "operation:scripts/package-release.sh",
       "classification": "operation",
-      "source_sha256": "0e3222625c2843b4acedea77af193528c16dcc02474f79adf5331b4b3c02bcd6"
+      "source_sha256": "2e181609c7bbb16980ba550d3430dfb6b624c5dd2bd0e850dc2972771e70f010"
     },
     {
       "id": "operation:scripts/preflight.ts",
@@ -5799,7 +5804,7 @@
     {
       "id": "operation:scripts/test-staging-contract-linux.sh",
       "classification": "operation",
-      "source_sha256": "18d941569b303adf8533ce18aa8076c198b6a9255c699106c2d552f6fd4998b8"
+      "source_sha256": "d2025e2c89152afc96f36a8dd31cbbadbcd1127299253324263f41422c6aba0d"
     },
     {
       "id": "operation:scripts/verify-healthcheck.mjs",

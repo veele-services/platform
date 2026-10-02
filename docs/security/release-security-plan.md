@@ -70,16 +70,22 @@ De staging-runner met label `fieldgrid-staging` staat online en de GitHub-
 verbinding is geverifieerd. De eenmalige beveiligde handoff heeft de runner een
 eigen primaire groep zonder aanvullende groepen gegeven en toegang tot
 beschermde runtime-, release- en backuppaden ontzegd. Root- en runnercontrole,
-de eerdere vaste broker, staging-specifieke unitreferenties en het publieke
+de vaste broker, staging-specifieke unitreferenties en het publieke
 handoffcertificaat zijn bevestigd. De eerste promotiepoging genereerde en
 attesteerde `runtime.env` versleuteld, maar installeerde het niet doordat de
-broker fail-closed stopte. De gecorrigeerde broker moet eerst via het nieuwe
-operatorpakket worden geïnstalleerd; de worker-timer blijft tot gezonde
-webactivatie bewust inactief.
+oude broker fail-closed stopte. Na de gecorrigeerde brokerinstallatie heeft
+kandidaat `bd7f69f6` release, backup en `runtime.env` veilig geïnstalleerd. De
+webstart faalde vóór Node op de ongeschikte
+`test -w /run/clamav/clamd.ctl`-predicate; public health gaf 502. De
+daadwerkelijk geladen staging-instance-unit
+`/etc/systemd/system/fieldgrid@staging.service` en de nieuwe release moeten als
+forward-fix een echte, begrensde clamd-`PING`/`PONG`-preflight gebruiken. De
+worker-timer blijft tot gezonde webactivatie bewust inactief.
 Alle ontdekte autorisatie-/dataoppervlakken hebben nu een expliciete afgeronde
 reviewstatus en bewijsset. De algemene Standard-scan blijft transparant partieel
 voor ongewijzigde presentatie-, documentatie- en fixturebestanden; er staat geen
-ontdekt toegangspad stilzwijgend open. Kandidaat `f7fd0b2f` is gepusht, door
-volledige CI gegaan en exact naar staging gepromoveerd; activatie en acceptatie
-zijn niet voltooid. Runtime-/provideracceptatie blijft een externe
-vrijgavevoorwaarde.
+ontdekt toegangspad stilzwijgend open. Kandidaat `bd7f69f6` is gepusht, door
+volledige CI gegaan en exact naar staging gepromoveerd; installatie is voltooid,
+maar webactivatie en acceptatie niet. De ClamAV-forward-fix moet als nieuwe SHA
+de volledige CI en promotieketen doorlopen. Runtime-/provideracceptatie blijft
+een externe vrijgavevoorwaarde.

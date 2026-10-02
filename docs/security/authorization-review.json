@@ -3863,11 +3863,11 @@
     },
     {
       "id": "operation:deploy/fieldgrid-install-staging-release",
-      "surfaceFingerprint": "49cc24596ff9156bf0e685798145573cf2b349cb2a0b9f75fa19bed2dbe20b57",
+      "surfaceFingerprint": "bad3e7233326eaff4ce39130d7b2cee886acd24aa574f13bf1e47bd4dd7de24a",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "The broker still copies all runner-owned inputs into its root-owned private work directory before verification and decryption; no inbox verification or privilege boundary was relaxed.",
-        "lib/operations/deployment-broker.test.ts asserts the exact release/runtime/backup bundle pairs and requires every private bundle filename to retain a .json or .jsonl suffix; bash syntax and 38 deployment/runtime contract tests passed on 2026-10-02."
+        "The broker still verifies all three attestations, decrypts only in its root-owned work directory and preserves the fixed no-argument privilege boundary.",
+        "The extracted release is now rejected unless server.js, worker-client.mjs and the packaged clamav-preflight.mjs are all present; lib/operations/deployment-broker.test.ts covers this completeness gate."
       ]
     },
     {
@@ -3912,13 +3912,11 @@
     },
     {
       "id": "operation:deploy/fieldgrid@.service",
-      "surfaceFingerprint": "30903e744c90731551aa5e85f07d591ce28b8f6027580c5cb75b04031b368161",
-      "status": "controlled",
+      "surfaceFingerprint": "383be917b34bd62126db649e89979e22638bec0abf98ac9e726da9b3417315e8",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "Confirmed staging incident 2026-10-02: test -w rejected the valid clamav:clamav 0660 Unix socket before Node started even though fieldgrid had the clamav supplementary group.",
+        "The unit retains the exact socket-type gate and now runs the release-bound clamd PING/PONG preflight; lib/tickets/runtime-contract.test.ts rejects restoration of the legacy write predicate."
       ]
     },
     {
@@ -4065,6 +4063,15 @@
       ]
     },
     {
+      "id": "operation:scripts/check-clamav-socket.mjs",
+      "surfaceFingerprint": "f0eb86da8aeb9b49c56b1e7104c5920315122adc271b282e699bb8c5936b54a4",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "Manual protocol-boundary review 2026-10-02: exact staging target, enabled state and canonical Unix socket are required; no TCP or alternate-path fallback exists.",
+        "lib/tickets/clamav-startup-preflight.test.ts uses a real temporary Unix socket to prove exact zPING/PONG framing, bounded timeout, fail-closed malformed/unavailable behavior, generic non-path diagnostics and execution through the deployed current symlink."
+      ]
+    },
+    {
       "id": "operation:scripts/check-release-secrets.mjs",
       "surfaceFingerprint": "d5bc0229797280cedb282c285edcbcee26a1d4cdf518dd76eed35abe3d7f484a",
       "status": "controlled",
@@ -4088,12 +4095,11 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "4787da39bb2d00ba180f9ba4b08dd498d80bf59dc655d9dbcd5cebb52c8a8207",
+      "surfaceFingerprint": "48330231df7927f48805e67e5476a13c89e6019c8f5ae27f1afdc8ae8da8994a",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "GitHub CI run 36928774183 exposed an undeclared ripgrep dependency on the fresh ubuntu-24.04 runner before any deployment step.",
-        "The inventory uses deterministic Node filesystem traversal; lib/auth/security-surface.test.ts exercises discovery without child_process.",
-        "The four migration trust-boundary helpers are now explicit operation surfaces; the reviewed capture contains 834 identity-stable surfaces."
+        "The new scanner startup gate is explicitly included in the deterministic operational surface inventory.",
+        "lib/auth/security-surface.test.ts requires scripts/check-clamav-socket.mjs to remain inventoried; the complete captured ledger has a reviewed entry for every surface."
       ]
     },
     {
@@ -4119,12 +4125,13 @@
     },
     {
       "id": "operation:scripts/check-staging-runner-contract.sh",
-      "surfaceFingerprint": "531fc7982cce32cd92de78faf949cc2b4c56c94276cd7eb9404ca944af8d8085",
+      "surfaceFingerprint": "00c73320711ffa4837374cd3658eea336518b6a02a8ca3786056f8c8de71c113",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "Split OS boundary rechecked 2026-10-01: the runner must have no supplementary groups and exactly one fixed no-argument NOPASSWD broker command; all additional sudo command specifications are rejected.",
-        "lib/tickets/runner-contract.test.ts, lib/tickets/runtime-contract.test.ts and scripts/test-staging-contract-linux.sh cover protected-path denial, extra-group rejection and both NOPASSWD and password-gated extra sudo rules.",
-        "The transfer runner proves pg_restore major 17 or newer during the new pre-migration host-preflight; an old client is a covered fail-closed case (2026-10-02)."
+        "The unprivileged runner still receives no scanner access and reads only public unit metadata; protected runtime/key/release denial and the single no-argument broker rule are unchanged.",
+        "It now requires the exact release WorkingDirectory, exactly two canonical fail-closed preflights and empty ExecStartPreEx privilege flags; suffix lookalikes, ignored failures, extra commands and test -w are rejected.",
+        "Exact runner groups, a root/clamav-controlled non-writable scanner directory without extended access, plus Unix-socket type, clamav:clamav ownership, mode 0660, one hardlink and no access indicator attest the negative scanner boundary without a runner connection.",
+        "Focused Vitest and scripts/test-staging-contract-linux.sh negative cases passed on 2026-10-02."
       ]
     },
     {
@@ -4207,13 +4214,11 @@
     },
     {
       "id": "operation:scripts/package-release.sh",
-      "surfaceFingerprint": "c613e79c749167d5dec1be529c249ea53a72258ccad84bbb7177cbc284db302a",
-      "status": "controlled",
+      "surfaceFingerprint": "98c08e45c194b7dc094864d33cfe8e267e1e8a94e5cda3c9fa547f8a864ef874",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "The dependency-free scanner preflight is copied into the deterministic standalone artifact as clamav-preflight.mjs without adding configuration or secret material.",
+        "lib/tickets/clamav-startup-preflight.test.ts asserts the packaging rule; a generated test archive contained the file with read-only 0440 source mode."
       ]
     },
     {
@@ -4240,12 +4245,13 @@
     },
     {
       "id": "operation:scripts/test-staging-contract-linux.sh",
-      "surfaceFingerprint": "9f0e4512e89d8da547d285eddb117587a7e6d588fe76e849e328ecfae83974bf",
+      "surfaceFingerprint": "87077680f9e883d65b76ece41fec63920f14808496c02565c86d8c04618d62c6",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "Real Linux UID/GID/mode boundary rechecked 2026-10-01 in pinned Debian: root alone reaches protected handoff/runtime metadata; fieldgrid-runner reaches only incoming and public metadata.",
-        "Negative cases cover traversable /etc/fieldgrid, hardlinked key, invalid certificate, fieldgrid/docker supplementary groups, and NOPASSWD/PASSWD sudo expansion.",
-        "Pinned real-Linux contract fixtures prove PostgreSQL 17 archive-tool acceptance and reject PostgreSQL 16 for both root and runner checks (2026-10-02)."
+        "Pinned disposable Linux users and real UID/GID/mode boundaries remain isolated: root alone reaches protected metadata and fieldgrid-runner reaches only incoming and public unit properties.",
+        "The fixture binds a real Unix socket, proves the separated runner cannot connect, proves permissive socket mode enables a connection but fails the contract, and rejects missing/wrong socket metadata.",
+        "A real world-writable parent lets the separated runner unlink and replace the canonical socket; the hardened contract rejects that directory state before substitution and then rejects the runner-owned replacement.",
+        "The fixture rejects missing/wrong preflights, suffix lookalikes, ignored failures, privileged execution flags, extra commands, wrong WorkingDirectory and legacy test -w; the full real-Linux contract passed on 2026-10-02."
       ]
     },
     {

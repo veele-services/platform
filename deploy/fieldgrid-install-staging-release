@@ -150,7 +150,7 @@ with tarfile.open(archive, "r:gz") as contents:
             raise SystemExit("Alleen reguliere bestanden en mappen zijn toegestaan in release-artifact")
 PY
 tar -xzf "$work/release" --no-same-owner --no-same-permissions -C "$candidate"
-[[ -f "$candidate/server.js" && -f "$candidate/worker-client.mjs" ]] || { echo "Release-inhoud incompleet" >&2; exit 2; }
+[[ -f "$candidate/server.js" && -f "$candidate/worker-client.mjs" && -f "$candidate/clamav-preflight.mjs" ]] || { echo "Release-inhoud incompleet" >&2; exit 2; }
 printf '%s\n' "$sha" > "$candidate/.release-sha"
 sha256sum "$work/release" | awk '{print $1}' > "$candidate/.release-artifact-sha256"
 chown -R root:fieldgrid "$candidate"

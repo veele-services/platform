@@ -45,6 +45,7 @@ describe("authorization surface change detector", () => {
       "deploy/clamd-ticket-test.conf",
       "package.json",
       "public/sw.js",
+      "scripts/check-clamav-socket.mjs",
     ]));
     expect(filesUnder([".github/workflows"])).toContain(".github/workflows/ci.yml");
     expect(readFileSync("scripts/check-security-surface.mjs", "utf8")).not.toContain("node:child_process");

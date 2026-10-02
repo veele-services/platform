@@ -16,7 +16,20 @@ fail() { echo "$1" >&2; exit 1; }
 [[ "$(id -gn)" = fieldgrid-runner ]] || fail 'fieldgrid-runner must use its own primary group.'
 [[ "$(id -nG)" = fieldgrid-runner ]] || fail 'Runner must not have supplementary group memberships.'
 case " $(id -nG fieldgrid) " in *' clamav '*) ;; *) fail 'Runtime user fieldgrid must belong to clamav.';; esac
-[[ ! -r "$CLAMAV_SOCKET" && ! -w "$CLAMAV_SOCKET" ]] || fail 'Runner has direct scanner socket access.'
+scanner_directory=/run/clamav
+directory_contract="$(LC_ALL=C stat -c '%F:%U:%G:%a' -- "$scanner_directory")" || fail 'Cannot inspect the scanner directory contract.'
+IFS=: read -r directory_type directory_owner directory_group directory_mode <<< "$directory_contract"
+[[ "$directory_type" = directory ]] || fail 'Scanner directory must not be replaceable.'
+case "$directory_owner" in root|clamav) ;; *) fail 'Scanner directory has an unexpected owner.';; esac
+case "$directory_group" in root|clamav) ;; *) fail 'Scanner directory has an unexpected group.';; esac
+[[ "$directory_mode" =~ ^[0-7]{3}$ ]] || fail 'Scanner directory mode is not canonical.'
+(( (8#$directory_mode & 8#022) == 0 )) || fail 'Scanner directory must not be group- or world-writable.'
+directory_permissions="$(LC_ALL=C ls -ld -- "$scanner_directory")" || fail 'Cannot inspect scanner directory access indicators.'
+[[ "${directory_permissions%% *}" =~ ^d[rwx-]{9}$ ]] || fail 'Scanner directory has extended or unexpected access permissions.'
+socket_contract="$(LC_ALL=C stat -c '%F:%U:%G:%a:%h' -- "$CLAMAV_SOCKET")" || fail 'Cannot inspect the scanner socket contract.'
+[[ "$socket_contract" = 'socket:clamav:clamav:660:1' ]] || fail 'Scanner socket metadata does not enforce runner separation.'
+socket_permissions="$(LC_ALL=C ls -ld -- "$CLAMAV_SOCKET")" || fail 'Cannot inspect scanner socket access indicators.'
+[[ "${socket_permissions%% *}" = 'srw-rw----' ]] || fail 'Scanner socket has extended or unexpected access permissions.'
 
 [[ "$(stat -c '%U:%G:%a' "$DEPLOY_ROOT")" = 'root:root:711' ]] || fail 'Staging root must be root:root 0711.'
 incoming="$DEPLOY_ROOT/incoming"
@@ -69,8 +82,24 @@ for unit in fieldgrid@staging.service fieldgrid-worker@staging.service; do
   [[ "$files" = '/opt/fieldgrid/staging/shared/runtime.env (ignore_errors=no)' ]] || fail 'Install the runtime.env unit contract before release.'
 done
 supplementary="$(systemctl show fieldgrid@staging.service --property=SupplementaryGroups --value)"
-case " $supplementary " in *' clamav '*) ;; *) fail 'Web runtime must receive the clamav supplementary group.';; esac
+[[ "$supplementary" = clamav ]] || fail 'Web runtime must receive only the clamav supplementary group.'
 required="$(systemctl show fieldgrid@staging.service --property=Requires --value)"
 case " $required " in *' clamav-daemon.service '*) ;; *) fail 'Web unit must require clamav-daemon.service.';; esac
+working_directory="$(systemctl show fieldgrid@staging.service --property=WorkingDirectory --value)"
+[[ "$working_directory" = /opt/fieldgrid/staging/current ]] || fail 'Web unit must use the exact attested release working directory.'
+start_pre="$(systemctl show fieldgrid@staging.service --property=ExecStartPre --value)"
+mapfile -t start_pre_entries <<< "$start_pre"
+[[ "${#start_pre_entries[@]}" = 2 && -n "${start_pre_entries[0]}" && -n "${start_pre_entries[1]}" ]] || fail 'Web unit must have exactly two scanner preflight commands.'
+socket_preflight='{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; ignore_errors=no ;'
+protocol_preflight='{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; ignore_errors=no ;'
+[[ "${start_pre_entries[0]}" = "$socket_preflight"*' }' ]] || fail 'Web unit must fail closed on the canonical scanner socket test.'
+[[ "${start_pre_entries[1]}" = "$protocol_preflight"*' }' ]] || fail 'Web unit must fail closed on the packaged ClamAV protocol preflight.'
+start_pre_ex="$(systemctl show fieldgrid@staging.service --property=ExecStartPreEx --value)"
+mapfile -t start_pre_ex_entries <<< "$start_pre_ex"
+[[ "${#start_pre_ex_entries[@]}" = 2 && -n "${start_pre_ex_entries[0]}" && -n "${start_pre_ex_entries[1]}" ]] || fail 'Web unit must expose exactly two extended scanner preflight commands.'
+socket_preflight_ex='{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; flags= ;'
+protocol_preflight_ex='{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; flags= ;'
+[[ "${start_pre_ex_entries[0]}" = "$socket_preflight_ex"*' }' ]] || fail 'Web unit socket preflight must not use execution privilege flags.'
+[[ "${start_pre_ex_entries[1]}" = "$protocol_preflight_ex"*' }' ]] || fail 'Web unit protocol preflight must not use execution privilege flags.'
 
 echo 'Staging transfer-runner separation, denial and public unit contract verified.'

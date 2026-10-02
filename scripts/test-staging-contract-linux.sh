@@ -35,7 +35,23 @@ install -m 0755 /repo/deploy/fieldgrid-install-staging-release /usr/local/sbin/f
 
 install -d -o root -g root -m 0755 /fixture/bin /run/clamav
 install -m 0755 /repo/scripts/check-staging-runner-contract.sh /fixture/check-staging-runner-contract.sh
-install -o clamav -g clamav -m 0660 /dev/null /run/clamav/clamd.ctl
+/usr/bin/perl -MIO::Socket::UNIX -MSocket=SOCK_STREAM -e '
+  my $socket = IO::Socket::UNIX->new(
+    Type => SOCK_STREAM,
+    Local => "/run/clamav/clamd.ctl",
+    Listen => 1,
+  ) or die "cannot bind fixture socket\n";
+  sleep 300;
+' &
+socket_fixture_pid=$!
+trap 'kill "$socket_fixture_pid" 2>/dev/null || true; wait "$socket_fixture_pid" 2>/dev/null || true' EXIT
+for _ in $(seq 1 50); do
+  test ! -S /run/clamav/clamd.ctl || break
+  sleep 0.02
+done
+test -S /run/clamav/clamd.ctl
+chown clamav:clamav /run/clamav/clamd.ctl
+chmod 0660 /run/clamav/clamd.ctl
 for dependency in gh python3 node; do
   printf '#!/bin/sh\nexit 0\n' > "/fixture/bin/$dependency"
   chmod 0755 "/fixture/bin/$dependency"
@@ -59,6 +75,26 @@ case "$*" in
   *--property=EnvironmentFiles*) echo '/opt/fieldgrid/staging/shared/runtime.env (ignore_errors=no)';;
   *--property=SupplementaryGroups*) echo clamav;;
   *--property=Requires*) echo 'basic.target clamav-daemon.service';;
+  *--property=WorkingDirectory*) if test "${UNIT_PREFLIGHT_SCENARIO:-}" = wrong_working_directory; then echo /tmp/untrusted-release; else echo /opt/fieldgrid/staging/current; fi;;
+  *--property=ExecStartPreEx*)
+    case "${UNIT_PREFLIGHT_SCENARIO:-}" in
+      privileged_socket) printf '%s\n' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; flags=privileged ; }' '{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; flags= ; }';;
+      privileged_protocol) printf '%s\n' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; flags= ; }' '{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; flags=privileged ; }';;
+      *) printf '%s\n' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; flags= ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }' '{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; flags= ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }';;
+    esac;;
+  *--property=ExecStartPre*)
+    case "${UNIT_PREFLIGHT_SCENARIO:-}" in
+      missing_socket) echo '{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; ignore_errors=no ; }';;
+      missing_protocol) echo '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; ignore_errors=no ; }';;
+      test_write) printf '%s\n' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; ignore_errors=no ; }' '{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; ignore_errors=no ; }' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -w /run/clamav/clamd.ctl ; ignore_errors=no ; }';;
+      wrong_protocol) printf '%s\n' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; ignore_errors=no ; }' '{ path=/usr/bin/env ; argv[]=/usr/bin/env node other-preflight.mjs ; ignore_errors=no ; }';;
+      socket_suffix) printf '%s\n' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl.lookalike ; ignore_errors=no ; }' '{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; ignore_errors=no ; }';;
+      protocol_suffix) printf '%s\n' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; ignore_errors=no ; }' '{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs.lookalike ; ignore_errors=no ; }';;
+      ignored_socket) printf '%s\n' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; ignore_errors=yes ; }' '{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; ignore_errors=no ; }';;
+      ignored_protocol) printf '%s\n' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; ignore_errors=no ; }' '{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; ignore_errors=yes ; }';;
+      extra_preflight) printf '%s\n' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; ignore_errors=no ; }' '{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; ignore_errors=no ; }' '{ path=/usr/bin/true ; argv[]=/usr/bin/true ; ignore_errors=no ; }';;
+      *) printf '%s\n' '{ path=/usr/bin/test ; argv[]=/usr/bin/test -S /run/clamav/clamd.ctl ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }' '{ path=/usr/bin/env ; argv[]=/usr/bin/env node clamav-preflight.mjs ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }';;
+    esac;;
   *) exit 99;;
 esac
 EOF
@@ -83,6 +119,25 @@ runuser -u fieldgrid-runner -- /usr/bin/env -i \
   CLAMAV_ENABLED=true \
   CLAMAV_SOCKET=/run/clamav/clamd.ctl \
   /bin/bash /fixture/check-staging-runner-contract.sh
+if runuser -u fieldgrid-runner -- /usr/bin/perl -MIO::Socket::UNIX -MSocket=SOCK_STREAM -e '
+  exit(IO::Socket::UNIX->new(Type => SOCK_STREAM, Peer => "/run/clamav/clamd.ctl") ? 0 : 1)
+'; then exit 1; fi
+
+# Socket ownership, group and mode drift must fail closed.
+chown root:clamav /run/clamav/clamd.ctl
+if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
+chown clamav:clamav /run/clamav/clamd.ctl
+chown clamav:fieldgrid /run/clamav/clamd.ctl
+if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
+chown clamav:clamav /run/clamav/clamd.ctl
+
+# Permissive socket drift both enables a real connection and fails the contract.
+chmod 0666 /run/clamav/clamd.ctl
+runuser -u fieldgrid-runner -- /usr/bin/perl -MIO::Socket::UNIX -MSocket=SOCK_STREAM -e '
+  exit(IO::Socket::UNIX->new(Type => SOCK_STREAM, Peer => "/run/clamav/clamd.ctl") ? 0 : 1)
+'
+if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
+chmod 0660 /run/clamav/clamd.ctl
 
 # The separated runner cannot traverse protected children or read runtime data.
 if runuser -u fieldgrid-runner -- stat /etc/fieldgrid/staging-handoff.crt >/dev/null 2>&1; then exit 1; fi
@@ -111,8 +166,32 @@ gpasswd --delete fieldgrid-runner fieldgrid >/dev/null
 if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" SUDO_SCENARIO=broad DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
 if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" SUDO_SCENARIO=password-extra DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
 if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" PG_RESTORE_SCENARIO=old DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
+for preflight_scenario in wrong_working_directory missing_socket missing_protocol test_write wrong_protocol socket_suffix protocol_suffix ignored_socket ignored_protocol privileged_socket privileged_protocol extra_preflight; do
+  if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" UNIT_PREFLIGHT_SCENARIO="$preflight_scenario" DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
+done
 groupadd docker
 usermod --append --groups docker fieldgrid-runner
+if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
+gpasswd --delete fieldgrid-runner docker >/dev/null
+runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null
+
+# A writable scanner directory enables pathname replacement and must fail first.
+chmod 0777 /run/clamav
+if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
+runuser -u fieldgrid-runner -- /usr/bin/unlink /run/clamav/clamd.ctl
+runuser -u fieldgrid-runner -- /usr/bin/perl -MSocket -e '
+  socket(my $socket, PF_UNIX, SOCK_STREAM, 0) or die "socket: $!";
+  bind($socket, sockaddr_un("/run/clamav/clamd.ctl")) or die "bind: $!";
+'
+test -S /run/clamav/clamd.ctl
+test "$(stat -c '%U' /run/clamav/clamd.ctl)" = fieldgrid-runner
+chmod 0755 /run/clamav
+if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
+
+# Missing paths and regular-file substitutes must not pass as the scanner socket.
+unlink /run/clamav/clamd.ctl
+if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
+install -o clamav -g clamav -m 0660 /dev/null /run/clamav/clamd.ctl
 if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
 
 echo 'Real Linux root/runner directory and identity contracts verified.'

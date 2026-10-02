@@ -102,7 +102,8 @@ met exact één mail; deze hercontrole is geslaagd.
    socket `/run/clamav/clamd.ctl`, `clamav:clamav`, `0660`, uitsluitend bereikbaar
    voor de runtime en niet voor de aparte runner. De nieuwe GitHub-variabelen
    bestaan al. De bovenstaande oudere instructies zijn historisch bewijs.
-2. De runner doet uitsluitend de readonly configuratie-/identiteitscontrole;
+2. De runner doet uitsluitend de readonly configuratie-/identiteits-/unit-,
+   scannerdirectory- en exacte socketmetadatacontrole, zonder verbinding;
    de web-runtime voert de echte scannercontrole uit via de healthcheck. De
    lokale Docker-scanner bewijst niet dat de VPS-rechten correct staan.
 3. Bestaande timer was actief, maar de vorige release rapporteerde een mislukte

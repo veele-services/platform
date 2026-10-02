@@ -8,6 +8,8 @@ it("web/worker reference one runtime file and only the web runtime probes the sc
   const web = source("deploy/fieldgrid@.service"), worker = source("deploy/fieldgrid-worker@.service");
   for (const unit of [web, worker]) expect(unit).toContain("EnvironmentFile=/opt/fieldgrid/%i/shared/runtime.env");
   expect(web).toContain("Requires=clamav-daemon.service"); expect(web).toContain("SupplementaryGroups=clamav"); expect(web).toContain("ExecStartPre=/usr/bin/test -S /run/clamav/clamd.ctl");
+  expect(web).toContain("ExecStartPre=/usr/bin/env node clamav-preflight.mjs");
+  expect(web).not.toContain("ExecStartPre=/usr/bin/test -w /run/clamav/clamd.ctl");
   const workflow = source(".github/workflows/deploy-staging.yml");
   expect(workflow).toContain("bash scripts/check-staging-runner-contract.sh");
   expect(workflow).not.toContain("check-staging-root-contract.sh");

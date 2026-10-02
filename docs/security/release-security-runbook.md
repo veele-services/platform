@@ -27,15 +27,33 @@ verzin geen configuratie en zwak geen gate af.
   afzonderlijke root- en runnercontroles zijn geslaagd. Herhaal die handoff niet
   en gebruik geen oude runner als fallback. Het bewijs staat in
   `docs/deployment/staging-handoff-evidence-2026-10-01.md`.
-- De worker-timer blijft bewust `inactive/dead` totdat de workflow de eerste
+- Stop de web-restart-loop en houd runner en worker-timer gestopt tijdens de
+  eenmalige forward-fix-installatie. De host heeft blijkens `systemctl status`
+  een **staging-specifiek instancebestand**
+  `/etc/systemd/system/fieldgrid@staging.service` geladen. Installeer de
+  beoordeelde `deploy/fieldgrid@.service` daarom uit het nieuwe checksummed
+  operatorpakket exact op dat instancepad, samen met de bijgewerkte publieke
+  runnercontractcontrole, en voer `daemon-reload` plus beide gescheiden
+  contractcontroles uit. Alleen de generieke
+  `/etc/systemd/system/fieldgrid@.service` vervangen corrigeert deze host niet.
+  Start de reeds geïnstalleerde kandidaat `bd7f69f6` daarna niet handmatig: die
+  release bevat de verpakte preflight nog niet. Hervat alleen de runner voor de
+  promotie van de nieuwe volledig geteste SHA.
+- De worker-timer blijft bewust `inactive/dead` totdat de workflow de nieuwe
   gepromoveerde release via de broker heeft geactiveerd en web-health plus de
   exacte SHA groen zijn. Voer dan uitsluitend het in de workflow getoonde
   hervattingscommando uit; de eindcontrole vereist daarna een verse succesvolle
-  workeruitvoering. `shared/runtime.env` wordt door deployment gegenereerd en
-  mag niet handmatig worden aangemaakt of gevuld.
+  workeruitvoering. `shared/runtime.env` is door de tweede poging via de broker
+  gegenereerd en geïnstalleerd en mag niet handmatig worden aangemaakt, gevuld
+  of aangepast.
 - Controleer na activatie actieve ClamAV/freshclam, duurzame Unix-socket
   `0660`/`clamav:clamav`, afwezigheid van een TCP-listener en
-  scannerready/EICAR/PNG/PDF via de gedeployde app. Geen Environment-dump.
+  eerst de werkelijke clamd-`PING`/`PONG`-preflight onder `fieldgrid`, daarna
+  scannerready/EICAR/PNG/PDF via de gedeployde app. `test -w` is geen geldig
+  positief bewijs voor Unix-socketconnectiviteit. De runnergate verbindt niet,
+  maar vereist exacte runnergroepen, een niet-schrijfbare root/clamav-map en
+  exact sockettype, eigenaar/groep, modus, hardlinkaantal en afwezigheid van
+  extended-access-indicators. Geen Environment-dump.
 - Houd de Supabase Auth-hook met tijdelijke URL uitgeschakeld. Na de goedgekeurde
   uitrol is het endpoint `https://staging.fieldgrid.nl/api/email/auth`;
   SendGrid gebruikt `https://staging.fieldgrid.nl/api/email/events`.

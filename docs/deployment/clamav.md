@@ -8,8 +8,19 @@ tot de scanner gaven of `TICKET_CLAMAV_*` gebruikten.
 
 ## Bevestigde operatorstatus — 2 oktober 2026
 
-- App `fieldgrid@staging.service`: actief, `fieldgrid` UID 995/GID 982;
-  draaiend proces heeft groepen 108 (`clamav`) en 982 (`fieldgrid`).
+- Kandidaat `bd7f69f6233cd7066e3f042a718b1d9f629ee86a` is door de broker als
+  release geïnstalleerd en is het doel van `current`. De gegenereerde
+  `shared/runtime.env` staat als `root:fieldgrid` met modus `0640`; er zijn
+  geen waarden uit gelezen of vastgelegd.
+- Webactivatie is **niet** geslaagd. De toen geïnstalleerde webunit bleef vóór
+  Node hangen op `ExecStartPre=/usr/bin/test -w /run/clamav/clamd.ctl`, waarna
+  systemd elke vijf seconden herstartte. Stop die restart-loop tijdens herstel
+  en start de huidige kandidaat niet handmatig. Staging blijft NO-GO.
+- Runtime-identiteit `fieldgrid` heeft UID 995/GID 982 en de aanvullende groep
+  108 (`clamav`). De socket is `clamav:clamav`, `0660`; `test -S` slaagt en
+  beide ClamAV-services zijn actief. Op deze host retourneert `test -w` onder
+  de runtime-identiteit desondanks status 1. Dat is geen geldig positief bewijs
+  voor bruikbaarheid van deze Unix-socket.
 - Runner `actions.runner.veele-services-platform.fieldgrid-staging-veele.service`:
   actief als `fieldgrid-runner` UID 994, met primaire groep `fieldgrid-runner`
   en zonder aanvullende groepen. GitHub-connectiviteit bevestigd door operator
@@ -26,13 +37,14 @@ tot de scanner gaven of `TICKET_CLAMAV_*` gebruikten.
   `/var/backups/fieldgrid-staging-handoff.ze5Pmkdk`.
 - GitHub Environment `staging` bevat de publieke handoffvariable
   `STAGING_HANDOFF_ENCRYPTION_CERT_B64`; de private sleutel blijft root-only op
-  de VPS. `shared/runtime.env` ontbreekt vóór de eerste deployment bewust en
-  `fieldgrid-worker@staging.timer` is `inactive/dead`.
+  de VPS. `fieldgrid-worker@staging.timer` blijft bewust `inactive/dead`.
 - `pg_restore 18.6` is bevestigd en kan het door PostgreSQL 17 gemaakte
   pre-migratiearchief valideren.
-- Actuele definities, duurzame socketrechten/TCP-afwezigheid na daemonherstart,
-  scannerready/EICAR/PNG/PDF via de nieuwe app en een verse workeruitvoering
-  zijn nog open stagingacceptatiepunten.
+- Een bijgewerkte webunit met een echte, begrensde clamd-`PING` via de
+  Unix-socket moet eerst als nieuwe releasekandidaat worden beoordeeld en
+  geïnstalleerd. Daarna zijn actuele definities, duurzame socketrechten en
+  TCP-afwezigheid na daemonherstart, scannerready/EICAR/PNG/PDF via de nieuwe
+  app en een verse workeruitvoering nog open stagingacceptatiepunten.
 
 Deze host-/servicenamen zijn infrastructuuridentiteiten, geen tenantbranding.
 Codex heeft de VPS niet gewijzigd. De eenmalige overgang is door de operator
@@ -77,9 +89,19 @@ Voer op de **staging-VPS** uit, zonder Environment-waarden/secrets te printen:
 systemctl show fieldgrid@staging.service --property=User --property=Group
 systemctl list-units 'actions.runner.*.service' --all --no-pager
 id fieldgrid
-stat -c '%U %G %a %F' /run/clamav/clamd.ctl
+LC_ALL=C stat -c '%F:%U:%G:%a' -- /run/clamav
+LC_ALL=C ls -ld -- /run/clamav
+LC_ALL=C stat -c '%F:%U:%G:%a:%h' -- /run/clamav/clamd.ctl
+LC_ALL=C ls -ld -- /run/clamav/clamd.ctl
 systemctl is-active clamav-daemon.service clamav-freshclam.service
 ```
+
+De map moet een echte directory zijn, met eigenaar én groep uit `root`/`clamav`,
+zonder group/world-write en zonder extended-access-indicator. De `stat`-uitvoer
+voor de socket moet exact `socket:clamav:clamav:660:1` zijn en het eerste veld
+van de tweede socket-`ls -ld` exact `srw-rw----`. Een `+` of andere indicator op
+map of socket faalt de runnergate; gebruik `getfacl` daarna alleen voor diagnose.
+Er is geen extra `acl`-pakket nodig voor de contractcontrole.
 
 Lees vervolgens alleen `User`, `Group` en `SupplementaryGroups` van de gevonden
 exacte runnerunit en controleer die gebruiker met `id <runnergebruiker>`. De
@@ -87,24 +109,44 @@ runtime en runner moeten gescheiden blijven; de handoff mag niet worden
 teruggedraaid en de runner krijgt geen brede sudo- of Docker-toegang. Het
 lidmaatschap van runtimegebruiker `fieldgrid` in `clamav` is al uitgevoerd.
 
-Verifieer als operator de positieve en negatieve toegangscontrole met de
-werkelijke runnernaam (plaats geen geheimen op de commandoregel):
-
-```sh
-sudo -u fieldgrid test -w /run/clamav/clamd.ctl
-sudo -u <runnergebruiker> test -w /run/clamav/clamd.ctl
-```
-
-De eerste opdracht moet slagen, de tweede moet falen. Controleer eventuele ACLs
-met `getfacl /run/clamav/clamd.ctl`; modus `0660` alleen bewijst niet dat er geen
+Gebruik `test -w` niet als positieve runtimecontrole voor een Unix-socket. Het
+bevestigde incident liet precies de onjuiste uitkomst zien: de runtime had de
+juiste aanvullende groep en de socket had groep-write, maar `test -w` gaf
+status 1 en blokkeerde de webstart. Controleer eventuele ACLs met
+`getfacl /run/clamav/clamd.ctl`; modus `0660` alleen bewijst niet dat er geen
 extra ACL is. Controleer als operator `sudo ss -ltnp`: `clamd` mag geen TCP-
 listener hebben. Publiceer geen onnodige volledige hostinventaris.
 
-De operator rapporteerde afwijkende resultaten van `test -w` bij onderzoek
-naar de deploydirectory. Gebruik deze predicate daarom niet als zelfstandig
-bewijs: actuele proces-UID/groepen, socketmode/eigenaar/ACL en de echte controle
-vanuit de app horen samen bij de acceptatie. Laat de runner geen echte scan
-uitvoeren als vervangende proef.
+De bijgewerkte webunit houdt de structurele `test -S`-controle en voert daarna
+vanuit de release een echte clamd-protocolcontrole uit. Na installatie van een
+release die `clamav-preflight.mjs` bevat kan de operator dezelfde verbinding
+zonder runtimeconfig of geheimen te tonen afzonderlijk controleren met:
+
+```sh
+sudo -u fieldgrid /usr/bin/env -i \
+  PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+  DEPLOY_TARGET=staging \
+  CLAMAV_ENABLED=true \
+  CLAMAV_SOCKET=/run/clamav/clamd.ctl \
+  /usr/bin/env node /opt/fieldgrid/staging/current/clamav-preflight.mjs
+```
+
+De opdracht moet exact een geslaagde preflight melden. Zij stuurt uitsluitend
+`PING` en accepteert uitsluitend het clamd-antwoord `PONG` binnen de begrensde
+timeout. Dit bewijst bereikbaarheid, niet scanacceptatie: actuele proces-UID/
+groepen, socketmode/eigenaar/ACL en de echte EICAR-/PNG-/PDF-controle vanuit de
+app horen nog steeds samen bij acceptatie. Laat de runner geen echte scan of
+deze positieve socketcontrole uitvoeren als vervangende proef; zijn gescheiden
+runnercontract bewijst uitsluitend dat toegang wordt geweigerd. Dat contract
+gebruikt daarvoor geen `test -r`/`test -w`: het vereist exact de afzonderlijke
+runnergroepen, een door root/clamav gecontroleerde bovenliggende map zonder
+group/world-write of extended access, en attesteert zonder socketverbinding dat
+het pad een `clamav:clamav`-socket met modus `0660`, één hardlink en zonder
+`ls`-ACL/securitycontext-indicator is. Een afwijking faalt gesloten. De
+disposable Linux-contracttest bindt een echte Unix-socket en bewijst met
+gescheiden UIDs dat de canonieke toestand een runnerverbinding weigert, dat
+permissieve socketmodus een verbinding mogelijk maakt maar faalt, en dat een
+schrijfbare bovenliggende map vervanging mogelijk maakt maar eveneens faalt.
 
 ## Duurzame socket- en unitconfiguratie
 
@@ -120,10 +162,17 @@ voor `SocketUser`, `SocketGroup`, `SocketMode` en uitsluitend de Unix-listener.
 Installeer niet blind beide socketbeheerders; volg de aangetroffen systemd-
 constructie. Freshclam moet nieuwe definities aan de actieve daemon doorgeven.
 
-De webtemplate `deploy/fieldgrid@.service` vereist de daemon en controleert de
-socket vóór starten. `PrivateTmp`/`ProtectHome` blijven intact: `/run/clamav`
-is bereikbaar zonder de sandbox te verruimen. Er wordt geen hostunit door de
-workflow geïnstalleerd of gewijzigd.
+De webtemplate `deploy/fieldgrid@.service` vereist de daemon, controleert eerst
+dat het canonieke pad een socket is en voert vervolgens vanuit de verpakte
+release een begrensde clamd-`PING`/`PONG`-controle uit. Zij gebruikt bewust geen
+`test -w` meer. `PrivateTmp`/`ProtectHome` blijven intact: `/run/clamav` is
+bereikbaar zonder de sandbox te verruimen. Er wordt geen hostunit door de
+workflow geïnstalleerd of gewijzigd. Op deze host meldt systemd het geladen
+bestand als `/etc/systemd/system/fieldgrid@staging.service`; de bijgewerkte
+template moet daarom via het beoordeelde operatorpakket exact op dat
+staging-instancepad worden geïnstalleerd voordat de nieuwe SHA naar staging
+wordt gepromoveerd. Alleen het generieke
+`/etc/systemd/system/fieldgrid@.service` vervangen corrigeert deze host niet.
 
 ## Overgang naar runtime.env
 
@@ -147,9 +196,9 @@ runtimeconfiguratie, platte retentieback-ups en geïnstalleerde releases;
 scannerrechten blijven uitsluitend bij de app-runtime. De runner heeft geen
 directe restart-sudo en geen afzonderlijke plaintext runtime-/backupbroker.
 
-De unitverwijzingen en broker zijn al geïnstalleerd; de eerste gegenereerde
-`runtime.env` volgt in hetzelfde gecontroleerde releasevenster via de workflow.
-Herstart web/worker niet handmatig naar een ontbrekend runtimebestand. De
+De broker heeft voor kandidaat `bd7f69f6` de gegenereerde `runtime.env`, backup
+en release geïnstalleerd; alleen de webstart faalde op de oude `test -w`-
+preflight. Herstart web/worker niet handmatig met die oude unit of kandidaat. De
 unprivileged runnergate weigert oude unitverwijzingen; de afzonderlijke rootgate
 controleert uitsluitend beschermde metadata zonder waarden te loggen. De
 preflight accepteert de bewust gepauzeerde timer, maar vereist de geïnstalleerde
@@ -161,11 +210,17 @@ Alleen een oude `Result=success` is onvoldoende. De runner start geen timer.
 Geen secrets handmatig kopiëren en geen `Environment`-property/journal met
 credentials in logs tonen.
 
-Concreet tijdens het afgesproken releasevenster:
+Concreet voor de forward-fix in het afgesproken releasevenster:
 
-1. De reeds gepauzeerde timer, geïnstalleerde templates, broker en gescheiden
-   runner blijven ongewijzigd; herhaal de handoff niet.
-2. De goedgekeurde stagingworkflow controleert, bouwt, maakt een backup en
+1. Houd de worker-timer gepauzeerd en stop de web-restart-loop. Installeer de
+   bijgewerkte webtemplate en runnercontractcontrole uitsluitend uit het nieuwe
+   checksummed operatorpakket terwijl ook de runner is gestopt. Installeer de
+   webtemplate op `/etc/systemd/system/fieldgrid@staging.service`, voer
+   `daemon-reload` en beide gescheiden contractcontroles uit en hervat alleen de
+   runner. Herhaal de handoff niet en start kandidaat `bd7f69f6` niet met de
+   nieuwe unit: die release bevat de verpakte preflight nog niet.
+2. De nieuwe kandidaat moet volledige CI doorlopen. De goedgekeurde
+   stagingworkflow controleert, bouwt, maakt een nieuwe backup en
    migreert op een verse hosted runner. Zij versleutelt runtime en backup,
    attesteert release plus beide enveloppen en geeft alleen deze bytes aan de
    persistente runner. De root-broker installeert daarna `shared/runtime.env`.

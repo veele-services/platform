@@ -13,7 +13,7 @@ WorkingDirectory=/opt/fieldgrid/%i/current
 EnvironmentFile=/opt/fieldgrid/%i/shared/runtime.env
 Environment=NODE_ENV=production
 ExecStartPre=/usr/bin/test -S /run/clamav/clamd.ctl
-ExecStartPre=/usr/bin/test -w /run/clamav/clamd.ctl
+ExecStartPre=/usr/bin/env node clamav-preflight.mjs
 ExecStart=/usr/bin/env node server.js
 Restart=on-failure
 RestartSec=5

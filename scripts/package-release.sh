@@ -15,6 +15,7 @@ rsync -aL --delete .next/standalone/ "$work/release/"
 rsync -aL --delete .next/static/ "$work/release/.next/static/"
 rsync -aL --delete public/ "$work/release/public/"
 install -m 0440 scripts/run-worker.mjs "$work/release/worker-client.mjs"
+install -m 0440 scripts/check-clamav-socket.mjs "$work/release/clamav-preflight.mjs"
 
 # Stable metadata makes a digest comparison meaningful while the attestation
 # binds the resulting bytes to the protected workflow and exact source SHA.

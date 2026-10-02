@@ -10,6 +10,10 @@ runtime values, tokens or database contents.
   `Root-only staging key, trust and protected runtime metadata verified.`
 - The unprivileged runner contract completed with:
   `Staging transfer-runner separation, denial and public unit contract verified.`
+  This records the then-installed checker. The later hardened checker adds exact
+  parent-directory mutability/access and socket type/owner/group/mode/link/
+  access-indicator attestation and still needs a fresh host run from the new
+  checksummed operator package.
 - The Actions runner is active as `fieldgrid-runner`, with primary group
   `fieldgrid-runner` and no supplementary groups. Its ACL on
   `/home/fieldgrid` is read/traverse (`r-x`), not traverse-only.
@@ -88,7 +92,68 @@ new candidate.
 
 The reviewed correction preserves the `.json` suffix inside the root-owned
 work directory and adds a regression check for every release/runtime/backup
-bundle. Before the next promotion, an operator must replace only the fixed
-root-owned broker from the newly checksummed operator package and rerun both
-contract controls. The existing handoff identity, trusted root, runner
-separation, units and protected directories remain unchanged.
+bundle. Before the second promotion, the operator therefore had to replace
+only the fixed root-owned broker from the newly checksummed operator package
+and rerun both contract controls. The existing handoff identity, trusted root,
+runner separation, units and protected directories remained unchanged.
+
+## Broker correction and second promotion attempt — 2 October 2026
+
+The operator installed the corrected broker and verified its exact SHA-256 as
+`8f44ccbc7b98dbc6bedca8b85e4437b8cf5823143ede91cfee9566b1ebe96a34`.
+Both separated controls then completed successfully again with the checker
+installed at that time. This is historical evidence, not the still-pending
+host result for the later exact-socket-metadata hardening. The runner remained
+active under `fieldgrid-runner`; the worker timer remained inactive.
+
+Exact candidate `bd7f69f6233cd7066e3f042a718b1d9f629ee86a` passed the complete
+`main` CI and was deliberately promoted unchanged. In staging workflow
+`36993643269`, attempt 2 completed the full verification, host preflight,
+hosted prepare, validated pre-migration backup, forward migration phase,
+complete 55-migration history, runtime/backup encryption and all three
+attestations. The corrected broker accepted those artifacts and installed the
+root-owned release, protected backup and `shared/runtime.env`; `current` now
+resolves to that candidate.
+
+Web activation then failed before the Node process started. The installed
+`fieldgrid@staging.service` used
+`ExecStartPre=/usr/bin/test -w /run/clamav/clamd.ctl`. Operator diagnostics
+confirmed all of the following at the same time:
+
+- runtime user `fieldgrid` has supplementary group `clamav`;
+- `/run/clamav/clamd.ctl` is a Unix socket owned by `clamav:clamav`, mode
+  `0660`;
+- `clamav-daemon.service` and `clamav-freshclam.service` are active;
+- `test -S` succeeds; and
+- the runtime `test -w` nevertheless returns status 1.
+
+Systemd consequently entered an automatic restart-loop, public health returned
+502 and the acceptance job was skipped. No zero-minute or bypass behavior was
+introduced: the service failed closed. The worker timer was not resumed, the
+Supabase Send Email Hook remained disabled and production remained untouched.
+
+The diagnostic also identified the loaded unit as the staging-specific file
+`/etc/systemd/system/fieldgrid@staging.service`. Recovery must therefore replace
+that exact instance file from the reviewed packaged `deploy/fieldgrid@.service`
+while web, runner and worker timer are stopped. Updating only the generic
+`/etc/systemd/system/fieldgrid@.service` template would not change the unit
+loaded on this host. After `daemon-reload` and both contract checks, only the
+runner is resumed for promotion; the old web candidate stays stopped.
+
+The incident establishes that `test -w` is not usable as positive proof that
+this Unix socket accepts runtime connections. The forward fix retains the
+socket-type check and replaces the write predicate with a bounded, packaged
+clamd `PING`/`PONG` preflight under the runtime identity. It also makes the
+runner contract reject the legacy check. The corrected negative runner gate
+does not infer socket access from `test -r`/`test -w`: it combines exact runner
+groups with a non-writable root/clamav-controlled parent and exact Unix-socket
+type, `clamav:clamav` ownership, mode `0660`, one hardlink and absence of
+extended-access indicators. Its disposable Linux test uses an actual socket
+and separate UIDs, proves connection denial in the canonical state, proves
+permissive mode drift is detected and demonstrates that writable-parent
+substitution is possible but rejected. Those changes
+require a new candidate and a reviewed operator update of the web unit before
+promotion; the already installed `bd7f69f6` release must not be replayed or
+started with a script it does not contain. Staging remains **NO-GO** until the
+new SHA has full CI, healthy exact-SHA web activation, scanner/file acceptance,
+a resumed timer with a fresh worker success, restore proof and provider checks.

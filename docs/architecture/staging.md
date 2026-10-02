@@ -280,7 +280,7 @@ provider integration merely because its GitHub environment names exist.
 
 ## 9. Deployment implementation and operator boundary
 
-### Scanner/runtime contract (owner update, 2026-10-01)
+### Scanner/runtime contract (owner update, 2026-10-02)
 
 The operator has confirmed the UID/group/socket separation below; this is
 operator evidence, not a deployed-application scanner acceptance. Staging uses `CLAMAV_ENABLED=true` and
@@ -308,22 +308,49 @@ root and runner checks. Superseded staging drop-ins, including the worker's old
 `shared/fieldgrid.env` reference, are preserved in the protected operator
 backup. See `docs/deployment/staging-handoff-evidence-2026-10-01.md`.
 
-`shared/runtime.env` does not yet exist by design and the worker timer is
-intentionally inactive/dead. Deployment, not a manual copy, creates the runtime
-file before the new services restart. Socket `clamav:clamav`/`0660` without
-extra ACL and both ClamAV services were confirmed; persistence after a daemon
-restart, current TCP-listener absence, and EICAR/PNG/PDF tests through the
-deployed runtime remain acceptance steps. Production was not touched.
+Operator-confirmed current host state, 2 October 2026: the fixed broker installed
+the release, protected backup and generated
+`/opt/fieldgrid/staging/shared/runtime.env` for candidate
+`bd7f69f6233cd7066e3f042a718b1d9f629ee86a`. The runtime file exists as
+`root:fieldgrid` with mode `0640`, and `current` still points to that candidate.
+Web activation failed before Node started because the loaded staging-specific
+unit used `test -w /run/clamav/clamd.ctl` as a positive Unix-socket check. The
+last operator diagnostic showed the web service in an automatic restart-loop;
+it must remain stopped during recovery. The worker timer remains intentionally
+inactive/dead. Production was not touched.
 
-During this transition, the pre-deploy timer gate checks the installed timer
-and its exact worker target, not that the paused timer is already active. After
-runtime generation and healthy web activation, the operator resumes the timer.
-The final read-only gate allows up to ten minutes for that action and a fresh
-successful worker invocation started after web activation. An inactive timer,
-old success or fresh failed invocation cannot pass staging acceptance. The
-runner never starts timers or installs/reloads units and has no direct service-
-restart sudo permission. Its only privileged route is the fixed, no-argument
-release broker.
+`test -w` is not valid positive proof that a Unix stream socket accepts a
+connection: on this host it returned status 1 even though `fieldgrid` had the
+`clamav` supplementary group, the `clamav:clamav` socket had mode `0660`, both
+ClamAV services were active and `test -S` succeeded. The forward fix retains
+the socket-type check and adds a release-packaged, bounded clamd `PING`/`PONG`
+protocol preflight executed under the web-runtime identity before `server.js`.
+This proves reachability only; durable permissions after daemon restart,
+current TCP-listener absence and EICAR/PNG/PDF checks through the deployed
+runtime remain acceptance steps.
+
+The unprivileged runner check never connects to the scanner. It proves the
+negative boundary from exact runner group separation, a root/clamav-controlled
+parent directory without group/world write or an extended-access indicator,
+and exact public socket metadata: Unix-socket type, `clamav:clamav`, mode
+`0660`, one hardlink and no extended-access indicator. These conditions are
+exercised with separate Linux users and a real Unix socket; permissive socket
+mode and writable-parent drift must demonstrate their real access/replacement
+effect and fail the contract. Positive runtime availability remains the
+release-packaged `PING`/`PONG` check under `fieldgrid`.
+
+Before another promotion, the operator must install the reviewed updated web
+unit and runner-contract checker at the actually loaded staging-instance path,
+reload systemd and rerun the separated root and runner controls. The installed
+`bd7f69f6` release must not be started with the new unit because it does not
+contain the packaged protocol preflight. A new reviewed SHA must pass complete
+CI and staging activation. During this transition the pre-deploy timer gate
+checks the installed timer and its exact worker target, not that the paused
+timer is already active. After healthy exact-SHA web activation, the operator
+resumes the timer; the final read-only gate then requires a fresh successful
+worker invocation. The runner never starts timers or installs/reloads units and
+has no direct service-restart sudo permission. Its only privileged route is the
+fixed, no-argument release broker.
 
 The target deployment boundary deliberately splits credentials from the
 persistent host runner:
@@ -354,9 +381,11 @@ persistent host runner:
 Configuration preflight therefore runs on a fresh hosted runner. Before the
 promotion, a root-only operator control checks protected key, trust and runtime
 metadata; the persistent runner cannot reach those paths. Its separate contract
-check inspects public unit metadata, proves denied access and performs only one
-bounded create/remove probe in its own `incoming` directory. It never opens the scanner
-socket. Real EICAR/clean PNG/PDF readiness runs in the web runtime during health
+check inspects public unit metadata, attests the configured denial boundary
+through exact identity, groups, parent-directory and socket metadata/access
+indicators, and performs only one bounded create/remove probe in its own
+`incoming` directory.
+It never opens the scanner socket. Real EICAR/clean PNG/PDF readiness runs in the web runtime during health
 checks, under its own identity and systemd sandbox. Deployment checks exact
 release SHA **and** scanner readiness. Missing/disabled/unreachable/stale
 scanners never release uploads. Runtime file permissions allow only root and

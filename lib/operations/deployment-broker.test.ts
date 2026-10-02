@@ -75,6 +75,7 @@ describe("staging deployment broker boundary", () => {
     expect(broker).toContain("root:root:600:1");
     expect(broker).toContain("root:root:644:1");
     expect(broker).toContain("member.isfile() or member.isdir()");
+    expect(broker).toContain('&& -f "$candidate/clamav-preflight.mjs"');
     expect(broker.match(/verify_attestation (release|runtime|backup) /g)).toHaveLength(3);
     expect(broker).toContain("chown -R root:fieldgrid");
     expect(broker).toContain("Een eerder geinstalleerde release mag niet opnieuw worden geactiveerd");

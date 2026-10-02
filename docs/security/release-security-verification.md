@@ -1,10 +1,12 @@
 # Releaseverificatie — bijgewerkt 2 oktober 2026, NO-GO vóór stagingacceptatie
 
-Onderzocht: de lokaal beoordeelde releasebasis, kandidaat
-`f7fd0b2f25efd2bb00a144605ad809f44acf0c8c` en de daaropvolgende beperkte
-brokerreparatie. Kandidaat `f7fd0b2f` is gecommit, door volledige CI gegaan en
-ongewijzigd naar `staging` gepromoveerd; activatie stopte fail-closed vóór een
-VPS-runtimewijziging. Zonder Daybreak gewerkt.
+Onderzocht: de lokaal beoordeelde releasebasis, eerste kandidaat
+`f7fd0b2f25efd2bb00a144605ad809f44acf0c8c`, de beperkte brokerreparatie en
+tweede kandidaat `bd7f69f6233cd7066e3f042a718b1d9f629ee86a`. Beide kandidaten
+gingen door volledige `main` CI en zijn ongewijzigd naar `staging` gepromoveerd.
+De tweede poging installeerde release, backup en runtime, maar webactivatie
+stopte fail-closed op de ongeschikte `test -w`-predicate voor de ClamAV Unix-
+socket. Zonder Daybreak gewerkt.
 
 ## Omgevingen en reikwijdte
 
@@ -31,7 +33,7 @@ VPS-runtimewijziging. Zonder Daybreak gewerkt.
 | Controle | Daadwerkelijk resultaat |
 | --- | --- |
 | `pnpm lint`, `pnpm typecheck` | Geslaagd, opnieuw na de laatste bron-/testwijzigingen |
-| `pnpm test` | 730 tests in 91 bestanden geslaagd |
+| `pnpm test` | 764 tests in 92 bestanden geslaagd op de ClamAV-forward-fix; productiebuild met 54 statische pagina's eveneens groen |
 | Schone replay van 55 migraties | Geslaagd op het eigen geïsoleerde project; de manifestcontrole bevestigt 55 bestandsinhoud-hashes |
 | SQL-tests op die schone replay | 233 tests in 9 bestanden geslaagd |
 | Node-gedeelte van `pnpm test:db` op dezelfde replay | 320 tests geslaagd, nul failures/skips |
@@ -45,17 +47,19 @@ VPS-runtimewijziging. Zonder Daybreak gewerkt.
 | Nieuwe accountwisselproeven medewerker A/B en klant A/B | Geslaagd; alleen een nieuw serverbevestigd document heft de oude accountafscherming op. Eigen personeelsdownload 200 met bytes, andere persoon 404 |
 | Security-advisors, `--type security --level warn --fail-on warn` | Geen meldingen op de replaydatabase |
 | SQL-lint, `--level warning --fail-on error` | Exit 0, maar waarschuwingen: ongebruikte parameters, JSONB-returncasts en STABLE/VOLATILE-projectie; geen schoon lintresultaat geclaimd |
-| `check-security-surface.mjs` | 834 structurele classificaties gelijk, inclusief indirecte authhelpers, servercomponenten, browser-/Realtimeclients en 51 operationele releasepaden; code, SQL-functies, policysets en operations zijn inhoudelijk gefingerprint |
-| `pnpm security:review` | Alle 834 ontdekte autorisatie-/releaseoppervlakken hebben één fingerprintgebonden afgeronde status en bewijsset; nieuwe, gewijzigde, ontbrekende, dubbele, verouderde, onbewezen, `pending` of `blocked` items laten CI falen |
+| `check-security-surface.mjs` | 835 structurele classificaties gelijk, inclusief indirecte authhelpers, servercomponenten, browser-/Realtimeclients en 52 operationele releasepaden; code, SQL-functies, policysets en operations zijn inhoudelijk gefingerprint |
+| `pnpm security:review` | Alle 835 ontdekte autorisatie-/releaseoppervlakken hebben één fingerprintgebonden afgeronde status en bewijsset; nieuwe, gewijzigde, ontbrekende, dubbele, verouderde, onbewezen, `pending` of `blocked` items laten CI falen |
 | Codex Security Standard-scan | Scan `0b3d3db8-e01f-44cc-b996-d06f22fef2a4`: nul rapporteerbare bevindingen. De 781-bestandsinventaris had partiële codedekking: alle gewijzigde/ongetrackte implementatie en beveiligingskritieke grenzen zijn beoordeeld, niet ieder ongewijzigd presentatie-, documentatie- en fixturebestand regel voor regel |
+| Finale ClamAV-forward-fix security-diffscan | Scan `0bccadf0-62e4-437a-b038-32007b495141`: alle 10 uitvoerbare/test-diffoppervlakken volledig beoordeeld, nul rapporteerbare bevindingen. Eerdere iteraties vonden de ongeschikte socketdenial-predicate en ontbrekende parent-directorycontrole; beide zijn vóór deze scan hersteld en met echte Linux-UIDs en een echte Unix-socket opnieuw getest |
 | `pnpm audit --audit-level high` | Geen bekende advisories gevonden |
-| `check-source-secrets.mjs` | 761 tekstbestanden, geen herkende credentialformats |
+| `check-source-secrets.mjs` | 763 tekstbestanden, geen herkende credentialformats |
 | Browserartifactscan | 93 tekstbestanden gecontroleerd, 80 binaire bestanden uitgesloten; geen herkende credentialformats |
 | Bereikbare HEAD-historie | 9187 blobs: 8916 tekst gecontroleerd, 271 binair uitgesloten; geen herkende credentialformats |
 | `git diff --check` | Geslaagd |
 | GitHub staging-configuratie en runner | Alleen namen/status gelezen: alle vereiste namen zijn aanwezig, inclusief `STAGING_HANDOFF_ENCRYPTION_CERT_B64`. `fieldgrid-staging-veele` is online met eigen label en de GitHub-verbinding is geverifieerd. De gescheiden root- en runnerhandoffcontroles zijn geslaagd; geen secretwaarden opgevraagd |
 | `main` CI en eerste stagingpromotie | `Fieldgrid CI` run `36973655736` voor exact `f7fd0b2f` is volledig groen. Stagingrun `36975937032` voltooide verificatie, backup, forwardmigraties, volledige migratiehistorie, runtimegeneratie, versleuteling en attestaties; activatie stopte vóór installatie op een extensionloze interne attestationbundel |
 | Broker-correctie security-diffscan | Scan `135fe174-21db-4971-bca0-f1572ab01fc1`: nul rapporteerbare bevindingen. Root-owned werkkopie, provenancebinding, no-argument sudogrens en geheimafscherming bleven intact; de daarna bijgewerkte bestanden waren uitsluitend correcties van dit operationele bewijs |
+| Tweede stagingpromotie | Exact `bd7f69f6` heeft volledige `main` CI. Stagingrun `36993643269`, attempt 2, voltooide verify, host-preflight, prepare, gevalideerde backup, forwardmigratie/55-regel-historie, encryptie, drie attestaties en brokerinstallatie. Release, runtime en backup zijn geïnstalleerd en `current` is bijgewerkt; webstart faalde vóór Node op `test -w /run/clamav/clamd.ctl`, public health gaf 502 en acceptance is overgeslagen |
 
 Secretchecks zijn formatdetectie, geen bewijs dat ieder onbekend secret wordt
 herkend. De historie is niet shallow, maar andere branches en onbereikbare
@@ -155,17 +159,17 @@ remote credential en reset geen bestaande gedeelde database om dit na te doen.
 
 | Voorwaarde uit de opdracht | Status voor deze kandidaat | Bewijs / ontbrekend bewijs |
 | --- | --- | --- |
-| Ieder ontdekt toegangspad beoordeeld of gemotiveerd niet van toepassing | Lokaal behaald | 834 fingerprintgebonden regels in `authorization-review.json`; CI weigert nieuwe, gewijzigde, ontbrekende, onbewezen of onafgeronde regels |
+| Ieder ontdekt toegangspad beoordeeld of gemotiveerd niet van toepassing | Lokaal behaald | 835 fingerprintgebonden regels in `authorization-review.json`; CI weigert nieuwe, gewijzigde, ontbrekende, onbewezen of onafgeronde regels |
 | Geen bekende onbevoegde tenant-/medewerker-/klanttoegang | Lokaal behaald | Negatieve DB-, HTTP-, Storage-, Realtime-, handler- en browserproeven; nul rapporteerbare bevindingen in de verse Standard-scan |
 | Alle gevonden P0/P1 en grenslekken hersteld en opnieuw getest | Lokaal behaald | Bevindingenregister, zestien forwardmigraties en gekoppelde regressies; geen open P0/P1 in de onderzochte kandidaat |
 | Objectgeheimen via actuele assignment, tijdvenster en specifieke verificatie | Lokaal behaald | Vault-RPC/OTP-/sessie-/assignmenttests en minimale projecties; stagingmail en werkelijk tijdgedrag nog als smokecheck |
 | Gewone rechten niet afhankelijk van clientfilter/ongecontroleerde privileged fallback | Lokaal behaald | RLS/FORCE, grants, RPC-/service-clienttests en resourcehercontrole vóór/na I/O |
 | Veldprojecties, memberships, intrekking, capabilities en beheerde caches | Lokaal behaald | Personeel/klant A/B, oude JWT, downloads, accountwissel, module-/capability- en browserprivacytests |
-| Migraties/configuratie zonder onverklaarde drift in releaseomgeving | **Deels behaald** | Stagingbackup, projectguards, forwardmigraties en complete 55-regel-historie zijn groen; de versleutelde runtime is gemaakt maar door de fail-closed brokerstop niet geïnstalleerd |
-| Verplichte tests en kernprocessen op de uiteindelijke release-SHA | **Niet behaald** | `f7fd0b2f` heeft volledige GitHub-CI, maar de broker-forward-fix krijgt een nieuwe SHA en moet dezelfde CI plus stagingacceptatie nog doorlopen |
+| Migraties/configuratie zonder onverklaarde drift in releaseomgeving | **Deels behaald** | Stagingbackup, projectguards, forwardmigraties en complete 55-regel-historie zijn groen; de tweede poging heeft de versleutelde runtime via de broker geïnstalleerd. Gezonde runtime-/schema- en provideracceptatie ontbreekt nog |
+| Verplichte tests en kernprocessen op de uiteindelijke release-SHA | **Niet behaald** | `bd7f69f6` heeft volledige GitHub-CI en volledige stagingverificatie tot activatie, maar de ClamAV-preflight-forward-fix krijgt een nieuwe SHA en moet dezelfde CI plus stagingacceptatie nog doorlopen |
 | Geen bekend exploiteerbaar hoog dependencyprobleem of bruikbaar gelekt secret | Lokaal behaald | Dependency-audit en bron-/browser-/bereikbare-historiescans groen; formatdetectie blijft begrensd zoals hierboven beschreven |
 | Lagere risico's, privacybeslissingen en eigenaarschap vastgelegd | Vastgelegd, besluit extern | Oude signed-URL-afloop, retentie/redactie, incidentcontacten en oude bestanden boven scannerlimiet vragen eigenaar/operator |
-| Geen onbewezen essentiële externe control | **Niet behaald** | Handoffcertificaat, runnerafscherming, unitcontract en de installatie van de eerdere broker zijn aangetoond; de gecorrigeerde broker moet nog worden geïnstalleerd en host-gecontroleerd. ClamAV na daemonherstart en via de gedeployde app, restoreproef, providerhooks, Mollie-test, verse workeruitvoering en health-SHA zijn nog niet aangetoond |
+| Geen onbewezen essentiële externe control | **Niet behaald** | Handoffcertificaat, runnerafscherming, gecorrigeerde broker en de beveiligde installatie van release/runtime/backup zijn aangetoond. De bijgewerkte webunit met echte clamd-protocolpreflight moet nog worden geïnstalleerd en host-gecontroleerd; ClamAV na daemonherstart en via de gedeployde app, restoreproef, providerhooks, Mollie-test, verse workeruitvoering en health-SHA zijn nog niet aangetoond |
 
 De lokale statussen zijn geen formele risicoacceptatie en geen stagingbewijs.
 Door de twee niet-behaalde releaseomgevingsvoorwaarden en de onbewezen externe
@@ -176,19 +180,26 @@ controls is de enige juiste totaalscore hieronder **NO-GO**.
 - De verse Standard-scan vond nul rapporteerbare bevindingen in de gewijzigde
   implementatie en de beveiligingskritieke grenzen. Niet ieder ongewijzigd
   presentatie-, documentatie- en fixturebestand is opnieuw regel voor regel
-  beoordeeld; dit zijn geen stilzwijgend ontbrekende toegangspaden. De 834
+  beoordeeld; dit zijn geen stilzwijgend ontbrekende toegangspaden. De 835
   ontdekte autorisatie-/data-/releaseoppervlakken hebben afzonderlijk een afgeronde
   reviewstatus en bewijsset. De structurele inventaris alleen blijft geen
   zelfstandige goedkeuring van een functiebody.
-- De beperkte brokerreparatie heeft nog geen definitieve, groen beoordeelde SHA.
+- De brokerreparatie en kandidaat `bd7f69f6` hebben volledige CI en bereikten
+  veilige installatie. De nieuwe ClamAV-preflight-forward-fix heeft nog geen
+  definitieve, groen beoordeelde SHA; claims over haar tests volgen pas na
+  daadwerkelijke uitvoering.
 - Stagingrunner met label `fieldgrid-staging` is online en de GitHub-verbinding
   is geverifieerd. De eenmalige handoff heeft runner UID 994 met eigen primaire
   groep en zonder aanvullende groepen opgeleverd. Root- en runnercontrole,
   vaste broker, staging-specifieke units en handoffcertificaat zijn bevestigd in
   `docs/deployment/staging-handoff-evidence-2026-10-01.md`; de worker-timer blijft
   bewust inactief tot de nieuwe webrelease gezond is.
-- De stagingmigratiehistorie en pre-migratiebackup zijn door de eerste poging
-  bewezen. Door deployment geïnstalleerde `runtime.env`, socketrechten na
+- De stagingmigratiehistorie en pre-migratiebackup zijn bewezen. De tweede
+  poging installeerde `runtime.env`, release en backup, maar de oude systemd-
+  preflight veroorzaakte een restart-loop en public 502 vóór Node. De bijgewerkte
+  daadwerkelijk geladen instance-unit
+  `/etc/systemd/system/fieldgrid@staging.service` en releasegebonden
+  `PING`/`PONG`-preflight, socketrechten na
   daemonherstart, actuele definities en scannerproeven via de gedeployde app,
   restoreproef, een verse workeruitvoering, exacte health-SHA en
   provideractivatie moeten nog worden bewezen.
