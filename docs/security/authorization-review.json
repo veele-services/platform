@@ -3777,11 +3777,12 @@
     },
     {
       "id": "operation:.github/workflows/_verify.yml",
-      "surfaceFingerprint": "8c7ed022a8b78c6e9d92640ac54c84377dc45a8f1b3a7a6599a5ce46df2e5612",
+      "surfaceFingerprint": "048bf6cd7c28aec855c59b13cf34741a50b10b2bf9432ebb8fbc31dc89174f6e",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
-        "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh."
+        "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh.",
+        "The mandatory hosted verification now packages, extracts, starts and requests a static asset from the exact standalone artifact before browser tests (2026-10-02)."
       ]
     },
     {
@@ -3808,13 +3809,14 @@
     },
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
-      "surfaceFingerprint": "7a82522d425c6508c984816297e8ef400ef5b69361d407d8745d8b72fb6c8079",
+      "surfaceFingerprint": "572b58ae291580c1accca2a82665a9fda7a7039bea211887031b86acfb34ff40",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
         "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh.",
         "Hosted staging preflight receives the canonical DEPLOY_ROOT, SERVICE_NAME and HEALTHCHECK_URL only from GitHub Environment staging; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-02).",
-        "A secret-free self-hosted host-preflight now proves runner separation, PostgreSQL archive compatibility and the installed worker timer before hosted backup or forward migrations can start (2026-10-02)."
+        "A secret-free self-hosted host-preflight now proves runner separation, PostgreSQL archive compatibility and the installed worker timer before hosted backup or forward migrations can start (2026-10-02).",
+        "The exact staging artifact is extracted and booted with isolated non-secret smoke configuration before backup or forward migrations begin (2026-10-02)."
       ]
     },
     {
@@ -4095,11 +4097,12 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "48330231df7927f48805e67e5476a13c89e6019c8f5ae27f1afdc8ae8da8994a",
+      "surfaceFingerprint": "26eebdff1dac6658a85d9494b8bbc5e572daa6cc348fb073f84e04aac1e8bb98",
       "status": "corrected-and-rechecked",
       "evidence": [
         "The new scanner startup gate is explicitly included in the deterministic operational surface inventory.",
-        "lib/auth/security-surface.test.ts requires scripts/check-clamav-socket.mjs to remain inventoried; the complete captured ledger has a reviewed entry for every surface."
+        "lib/auth/security-surface.test.ts requires scripts/check-clamav-socket.mjs to remain inventoried; the complete captured ledger has a reviewed entry for every surface.",
+        "The packaged-release launch smoke is explicitly inventoried as an operational release control (2026-10-02)."
       ]
     },
     {
@@ -4214,11 +4217,13 @@
     },
     {
       "id": "operation:scripts/package-release.sh",
-      "surfaceFingerprint": "98c08e45c194b7dc094864d33cfe8e267e1e8a94e5cda3c9fa547f8a864ef874",
+      "surfaceFingerprint": "62a59a840b174264377ce4705dd66c1653c707fd12391cba1589aad2e5e71dbd",
       "status": "corrected-and-rechecked",
       "evidence": [
         "The dependency-free scanner preflight is copied into the deterministic standalone artifact as clamav-preflight.mjs without adding configuration or secret material.",
-        "lib/tickets/clamav-startup-preflight.test.ts asserts the packaging rule; a generated test archive contained the file with read-only 0440 source mode."
+        "lib/tickets/clamav-startup-preflight.test.ts asserts the packaging rule; a generated test archive contained the file with read-only 0440 source mode.",
+        "The pnpm hoist overlay keeps the broker-compatible zero-link artifact while restoring @swc/helpers lookup after `next` is materialized; unsafe or broken source links, output links and special files fail closed.",
+        "A generated 700faaec artifact resolved the traced SWC helper, contained no links, started its standalone server and served favicon.svg (2026-10-02)."
       ]
     },
     {
@@ -4244,6 +4249,16 @@
       ]
     },
     {
+      "id": "operation:scripts/test-release-artifact.mjs",
+      "surfaceFingerprint": "e33bebd804595321bc9a56c6fb8492fa2687fc4c64ea3e02f796f797bb37f737",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "The smoke extracts only the newly built artifact into a private temporary directory, rejects links and special files, and uses an isolated non-secret local runtime environment.",
+        "The smoke requires the traced @swc/helpers subpath, starts server.js, verifies a non-empty 200 response for favicon.svg, terminates the process and removes the temporary tree.",
+        "A generated 700faaec artifact passed the complete smoke locally on 2026-10-02."
+      ]
+    },
+    {
       "id": "operation:scripts/test-staging-contract-linux.sh",
       "surfaceFingerprint": "87077680f9e883d65b76ece41fec63920f14808496c02565c86d8c04618d62c6",
       "status": "corrected-and-rechecked",
@@ -4256,13 +4271,12 @@
     },
     {
       "id": "operation:scripts/verify-healthcheck.mjs",
-      "surfaceFingerprint": "e59bcf17f7a6e828809038d3cffceea300acfe80837a351aab8d4b4132e9aa64",
-      "status": "controlled",
+      "surfaceFingerprint": "2de704c96ef25179d7f6f7d49ad3afb4d099a606c7e069381b0a497b879ccfa5",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "The health verifier checks and reports a non-successful HTTP status before JSON parsing and never includes a response body in diagnostics (2026-10-02).",
+        "lib/tickets/runtime-contract.test.ts fixes the status-before-JSON ordering and forbids response-text logging.",
+        "Staging run 37020411293 supplied the empty Caddy 502 case that the corrected diagnostic handles without weakening exact-SHA, database or scanner acceptance."
       ]
     },
     {

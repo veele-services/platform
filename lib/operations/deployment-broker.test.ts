@@ -15,6 +15,17 @@ describe("staging deployment broker boundary", () => {
     expect(deploy).not.toContain("systemctl restart");
   });
 
+  it("materializes the pnpm runtime graph and boots the packaged artifact before release", () => {
+    const packaging = read("scripts/package-release.sh");
+    const verification = read(".github/workflows/_verify.yml");
+    const staging = read(".github/workflows/deploy-staging.yml");
+    expect(packaging).toContain('pnpm_hoist_root="$standalone_root/node_modules/.pnpm/node_modules"');
+    expect(packaging).toContain('rsync -aL "$pnpm_hoist_root/" "$work/release/node_modules/"');
+    expect(packaging).toContain("require('@swc/helpers/_/_interop_require_default')");
+    expect(verification).toContain("node scripts/test-release-artifact.mjs");
+    expect(staging).toContain("node scripts/test-release-artifact.mjs");
+  });
+
   it("prepares runtime secrets and backups only for encrypted hosted-runner handoff", () => {
     const runtime = read("scripts/write-runtime-env.sh");
     const backup = read("scripts/backup-database.ts");

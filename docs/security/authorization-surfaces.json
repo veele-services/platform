@@ -5584,7 +5584,7 @@
     {
       "id": "operation:.github/workflows/_verify.yml",
       "classification": "operation",
-      "source_sha256": "3b168d379a4546c73fa7ad1f4e620375b4214f21575eee75094fe88afac14e6b"
+      "source_sha256": "ef91213e2dd3fece643a43e089b35e3adc1755fb26312359f64d41cf17caa597"
     },
     {
       "id": "operation:.github/workflows/bootstrap-staging-admin.yml",
@@ -5599,7 +5599,7 @@
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
       "classification": "operation",
-      "source_sha256": "9a4a01c03d58433f9bc812dd704959a8c8067babde371a743f8cf9c904af85bb"
+      "source_sha256": "c7692ea9924051f3a607ddc528175ca679983fa51b2fbc27096ac724e298bc11"
     },
     {
       "id": "operation:deploy/Caddyfile.example",
@@ -5734,7 +5734,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "a97233ee2d8f3d415e0da8543eb33dd687c2cfd782ddb45cc67ee166e99171d3"
+      "source_sha256": "231d455a5edbd59cb2b0b9f386220a4ea7a3fd4da6298da22bc70886850de941"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -5789,7 +5789,7 @@
     {
       "id": "operation:scripts/package-release.sh",
       "classification": "operation",
-      "source_sha256": "2e181609c7bbb16980ba550d3430dfb6b624c5dd2bd0e850dc2972771e70f010"
+      "source_sha256": "b9e0d1152062e3fbf2be1eac9d8face8a5d97bf2bb0b772352292fe03241950c"
     },
     {
       "id": "operation:scripts/preflight.ts",
@@ -5802,6 +5802,11 @@
       "source_sha256": "1b0b2d47ee8d93038ffdab189544922791b4b04aa2f4ff7c1e3a3a65b88f11d0"
     },
     {
+      "id": "operation:scripts/test-release-artifact.mjs",
+      "classification": "operation",
+      "source_sha256": "16186de92b2e22d18bd2b14a211fe30aa3174094d3b68feabaeb21b57f06b255"
+    },
+    {
       "id": "operation:scripts/test-staging-contract-linux.sh",
       "classification": "operation",
       "source_sha256": "d2025e2c89152afc96f36a8dd31cbbadbcd1127299253324263f41422c6aba0d"
@@ -5809,7 +5814,7 @@
     {
       "id": "operation:scripts/verify-healthcheck.mjs",
       "classification": "operation",
-      "source_sha256": "37805665f0deff8f24e2b7311501c47008e57d7402dc2733748575e3ca38445f"
+      "source_sha256": "022e4501014ad2213100fe4b31583dc985a2f45fd1826e4fdc58eeb3d0016857"
     },
     {
       "id": "operation:scripts/verify-local-migration-manifest.ts",

@@ -157,3 +157,44 @@ promotion; the already installed `bd7f69f6` release must not be replayed or
 started with a script it does not contain. Staging remains **NO-GO** until the
 new SHA has full CI, healthy exact-SHA web activation, scanner/file acceptance,
 a resumed timer with a fresh worker success, restore proof and provider checks.
+
+## ClamAV forward fix and third promotion attempt — 2 October 2026
+
+The operator installed the reviewed ClamAV forward-fix package for candidate
+`700faaec493f43c10b2dd63f57f2c26568a6305b`. Both separated host controls
+completed successfully. The installed web unit, release broker, root check and
+runner check matched their published SHA-256 values. The runner was then
+resumed while the web service and worker timer remained inactive. The operator
+backup is retained at
+`/var/backups/fieldgrid-staging-forward-fix-700faaec.QJ2E6n4w`.
+
+The exact candidate passed `main` CI run `37010658744` and was promoted without
+a merge commit. Staging run `37020411293` completed the full verification and
+host preflight. Its hosted prepare job validated routing profiles, built and
+packaged the release, created and validated the pre-migration backup, retained
+the complete 55-migration history, encrypted runtime and backup payloads and
+created all three attestations. The root broker accepted the handoff and
+activated the exact candidate.
+
+Public health then returned an empty Caddy HTTP 502 response. The deploy gate
+failed closed before worker verification and acceptance; the worker timer was
+not resumed. Reproduction with the exact attested `release.tar.gz` established
+that `node server.js` terminated with a missing
+`@swc/helpers/_/_interop_require_default` runtime module. The ClamAV protocol
+preflight had succeeded and was not the cause.
+
+The release packager had dereferenced the pnpm links in Next.js standalone
+output. That relocated the physical `next` package while leaving its traced
+hidden-hoist dependencies only below `.pnpm`, breaking Node's original module
+ancestry. The forward recovery keeps the broker's link-free artifact contract,
+materializes those traced pnpm runtime dependencies at top-level and launches
+the final extracted tarball in mandatory `main` CI and staging prepare before
+any backup or migration. It also reports a non-successful HTTP status before
+attempting to parse a health response as JSON.
+
+The failed candidate remains installed as immutable incident evidence and is
+not modified or replayed. Recovery requires a new reviewed commit and exact-SHA
+promotion; it does not require another privileged host handoff. The Supabase
+Send Email Hook remains disabled and production remains untouched. Staging is
+still **NO-GO** until that new candidate has healthy exact-SHA web activation,
+a fresh post-activation worker success and the remaining acceptance evidence.

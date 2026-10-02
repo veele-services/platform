@@ -139,7 +139,9 @@ jobs:
       - name: Package the exact standalone release
         env:
           RELEASE_ARTIFACT_PATH: ${{ runner.temp }}/fieldgrid-release.tar.gz
-        run: scripts/package-release.sh
+        run: |
+          scripts/package-release.sh
+          node scripts/test-release-artifact.mjs
       - name: Create the pre-migration database backup
         env:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

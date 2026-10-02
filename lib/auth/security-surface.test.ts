@@ -46,6 +46,7 @@ describe("authorization surface change detector", () => {
       "package.json",
       "public/sw.js",
       "scripts/check-clamav-socket.mjs",
+      "scripts/test-release-artifact.mjs",
     ]));
     expect(filesUnder([".github/workflows"])).toContain(".github/workflows/ci.yml");
     expect(readFileSync("scripts/check-security-surface.mjs", "utf8")).not.toContain("node:child_process");

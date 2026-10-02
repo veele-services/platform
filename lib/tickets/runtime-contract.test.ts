@@ -15,7 +15,10 @@ it("web/worker reference one runtime file and only the web runtime probes the sc
   expect(workflow).not.toContain("check-staging-root-contract.sh");
   expect(workflow).not.toContain("check-staging-runtime-contract.sh");
   expect(workflow).not.toContain("tickets:scanner-check");
-  expect(source("scripts/verify-healthcheck.mjs")).toContain('body.scanner !== "ready"');
+  const healthcheck = source("scripts/verify-healthcheck.mjs");
+  expect(healthcheck).toContain('body.scanner !== "ready"');
+  expect(healthcheck.indexOf("if (!response.ok)")).toBeLessThan(healthcheck.indexOf("await response.json()"));
+  expect(healthcheck).not.toContain("await response.text()");
 });
 it("keeps protected metadata in the root check and outside the runner check", () => {
   const root = source("scripts/check-staging-root-contract.sh");

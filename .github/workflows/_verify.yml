@@ -79,6 +79,13 @@ jobs:
       - name: Fail on database security-advisor warnings or errors
         run: pnpm supabase db advisors --local --type security --level warn --fail-on warn
       - run: pnpm build
+      - name: Package and launch the standalone release
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_ARTIFACT_PATH: ${{ runner.temp }}/fieldgrid-release-smoke.tar.gz
+        run: |
+          scripts/package-release.sh
+          node scripts/test-release-artifact.mjs
       - name: Reject recognized privileged credentials in public browser artifacts
         run: node scripts/check-release-secrets.mjs --browser
       - name: Install Playwright Chromium

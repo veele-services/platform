@@ -51,6 +51,7 @@ const baseOperationalPaths = [
   "scripts/package-release.sh",
   "scripts/preflight.ts",
   "scripts/run-worker.mjs",
+  "scripts/test-release-artifact.mjs",
   "scripts/test-staging-contract-linux.sh",
   "scripts/verify-healthcheck.mjs",
   "scripts/verify-local-migration-manifest.ts",
