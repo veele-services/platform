@@ -50,6 +50,8 @@ done
 for dependency in gh openssl pg_restore python3 tar sha256sum flock systemctl; do
   command -v "$dependency" >/dev/null || fail "Missing root broker dependency: $dependency"
 done
+pg_restore_major="$(pg_restore --version | awk '{ split($3, version, "."); print version[1] }')"
+[[ "$pg_restore_major" =~ ^[0-9]+$ && "$pg_restore_major" -ge 17 ]] || fail 'PostgreSQL 17 or newer pg_restore is required for Supabase backups.'
 openssl x509 -in "$handoff_cert" -noout -checkend 86400 >/dev/null || fail 'Staging handoff certificate is invalid or expires within 24 hours.'
 
 echo 'Root-only staging key, trust and protected runtime metadata verified.'

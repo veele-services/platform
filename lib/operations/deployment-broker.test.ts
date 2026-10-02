@@ -21,6 +21,8 @@ describe("staging deployment broker boundary", () => {
     expect(runtime).toContain("RUNTIME_ENV_OUTPUT_PATH");
     expect(runtime).not.toContain("sudo");
     expect(backup).toContain("BACKUP_OUTPUT_PATH");
+    expect(backup).toContain("docker.io/library/postgres:17.8-bookworm@sha256:");
+    expect(backup).toContain('"--security-opt=no-new-privileges"');
     expect(backup).not.toContain("sudo");
   });
 
@@ -30,6 +32,8 @@ describe("staging deployment broker boundary", () => {
     expect(prepare).toContain("DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}");
     expect(prepare).toContain("SERVICE_NAME: ${{ vars.SERVICE_NAME }}");
     expect(prepare).toContain("HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}");
+    expect(workflow).toContain("needs: [verify, host-preflight]");
+    expect(workflow).toContain("Verify host contract before backup or migrations");
   });
 
   it("ships root-owned broker templates with strict artifact and identity checks", () => {

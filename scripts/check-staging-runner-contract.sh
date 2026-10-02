@@ -51,6 +51,8 @@ broker=/usr/local/sbin/fieldgrid-install-staging-release
 for dependency in gh openssl pg_restore python3 node sudo systemctl stat ls mktemp install awk rm rmdir; do
   command -v "$dependency" >/dev/null || fail "Missing transfer/broker dependency: $dependency"
 done
+pg_restore_major="$(pg_restore --version | awk '{ split($3, version, "."); print version[1] }')"
+[[ "$pg_restore_major" =~ ^[0-9]+$ && "$pg_restore_major" -ge 17 ]] || fail 'PostgreSQL 17 or newer pg_restore is required for Supabase backups.'
 
 LC_ALL=C sudo_rules="$(sudo --non-interactive --list)" || fail 'Cannot inspect runner sudo contract non-interactively.'
 mapfile -t command_rules < <(printf '%s\n' "$sudo_rules" | awk '/^[[:space:]]*\([^)]*\)[[:space:]]/ { sub(/^[[:space:]]*/, ""); sub(/[[:space:]]*$/, ""); print }')

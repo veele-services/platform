@@ -15,8 +15,31 @@ jobs:
   verify:
     uses: ./.github/workflows/_verify.yml
 
-  prepare:
+  host-preflight:
     needs: verify
+    runs-on: [self-hosted, Linux, X64, fieldgrid-staging]
+    environment: staging
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      DEPLOY_TARGET: staging
+      DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      CLAMAV_ENABLED: ${{ vars.CLAMAV_ENABLED }}
+      CLAMAV_SOCKET: ${{ vars.CLAMAV_SOCKET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify host contract before backup or migrations
+        run: bash scripts/check-staging-runner-contract.sh
+      - name: Verify the installed worker timer before backup or migrations
+        run: bash scripts/check-worker-timer.sh --installed
+
+  prepare:
+    needs: [verify, host-preflight]
     runs-on: ubuntu-24.04
     environment: staging
     timeout-minutes: 30

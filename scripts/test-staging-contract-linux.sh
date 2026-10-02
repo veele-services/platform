@@ -36,10 +36,15 @@ install -m 0755 /repo/deploy/fieldgrid-install-staging-release /usr/local/sbin/f
 install -d -o root -g root -m 0755 /fixture/bin /run/clamav
 install -m 0755 /repo/scripts/check-staging-runner-contract.sh /fixture/check-staging-runner-contract.sh
 install -o clamav -g clamav -m 0660 /dev/null /run/clamav/clamd.ctl
-for dependency in gh pg_restore python3 node; do
+for dependency in gh python3 node; do
   printf '#!/bin/sh\nexit 0\n' > "/fixture/bin/$dependency"
   chmod 0755 "/fixture/bin/$dependency"
 done
+cat > /fixture/bin/pg_restore <<'EOF'
+#!/bin/sh
+test "$1" = --version || exit 0
+if test "${PG_RESTORE_SCENARIO:-}" = old; then echo 'pg_restore (PostgreSQL) 16.15'; else echo 'pg_restore (PostgreSQL) 17.8'; fi
+EOF
 cat > /fixture/bin/openssl <<'EOF'
 #!/bin/sh
 test "$1" = x509
@@ -66,7 +71,7 @@ case "${SUDO_SCENARIO:-}" in
   *) printf '%s\n' '(root) NOPASSWD: /usr/local/sbin/fieldgrid-install-staging-release ""';;
 esac
 EOF
-chmod 0755 /fixture/bin/openssl /fixture/bin/systemctl /fixture/bin/sudo
+chmod 0755 /fixture/bin/openssl /fixture/bin/pg_restore /fixture/bin/systemctl /fixture/bin/sudo
 
 contract_path=/fixture/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh
@@ -94,6 +99,7 @@ ln /etc/fieldgrid/staging-handoff.key /etc/fieldgrid/staging-handoff.key.extra-l
 if env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
 rm /etc/fieldgrid/staging-handoff.key.extra-link
 if env -i PATH="$contract_path" OPENSSL_SCENARIO=invalid /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+if env -i PATH="$contract_path" PG_RESTORE_SCENARIO=old /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
 
 # Execute-only traversal, a runtime-group grant or broader sudo must not pass.
 chmod 0711 /etc/fieldgrid
@@ -104,6 +110,7 @@ if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" DEPLOY_T
 gpasswd --delete fieldgrid-runner fieldgrid >/dev/null
 if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" SUDO_SCENARIO=broad DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
 if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" SUDO_SCENARIO=password-extra DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
+if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" PG_RESTORE_SCENARIO=old DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi
 groupadd docker
 usermod --append --groups docker fieldgrid-runner
 if runuser -u fieldgrid-runner -- /usr/bin/env -i PATH="$contract_path" DEPLOY_TARGET=staging DEPLOY_ROOT=/opt/fieldgrid/staging SERVICE_NAME=fieldgrid@staging.service CLAMAV_ENABLED=true CLAMAV_SOCKET=/run/clamav/clamd.ctl /bin/bash /fixture/check-staging-runner-contract.sh >/dev/null 2>&1; then exit 1; fi

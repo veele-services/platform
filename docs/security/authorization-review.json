@@ -3808,12 +3808,13 @@
     },
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
-      "surfaceFingerprint": "e1e0dbe60e4034212607125ee24be439d0a7e65fbfb84f265dd38c8750115d25",
+      "surfaceFingerprint": "7a82522d425c6508c984816297e8ef400ef5b69361d407d8745d8b72fb6c8079",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
         "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh.",
-        "Hosted staging preflight receives the canonical DEPLOY_ROOT, SERVICE_NAME and HEALTHCHECK_URL only from GitHub Environment staging; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-02)."
+        "Hosted staging preflight receives the canonical DEPLOY_ROOT, SERVICE_NAME and HEALTHCHECK_URL only from GitHub Environment staging; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-02).",
+        "A secret-free self-hosted host-preflight now proves runner separation, PostgreSQL archive compatibility and the installed worker timer before hosted backup or forward migrations can start (2026-10-02)."
       ]
     },
     {
@@ -3988,13 +3989,14 @@
     },
     {
       "id": "operation:scripts/backup-database.ts",
-      "surfaceFingerprint": "58ae87398fd945ca105f81487873d0f170c263b778c258ac5688d0aca194de01",
-      "status": "controlled",
+      "surfaceFingerprint": "f2c58f10d3e2750d7a8923197980927db37361f2e734418955cf40161daddc09",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "manual-completion-audit:2026-10-01",
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/deployment/staging-runbook.md",
+        "Pinned PostgreSQL 17.8 backup client runs read-only without capabilities; credentials are environment-only, the archive is validated in the same immutable image, and lib/operations/staging-backup.test.ts plus a real local PostgreSQL 17 archive check cover the contract (2026-10-02)."
       ]
     },
     {
@@ -4063,20 +4065,22 @@
     },
     {
       "id": "operation:scripts/check-staging-root-contract.sh",
-      "surfaceFingerprint": "256f29aacf5c8f9c4fe0ab79849102f9e96bd4d101d532f429b04c0d93c9438e",
+      "surfaceFingerprint": "864d75f9d05ec528ea39c430d61421dc9f0e255e6d34b513bdad4ee80270554f",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
-        "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh."
+        "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh.",
+        "Root preflight now rejects pg_restore older than PostgreSQL 17 before it can validate a Supabase PostgreSQL 17 archive (2026-10-02)."
       ]
     },
     {
       "id": "operation:scripts/check-staging-runner-contract.sh",
-      "surfaceFingerprint": "5aaedc50f143616dc50f5bf4b32673d3108319120855dcd334118aca139e6f83",
+      "surfaceFingerprint": "531fc7982cce32cd92de78faf949cc2b4c56c94276cd7eb9404ca944af8d8085",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Split OS boundary rechecked 2026-10-01: the runner must have no supplementary groups and exactly one fixed no-argument NOPASSWD broker command; all additional sudo command specifications are rejected.",
-        "lib/tickets/runner-contract.test.ts, lib/tickets/runtime-contract.test.ts and scripts/test-staging-contract-linux.sh cover protected-path denial, extra-group rejection and both NOPASSWD and password-gated extra sudo rules."
+        "lib/tickets/runner-contract.test.ts, lib/tickets/runtime-contract.test.ts and scripts/test-staging-contract-linux.sh cover protected-path denial, extra-group rejection and both NOPASSWD and password-gated extra sudo rules.",
+        "The transfer runner proves pg_restore major 17 or newer during the new pre-migration host-preflight; an old client is a covered fail-closed case (2026-10-02)."
       ]
     },
     {
@@ -4189,11 +4193,12 @@
     },
     {
       "id": "operation:scripts/test-staging-contract-linux.sh",
-      "surfaceFingerprint": "5e3fe46c27f40edc0c07a7c8da110de09407f584e2ce695f684ec86f13423139",
+      "surfaceFingerprint": "9f0e4512e89d8da547d285eddb117587a7e6d588fe76e849e328ecfae83974bf",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Real Linux UID/GID/mode boundary rechecked 2026-10-01 in pinned Debian: root alone reaches protected handoff/runtime metadata; fieldgrid-runner reaches only incoming and public metadata.",
-        "Negative cases cover traversable /etc/fieldgrid, hardlinked key, invalid certificate, fieldgrid/docker supplementary groups, and NOPASSWD/PASSWD sudo expansion."
+        "Negative cases cover traversable /etc/fieldgrid, hardlinked key, invalid certificate, fieldgrid/docker supplementary groups, and NOPASSWD/PASSWD sudo expansion.",
+        "Pinned real-Linux contract fixtures prove PostgreSQL 17 archive-tool acceptance and reject PostgreSQL 16 for both root and runner checks (2026-10-02)."
       ]
     },
     {

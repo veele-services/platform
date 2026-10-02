@@ -31,8 +31,10 @@ runtime file atomically without printing its values.
 Use `fieldgrid` for the application and a **different non-root UID** for the
 runner service. Only the runtime belongs to `clamav`; sharing a UID cannot
 satisfy scanner isolation. Install Node.js 24, `rsync`, `curl`, `openssl`, GitHub
-CLI and PostgreSQL client tools compatible with the hosted Supabase PostgreSQL
-version. The runner needs outbound HTTPS access but port 3301 must remain
+CLI and PostgreSQL 17 (or newer) client tools compatible with the hosted
+Supabase PostgreSQL version. The hosted backup job uses an immutable PostgreSQL
+17 client image; the VPS `pg_restore` must be able to validate that archive
+before the root broker can activate it. The runner needs outbound HTTPS access but port 3301 must remain
 private.
 
 The persistent runner must not belong to `fieldgrid` or `clamav`. Give it an

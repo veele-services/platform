@@ -56,9 +56,13 @@ case "$*" in
  *) exit 99;;
 esac
 `, { mode: 0o700 });
-for (const dependency of ["gh", "openssl", "pg_restore", "python3", "node"]) {
+for (const dependency of ["gh", "openssl", "python3", "node"]) {
   writeFileSync(join(fixtures, dependency), "#!/bin/sh\nexit 0\n", { mode: 0o700 });
 }
+writeFileSync(join(fixtures, "pg_restore"), `#!/bin/sh
+test "$1" = --version || exit 0
+if test "$SCENARIO" = old_pg_restore; then echo 'pg_restore (PostgreSQL) 16.15'; else echo 'pg_restore (PostgreSQL) 17.8'; fi
+`, { mode: 0o700 });
 
 afterAll(() => rmSync(fixtures, { recursive: true, force: true }));
 
@@ -92,6 +96,7 @@ it.each([
   "same", "root", "wrong_user", "wrong_primary", "runner_group", "other_group", "runtime_group",
   "root_mode", "incoming_mode", "incoming_denied", "protected_write", "broad_sudo",
   "extra_sudo", "password_sudo", "daemon_off", "old_env", "wrong_unit_group", "no_supplement", "no_requirement",
+  "old_pg_restore",
 ])("refuses the unsafe or incomplete runner contract: %s", scenario => {
   expect(check(scenario).status).toBe(1);
 });
