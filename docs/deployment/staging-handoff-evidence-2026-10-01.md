@@ -11,7 +11,8 @@ runtime values, tokens or database contents.
 - The unprivileged runner contract completed with:
   `Staging transfer-runner separation, denial and public unit contract verified.`
 - The Actions runner is active as `fieldgrid-runner`, with primary group
-  `fieldgrid-runner` and no supplementary groups.
+  `fieldgrid-runner` and no supplementary groups. Its ACL on
+  `/home/fieldgrid` is read/traverse (`r-x`), not traverse-only.
 - `fieldgrid-worker@staging.timer` is intentionally `inactive/dead` until the
   first promoted release reports healthy web state and the exact expected SHA.
 - GitHub Environment `staging` contains public variable
@@ -21,6 +22,9 @@ runtime values, tokens or database contents.
 - Staging-specific systemd instance configuration is installed. Superseded
   staging drop-ins were included in the operator backup, including the worker
   reference to the retired `shared/fieldgrid.env` runtime file.
+- A follow-up host check on 2 October 2026 reported `pg_restore 18.6`
+  (`Ubuntu 18.6-0ubuntu0.26.04.1`), satisfying the requirement to validate the
+  PostgreSQL 17 archive format with an equal or newer client.
 
 The private handoff key remains on the staging VPS. Its contents and those of
 the operator backup are deliberately not recorded in the repository.

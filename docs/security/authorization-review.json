@@ -3922,6 +3922,48 @@
       ]
     },
     {
+      "id": "operation:lib/env/staging-database.ts",
+      "surfaceFingerprint": "eabbfab9c26ca46ce64860e0b4328c23bede89363b3b3de2ba81ecbdb37145c0",
+      "status": "controlled",
+      "evidence": [
+        "manual-staging-migration-boundary-review:2026-10-02",
+        "lib/env/staging-database.test.ts",
+        "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:lib/env/staging-migration-command.ts",
+      "surfaceFingerprint": "67665e53af34c2eb473257d6485550ab34ad2d15dad5e8278342283ee21c18be",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "manual-staging-migration-client-review:2026-10-02",
+        "Supabase CLI 2.109.1 applied the exact isolated 35-to-55 forward plan and preserved all 55 statement-history hashes.",
+        "The private child environment enforces verified TLS, disables telemetry and excludes ambient credentials and routing variables.",
+        "lib/env/staging-migration-command.test.ts",
+        "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:lib/env/staging-migration-config.ts",
+      "surfaceFingerprint": "1bc206aeaaa45782d4a6e2cd5c072bb9872e54b29a70bf4d003d9bb7c97904b5",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "manual-staging-migration-client-review:2026-10-02",
+        "lib/env/staging-migration-config.test.ts",
+        "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:lib/env/staging-migration-diagnostic.ts",
+      "surfaceFingerprint": "88399219092f3d28bdf87f0e35d34820391341918e6fd790cc3a202df937330f",
+      "status": "controlled",
+      "evidence": [
+        "manual-release-diagnostic-review:2026-10-02",
+        "lib/env/staging-migration-diagnostic.test.ts",
+        "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
       "id": "operation:next.config.ts",
       "surfaceFingerprint": "5c6aa3978687471418211f214008bdfe0f496c92887dca33530203eb28392eb0",
       "status": "controlled",
@@ -3934,11 +3976,12 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "9f7bf329fd5ba2ec8240bd415d8a65e25fdaf8f13cce3c72bc8a88ad5336d963",
+      "surfaceFingerprint": "11139e1976d6bc3acbe47ee5772ab380ff079650a87fd1bcab1dcee980d5d3a7",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-cli-regression-review:2026-10-02",
-        "Supabase CLI 2.117.0 clean local replay preserved all 55 exact statement-history hashes.",
+        "manual-staging-migration-client-review:2026-10-02",
+        "The normal CLI remains 2.117.0 while the migration-only alias is pinned to the final pre-TypeScript db-push client 2.109.1.",
+        "Supabase CLI 2.109.1 applied the exact isolated 35-to-55 forward plan and preserved all 55 statement-history hashes.",
         "lib/env/staging-migration-command.test.ts",
         "docs/deployment/staging-runbook.md"
       ]
@@ -3956,12 +3999,12 @@
     },
     {
       "id": "operation:pnpm-lock.yaml",
-      "surfaceFingerprint": "488ba369d75c0187d22cde1f8fe9bfe93998b11355fe178a239374dc41ed0811",
+      "surfaceFingerprint": "19e5d896b38b807dc5862146d36af4aa34686872217962a7107c8f637c369632",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-cli-regression-review:2026-10-02",
-        "Frozen lockfile installs Supabase CLI 2.117.0 from pinned integrity hashes and passes repository supply-chain policy.",
-        "Supabase CLI 2.117.0 clean local replay preserved all 55 exact statement-history hashes.",
+        "manual-staging-migration-client-review:2026-10-02",
+        "Frozen lockfile installs both exact CLI packages from pinned integrity hashes and passes repository supply-chain policy.",
+        "Supabase CLI 2.109.1 applied the exact isolated 35-to-55 forward plan and preserved all 55 statement-history hashes.",
         "docs/deployment/staging-runbook.md"
       ]
     },
@@ -4045,11 +4088,12 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "4cc43f16433fe85183950083971c4c42c663eb59b3ab3d1bcbdc7f9784004e6b",
+      "surfaceFingerprint": "4787da39bb2d00ba180f9ba4b08dd498d80bf59dc655d9dbcd5cebb52c8a8207",
       "status": "corrected-and-rechecked",
       "evidence": [
         "GitHub CI run 36928774183 exposed an undeclared ripgrep dependency on the fresh ubuntu-24.04 runner before any deployment step.",
-        "The inventory now uses deterministic Node filesystem traversal; lib/auth/security-surface.test.ts exercises discovery without child_process and the 830-surface capture remains identity-stable."
+        "The inventory uses deterministic Node filesystem traversal; lib/auth/security-surface.test.ts exercises discovery without child_process.",
+        "The four migration trust-boundary helpers are now explicit operation surfaces; the reviewed capture contains 834 identity-stable surfaces."
       ]
     },
     {
@@ -4129,12 +4173,15 @@
     },
     {
       "id": "operation:scripts/migrate-staging.ts",
-      "surfaceFingerprint": "2a1f46f4b2fb9b047f7bc80ab95a3c1ae0c8d9ef4c5e9724f6d8ac9717725718",
-      "status": "controlled",
+      "surfaceFingerprint": "4431c88985fb07edd5157bc8f27196b8286b01a3a33ddacd41b7f21ef78c8555",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-release-diagnostic-review:2026-10-02",
+        "manual-staging-migration-client-review:2026-10-02",
+        "The private workdir now receives a fixed migration-only config with seeding and db.vault resolution disabled.",
+        "Supabase CLI 2.109.1 applied the exact isolated 35-to-55 forward plan and preserved all 55 statement-history hashes.",
         "lib/env/staging-migration-diagnostic.test.ts",
         "lib/env/staging-migration-command.test.ts",
+        "lib/env/staging-migration-config.test.ts",
         "docs/deployment/staging-runbook.md"
       ]
     },

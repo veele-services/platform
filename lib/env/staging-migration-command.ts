@@ -1,4 +1,9 @@
+import { fileURLToPath } from "node:url";
 import { stagingDatabaseUrl } from "./staging-database";
+
+const migrationClientPath = fileURLToPath(
+  new URL("../../node_modules/supabase-migration-client/dist/supabase.js", import.meta.url),
+);
 
 /** Build a subprocess contract, not a shell command. Values never go to logs.
  * The workdir contains only reviewed config/migrations, no legacy .env files. */
@@ -18,14 +23,24 @@ export function stagingMigrationCommand(
   // The preceding target guard accepts only an exact local-history prefix.
   // Do not use --include-all: that flag can override the CLI's own ordering
   // refusal and is unnecessary for a verified prefix.
-  const args = ["exec", "supabase", "db", "push", "--db-url", target.toString(), "--workdir", workdir, "--skip-vault", "--yes"];
+  // The pinned 2.109.1 Go migration client predates the TypeScript-only
+  // --skip-vault flag. The isolated workdir is written from
+  // STAGING_MIGRATION_CONFIG and deliberately has no [db.vault] section.
+  const args = [migrationClientPath, "db", "push", "--db-url", target.toString(), "--workdir", workdir, "--yes"];
   if (options.dryRun) args.push("--dry-run");
   return {
-    command: "pnpm",
+    command: process.execPath,
     args,
     env: {
       NODE_ENV: "production" as const, PATH: env.PATH, LANG: "C.UTF-8",
-      PGPASSWORD: password, PGCONNECT_TIMEOUT: "15",
+      HOME: workdir, PGPASSWORD: password, PGCONNECT_TIMEOUT: "15",
+      // Go CLI <=2.109 can lose TLS query parameters while normalizing its
+      // connection URL. These libpq variables are consulted again by its
+      // final pgx parse and keep certificate + hostname verification strict.
+      PGSSLMODE: "verify-full", PGSSLROOTCERT: caPath,
+      // The migration process needs no usage reporting; keep command metadata
+      // and connection failures inside the ephemeral hosted job.
+      SUPABASE_TELEMETRY_DISABLED: "1", DO_NOT_TRACK: "1",
     },
   };
 }

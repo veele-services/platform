@@ -1,39 +1,43 @@
 # ClamAV — staging-gebruikers, rechten en acceptatie
 
-Actueel contract, 1 oktober 2026. De eigenaar heeft onderstaande VPS-controles
-uitgevoerd; dit is operatorbewijs, geen scanneracceptatie vanuit de gedeployde
-app. Dit document vervangt eerdere instructies die de runner toegang
+Actueel contract, 2 oktober 2026. De eigenaar heeft onderstaande VPS-controles
+en de beveiligde hosthandoff uitgevoerd; dit is operatorbewijs, geen
+scanneracceptatie vanuit de gedeployde app. Dit document vervangt eerdere
+instructies die de runner toegang
 tot de scanner gaven of `TICKET_CLAMAV_*` gebruikten.
 
-## Bevestigde operatorstatus — 1 oktober 2026
+## Bevestigde operatorstatus — 2 oktober 2026
 
 - App `fieldgrid@staging.service`: actief, `fieldgrid` UID 995/GID 982;
   draaiend proces heeft groepen 108 (`clamav`) en 982 (`fieldgrid`).
 - Runner `actions.runner.veele-services-platform.fieldgrid-staging-veele.service`:
-  actief als `fieldgrid-runner` UID 994, procesgroep `fieldgrid` GID 982, zonder
-  `clamav`. GitHub-connectiviteit bevestigd door operator én read-only API:
-  `fieldgrid-staging-veele` online, label `fieldgrid-staging`.
-- Bestaande runnerinstallatie `/home/fieldgrid/actions-runner` is eigendom van
-  `fieldgrid-runner:fieldgrid`. ACL op `/home/fieldgrid`: **lees- en doorlooprecht
-  (`r-x`)**, niet uitsluitend doorlooprecht.
-- Staging/shared/releases hebben groep `fieldgrid`, modus `2770`; daadwerkelijke
-  schrijf-/verwijderproef in shared als runner slaagde. `test -w` gaf afwijkende
-  resultaten; de oorzaak is niet vastgesteld en die check alleen is geen bewijs.
+  actief als `fieldgrid-runner` UID 994, met primaire groep `fieldgrid-runner`
+  en zonder aanvullende groepen. GitHub-connectiviteit bevestigd door operator
+  én read-only API: `fieldgrid-staging-veele` online, label
+  `fieldgrid-staging`. De runner heeft geen toegang tot beschermde shared-,
+  release- of backuppaden en schrijft uitsluitend naar zijn eigen `incoming`.
 - Socket `clamav:clamav`, `0660`, geen extra ACL; daemon en freshclam actief.
   Socketunit en clamd-config schrijven `0660` voor. Eerder geen TCP-listener;
   opnieuw controleren, ook na daemonherstart.
-- Runner-drop-in `20-runner-user.conf`: `User=fieldgrid-runner`, `Group=fieldgrid`,
-  lege `SupplementaryGroups=`. App-drop-in `30-clamav-group.conf`:
-  `SupplementaryGroups=clamav`. Sudoers gevalideerd: uitsluitend
-  `/usr/bin/systemctl restart fieldgrid@staging.service`.
-- Operatorherstelgegevens: `/root/fieldgrid-runner-before-20261001-003652`.
-- App en worker gebruiken **nog** `shared/fieldgrid.env`; `runtime.env` ontbreekt.
-  Laatste worker `Result=success`/`ExecMainStatus=0`, timer actief. Unitovergang,
-  actuele definities en scannerready/EICAR/PNG/PDF via de nieuwe app zijn nog open.
+- De staging-specifieke systemd-instantieconfiguratie en vaste no-argument
+  rootbroker zijn geïnstalleerd. De afzonderlijke root-only controle en
+  onprivileged runnercontrole zijn geslaagd. Oude staging-drop-ins, waaronder
+  de workerverwijzing naar `shared/fieldgrid.env`, staan in operatorbackup
+  `/var/backups/fieldgrid-staging-handoff.ze5Pmkdk`.
+- GitHub Environment `staging` bevat de publieke handoffvariable
+  `STAGING_HANDOFF_ENCRYPTION_CERT_B64`; de private sleutel blijft root-only op
+  de VPS. `shared/runtime.env` ontbreekt vóór de eerste deployment bewust en
+  `fieldgrid-worker@staging.timer` is `inactive/dead`.
+- `pg_restore 18.6` is bevestigd en kan het door PostgreSQL 17 gemaakte
+  pre-migratiearchief valideren.
+- Actuele definities, duurzame socketrechten/TCP-afwezigheid na daemonherstart,
+  scannerready/EICAR/PNG/PDF via de nieuwe app en een verse workeruitvoering
+  zijn nog open stagingacceptatiepunten.
 
 Deze host-/servicenamen zijn infrastructuuridentiteiten, geen tenantbranding.
-Codex heeft de VPS niet gewijzigd. Volg voor de nog benodigde overgang de
-releasevolgorde hieronder; maak geen runtimebestand met handmatig gekopieerde waarden.
+Codex heeft de VPS niet gewijzigd. De eenmalige overgang is door de operator
+uitgevoerd; volg nu uitsluitend de releasevolgorde hieronder en maak geen
+runtimebestand met handmatig gekopieerde waarden.
 
 ## Twee verschillende soorten rechten
 
@@ -65,7 +69,7 @@ hoeven geen waarden in code of `.env` te worden gekopieerd. Optioneel: `CLAMAV_T
 `CLAMAV_MAX_DATABASE_AGE_HOURS=72`. Geen nieuwe secret nodig. De oude
 `TICKET_CLAMAV_*`-namen zijn geen fallback. Zet niets handmatig in `.env` of Git.
 
-## Operatorcontrole vóór wijzigingen
+## Operatorhercontrole tijdens acceptatie
 
 Voer op de **staging-VPS** uit, zonder Environment-waarden/secrets te printen:
 
@@ -77,24 +81,11 @@ stat -c '%U %G %a %F' /run/clamav/clamd.ctl
 systemctl is-active clamav-daemon.service clamav-freshclam.service
 ```
 
-Lees vervolgens alleen `User` van de gevonden exacte runnerunit met
-`systemctl show <exacte-runnerunit> --property=User`. Controleer die gebruiker
-met `id <runnergebruiker>`. Als zowel de runtime als runner `fieldgrid` zijn,
-**stop hier**: groepsrechten kunnen twee processen met dezelfde UID niet
-scheiden. Verplaats de runner eerst naar een eigen account volgens de bestaande
-runnerinstallatie. Geen tweede runner registreren of oude runner verwijderen
-zonder die gecontroleerde overdracht. Geen brede sudo- of Docker-toegang geven.
-
-Pas na bevestiging dat de identiteiten gescheiden zijn:
-
-```sh
-sudo usermod -aG clamav fieldgrid
-```
-
-Geef deze groep **niet** aan de runner. Nieuwe groepsrechten vereisen een
-herstart van de betreffende runtime; bestaande processen veranderen niet
-automatisch. Bij verwijderde runnergroepsrechten moet ook het oude runnerproces
-worden herstart voordat de afscherming bewezen is.
+Lees vervolgens alleen `User`, `Group` en `SupplementaryGroups` van de gevonden
+exacte runnerunit en controleer die gebruiker met `id <runnergebruiker>`. De
+runtime en runner moeten gescheiden blijven; de handoff mag niet worden
+teruggedraaid en de runner krijgt geen brede sudo- of Docker-toegang. Het
+lidmaatschap van runtimegebruiker `fieldgrid` in `clamav` is al uitgevoerd.
 
 Verifieer als operator de positieve en negatieve toegangscontrole met de
 werkelijke runnernaam (plaats geen geheimen op de commandoregel):
@@ -146,26 +137,23 @@ aanwezige root-key en installeert het uiteindelijke bestand als
 `root:fieldgrid` met modus `0640`. De directory `shared` is `root:fieldgrid` met
 modus `0750`; de runner kan haar niet lezen, benaderen of wijzigen.
 
-De runner mag in de doelconfiguratie lid zijn van **noch `fieldgrid`, noch
+De runner is in de geïnstalleerde doelconfiguratie lid van **noch `fieldgrid`, noch
 `clamav`**. Hij houdt zijn eigen primaire groep en kan alleen naar
-`/opt/fieldgrid/staging/incoming` schrijven. De hierboven beschreven huidige
-groepsrechten (`Group=fieldgrid`, schrijfbaar `shared`) zijn uitsluitend een
-waarneming van vóór de beveiligde overdracht en voldoen niet aan de releasegate.
+`/opt/fieldgrid/staging/incoming` schrijven. Oude groepsrechten
+(`Group=fieldgrid`, schrijfbaar `shared`) waren uitsluitend een waarneming van
+vóór de beveiligde overdracht en zijn geen geldige fallback.
 Het gecombineerde root-broker-model scheidt de persistente runner van
 runtimeconfiguratie, platte retentieback-ups en geïnstalleerde releases;
 scannerrechten blijven uitsluitend bij de app-runtime. De runner heeft geen
 directe restart-sudo en geen afzonderlijke plaintext runtime-/backupbroker.
 
-Plan de unitverwijzing en eerste gegenereerde `runtime.env` in één gecontroleerd
-releasevenster. Herstart web/worker niet naar een ontbrekend runtimebestand.
-Laat de bestaande werkende service/config intact totdat het nieuwe bestand uit
-de GitHub-releaseconfig is geschreven. De unprivileged runnergate weigert nog oude
-unitverwijzingen. De afzonderlijke rootgate controleert uitsluitend beschermde
-metadata zonder waarden te loggen. Daarvoor kan de operator de nieuwe templates installeren en
-daemon-reload uitvoeren, maar de feitelijke herstart pas laten gebeuren na de
-configuratieschrijfstap. Coördineer de timer tijdens dit overgangsvenster zodat
-die niet naar een ontbrekend bestand start. De preflight accepteert een
-gepauzeerde timer, maar vereist de geïnstalleerde unit met precies
+De unitverwijzingen en broker zijn al geïnstalleerd; de eerste gegenereerde
+`runtime.env` volgt in hetzelfde gecontroleerde releasevenster via de workflow.
+Herstart web/worker niet handmatig naar een ontbrekend runtimebestand. De
+unprivileged runnergate weigert oude unitverwijzingen; de afzonderlijke rootgate
+controleert uitsluitend beschermde metadata zonder waarden te loggen. De
+preflight accepteert de bewust gepauzeerde timer, maar vereist de geïnstalleerde
+unit met precies
 `fieldgrid-worker@staging.service` als target. Na gezonde webactivatie hervat
 de operator de timer; de eindcontrole wacht maximaal tien minuten op een actieve
 timer én een geslaagde workeruitvoering die na die webactivatie is gestart.
@@ -173,19 +161,18 @@ Alleen een oude `Result=success` is onvoldoende. De runner start geen timer.
 Geen secrets handmatig kopiëren en geen `Environment`-property/journal met
 credentials in logs tonen.
 
-Concreet tijdens het afgesproken releasevenster, niet vooraf op goed geluk:
+Concreet tijdens het afgesproken releasevenster:
 
-1. Operator pauzeert `fieldgrid-worker@staging.timer` en wacht totdat de lopende
-   worker gereed is. Installeert de beoordeelde web-/workertemplates en voert
-   `daemon-reload` uit. Laat de bestaande web-runtime draaien; herstart nog niet.
+1. De reeds gepauzeerde timer, geïnstalleerde templates, broker en gescheiden
+   runner blijven ongewijzigd; herhaal de handoff niet.
 2. De goedgekeurde stagingworkflow controleert, bouwt, maakt een backup en
    migreert op een verse hosted runner. Zij versleutelt runtime en backup,
    attesteert release plus beide enveloppen en geeft alleen deze bytes aan de
    persistente runner. De root-broker installeert daarna `shared/runtime.env`.
    Controleer desgewenst alleen bestandmetadata met `stat`, nooit de inhoud.
 3. De workflow activeert de nieuwe webcode en controleert exacte SHA, database
-   en echte scannerreadiness. Na de melding dat de release gezond is voert de
-   operator `sudo systemctl start fieldgrid-worker@staging.timer` uit.
+   en echte scannerreadiness. Pas nadat de brokeractivatie en web-health/SHA
+   groen zijn hervat de operator de timer volgens het stagingrunbook.
 4. De workflow bewijst vervolgens een verse geslaagde workeruitvoering. Bij
    een mislukte workflow vóór activatie: eerst status/omgeving onderzoeken en
    gecontroleerd de passende timer herstellen; geen oude brede policies terugzetten.

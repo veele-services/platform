@@ -1,4 +1,4 @@
-# Releaseverificatie — 1 oktober 2026, NO-GO
+# Releaseverificatie — bijgewerkt 2 oktober 2026, NO-GO vóór stagingacceptatie
 
 Onderzocht: `main`, basis `74966d8c250536466e6e1e988ef114ff6207a000` plus
 bestaande en nieuwe ongecommitte wijzigingen. Nog geen onveranderlijk
@@ -27,7 +27,7 @@ release-artifact, commit, push of deploy. Zonder Daybreak gewerkt.
 | Controle | Daadwerkelijk resultaat |
 | --- | --- |
 | `pnpm lint`, `pnpm typecheck` | Geslaagd, opnieuw na de laatste bron-/testwijzigingen |
-| `pnpm test` | 703 tests in 89 bestanden geslaagd |
+| `pnpm test` | 730 tests in 91 bestanden geslaagd |
 | Schone replay van 55 migraties | Geslaagd op het eigen geïsoleerde project; de manifestcontrole bevestigt 55 bestandsinhoud-hashes |
 | SQL-tests op die schone replay | 233 tests in 9 bestanden geslaagd |
 | Node-gedeelte van `pnpm test:db` op dezelfde replay | 320 tests geslaagd, nul failures/skips |
@@ -41,15 +41,15 @@ release-artifact, commit, push of deploy. Zonder Daybreak gewerkt.
 | Nieuwe accountwisselproeven medewerker A/B en klant A/B | Geslaagd; alleen een nieuw serverbevestigd document heft de oude accountafscherming op. Eigen personeelsdownload 200 met bytes, andere persoon 404 |
 | Security-advisors, `--type security --level warn --fail-on warn` | Geen meldingen op de replaydatabase |
 | SQL-lint, `--level warning --fail-on error` | Exit 0, maar waarschuwingen: ongebruikte parameters, JSONB-returncasts en STABLE/VOLATILE-projectie; geen schoon lintresultaat geclaimd |
-| `check-security-surface.mjs` | 826 structurele classificaties gelijk, inclusief indirecte authhelpers, servercomponenten, browser-/Realtimeclients en 43 operationele releasepaden; code, SQL-functies, policysets en operations zijn inhoudelijk gefingerprint |
-| `pnpm security:review` | Alle 826 ontdekte autorisatie-/releaseoppervlakken hebben één fingerprintgebonden afgeronde status en bewijsset; nieuwe, gewijzigde, ontbrekende, dubbele, verouderde, onbewezen, `pending` of `blocked` items laten CI falen |
+| `check-security-surface.mjs` | 834 structurele classificaties gelijk, inclusief indirecte authhelpers, servercomponenten, browser-/Realtimeclients en 51 operationele releasepaden; code, SQL-functies, policysets en operations zijn inhoudelijk gefingerprint |
+| `pnpm security:review` | Alle 834 ontdekte autorisatie-/releaseoppervlakken hebben één fingerprintgebonden afgeronde status en bewijsset; nieuwe, gewijzigde, ontbrekende, dubbele, verouderde, onbewezen, `pending` of `blocked` items laten CI falen |
 | Codex Security Standard-scan | Scan `0b3d3db8-e01f-44cc-b996-d06f22fef2a4`: nul rapporteerbare bevindingen. De 781-bestandsinventaris had partiële codedekking: alle gewijzigde/ongetrackte implementatie en beveiligingskritieke grenzen zijn beoordeeld, niet ieder ongewijzigd presentatie-, documentatie- en fixturebestand regel voor regel |
 | `pnpm audit --audit-level high` | Geen bekende advisories gevonden |
-| `check-source-secrets.mjs` | 752 tekstbestanden, geen herkende credentialformats |
+| `check-source-secrets.mjs` | 761 tekstbestanden, geen herkende credentialformats |
 | Browserartifactscan | 93 tekstbestanden gecontroleerd, 80 binaire bestanden uitgesloten; geen herkende credentialformats |
 | Bereikbare HEAD-historie | 9187 blobs: 8916 tekst gecontroleerd, 271 binair uitgesloten; geen herkende credentialformats |
 | `git diff --check` | Geslaagd |
-| GitHub staging-configuratie en runner | Alleen namen/status gelezen: de bestaande namen zijn aanwezig, maar de nieuwe vereiste variable `STAGING_HANDOFF_ENCRYPTION_CERT_B64` ontbreekt nog. `fieldgrid-staging-veele` is online met eigen label en de GitHub-verbinding is geverifieerd. Geen secretwaarden opgevraagd |
+| GitHub staging-configuratie en runner | Alleen namen/status gelezen: alle vereiste namen zijn aanwezig, inclusief `STAGING_HANDOFF_ENCRYPTION_CERT_B64`. `fieldgrid-staging-veele` is online met eigen label en de GitHub-verbinding is geverifieerd. De gescheiden root- en runnerhandoffcontroles zijn geslaagd; geen secretwaarden opgevraagd |
 
 Secretchecks zijn formatdetectie, geen bewijs dat ieder onbekend secret wordt
 herkend. De historie is niet shallow, maar andere branches en onbereikbare
@@ -149,7 +149,7 @@ remote credential en reset geen bestaande gedeelde database om dit na te doen.
 
 | Voorwaarde uit de opdracht | Status voor deze kandidaat | Bewijs / ontbrekend bewijs |
 | --- | --- | --- |
-| Ieder ontdekt toegangspad beoordeeld of gemotiveerd niet van toepassing | Lokaal behaald | 826 fingerprintgebonden regels in `authorization-review.json`; CI weigert nieuwe, gewijzigde, ontbrekende, onbewezen of onafgeronde regels |
+| Ieder ontdekt toegangspad beoordeeld of gemotiveerd niet van toepassing | Lokaal behaald | 834 fingerprintgebonden regels in `authorization-review.json`; CI weigert nieuwe, gewijzigde, ontbrekende, onbewezen of onafgeronde regels |
 | Geen bekende onbevoegde tenant-/medewerker-/klanttoegang | Lokaal behaald | Negatieve DB-, HTTP-, Storage-, Realtime-, handler- en browserproeven; nul rapporteerbare bevindingen in de verse Standard-scan |
 | Alle gevonden P0/P1 en grenslekken hersteld en opnieuw getest | Lokaal behaald | Bevindingenregister, zestien forwardmigraties en gekoppelde regressies; geen open P0/P1 in de onderzochte kandidaat |
 | Objectgeheimen via actuele assignment, tijdvenster en specifieke verificatie | Lokaal behaald | Vault-RPC/OTP-/sessie-/assignmenttests en minimale projecties; stagingmail en werkelijk tijdgedrag nog als smokecheck |
@@ -159,7 +159,7 @@ remote credential en reset geen bestaande gedeelde database om dit na te doen.
 | Verplichte tests en kernprocessen op de uiteindelijke release-SHA | **Niet behaald** | Lokale volledige suites zijn groen; er is nog geen definitieve commit/SHA, GitHub-CI-run of stagingacceptatie |
 | Geen bekend exploiteerbaar hoog dependencyprobleem of bruikbaar gelekt secret | Lokaal behaald | Dependency-audit en bron-/browser-/bereikbare-historiescans groen; formatdetectie blijft begrensd zoals hierboven beschreven |
 | Lagere risico's, privacybeslissingen en eigenaarschap vastgelegd | Vastgelegd, besluit extern | Oude signed-URL-afloop, retentie/redactie, incidentcontacten en oude bestanden boven scannerlimiet vragen eigenaar/operator |
-| Geen onbewezen essentiële externe control | **Niet behaald** | Handoffcertificaat, rootbroker/units, ClamAV na daemonherstart, restoreproef, providerhooks, Mollie-test en health-SHA zijn nog niet aangetoond |
+| Geen onbewezen essentiële externe control | **Niet behaald** | Handoffcertificaat, rootbroker en unitcontract zijn aangetoond; ClamAV na daemonherstart en via de gedeployde app, restoreproef, providerhooks, Mollie-test, verse workeruitvoering en health-SHA zijn nog niet aangetoond |
 
 De lokale statussen zijn geen formele risicoacceptatie en geen stagingbewijs.
 Door de twee niet-behaalde releaseomgevingsvoorwaarden en de onbewezen externe
@@ -170,23 +170,21 @@ controls is de enige juiste totaalscore hieronder **NO-GO**.
 - De verse Standard-scan vond nul rapporteerbare bevindingen in de gewijzigde
   implementatie en de beveiligingskritieke grenzen. Niet ieder ongewijzigd
   presentatie-, documentatie- en fixturebestand is opnieuw regel voor regel
-  beoordeeld; dit zijn geen stilzwijgend ontbrekende toegangspaden. De 826
+  beoordeeld; dit zijn geen stilzwijgend ontbrekende toegangspaden. De 834
   ontdekte autorisatie-/data-/releaseoppervlakken hebben afzonderlijk een afgeronde
   reviewstatus en bewijsset. De structurele inventaris alleen blijft geen
   zelfstandige goedkeuring van een functiebody.
 - Laatste wijzigingen hebben nog geen definitieve beoordeelde SHA.
-- Stagingrunner met label `fieldgrid-staging` opnieuw read-only gecontroleerd:
-  online en de GitHub-verbinding is geverifieerd. Geen workflow gestart of
-  andere runner gebruikt. Operatorbewijs voor runtime UID 995, runner UID 994,
-  groepen/socket en schrijfproef vastgelegd in `docs/deployment/clamav.md`;
-  runner ACL op `/home/fieldgrid` is lees- en doorlooprecht (`r-x`).
-- Nieuwe units/`runtime.env`, socketrechten na daemonherstart, actuele definities,
-  stagingrollen/schema, pre-release-
-  backup/restore, exacte health-SHA en provideractivatie moeten worden bewezen.
-- De verplichte publieke GitHub Environment-variable
-  `STAGING_HANDOFF_ENCRYPTION_CERT_B64` ontbreekt nog. Zonder dit certificaat kan
-  GitHub de runtime en backup niet versleuteld aan de rootbroker overdragen en
-  faalt de deployment terecht vóór enige stagingmutatie.
+- Stagingrunner met label `fieldgrid-staging` is online en de GitHub-verbinding
+  is geverifieerd. De eenmalige handoff heeft runner UID 994 met eigen primaire
+  groep en zonder aanvullende groepen opgeleverd. Root- en runnercontrole,
+  vaste broker, staging-specifieke units en handoffcertificaat zijn bevestigd in
+  `docs/deployment/staging-handoff-evidence-2026-10-01.md`; de worker-timer blijft
+  bewust inactief tot de nieuwe webrelease gezond is.
+- Door deployment gegenereerde `runtime.env`, socketrechten na daemonherstart,
+  actuele definities en scannerproeven via de gedeployde app, stagingrollen/
+  schema, pre-releasebackup/restore, een verse workeruitvoering, exacte
+  health-SHA en provideractivatie moeten nog worden bewezen.
 - Oude private signed URLs, privacybewaarbeleid en organisatorische
   incidentcontacten vragen operationeel/eigenaarsbewijs. Geen rotatie of
   juridische risicoacceptatie namens de eigenaar uitgevoerd.

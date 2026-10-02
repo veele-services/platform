@@ -20,33 +20,32 @@ verzin geen configuratie en zwak geen gate af.
 ## Nu nog nodig van de stagingoperator
 
 - De bestaande runner met label `fieldgrid-staging` is online en de
-  GitHub-verbinding is geverifieerd; dit onderdeel is uitgevoerd. Geen tweede
-  runner nodig en geen oude runner als fallback gebruiken.
-  De eigenaar bevestigt UID-/groepsscheiding en socketrechten; zie de gedateerde
-  operatorstatus in `docs/deployment/clamav.md`. De unitovergang is nog niet gedaan.
-- Controleer de gescheiden runtime-/runner-UIDs, actieve ClamAV/freshclam,
-  Unix-socket 0660/clamav:clamav, geen TCP-listener en positieve/negatieve
-  sockettoegang volgens `docs/deployment/clamav.md`. Geen Environment-dump.
-- Vergelijk de werkelijk geïnstalleerde web/workerunits met de repository-
-  templates en plan de overgang naar `shared/runtime.env` zoals dat runbook
-  beschrijft. Pauzeer de timer gedurende de overgang; de preflight controleert
-  zijn installatie en exacte target. Niet herstarten naar een nog ontbrekend
-  runtimebestand. Hervat de timer na runtimegeneratie en gezonde webactivatie;
-  de eindcontrole wacht maximaal tien minuten en vereist een verse succesvolle
-  uitvoering. Maak daarnaast de root-only handoff-key/certificate en zet alleen
-  het publieke certificaat als Environment-variable
-  `STAGING_HANDOFF_ENCRYPTION_CERT_B64`. Installeer de gecombineerde broker en
-  vervang de huidige restart-sudo door uitsluitend die vaste no-argument broker.
+  GitHub-verbinding is geverifieerd. De eenmalige beveiligde hosthandoff is
+  uitgevoerd: runner en runtime hebben gescheiden UID/groepen, de runner heeft
+  geen aanvullende groepen of toegang tot beschermde releasepaden, de vaste
+  no-argument rootbroker en staging-specifieke units zijn geïnstalleerd en de
+  afzonderlijke root- en runnercontroles zijn geslaagd. Herhaal die handoff niet
+  en gebruik geen oude runner als fallback. Het bewijs staat in
+  `docs/deployment/staging-handoff-evidence-2026-10-01.md`.
+- De worker-timer blijft bewust `inactive/dead` totdat de workflow de eerste
+  gepromoveerde release via de broker heeft geactiveerd en web-health plus de
+  exacte SHA groen zijn. Voer dan uitsluitend het in de workflow getoonde
+  hervattingscommando uit; de eindcontrole vereist daarna een verse succesvolle
+  workeruitvoering. `shared/runtime.env` wordt door deployment gegenereerd en
+  mag niet handmatig worden aangemaakt of gevuld.
+- Controleer na activatie actieve ClamAV/freshclam, duurzame Unix-socket
+  `0660`/`clamav:clamav`, afwezigheid van een TCP-listener en
+  scannerready/EICAR/PNG/PDF via de gedeployde app. Geen Environment-dump.
 - Houd de Supabase Auth-hook met tijdelijke URL uitgeschakeld. Na de goedgekeurde
   uitrol is het endpoint `https://staging.fieldgrid.nl/api/email/auth`;
   SendGrid gebruikt `https://staging.fieldgrid.nl/api/email/events`.
   Activering en echte testlevering volgen `docs/deployment/mail-hooks.md`.
 
-Alle eerder vereiste GitHub Environment-namen zijn aanwezig. De nieuwe
-publieke handoffvariable `STAGING_HANDOFF_ENCRYPTION_CERT_B64` ontbreekt nog en
-kan pas na operatorgeneratie van het VPS-sleutelpaar worden gezet. Er worden
-geen secretwaarden opgevraagd, geraden of lokaal gekopieerd. De names-only
-controle bewijst niet hun geldigheid of de werkelijke serviceconfiguratie.
+Alle vereiste GitHub Environment-namen zijn aanwezig, inclusief de publieke
+handoffvariable `STAGING_HANDOFF_ENCRYPTION_CERT_B64`. Alleen namen/status en
+het geslaagde operatorcontract zijn gecontroleerd; er zijn geen secretwaarden
+opgevraagd, geraden of lokaal gekopieerd. De names-only controle bewijst niet
+de providerwerking of de werkelijke inhoud van runtimeconfiguratie.
 
 ## Migreervolgorde en herstel
 

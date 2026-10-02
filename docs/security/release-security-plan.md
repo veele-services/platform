@@ -66,10 +66,14 @@ werkdatabase is niet gereset. Historische handtekeningen, goedgekeurde uren,
 notificatieleesstanden, mailmomenten en tenanttemplates zijn in de upgradeproeven
 behouden; geen fictieve nieuw gegenereerde bewijsversies.
 
-De staging-runner met label `fieldgrid-staging` staat bij de laatste names/status-
-socketrechten, `r-x` op `/home/fieldgrid`, een echte runner-schrijfproef en een
-daadwerkelijk geverifieerde GitHub-verbinding. App/worker gebruiken nog
-`fieldgrid.env`; de gecontroleerde overgang naar `runtime.env` is nog nodig.
+De staging-runner met label `fieldgrid-staging` staat online en de GitHub-
+verbinding is geverifieerd. De eenmalige beveiligde handoff heeft de runner een
+eigen primaire groep zonder aanvullende groepen gegeven en toegang tot
+beschermde runtime-, release- en backuppaden ontzegd. Root- en runnercontrole,
+vaste broker, staging-specifieke unitreferenties en het publieke
+handoffcertificaat zijn bevestigd. `runtime.env` wordt bij de eerste promotie
+door de workflow gegenereerd; de worker-timer blijft tot gezonde webactivatie
+bewust inactief.
 Alle ontdekte autorisatie-/dataoppervlakken hebben nu een expliciete afgeronde
 reviewstatus en bewijsset. De algemene Standard-scan blijft transparant partieel
 voor ongewijzigde presentatie-, documentatie- en fixturebestanden; er staat geen

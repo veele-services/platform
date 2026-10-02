@@ -79,7 +79,15 @@ testresultaten en het GO/NO-GO-besluit weer.
 
 ## Bekende afhankelijkheden bij aanvang
 
-GitHub Environment staging bevat de bestaande providercredentials; alleen namen zijn gecontroleerd. Er is geen geregistreerde scannerconfiguratie en lokaal geen ClamAV-binary. De stagingtimer is actief, maar de vorige release meldde een mislukte laatste workeruitvoering. Beide punten zijn verplichte releasevoorwaarden, geen reden om scannerfouten als schoon te behandelen of notificatiewerking te claimen. Er is geen bestaande privacybeslissing voor ticketbewaartermijnen: automatische destructieve purge blijft uit totdat die is vastgesteld.
+Bij aanvang bevatte GitHub Environment staging de bestaande providercredentials,
+maar ontbrak nog operationeel scannerbewijs. Inmiddels zijn ClamAV en de
+gescheiden VPS-identiteiten door de operator bevestigd en is de worker-timer
+bewust gepauzeerd voor de eerste beveiligde promotie. Scannerproeven via de
+daadwerkelijk gedeployde app en een verse workeruitvoering blijven
+releasevoorwaarden; scannerfouten mogen nooit als schoon worden behandeld en
+notificatiewerking wordt niet vooraf geclaimd. Er is geen bestaande
+privacybeslissing voor ticketbewaartermijnen: automatische destructieve purge
+blijft uit totdat die is vastgesteld.
 
 ## Geraadpleegde technische bronnen
 

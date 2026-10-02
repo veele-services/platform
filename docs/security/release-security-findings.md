@@ -79,7 +79,7 @@ en bedieningspunt, geen geaccepteerde integriteits- of toegangsuitzondering.
   vond nul rapporteerbare bevindingen in de gewijzigde/ongetrackte implementatie
   en de beveiligingskritieke grenzen. De codedekking is partieel omdat niet ieder
   ongewijzigd presentatie-, documentatie- en fixturebestand opnieuw regel voor
-  regel is onderzocht. Alle 826 ontdekte autorisatie-/data-/releaseoppervlakken hebben
+  regel is onderzocht. Alle 834 ontdekte autorisatie-/data-/releaseoppervlakken hebben
   afzonderlijk een afgeronde reviewstatus en bewijsset; een inventaris of
   nulbevindingenscan is desondanks geen formele risicoacceptatie.
 - Configureerbaar rollenbeheer is geen onderdeel van deze release: het

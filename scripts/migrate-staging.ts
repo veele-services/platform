@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { rootCertificates } from "node:tls";
 import { stagingDatabaseUrl } from "../lib/env/staging-database";
 import { stagingMigrationCommand } from "../lib/env/staging-migration-command";
+import { STAGING_MIGRATION_CONFIG } from "../lib/env/staging-migration-config";
 import {
   formatStagingMigrationDiagnostic,
   stagingMigrationDiagnostic,
@@ -46,7 +47,7 @@ async function main() {
     const ca = join(directory, "roots.pem");
     await writeFile(ca, [...rootCertificates, await readFile(resolve("scripts/certs/supabase-root-2021.crt"), "utf8")].join("\n"), { mode: 0o600, flag: "wx" }); created.push(ca);
     const config = join(supabase, "config.toml");
-    await copyFile(resolve("supabase/config.toml"), config); created.push(config);
+    await writeFile(config, STAGING_MIGRATION_CONFIG, { mode: 0o600, flag: "wx" }); created.push(config);
     const names = (await readdir(resolve("supabase/migrations"))).filter(name => /^\d{14}_[a-z0-9_]+\.sql$/.test(name)).sort();
     if (!names.length) throw new Error("Migraties ontbreken");
     for (const name of names) {

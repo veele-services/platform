@@ -60,14 +60,16 @@ Install the repository templates as system units:
 
 Initial host bootstrap is an operator action: units cannot start before a
 release and its generated runtime file exist. The current staging host has
-already completed that bootstrap. Before promoting the ticket release, the web
-instance and installed worker timer must already exist. The operator confirmed
-on 1 October that both still use `shared/fieldgrid.env`; the new `runtime.env`
-does not yet exist. Follow the coordinated transition in [ClamAV](clamav.md):
-pause the timer, install the reviewed unit references without restarting, let
-deployment generate the new file, and resume the timer after healthy web
-activation. Preflight checks the installed timer target; final acceptance
-requires an active timer and a fresh successful invocation.
+completed the hardened handoff: staging-specific web/worker unit references and
+the fixed root broker are installed, superseded `fieldgrid.env` drop-ins are in
+the protected operator backup, and both root-only and unprivileged runner
+contract checks passed. The worker timer is intentionally inactive until the
+first promoted release is healthy. `shared/runtime.env` is still absent by
+design; the deployment must generate and install it through the broker before
+the new units restart. Do not repeat the one-time handoff. Preflight checks the
+installed timer target; final acceptance requires the operator to resume the
+timer after healthy web activation and then prove a fresh successful
+invocation.
 The ticket pipeline does not bootstrap a replacement VPS or bypass this gate;
 restore a replacement host through a separately reviewed operator procedure.
 
@@ -311,13 +313,26 @@ repository-allowlisted migration filename, an allowlisted SQLSTATE and a coarse
 failure category plus the allowlisted connection class (`direct` or
 `session-pooler`); raw database and connection diagnostics remain suppressed.
 
-The release is deliberately pinned to Supabase CLI `2.117.0`. Version `2.118.0`
-moved remote `db push` to a new database-driver implementation and the first
-staging dry-run stopped before producing a migration plan, while the preceding
-project/history guard and backup adapters remained healthy. A clean local
-`2.117.0` replay produces the exact same 55 statement-history hashes recorded
-by the repository manifest. Do not upgrade this release pin without repeating
-that complete history check and a non-writing hosted staging dry-run.
+The normal Supabase toolchain remains pinned to CLI `2.117.0`. The isolated
+staging migration process alone uses the separately locked
+`supabase-migration-client` alias at `2.109.1`, the final release before remote
+`db push` moved from the Go implementation to the TypeScript database driver in
+`2.110.0`. Both `2.118.0` and `2.117.0` reached the dedicated staging
+session-pooler through the preceding project/history guard, but their hosted
+`db push --dry-run` stopped before producing a migration plan. The migration
+client receives a generated minimal config with migrations enabled, seeding
+disabled and no `[db.vault]` values; `2.109.1` therefore needs no
+TypeScript-only `--skip-vault` flag. Because this Go release can lose TLS query
+parameters while normalizing a connection URL, the isolated child also pins
+`PGSSLMODE=verify-full` and `PGSSLROOTCERT` to the reviewed private CA bundle;
+URL and final driver parse must therefore both require certificate and hostname
+verification. CLI telemetry is disabled for this secret-bearing process and its
+private `HOME` cannot discover an ambient login or linked project. A clean local
+forward replay from the exact 35-migration staging
+prefix with `2.109.1` must produce the same 55
+statement-history hashes recorded by the repository manifest. Do not change
+this release pin without repeating that complete history check and a
+non-writing hosted staging dry-run.
 
 ## 6. First promotion
 

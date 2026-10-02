@@ -9,7 +9,7 @@ regel voor regel is onderzocht. Alle daadwerkelijk ontdekte autorisatie- en
 dataoppervlakken hebben inmiddels wel een expliciete voltooide status en
 bewijsverwijzing. Operationele stagingvoorwaarden blijven NO-GO.
 
-De structurele CI-inventaris `authorization-surfaces.json` beschrijft **830**
+De structurele CI-inventaris `authorization-surfaces.json` beschrijft **834**
 ingangen/resources uit de huidige bron en een schone database met 55 migraties:
 
 | Soort | Aantal | Wat de registratie bewijst |
@@ -17,7 +17,7 @@ ingangen/resources uit de huidige bron en een schone database met 55 migraties:
 | Server-actionmodules | 27 | Exportnamen, waargenomen helpers en letterlijke tabel/RPC-afhankelijkheden |
 | Routes en RSC-pagina's/layouts | 94 | Bestaande ingangen, inclusief publieke schermen zonder datahelper |
 | Overige data-accessmodules | 44 | Gevonden queries/RPC's, indirecte autorisatiehelpers, servercomponenten, browser-/Realtimeclients en privileged-clientaanmaak |
-| Operationele releasepaden | 47 | Inhoudshashes van alle ontdekte workflows/deploybestanden plus package/lock/config, serviceworker, migratiemanifest en runtime-/backup-/migratiescripts |
+| Operationele releasepaden | 51 | Inhoudshashes van alle ontdekte workflows/deploybestanden plus package/lock/config, serviceworker, migratiemanifest en runtime-/backup-/migratiescripts, inclusief de vier stagingmigratie-trust-boundaries |
 | Public/private tabellen | 177 | RLS/FORCE en effectieve basisgrants |
 | Public RPC's | 167 | Signatuur, definerstatus en executegrants |
 | Private functies | 181 | Signatuur, definerstatus en executegrants |
@@ -33,7 +33,7 @@ inhoudelijke dekking of de verplichte actor/resource-tests.
 De inventaris omvat nu ook `components` met serverdata, browserclients en
 helpermodules die alleen een indirecte auth/provider-/bestandscontrole uitvoeren;
 deze paden konden eerder buiten de structurele diffgate blijven.
-`authorization-review.json` koppelt ieder van de 830 IDs aan een expliciete
+`authorization-review.json` koppelt ieder van de 834 IDs aan een expliciete
 status en bewijsset. `scripts/check-authorization-review.mjs` faalt bij een
 ontbrekend, dubbel, verouderd, onbewezen, `pending` of `blocked` item. De
 `--capture`-stand neemt bestaande beoordelingen over maar zet iedere nieuw

@@ -224,7 +224,7 @@ exact names and fail closed when required configuration is absent.
 | `FORBIDDEN_SUPABASE_PROJECT_REF` | `ckdtiuemeygrnujjibnw` |
 | `GOOGLE_ROUTES_ENABLED` | `false` |
 | `LOG_LEVEL` | `info` |
-| `STAGING_HANDOFF_ENCRYPTION_CERT_B64` | Required public X.509 certificate for the root-decryptable release handoff; not yet configured on 1 October 2026 |
+| `STAGING_HANDOFF_ENCRYPTION_CERT_B64` | Public X.509 certificate for the root-decryptable release handoff; operator-confirmed present in GitHub Environment `staging`, value not retrieved |
 
 ### Confirmed staging secret names
 
@@ -293,27 +293,27 @@ have a **different UID**, no `clamav` membership and no direct socket access.
 The target generated runtime file is
 `/opt/fieldgrid/staging/shared/runtime.env` (not `fieldgrid.env`). Both the web
 unit and worker-trigger unit reference it. It is not manually populated: the
-deployment writer uses the existing GitHub Environment values. The operator
-must install the updated unit references before this contract is activated.
+deployment writer uses the existing GitHub Environment values and the fixed
+root broker installs the encrypted handoff as `root:fieldgrid`/`0640`.
 
-Current-host observation, 1 October 2026: the web process runs as `fieldgrid` UID 995,
-with actual groups 108 (`clamav`) and 982 (`fieldgrid`). The runner runs as
-`fieldgrid-runner` UID 994/group 982, without `clamav`; its existing installation
-remains `/home/fieldgrid/actions-runner`, with **read and traversal (`r-x`)** ACL
-on `/home/fieldgrid`. GitHub independently reports `fieldgrid-staging-veele`
-online with label `fieldgrid-staging`; the runner connection is therefore
-verified. This is evidence of the current host, not the accepted release state:
-membership of group `fieldgrid`, direct write access to `shared`/`releases` and
-the direct service-restart sudo rule must be removed before release.
+Operator-confirmed hardened handoff, 1 October 2026: the application identity
+remains `fieldgrid` with `clamav` access. The runner is active as
+`fieldgrid-runner` UID 994 with primary group `fieldgrid-runner` and no
+supplementary groups; it has read/traversal (`r-x`) only on `/home/fieldgrid`,
+no `fieldgrid`/`clamav` membership and no access to protected shared, release or
+backup data. GitHub reports `fieldgrid-staging-veele` online with label
+`fieldgrid-staging`. The fixed broker, root-only handoff key/certificate,
+attestation trust and staging-specific unit references passed their separate
+root and runner checks. Superseded staging drop-ins, including the worker's old
+`shared/fieldgrid.env` reference, are preserved in the protected operator
+backup. See `docs/deployment/staging-handoff-evidence-2026-10-01.md`.
 
-Both app and worker still reference `shared/fieldgrid.env` on the VPS;
-`shared/runtime.env` does not yet exist. The operator must pause the worker
-timer, install the new unit templates and daemon-reload during the coordinated
-release window. Deployment, not a manual copy, then creates `runtime.env` before
-services are restarted. Socket `clamav:clamav`/`0660` without extra ACL and both
-ClamAV services were confirmed; persistence after a daemon restart, current
-TCP-listener absence, and EICAR/PNG/PDF tests through the deployed runtime remain
-acceptance steps. No VPS mutation was performed by Codex.
+`shared/runtime.env` does not yet exist by design and the worker timer is
+intentionally inactive/dead. Deployment, not a manual copy, creates the runtime
+file before the new services restart. Socket `clamav:clamav`/`0660` without
+extra ACL and both ClamAV services were confirmed; persistence after a daemon
+restart, current TCP-listener absence, and EICAR/PNG/PDF tests through the
+deployed runtime remain acceptance steps. Production was not touched.
 
 During this transition, the pre-deploy timer gate checks the installed timer
 and its exact worker target, not that the paused timer is already active. After
