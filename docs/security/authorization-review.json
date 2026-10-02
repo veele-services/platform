@@ -3863,11 +3863,11 @@
     },
     {
       "id": "operation:deploy/fieldgrid-install-staging-release",
-      "surfaceFingerprint": "9b39b8189889e2172e6e0205e54147f8ea42e7faf15983fbf45c68eecffbcb41",
+      "surfaceFingerprint": "49cc24596ff9156bf0e685798145573cf2b349cb2a0b9f75fa19bed2dbe20b57",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
-        "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh."
+        "The broker still copies all runner-owned inputs into its root-owned private work directory before verification and decryption; no inbox verification or privilege boundary was relaxed.",
+        "lib/operations/deployment-broker.test.ts asserts the exact release/runtime/backup bundle pairs and requires every private bundle filename to retain a .json or .jsonl suffix; bash syntax and 38 deployment/runtime contract tests passed on 2026-10-02."
       ]
     },
     {

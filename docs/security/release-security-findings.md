@@ -1,4 +1,4 @@
-# Releasebevindingen — 1 oktober 2026
+# Releasebevindingen — 1 oktober 2026, omgevingsaddendum 2 oktober
 
 **NO-GO.** Lokale reparatie is geen staging- of volledige vrijgaveverificatie.
 De query-first SQL-reparaties zijn vastgelegd in zestien forward-migraties van
@@ -7,8 +7,14 @@ De query-first SQL-reparaties zijn vastgelegd in zestien forward-migraties van
 security-gate en objectdocument-descriptorfix. Alle 55 migraties zijn lokaal
 schoon afgespeeld; bestaande werkbon-/notificatie-/uitnodigingshistorie is in drie aparte
 upgradeproeven tot en met migratie 54 behouden; migratie 55 is daarna in de
-schone replay en volledige DB-suite getoetst. Dit is geen bewijs van het
-werkelijk uitgerolde stagingschema.
+schone replay en volledige DB-suite getoetst. Dit lokale bewijs was op zichzelf
+geen bewijs van het werkelijk uitgerolde stagingschema. Daarna heeft de
+afgeschermde workflow voor kandidaat `f7fd0b2f` de stagingprojectguards,
+pre-migratiebackup, forwardmigraties en de complete 55-migratiehistorie
+bevestigd. Activatie stopte vervolgens fail-closed op de broker vóór installatie
+van release, runtime of backup en vóór een servicerestart. De bevindingentabel
+hieronder blijft het lokale reparatiebewijs beschrijven; stagingacceptatie en
+het totale vrijgavebesluit blijven **NO-GO**.
 
 | ID | Grens / bewijs vóór herstel | Huidige stand |
 | --- | --- | --- |
@@ -58,7 +64,9 @@ werkelijk uitgerolde stagingschema.
 
 Fixtures zijn herkenbaar fictief. SQL-tests gebruiken echte sessies en beperkte
 principals met rollback; HTTP-tests ruimen hun eigen Auth/Storage-fixtures op.
-Geen echte e-mail, stagingdatabase of productie gebruikt.
+In deze lokale proeven zijn geen echte e-mail, stagingdatabase of productie
+gebruikt. De latere stagingmigratie liep uitsluitend via de afgeschermde
+releaseworkflow en gebruikte geen lokale fixturedata.
 
 De laatste resourcegrenzen gebruiken `scripts/test-resource-lifecycle-security.mjs`:
 acht tests inclusief echte gelijktijdige verbindingen. De gecombineerde resource-,
@@ -93,18 +101,20 @@ en bedieningspunt, geen geaccepteerde integriteits- of toegangsuitzondering.
   personeelsbestand groter dan 10 MB blijft bewaard maar is niet vrijgegeven:
   de huidige scannergrens moet via een gecontroleerde vervolgactie worden
   afgehandeld. Antivirus detecteert bekende patronen, niet alle mogelijke schade.
-- De operator heeft VPS-identiteiten, actuele procesgroepen en socketrechten
-  bevestigd; dit is niet onafhankelijk vanuit de VPS gecontroleerd. Nieuwe
-  unitverwijzingen, socketrechten na daemonherstart, scannerdefinities, echte
-  providerhooks en deployed policies blijven open; zie operationele runbooks.
+- De operator heeft VPS-identiteiten, actuele procesgroepen, socketrechten,
+  staging-specifieke unitverwijzingen en beide gescheiden contractcontroles
+  bevestigd. De gecorrigeerde brokerinstallatie, socketrechten na
+  daemonherstart, scannerdefinities, echte providerhooks en runtimeacceptatie
+  blijven open; zie operationele runbooks.
 - De staging-runner met eigen label is nu online. De operator bevestigt
   UID-/groepsscheiding, socketrechten, `r-x` op `/home/fieldgrid`, een echte
-  schrijf-/verwijderproef en de GitHub-verbinding. Unit-/runtime.env-overgang, backup/restore,
-  migratiegeschiedenis, geïnstalleerde units en SHA-health moeten bij de
-  gecontroleerde staginguitrol worden bewezen; lokale adaptertests vervangen
-  geen restoreproef van een stagingbackup.
-- Geen definitieve diff/SHA of stagingacceptatie. De lokale productiebuild en
-  alle 49 browsertests zijn geslaagd; details staan in
+  schrijf-/verwijderproef en de GitHub-verbinding. Units, stagingbackup en de
+  complete migratiehistorie zijn inmiddels bewezen; installatie van
+  `runtime.env`, een geïsoleerde restoreproef, verse workeruitvoering en exacte
+  SHA-health moeten nog volgen.
+- Kandidaat `f7fd0b2f` had volledige GitHub-CI en is exact naar staging
+  gepromoveerd, maar werd niet geactiveerd. De brokerreparatie krijgt daarom een
+  nieuwe beoordeelde SHA; stagingacceptatie ontbreekt nog. Details staan in
   `release-security-verification.md`.
 
 ## Aanvullende bevindingen: ernst en bewijs

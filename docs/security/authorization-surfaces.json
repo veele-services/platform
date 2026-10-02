@@ -5624,7 +5624,7 @@
     {
       "id": "operation:deploy/fieldgrid-install-staging-release",
       "classification": "operation",
-      "source_sha256": "56c0ea0518c81077e0778cb2ad3bb6983d19340d596490bce2ef28bdbac7d781"
+      "source_sha256": "8f44ccbc7b98dbc6bedca8b85e4437b8cf5823143ede91cfee9566b1ebe96a34"
     },
     {
       "id": "operation:deploy/fieldgrid-runner.sudoers",

@@ -70,12 +70,16 @@ De staging-runner met label `fieldgrid-staging` staat online en de GitHub-
 verbinding is geverifieerd. De eenmalige beveiligde handoff heeft de runner een
 eigen primaire groep zonder aanvullende groepen gegeven en toegang tot
 beschermde runtime-, release- en backuppaden ontzegd. Root- en runnercontrole,
-vaste broker, staging-specifieke unitreferenties en het publieke
-handoffcertificaat zijn bevestigd. `runtime.env` wordt bij de eerste promotie
-door de workflow gegenereerd; de worker-timer blijft tot gezonde webactivatie
-bewust inactief.
+de eerdere vaste broker, staging-specifieke unitreferenties en het publieke
+handoffcertificaat zijn bevestigd. De eerste promotiepoging genereerde en
+attesteerde `runtime.env` versleuteld, maar installeerde het niet doordat de
+broker fail-closed stopte. De gecorrigeerde broker moet eerst via het nieuwe
+operatorpakket worden geïnstalleerd; de worker-timer blijft tot gezonde
+webactivatie bewust inactief.
 Alle ontdekte autorisatie-/dataoppervlakken hebben nu een expliciete afgeronde
 reviewstatus en bewijsset. De algemene Standard-scan blijft transparant partieel
 voor ongewijzigde presentatie-, documentatie- en fixturebestanden; er staat geen
-ontdekt toegangspad stilzwijgend open. Runtime-/provideracceptatie blijft een
-externe vrijgavevoorwaarde; geen push/deploy.
+ontdekt toegangspad stilzwijgend open. Kandidaat `f7fd0b2f` is gepusht, door
+volledige CI gegaan en exact naar staging gepromoveerd; activatie en acceptatie
+zijn niet voltooid. Runtime-/provideracceptatie blijft een externe
+vrijgavevoorwaarde.

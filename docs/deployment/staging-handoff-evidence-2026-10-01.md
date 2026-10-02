@@ -66,3 +66,29 @@ The protected workflow must perform, in order:
 
 Failure of any gate blocks staging acceptance. Production is outside this
 handoff and remains untouched.
+
+## First promotion attempt — 2 October 2026
+
+Commit `f7fd0b2f25efd2bb00a144605ad809f44acf0c8c` first passed the complete
+`Fieldgrid CI` run on `main` and was then promoted unchanged to `staging`.
+Workflow run `36975937032` proved the project-ref guards, validated the
+pre-migration backup, applied the remaining forward migrations and verified
+the complete 55-migration statement history. Runtime and backup envelopes and
+all three attestations were created on the hosted runner.
+
+Activation then failed closed before any release, runtime file or backup was
+installed and before either service was restarted. GitHub CLI rejected the
+attestation bundle because the installed broker copied the three valid
+`*.attestation.json` inputs to extensionless internal filenames. The exact
+diagnostic was `bundle file extension not supported, must be json or jsonl`.
+No verification control was bypassed, the worker timer was not resumed and the
+Supabase Send Email Hook remained disabled. The staging database therefore has
+the complete forward migration history, while the web runtime still awaits a
+new candidate.
+
+The reviewed correction preserves the `.json` suffix inside the root-owned
+work directory and adds a regression check for every release/runtime/backup
+bundle. Before the next promotion, an operator must replace only the fixed
+root-owned broker from the newly checksummed operator package and rerun both
+contract controls. The existing handoff identity, trusted root, runner
+separation, units and protected directories remain unchanged.

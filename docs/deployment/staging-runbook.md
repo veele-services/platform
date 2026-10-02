@@ -86,6 +86,16 @@ broker rules. Do not grant general passwordless sudo. The broker validates all
 paths, identities, three GitHub attestations, encrypted payloads and release
 metadata before it uses its fixed systemctl action.
 
+The first promotion attempt on 2 October 2026 applied and verified the complete
+forward migration history, then stopped safely because the installed broker
+had removed the `.json` suffix from its private copies of the attestation
+bundles. Before retrying, replace **only**
+`/usr/local/sbin/fieldgrid-install-staging-release` from the new verified
+operator package, then rerun the root and runner checks in steps 8 and 9 below.
+Do not regenerate the key/certificate, trusted root, sudo rule, identities,
+directories or units. This is a broker correction, not a repeat of the host
+handoff.
+
 ### One-time hardened handoff (operator)
 
 Perform this in one maintenance window while the runner and worker timer are

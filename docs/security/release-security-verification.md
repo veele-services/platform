@@ -1,8 +1,10 @@
 # Releaseverificatie — bijgewerkt 2 oktober 2026, NO-GO vóór stagingacceptatie
 
-Onderzocht: `main`, basis `74966d8c250536466e6e1e988ef114ff6207a000` plus
-bestaande en nieuwe ongecommitte wijzigingen. Nog geen onveranderlijk
-release-artifact, commit, push of deploy. Zonder Daybreak gewerkt.
+Onderzocht: de lokaal beoordeelde releasebasis, kandidaat
+`f7fd0b2f25efd2bb00a144605ad809f44acf0c8c` en de daaropvolgende beperkte
+brokerreparatie. Kandidaat `f7fd0b2f` is gecommit, door volledige CI gegaan en
+ongewijzigd naar `staging` gepromoveerd; activatie stopte fail-closed vóór een
+VPS-runtimewijziging. Zonder Daybreak gewerkt.
 
 ## Omgevingen en reikwijdte
 
@@ -20,7 +22,9 @@ release-artifact, commit, push of deploy. Zonder Daybreak gewerkt.
   browserproeven; geen VPS-scanner aangeroepen.
 - Mail/routing hebben herkenbare lokale interceptors en testmailbox.
   Provider-/webhooktests bewijzen geen echte SendGrid/Mollie-aflevering.
-- Geen stagingdatabase, productie, echte klantgegevens of echte verzending.
+- De afgeschermde stagingdatabase is uitsluitend via de workflow gecontroleerd
+  en forward gemigreerd naar de complete 55-migratiehistorie. Geen productie,
+  echte klantgegevens of echte verzending gebruikt.
 
 ## Laatste uitgevoerde controles
 
@@ -50,6 +54,8 @@ release-artifact, commit, push of deploy. Zonder Daybreak gewerkt.
 | Bereikbare HEAD-historie | 9187 blobs: 8916 tekst gecontroleerd, 271 binair uitgesloten; geen herkende credentialformats |
 | `git diff --check` | Geslaagd |
 | GitHub staging-configuratie en runner | Alleen namen/status gelezen: alle vereiste namen zijn aanwezig, inclusief `STAGING_HANDOFF_ENCRYPTION_CERT_B64`. `fieldgrid-staging-veele` is online met eigen label en de GitHub-verbinding is geverifieerd. De gescheiden root- en runnerhandoffcontroles zijn geslaagd; geen secretwaarden opgevraagd |
+| `main` CI en eerste stagingpromotie | `Fieldgrid CI` run `36973655736` voor exact `f7fd0b2f` is volledig groen. Stagingrun `36975937032` voltooide verificatie, backup, forwardmigraties, volledige migratiehistorie, runtimegeneratie, versleuteling en attestaties; activatie stopte vóór installatie op een extensionloze interne attestationbundel |
+| Broker-correctie security-diffscan | Scan `135fe174-21db-4971-bca0-f1572ab01fc1`: nul rapporteerbare bevindingen. Root-owned werkkopie, provenancebinding, no-argument sudogrens en geheimafscherming bleven intact; de daarna bijgewerkte bestanden waren uitsluitend correcties van dit operationele bewijs |
 
 Secretchecks zijn formatdetectie, geen bewijs dat ieder onbekend secret wordt
 herkend. De historie is niet shallow, maar andere branches en onbereikbare
@@ -155,11 +161,11 @@ remote credential en reset geen bestaande gedeelde database om dit na te doen.
 | Objectgeheimen via actuele assignment, tijdvenster en specifieke verificatie | Lokaal behaald | Vault-RPC/OTP-/sessie-/assignmenttests en minimale projecties; stagingmail en werkelijk tijdgedrag nog als smokecheck |
 | Gewone rechten niet afhankelijk van clientfilter/ongecontroleerde privileged fallback | Lokaal behaald | RLS/FORCE, grants, RPC-/service-clienttests en resourcehercontrole vóór/na I/O |
 | Veldprojecties, memberships, intrekking, capabilities en beheerde caches | Lokaal behaald | Personeel/klant A/B, oude JWT, downloads, accountwissel, module-/capability- en browserprivacytests |
-| Migraties/configuratie zonder onverklaarde drift in releaseomgeving | **Niet behaald** | Schone lokale replay en manifest zijn groen; stagingbackup, migratiehistorie, schema/catalogus en gegenereerde `runtime.env` ontbreken nog |
-| Verplichte tests en kernprocessen op de uiteindelijke release-SHA | **Niet behaald** | Lokale volledige suites zijn groen; er is nog geen definitieve commit/SHA, GitHub-CI-run of stagingacceptatie |
+| Migraties/configuratie zonder onverklaarde drift in releaseomgeving | **Deels behaald** | Stagingbackup, projectguards, forwardmigraties en complete 55-regel-historie zijn groen; de versleutelde runtime is gemaakt maar door de fail-closed brokerstop niet geïnstalleerd |
+| Verplichte tests en kernprocessen op de uiteindelijke release-SHA | **Niet behaald** | `f7fd0b2f` heeft volledige GitHub-CI, maar de broker-forward-fix krijgt een nieuwe SHA en moet dezelfde CI plus stagingacceptatie nog doorlopen |
 | Geen bekend exploiteerbaar hoog dependencyprobleem of bruikbaar gelekt secret | Lokaal behaald | Dependency-audit en bron-/browser-/bereikbare-historiescans groen; formatdetectie blijft begrensd zoals hierboven beschreven |
 | Lagere risico's, privacybeslissingen en eigenaarschap vastgelegd | Vastgelegd, besluit extern | Oude signed-URL-afloop, retentie/redactie, incidentcontacten en oude bestanden boven scannerlimiet vragen eigenaar/operator |
-| Geen onbewezen essentiële externe control | **Niet behaald** | Handoffcertificaat, rootbroker en unitcontract zijn aangetoond; ClamAV na daemonherstart en via de gedeployde app, restoreproef, providerhooks, Mollie-test, verse workeruitvoering en health-SHA zijn nog niet aangetoond |
+| Geen onbewezen essentiële externe control | **Niet behaald** | Handoffcertificaat, runnerafscherming, unitcontract en de installatie van de eerdere broker zijn aangetoond; de gecorrigeerde broker moet nog worden geïnstalleerd en host-gecontroleerd. ClamAV na daemonherstart en via de gedeployde app, restoreproef, providerhooks, Mollie-test, verse workeruitvoering en health-SHA zijn nog niet aangetoond |
 
 De lokale statussen zijn geen formele risicoacceptatie en geen stagingbewijs.
 Door de twee niet-behaalde releaseomgevingsvoorwaarden en de onbewezen externe
@@ -174,17 +180,18 @@ controls is de enige juiste totaalscore hieronder **NO-GO**.
   ontdekte autorisatie-/data-/releaseoppervlakken hebben afzonderlijk een afgeronde
   reviewstatus en bewijsset. De structurele inventaris alleen blijft geen
   zelfstandige goedkeuring van een functiebody.
-- Laatste wijzigingen hebben nog geen definitieve beoordeelde SHA.
+- De beperkte brokerreparatie heeft nog geen definitieve, groen beoordeelde SHA.
 - Stagingrunner met label `fieldgrid-staging` is online en de GitHub-verbinding
   is geverifieerd. De eenmalige handoff heeft runner UID 994 met eigen primaire
   groep en zonder aanvullende groepen opgeleverd. Root- en runnercontrole,
   vaste broker, staging-specifieke units en handoffcertificaat zijn bevestigd in
   `docs/deployment/staging-handoff-evidence-2026-10-01.md`; de worker-timer blijft
   bewust inactief tot de nieuwe webrelease gezond is.
-- Door deployment gegenereerde `runtime.env`, socketrechten na daemonherstart,
-  actuele definities en scannerproeven via de gedeployde app, stagingrollen/
-  schema, pre-releasebackup/restore, een verse workeruitvoering, exacte
-  health-SHA en provideractivatie moeten nog worden bewezen.
+- De stagingmigratiehistorie en pre-migratiebackup zijn door de eerste poging
+  bewezen. Door deployment geïnstalleerde `runtime.env`, socketrechten na
+  daemonherstart, actuele definities en scannerproeven via de gedeployde app,
+  restoreproef, een verse workeruitvoering, exacte health-SHA en
+  provideractivatie moeten nog worden bewezen.
 - Oude private signed URLs, privacybewaarbeleid en organisatorische
   incidentcontacten vragen operationeel/eigenaarsbewijs. Geen rotatie of
   juridische risicoacceptatie namens de eigenaar uitgevoerd.

@@ -14,11 +14,11 @@ IFS= read -r sha < "$request"
 inbox="$root/incoming/$sha"
 declare -A inputs=(
   [release]="$inbox/release.tar.gz"
-  [release_bundle]="$inbox/release.attestation.json"
+  [release.attestation.json]="$inbox/release.attestation.json"
   [runtime]="$inbox/runtime.env.cms"
-  [runtime_bundle]="$inbox/runtime.attestation.json"
+  [runtime.attestation.json]="$inbox/runtime.attestation.json"
   [backup]="$inbox/backup.dump.cms"
-  [backup_bundle]="$inbox/backup.attestation.json"
+  [backup.attestation.json]="$inbox/backup.attestation.json"
 )
 for input in "${inputs[@]}"; do
   [[ -f "$input" && ! -L "$input" && "$(stat -c %U "$input")" = fieldgrid-runner && "$(stat -c %h "$input")" = 1 ]] || { echo "Ongeldige release-invoer" >&2; exit 2; }
@@ -51,9 +51,9 @@ verify_attestation() {
     --source-digest "$sha" \
     --format json > "$work/$1.verification.json"
 }
-verify_attestation release release_bundle
-verify_attestation runtime runtime_bundle
-verify_attestation backup backup_bundle
+verify_attestation release release.attestation.json
+verify_attestation runtime runtime.attestation.json
+verify_attestation backup backup.attestation.json
 
 # A retained, otherwise valid handoff must not become a long-lived rollback
 # capability for the persistent transfer runner. GitHub documents these

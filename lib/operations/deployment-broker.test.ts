@@ -60,6 +60,17 @@ describe("staging deployment broker boundary", () => {
     expect(broker).toContain('--source-digest "$sha"');
     expect(broker).toContain("verifiedTimestamps");
     expect(broker).toContain("datetime.timedelta(hours=6)");
+    expect(broker).toContain('[release.attestation.json]="$inbox/release.attestation.json"');
+    expect(broker).toContain('[runtime.attestation.json]="$inbox/runtime.attestation.json"');
+    expect(broker).toContain('[backup.attestation.json]="$inbox/backup.attestation.json"');
+    const attestationCalls = [...broker.matchAll(/^verify_attestation\s+(\S+)\s+(\S+)$/gm)]
+      .map((match) => [match[1], match[2]]);
+    expect(attestationCalls).toEqual([
+      ["release", "release.attestation.json"],
+      ["runtime", "runtime.attestation.json"],
+      ["backup", "backup.attestation.json"],
+    ]);
+    expect(attestationCalls.every(([, bundle]) => /\.jsonl?$/.test(bundle ?? ""))).toBe(true);
     expect(broker).toContain("openssl cms -decrypt");
     expect(broker).toContain("root:root:600:1");
     expect(broker).toContain("root:root:644:1");
