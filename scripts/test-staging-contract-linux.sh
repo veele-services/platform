@@ -33,18 +33,46 @@ chown root:fieldgrid /opt/fieldgrid/staging/shared/fieldgrid.env
 chmod 0640 /opt/fieldgrid/staging/shared/fieldgrid.env
 install -m 0755 /repo/deploy/fieldgrid-install-staging-release /usr/local/sbin/fieldgrid-install-staging-release
 
+install -d -o root -g root -m 0755 /etc/clamav
+printf '%s\n' \
+  'LocalSocket /run/clamav/clamd.ctl' \
+  'LocalSocketGroup clamav' \
+  'LocalSocketMode 0660' \
+  'EnableVersionCommand yes' \
+  > /etc/clamav/clamd.conf
+chown root:root /etc/clamav/clamd.conf
+chmod 0644 /etc/clamav/clamd.conf
+
 install -d -o root -g root -m 0755 /fixture/bin /run/clamav
 install -m 0755 /repo/scripts/check-staging-runner-contract.sh /fixture/check-staging-runner-contract.sh
-/usr/bin/perl -MIO::Socket::UNIX -MSocket=SOCK_STREAM -e '
+install -m 0755 /usr/bin/perl /fixture/bin/clamd
+/fixture/bin/clamd -MIO::Socket::UNIX -MSocket=SOCK_STREAM -e '
   my $socket = IO::Socket::UNIX->new(
     Type => SOCK_STREAM,
     Local => "/run/clamav/clamd.ctl",
     Listen => 1,
   ) or die "cannot bind fixture socket\n";
-  sleep 300;
+  while (my $client = $socket->accept()) {
+    my $request = "";
+    while (index($request, "\0") < 0) {
+      my $read = sysread($client, my $chunk, 4096);
+      last unless $read;
+      $request .= $chunk;
+    }
+    if ($request eq "zVERSION\0") {
+      my $response = -e "/fixture/clamd-version-disabled"
+        ? "COMMAND UNAVAILABLE\0"
+        : "ClamAV 1.5.4/28141/Fri Oct 2 04:26:12 2026\0";
+      syswrite($client, $response);
+    }
+    close $client;
+  }
 ' &
 socket_fixture_pid=$!
-trap 'kill "$socket_fixture_pid" 2>/dev/null || true; wait "$socket_fixture_pid" 2>/dev/null || true' EXIT
+printf '%s\n' "$socket_fixture_pid" > /fixture/clamd-main-pid
+tcp_fixture_pid=''
+decoy_fixture_pid=''
+trap 'for fixture_pid in "${tcp_fixture_pid:-}" "${decoy_fixture_pid:-}" "$socket_fixture_pid"; do kill "$fixture_pid" 2>/dev/null || true; wait "$fixture_pid" 2>/dev/null || true; done' EXIT
 for _ in $(seq 1 50); do
   test ! -S /run/clamav/clamd.ctl || break
   sleep 0.02
@@ -52,10 +80,29 @@ done
 test -S /run/clamav/clamd.ctl
 chown clamav:clamav /run/clamav/clamd.ctl
 chmod 0660 /run/clamav/clamd.ctl
-for dependency in gh python3 node; do
+for dependency in gh node; do
   printf '#!/bin/sh\nexit 0\n' > "/fixture/bin/$dependency"
   chmod 0755 "/fixture/bin/$dependency"
 done
+cat > /fixture/bin/python3 <<'EOF'
+#!/bin/sh
+test "$1" = - || exit 99
+/usr/bin/perl -MIO::Socket::UNIX -MSocket=SOCK_STREAM -e '
+  my $client = IO::Socket::UNIX->new(
+    Type => SOCK_STREAM,
+    Peer => "/run/clamav/clamd.ctl",
+  ) or exit 1;
+  syswrite($client, "zVERSION\0");
+  my $reply = "";
+  while (index($reply, "\0") < 0 && length($reply) <= 4096) {
+    my $read = sysread($client, my $chunk, 4096);
+    last unless $read;
+    $reply .= $chunk;
+  }
+  exit($reply =~ m{^ClamAV [0-9][0-9A-Za-z._-]*/[0-9]+/[^\r\n\0]{1,256}\0$} ? 0 : 1);
+'
+EOF
+chmod 0755 /fixture/bin/python3
 cat > /fixture/bin/pg_restore <<'EOF'
 #!/bin/sh
 test "$1" = --version || exit 0
@@ -68,6 +115,36 @@ test "${OPENSSL_SCENARIO:-}" != invalid
 EOF
 cat > /fixture/bin/systemctl <<'EOF'
 #!/bin/sh
+case "$*" in
+  'show clamav-daemon.socket --property=LoadState --value')
+    case "${SOCKET_UNIT_SCENARIO:-}" in
+      not_found) echo not-found;;
+      masked|masked_active) echo masked;;
+      *) echo loaded;;
+    esac
+    exit 0
+    ;;
+  'show clamav-daemon.socket --property=ActiveState --value')
+    case "${SOCKET_UNIT_SCENARIO:-}" in
+      not_found|masked) echo inactive;;
+      *) echo active;;
+    esac
+    exit 0
+    ;;
+  'show clamav-daemon.socket --property=Listen --value')
+    case "${SOCKET_UNIT_SCENARIO:-}" in
+      tcp) printf '%s\n' '/run/clamav/clamd.ctl (Stream)' '0.0.0.0:3310 (Stream)';;
+      wrong_unix) printf '%s\n' '/tmp/clamd.ctl (Stream)';;
+      datagram) printf '%s\n' '/run/clamav/clamd.ctl (Datagram)';;
+      *) printf '%s\n' '/run/clamav/clamd.ctl (Stream)';;
+    esac
+    exit 0
+    ;;
+  'show clamav-daemon.service --property=MainPID --value')
+    if test "${SERVICE_PID_SCENARIO:-}" = decoy; then cat /fixture/clamd-decoy-pid; else cat /fixture/clamd-main-pid; fi
+    exit 0
+    ;;
+esac
 if test "$1" = is-active; then exit 0; fi
 case "$*" in
   *--property=User*) echo fieldgrid;;
@@ -155,6 +232,79 @@ if env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contr
 rm /etc/fieldgrid/staging-handoff.key.extra-link
 if env -i PATH="$contract_path" OPENSSL_SCENARIO=invalid /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
 if env -i PATH="$contract_path" PG_RESTORE_SCENARIO=old /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+
+# The root-only contract must reject disabled/ambiguous VERSION support and
+# every configured TCP listener. The unprivileged runner never parses this
+# operator-owned daemon configuration.
+chmod 0664 /etc/clamav/clamd.conf
+if env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+chmod 0644 /etc/clamav/clamd.conf
+chown clamav:root /etc/clamav/clamd.conf
+if env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+chown root:root /etc/clamav/clamd.conf
+ln /etc/clamav/clamd.conf /etc/clamav/clamd.conf.extra-link
+if env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+rm /etc/clamav/clamd.conf.extra-link
+sed -i 's/^EnableVersionCommand yes$/EnableVersionCommand no/' /etc/clamav/clamd.conf
+if env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+sed -i 's/^EnableVersionCommand no$/EnableVersionCommand yes/' /etc/clamav/clamd.conf
+printf '%s\n' 'EnableVersionCommand yes' >> /etc/clamav/clamd.conf
+if env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+sed -i '$d' /etc/clamav/clamd.conf
+printf '%s\n' 'TCPSocket 3310' >> /etc/clamav/clamd.conf
+if env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+sed -i '$d' /etc/clamav/clamd.conf
+env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null
+touch /fixture/clamd-version-disabled
+if env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+rm /fixture/clamd-version-disabled
+env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null
+
+# The root-only gate observes both the effective canonical socket unit and live
+# clamd-owned TCP listeners. Safe file content alone must never create a false
+# green result for a stale daemon instance or a TCP socket-activation drop-in.
+for socket_unit_scenario in tcp wrong_unix datagram masked_active; do
+  if env -i PATH="$contract_path" SOCKET_UNIT_SCENARIO="$socket_unit_scenario" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+done
+env -i PATH="$contract_path" SOCKET_UNIT_SCENARIO=not_found /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null
+env -i PATH="$contract_path" SOCKET_UNIT_SCENARIO=masked /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null
+
+# A clamd-named process that systemd reports as MainPID is insufficient when a
+# different process owns the canonical Unix listener.
+cp /usr/bin/perl /fixture/bin/clamd-decoy
+/fixture/bin/clamd-decoy -e 'sleep 300' &
+decoy_fixture_pid=$!
+printf '%s\n' "$decoy_fixture_pid" > /fixture/clamd-decoy-pid
+if env -i PATH="$contract_path" SERVICE_PID_SCENARIO=decoy /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+kill "$decoy_fixture_pid"
+wait "$decoy_fixture_pid" 2>/dev/null || true
+decoy_fixture_pid=''
+
+rm -f /fixture/clamd-tcp-ready
+/fixture/bin/clamd -MIO::Socket::INET -MSocket=SOCK_STREAM -e '
+  my $socket = IO::Socket::INET->new(
+    LocalAddr => "127.0.0.1",
+    LocalPort => 0,
+    Proto => "tcp",
+    Type => SOCK_STREAM,
+    Listen => 1,
+  ) or die "cannot bind TCP fixture\n";
+  open(my $ready, ">", "/fixture/clamd-tcp-ready") or die "cannot signal TCP fixture\n";
+  close($ready);
+  sleep 300;
+' &
+tcp_fixture_pid=$!
+for _ in $(seq 1 50); do
+  test ! -e /fixture/clamd-tcp-ready || break
+  sleep 0.02
+done
+test -e /fixture/clamd-tcp-ready
+if env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null 2>&1; then exit 1; fi
+kill "$tcp_fixture_pid"
+wait "$tcp_fixture_pid" 2>/dev/null || true
+tcp_fixture_pid=''
+rm -f /fixture/clamd-tcp-ready
+env -i PATH="$contract_path" /bin/bash /repo/scripts/check-staging-root-contract.sh >/dev/null
 
 # Execute-only traversal, a runtime-group grant or broader sudo must not pass.
 chmod 0711 /etc/fieldgrid

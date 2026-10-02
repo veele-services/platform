@@ -93,11 +93,13 @@ and [SendGrid signed Event Webhook](https://www.twilio.com/docs/sendgrid/for-dev
   desktop/mobile email snapshots.
 - Typecheck, targeted ESLint, shell syntax and `git diff --check` passed.
 
-The counts above describe the earlier targeted mail implementation checks.
+The counts above and the statement that no push, provider mutation or deployment
+took place describe the earlier targeted mail implementation checks only.
 Current release evidence is maintained in `docs/security/release-security-verification.md`:
 fresh migration replay, preserved notification/mail history and the complete
 local production-mode browser suite now pass. The mail-centre UI, configurable
 roles cutover, actual provider callbacks and staging activation are **not**
-claimed complete. The hook is confirmed disabled by the owner; replace the
-temporary URL only during the controlled activation sequence above. No push,
-external provider mutation or deployment took place.
+claimed complete. The mail routes are present in deployed release `d9084380`,
+but that release remains unhealthy, both hooks are off and provider acceptance
+has not started. The hook is confirmed disabled by the owner; replace the
+temporary URL only during the controlled activation sequence above.

@@ -5614,12 +5614,12 @@
     {
       "id": "operation:deploy/clamd-ticket-test.conf",
       "classification": "operation",
-      "source_sha256": "1ee025f4a47a6d3d426dcfc561a1ad04150f91bbf6a6d7a7d748df1467ab45f9"
+      "source_sha256": "7aaf387aaa39152fa2161aba7abb1d9dd32782524ac64235c3cc4c4cc0633978"
     },
     {
       "id": "operation:deploy/clamd-ticket.conf.example",
       "classification": "operation",
-      "source_sha256": "50f4ad466288c92b143c0bc3cb3575bd38cd0200c6eda61f0c82b2dbe11dc89a"
+      "source_sha256": "7e46b6861d7b2f33ccd6b9e7906acd4daa7a14977ac87da491a0c885a3d50297"
     },
     {
       "id": "operation:deploy/fieldgrid-install-staging-release",
@@ -5744,7 +5744,7 @@
     {
       "id": "operation:scripts/check-staging-root-contract.sh",
       "classification": "operation",
-      "source_sha256": "c3dd4691945c359018685caf57aa57389f0ced6e6474b654bdee599efaf0f923"
+      "source_sha256": "e7f96a2c6af07d40694f819e6e5af3cc3e6917b566629edc0e5bc7760e133eb6"
     },
     {
       "id": "operation:scripts/check-staging-runner-contract.sh",
@@ -5809,7 +5809,7 @@
     {
       "id": "operation:scripts/test-staging-contract-linux.sh",
       "classification": "operation",
-      "source_sha256": "d2025e2c89152afc96f36a8dd31cbbadbcd1127299253324263f41422c6aba0d"
+      "source_sha256": "f3b51382315d689fe33cea4859d88a5141e0ff6d72d886a31733f4dac54d555a"
     },
     {
       "id": "operation:scripts/verify-healthcheck.mjs",

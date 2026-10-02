@@ -6,6 +6,10 @@ LocalSocket /run/clamav/clamd.ctl
 LocalSocketGroup clamav
 LocalSocketMode 0660
 DatabaseDirectory /var/lib/clamav
+# Fieldgrid validates both the engine and definition timestamp before any
+# quarantined bytes can be released. Keep VERSION available on the local
+# filesystem-access-controlled socket; this does not enable a network listener.
+EnableVersionCommand yes
 ScanPDF yes
 HeuristicAlerts yes
 AlertEncryptedDoc yes

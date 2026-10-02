@@ -8,12 +8,15 @@ runtime values, tokens or database contents.
 
 - The root-only contract completed with:
   `Root-only staging key, trust and protected runtime metadata verified.`
+  This exact output belongs to the historical metadata-only `c3dd469…` checker;
+  preserve it as evidence and do not treat it as execution of the later expanded
+  scanner-host check.
 - The unprivileged runner contract completed with:
   `Staging transfer-runner separation, denial and public unit contract verified.`
-  This records the then-installed checker. The later hardened checker adds exact
-  parent-directory mutability/access and socket type/owner/group/mode/link/
-  access-indicator attestation and still needs a fresh host run from the new
-  checksummed operator package.
+  This first records the then-installed checker. The later hardened runner
+  checker added exact parent-directory mutability/access and socket
+  type/owner/group/mode/link/access-indicator attestation; it was subsequently
+  installed and executed successfully as recorded below.
 - The Actions runner is active as `fieldgrid-runner`, with primary group
   `fieldgrid-runner` and no supplementary groups. Its ACL on
   `/home/fieldgrid` is read/traverse (`r-x`), not traverse-only.
@@ -101,9 +104,10 @@ runner separation, units and protected directories remained unchanged.
 
 The operator installed the corrected broker and verified its exact SHA-256 as
 `8f44ccbc7b98dbc6bedca8b85e4437b8cf5823143ede91cfee9566b1ebe96a34`.
-Both separated controls then completed successfully again with the checker
-installed at that time. This is historical evidence, not the still-pending
-host result for the later exact-socket-metadata hardening. The runner remained
+Both separated controls then completed successfully again with the checkers
+installed at that time. This was historical evidence; the later
+exact-socket-metadata runner hardening was subsequently installed and executed.
+The runner remained
 active under `fieldgrid-runner`; the worker timer remained inactive.
 
 Exact candidate `bd7f69f6233cd7066e3f042a718b1d9f629ee86a` passed the complete
@@ -161,9 +165,12 @@ a resumed timer with a fresh worker success, restore proof and provider checks.
 ## ClamAV forward fix and third promotion attempt — 2 October 2026
 
 The operator installed the reviewed ClamAV forward-fix package for candidate
-`700faaec493f43c10b2dd63f57f2c26568a6305b`. Both separated host controls
-completed successfully. The installed web unit, release broker, root check and
-runner check matched their published SHA-256 values. The runner was then
+`700faaec493f43c10b2dd63f57f2c26568a6305b`. The metadata-only root control and
+the hardened runner control completed successfully. The installed web unit,
+release broker and runner check matched their published SHA-256 values. The
+installed root check was the historical `c3dd469…` metadata-only version; it is
+not the later local candidate that also checks clamd VERSION, the effective
+socket unit and live process-owned TCP listeners. The runner was then
 resumed while the web service and worker timer remained inactive. The operator
 backup is retained at
 `/var/backups/fieldgrid-staging-forward-fix-700faaec.QJ2E6n4w`.
@@ -198,3 +205,49 @@ promotion; it does not require another privileged host handoff. The Supabase
 Send Email Hook remains disabled and production remains untouched. Staging is
 still **NO-GO** until that new candidate has healthy exact-SHA web activation,
 a fresh post-activation worker success and the remaining acceptance evidence.
+
+## Standalone artifact fix and fourth promotion attempt — 2 October 2026
+
+The standalone-artifact correction was committed as
+`d9084380f8278e634cb6ee372d2cc4ebe5e9b11e`. Exact-SHA `main` CI run
+`37029578368` completed successfully, including the final extracted-artifact
+launch smoke. The same commit was then fast-forwarded to `staging` without a
+merge commit.
+
+Staging run `37031911962` completed verification, the separated host preflight
+and hosted preparation successfully. Preparation rebuilt and launched the
+exact packaged artifact before database work, created the pre-migration backup,
+applied and verified the complete 55-statement migration history, encrypted
+the runtime and backup payloads and created all three attestations. The fixed
+root broker accepted the handoff and activated exact release `d9084380`.
+
+Public health then returned HTTP 503 while identifying the expected staging
+environment and exact release. Its bounded response reported the database as
+ready and the scanner as unavailable. This proves that the standalone web
+runtime, release marker and database connection are active. A subsequent
+read-only probe under the actual `fieldgrid` runtime identity established the
+scanner cause: clamd answered `PING`, the process had UID 995/GID 982 and
+supplementary `clamav` group 108, the socket was `clamav:clamav` mode `0660`,
+both daemon and freshclam were active, and freshclam reported daily 28141, main
+63 and bytecode 339 up-to-date. EICAR was rejected and the controlled PNG/PDF
+were accepted. The clamd `VERSION` request, however, returned
+`COMMAND UNAVAILABLE`; `clamdscan --version` explicitly reported that this
+command is disabled while identifying the local engine as ClamAV 1.5.4.
+Fieldgrid requests structured engine, database version and timestamp metadata
+before scanning so it can enforce the maximum database age. That strict
+readiness path therefore failed closed even though direct `INSTREAM` scanning
+worked. The fresh-worker gate did not run, hosted acceptance was skipped and
+the worker timer was not resumed.
+
+The activated release is retained for diagnosis and cannot be replayed through
+the broker. The Supabase Send Email Hook remains disabled, provider acceptance
+has not started and production remains untouched. Staging remains **NO-GO**
+until the proven `VERSION`-metadata incompatibility is remediated and verified,
+exact-SHA public health is green, a fresh worker execution succeeds and the
+remaining acceptance and provider controls complete. This evidence identifies
+the cause; it does not claim that remediation has been applied.
+
+The expanded root-check remediation remains local at this point. It has not
+been installed or executed on the VPS and can only pass after a safely applied
+`EnableVersionCommand yes` plus daemon restart. Its expected success message is
+`Root-only staging key, trust, protected runtime and scanner host contract verified.`

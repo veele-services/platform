@@ -37,7 +37,7 @@ Geen secretwaarden opvragen of loggen. GitHub Environment `staging` is de enige
 stagingconfiguratiebron. De Supabase Auth-hook blijft uit tot de werkelijke
 endpoint en mailflow zijn opgeleverd en gecontroleerd. Geen productieacties.
 
-## Hervatting 1 oktober 2026
+## Hervatting 1–2 oktober 2026
 
 Op verzoek zonder Daybreak doorgewerkt. Gerichte onafhankelijke onderzoeken
 en hercontroles gebruikten geen Daybreak-dienst. Reparaties zijn lokaal met
@@ -69,23 +69,37 @@ behouden; geen fictieve nieuw gegenereerde bewijsversies.
 De staging-runner met label `fieldgrid-staging` staat online en de GitHub-
 verbinding is geverifieerd. De eenmalige beveiligde handoff heeft de runner een
 eigen primaire groep zonder aanvullende groepen gegeven en toegang tot
-beschermde runtime-, release- en backuppaden ontzegd. Root- en runnercontrole,
-de vaste broker, staging-specifieke unitreferenties en het publieke
-handoffcertificaat zijn bevestigd. De eerste promotiepoging genereerde en
-attesteerde `runtime.env` versleuteld, maar installeerde het niet doordat de
-oude broker fail-closed stopte. Na de gecorrigeerde brokerinstallatie heeft
-kandidaat `bd7f69f6` release, backup en `runtime.env` veilig geïnstalleerd. De
-webstart faalde vóór Node op de ongeschikte
-`test -w /run/clamav/clamd.ctl`-predicate; public health gaf 502. De
-daadwerkelijk geladen staging-instance-unit
-`/etc/systemd/system/fieldgrid@staging.service` en de nieuwe release moeten als
-forward-fix een echte, begrensde clamd-`PING`/`PONG`-preflight gebruiken. De
-worker-timer blijft tot gezonde webactivatie bewust inactief.
-Alle ontdekte autorisatie-/dataoppervlakken hebben nu een expliciete afgeronde
-reviewstatus en bewijsset. De algemene Standard-scan blijft transparant partieel
-voor ongewijzigde presentatie-, documentatie- en fixturebestanden; er staat geen
-ontdekt toegangspad stilzwijgend open. Kandidaat `bd7f69f6` is gepusht, door
-volledige CI gegaan en exact naar staging gepromoveerd; installatie is voltooid,
-maar webactivatie en acceptatie niet. De ClamAV-forward-fix moet als nieuwe SHA
-de volledige CI en promotieketen doorlopen. Runtime-/provideracceptatie blijft
-een externe vrijgavevoorwaarde.
+beschermde runtime-, release- en backuppaden ontzegd. De staging-specifieke
+webunit, vaste broker en huidige runnerchecker zijn op de host geïnstalleerd en
+matchen hun gepubliceerde hashes. De historische metadata-rootchecker
+`c3dd469…` en de huidige runnercontrole zijn geslaagd. De lokaal uitgebreide
+rootchecker voor VERSION, socketunit en live ClamAV TCP-listeners is nog niet
+geïnstalleerd of uitgevoerd; alleen de reeds bevestigde webunit, runnerchecker
+en broker hoeven voor deze correctie niet opnieuw te worden geïnstalleerd.
+
+De gedeployde stagingrelease is
+`d9084380f8278e634cb6ee372d2cc4ebe5e9b11e`. `main`-CI run `37029578368` is
+voor die SHA volledig groen. De lokale VERSION/TCP-remedie is een nieuwe,
+ongecommitte kandidaat zonder definitieve SHA, `main`-CI of deploymentbewijs.
+De lokale eindcontroles zijn compleet: 766 tests, lint, typecheck, 54/54
+buildpagina's, 82 gerichte contracttests en de disposable-Linux-proef slaagden.
+Security-diffscan `548d8357-9301-41c9-8604-2f35830bf97d` vond één low bevinding
+over ontbrekend runtimebewijs voor TCP-afwezigheid. Na herstel beoordeelde
+schone scan `c5098c3a-5e76-421c-acee-51069d9c8de9` dezelfde lokale
+remediatiekandidaat met nul rapporteerbare bevindingen. De 836
+fingerprintgebonden surface-/reviewregels omvatten 53 operationele releasepaden.
+Dit is geen formele risicoacceptatie.
+
+Dezelfde d908-SHA is naar staging gepromoveerd. Run `37031911962` rondde verify,
+host-preflight en prepare groen af en de broker activeerde d908. De publieke
+healthcheck antwoordt 503 en meldt exact d908, database gereed en scanner niet
+beschikbaar. De begrensde operatorproef bewees vervolgens `PING`, de verwachte
+runtime-UID/groepen, socket `clamav:clamav` `0660`, actieve daemon/freshclam met
+actuele definities, EICAR-weigering en PNG/PDF-acceptatie. Zij bewees ook de
+blokkade: clamd `VERSION` is uitgeschakeld en antwoordt `COMMAND UNAVAILABLE`,
+waardoor Fieldgrid de verplichte engine/databaseversie en definitie-ouderdom
+niet kan valideren. Worker en acceptance zijn overgeslagen; de worker-timer
+blijft uit. Voor GO ontbreken daardoor nog een beoordeelde en geverifieerde
+remedie, gezonde web-health, een verse workerinvocatie, restorebewijs en
+providercontroles. De Supabase Send Email Hook blijft uit en productie blijft
+onaangeraakt.

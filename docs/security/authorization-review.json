@@ -3843,24 +3843,26 @@
     },
     {
       "id": "operation:deploy/clamd-ticket-test.conf",
-      "surfaceFingerprint": "dc04d4ca6a961f8d6adb8bafef0f052b28e77799bc23e82b922e29ee52edd6b3",
+      "surfaceFingerprint": "83c111e683f8a850a19b9fb275dd9ed6004ee9ce28ced03636be6064a0f2ffd7",
       "status": "controlled",
       "evidence": [
         "manual-completion-audit:2026-10-01",
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/deployment/staging-runbook.md",
+        "ClamAV 1.5.4 CI config explicitly enables the VERSION metadata required by scanner-age validation (2026-10-02)."
       ]
     },
     {
       "id": "operation:deploy/clamd-ticket.conf.example",
-      "surfaceFingerprint": "5114819a3a9de33c0e0ab2ed5f85eefce67759695adedf4e9cac62bd0c7da6b9",
+      "surfaceFingerprint": "eef17979b636f651d9297ed8b7dcff5e49fd7938d81b2bb8897d5e96deb680a4",
       "status": "controlled",
       "evidence": [
         "manual-completion-audit:2026-10-01",
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/deployment/staging-runbook.md",
+        "Canonical Unix-only daemon config explicitly enables VERSION so Fieldgrid can enforce engine and definition age without a TCP listener (2026-10-02)."
       ]
     },
     {
@@ -4118,12 +4120,14 @@
     },
     {
       "id": "operation:scripts/check-staging-root-contract.sh",
-      "surfaceFingerprint": "864d75f9d05ec528ea39c430d61421dc9f0e255e6d34b513bdad4ee80270554f",
+      "surfaceFingerprint": "3f2d6c5498d8a08d8780d118d8937d220f0d21c1438bb5172b59e582576e6607",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
         "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh.",
-        "Root preflight now rejects pg_restore older than PostgreSQL 17 before it can validate a Supabase PostgreSQL 17 archive (2026-10-02)."
+        "Root preflight now rejects pg_restore older than PostgreSQL 17 before it can validate a Supabase PostgreSQL 17 archive (2026-10-02).",
+        "Root-only preflight rejects writable/non-root/linked clamd config, disabled or ambiguous VERSION, configured TCP and a live COMMAND UNAVAILABLE response (2026-10-02).",
+        "The effective canonical socket unit is Unix-stream-only; absent/masked units must be inactive, the canonical daemon tree owns the listening Unix socket, and every clamd-named process is checked fail-closed in its own network namespace for live IPv4/IPv6 TCP listener inodes (2026-10-02)."
       ]
     },
     {
@@ -4260,13 +4264,15 @@
     },
     {
       "id": "operation:scripts/test-staging-contract-linux.sh",
-      "surfaceFingerprint": "87077680f9e883d65b76ece41fec63920f14808496c02565c86d8c04618d62c6",
+      "surfaceFingerprint": "a3d5a8a13fee0c411992ad3bdb02b7caeb348bab2a56d09fea09e2fffac06203",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Pinned disposable Linux users and real UID/GID/mode boundaries remain isolated: root alone reaches protected metadata and fieldgrid-runner reaches only incoming and public unit properties.",
         "The fixture binds a real Unix socket, proves the separated runner cannot connect, proves permissive socket mode enables a connection but fails the contract, and rejects missing/wrong socket metadata.",
         "A real world-writable parent lets the separated runner unlink and replace the canonical socket; the hardened contract rejects that directory state before substitution and then rejects the runner-owned replacement.",
-        "The fixture rejects missing/wrong preflights, suffix lookalikes, ignored failures, privileged execution flags, extra commands, wrong WorkingDirectory and legacy test -w; the full real-Linux contract passed on 2026-10-02."
+        "The fixture rejects missing/wrong preflights, suffix lookalikes, ignored failures, privileged execution flags, extra commands, wrong WorkingDirectory and legacy test -w; the full real-Linux contract passed on 2026-10-02.",
+        "The disposable root gate rejects unsafe clamd.conf ownership/mode/link count, disabled or duplicate VERSION, TCP and a live unavailable VERSION response while the runner remains unable to connect (2026-10-02).",
+        "Real Linux fixtures reject TCP, Datagram, wrong-path and masked-active socket activation, a decoy clamd MainPID that does not own the Unix listener, and a separate clamd-named live TCP listener; absent/masked-inactive socket units remain valid with the daemon-owned Unix socket (2026-10-02)."
       ]
     },
     {

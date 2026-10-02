@@ -27,11 +27,34 @@ it("keeps protected metadata in the root check and outside the runner check", ()
   expect(root).toContain("staging-handoff.key");
   expect(root).toContain("github-attestation-trusted-root.jsonl");
   expect(root).toContain("shared/runtime.env");
+  expect(root).toContain("/etc/clamav/clamd.conf");
+  expect(root).toContain('EnableVersionCommand');
+  expect(root).toContain('TCPSocket');
+  expect(root).toContain('b"zVERSION\\0"');
+  expect(root).toContain('clamav-daemon.socket --property=Listen');
+  expect(root).toContain('clamav-daemon.socket --property=ActiveState');
+  expect(root).toContain("/run/clamav/clamd.ctl (Stream)");
+  expect(root).toContain('clamav-daemon.service --property=MainPID');
+  expect(root).toContain('"/proc/$clamd_main_pid/net/unix"');
+  expect(root).toContain('canonical_service_socket_inodes');
+  expect(root).toContain('"/proc/$process_pid/net/tcp"');
+  expect(root).toContain('"/proc/$process_pid/net/tcp6"');
+  expect(root).not.toContain('[[ "$tcp_table" = */tcp6 ]] && continue');
+  expect(root).toContain('extended or unexpected access permissions');
   expect(runner).not.toContain("staging-handoff.key");
   expect(runner).not.toContain("staging-handoff.crt");
   expect(runner).not.toContain("github-attestation-trusted-root.jsonl");
+  expect(runner).not.toContain("/etc/clamav/clamd.conf");
+  expect(runner).not.toContain("EnableVersionCommand");
   expect(runner).toContain("Runner must have exactly one passwordless sudo command");
   expect(source("scripts/test-staging-contract-linux.sh")).toContain("runuser -u fieldgrid-runner");
+});
+it("keeps VERSION support explicit in both scanner configurations without TCP", () => {
+  for (const path of ["deploy/clamd-ticket.conf.example", "deploy/clamd-ticket-test.conf"]) {
+    const config = source(path);
+    expect(config.match(/^EnableVersionCommand yes$/gm)).toHaveLength(1);
+    expect(config).not.toMatch(/^\s*TCPSocket\b/gm);
+  }
 });
 it("writes a private hosted-runner payload atomically without logging values", () => {
   const root = mkdtempSync(join(tmpdir(), "fieldgrid-runtime-contract-"));

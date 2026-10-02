@@ -23,36 +23,49 @@ verzin geen configuratie en zwak geen gate af.
   GitHub-verbinding is geverifieerd. De eenmalige beveiligde hosthandoff is
   uitgevoerd: runner en runtime hebben gescheiden UID/groepen, de runner heeft
   geen aanvullende groepen of toegang tot beschermde releasepaden, de vaste
-  no-argument rootbroker en staging-specifieke units zijn geïnstalleerd en de
-  afzonderlijke root- en runnercontroles zijn geslaagd. Herhaal die handoff niet
+  no-argument rootbroker en staging-specifieke units zijn geïnstalleerd. De
+  historische metadata-rootcontrole en de huidige runnercontrole zijn geslaagd;
+  de nieuwe uitgebreide scanner-host-rootcontrole is nog niet geïnstalleerd of
+  uitgevoerd. Herhaal die handoff niet
   en gebruik geen oude runner als fallback. Het bewijs staat in
   `docs/deployment/staging-handoff-evidence-2026-10-01.md`.
-- Stop de web-restart-loop en houd runner en worker-timer gestopt tijdens de
-  eenmalige forward-fix-installatie. De host heeft blijkens `systemctl status`
-  een **staging-specifiek instancebestand**
-  `/etc/systemd/system/fieldgrid@staging.service` geladen. Installeer de
-  beoordeelde `deploy/fieldgrid@.service` daarom uit het nieuwe checksummed
-  operatorpakket exact op dat instancepad, samen met de bijgewerkte publieke
-  runnercontractcontrole, en voer `daemon-reload` plus beide gescheiden
-  contractcontroles uit. Alleen de generieke
-  `/etc/systemd/system/fieldgrid@.service` vervangen corrigeert deze host niet.
-  Start de reeds geïnstalleerde kandidaat `bd7f69f6` daarna niet handmatig: die
-  release bevat de verpakte preflight nog niet. Hervat alleen de runner voor de
-  promotie van de nieuwe volledig geteste SHA.
-- De worker-timer blijft bewust `inactive/dead` totdat de workflow de nieuwe
-  gepromoveerde release via de broker heeft geactiveerd en web-health plus de
-  exacte SHA groen zijn. Voer dan uitsluitend het in de workflow getoonde
-  hervattingscommando uit; de eindcontrole vereist daarna een verse succesvolle
-  workeruitvoering. `shared/runtime.env` is door de tweede poging via de broker
-  gegenereerd en geïnstalleerd en mag niet handmatig worden aangemaakt, gevuld
-  of aangepast.
-- Controleer na activatie actieve ClamAV/freshclam, duurzame Unix-socket
-  `0660`/`clamav:clamav`, afwezigheid van een TCP-listener en
-  eerst de werkelijke clamd-`PING`/`PONG`-preflight onder `fieldgrid`, daarna
-  scannerready/EICAR/PNG/PDF via de gedeployde app. `test -w` is geen geldig
-  positief bewijs voor Unix-socketconnectiviteit. De runnergate verbindt niet,
-  maar vereist exacte runnergroepen, een niet-schrijfbare root/clamav-map en
-  exact sockettype, eigenaar/groep, modus, hardlinkaantal en afwezigheid van
+- De beoordeelde forward-fix voor het staging-specifieke instancebestand,
+  broker en de runnercheck is geïnstalleerd en matcht de gepubliceerde hashes.
+  De toen uitgevoerde rootcheck was de metadata-only `c3dd469…`-versie. De
+  uitgebreidere lokale rootcheck voor VERSION, socketunit en live ClamAV
+  TCP-listeners is nog niet op de host geïnstalleerd of uitgevoerd; herhaal de
+  eenmalige handoff niet en wijzig unit-, sudo- of
+  runnerrechten niet op goed geluk. Exacte release
+  `d9084380f8278e634cb6ee372d2cc4ebe5e9b11e` is geactiveerd en antwoordt met de
+  juiste SHA en een gereed databasepad, maar de volledige scanner-readiness
+  retourneert nog `unavailable`. Begrensde runtime-evidence bewijst dat `PING`,
+  runtime-UID/groepen, socket `clamav:clamav` `0660`, actieve services en
+  actuele definities in orde zijn en dat EICAR wordt geweigerd terwijl PNG/PDF
+  worden geaccepteerd. clamd `VERSION` is echter uitgeschakeld; zonder die
+  engine/database-timestamp faalt Fieldgrids definitie-ouderdomscontrole
+  gesloten. De geactiveerde SHA mag niet opnieuw via de broker worden
+  afgespeeld; voer eerst een beoordeelde remedie uit en bewijs daarna gezonde
+  app-readiness.
+- De worker-timer blijft bewust `inactive/dead` totdat een nieuwe gepromoveerde
+  release via de broker is geactiveerd en publieke web-health tegelijk
+  `status=ok`, `database=ready`, `scanner=ready` en de exacte SHA meldt. Voer
+  pas daarna uitsluitend het door de workflow gevraagde hervattingscommando
+  uit; de eindcontrole vereist vervolgens een verse succesvolle
+  workeruitvoering. `shared/runtime.env` is door de broker gegenereerd en
+  geïnstalleerd en mag niet handmatig worden aangemaakt, gevuld of aangepast.
+- `PING`, runtime-identiteit/groepen, actieve ClamAV/freshclam met actuele
+  definities, Unix-socket `0660`/`clamav:clamav`, EICAR-weigering en acceptatie
+  van de gecontroleerde PNG/PDF zijn bewezen. Herstel nu gecontroleerd de
+  ontbrekende clamd-`VERSION`-metadata. Installeer eerst de checksummed nieuwe
+  rootchecker, pas veilig exact één actieve `EnableVersionCommand yes` toe,
+  herstart clamd en vereis de melding
+  `Root-only staging key, trust, protected runtime and scanner host contract verified.`
+  Controleer daarna gezonde
+  scannerreadiness via de gedeployde app, duurzame socketrechten en afwezigheid
+  van een TCP-listener na daemonherstart. `test -w` is geen geldig positief
+  bewijs voor Unix-socketconnectiviteit. De runnergate verbindt niet, maar
+  vereist exacte runnergroepen, een niet-schrijfbare root/clamav-map en exact
+  sockettype, eigenaar/groep, modus, hardlinkaantal en afwezigheid van
   extended-access-indicators. Geen Environment-dump.
 - Houd de Supabase Auth-hook met tijdelijke URL uitgeschakeld. Na de goedgekeurde
   uitrol is het endpoint `https://staging.fieldgrid.nl/api/email/auth`;

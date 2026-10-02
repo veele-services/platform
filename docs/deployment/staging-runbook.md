@@ -1,7 +1,7 @@
 # Fieldgrid V1 staging runbook
 
-The completed first-host transition and its still-pending worker-resume gate are
-recorded in
+The completed first-host transition, current fail-closed scanner gate and
+still-pending worker-resume gate are recorded in
 [staging-handoff-evidence-2026-10-01.md](staging-handoff-evidence-2026-10-01.md).
 
 This runbook prepares the existing staging VPS for the new Fieldgrid V1
@@ -60,17 +60,24 @@ Install the repository templates as system units:
 
 Initial host bootstrap is an operator action: units cannot start before a
 release and its generated runtime file exist. The current staging host has
-completed the hardened handoff: staging-specific web/worker unit references and
-the fixed root broker are installed, superseded `fieldgrid.env` drop-ins are in
-the protected operator backup, and both root-only and unprivileged runner
-contract checks passed. Promotion candidate
-`bd7f69f6233cd7066e3f042a718b1d9f629ee86a` subsequently installed its release,
-root-only backup and generated `shared/runtime.env`; `current` points at that
-release. Its web activation did not succeed, so the worker timer remains
-intentionally inactive. Do not repeat the one-time handoff and do not edit or
-recreate the installed runtime file. Preflight checks the installed timer
-target; final acceptance requires the operator to resume the timer only after
-healthy web activation and then prove a fresh successful invocation.
+completed the hardened handoff and the subsequent checksummed forward-fix
+operator update: staging-specific web/worker unit references, the fixed root
+broker and the current runnerchecker are installed, superseded `fieldgrid.env`
+drop-ins are in the protected operator backup, and the historical metadata-only
+root check plus current unprivileged runner check passed. The expanded local
+rootchecker for VERSION, socketunit and live TCP-listeners is not yet installed
+or executed on staging. Exact release
+`d9084380f8278e634cb6ee372d2cc4ebe5e9b11e` is now installed, selected and
+active. Its database health is ready, but public health is HTTP 503 because the
+scanner is unavailable; acceptance was skipped and the worker timer therefore
+remains intentionally inactive. Runtime evidence has since proven that clamd is
+reachable and scans EICAR/PNG/PDF correctly, but its disabled `VERSION` command
+prevents Fieldgrid from obtaining the mandatory engine/database timestamp for
+the definition-age check. Do not repeat the one-time handoff, replay the same
+SHA through the broker, or edit/recreate the installed runtime file. Preflight
+checks the installed timer target; final acceptance requires a reviewed remedy
+and healthy exact-SHA web/scanner validation, after which the operator resumes
+the timer and proves a fresh successful invocation.
 The ticket pipeline does not bootstrap a replacement VPS or bypass this gate;
 restore a replacement host through a separately reviewed operator procedure.
 
@@ -104,20 +111,28 @@ runtime is in the `clamav` group, the socket is `clamav:clamav` `0660`, the
 daemons are active and `test -S` succeeds, but `test -w` returned status 1.
 Public health therefore returned 502 and acceptance was skipped.
 
-Do not rerun this already installed SHA: the broker deliberately rejects an
-existing release path. Keep the web restart-loop stopped and the worker timer
-inactive. The recovery is a new reviewed commit whose release contains the
-bounded clamd-protocol preflight, plus a checksummed operator update of the web
-unit and public runnercontract checker before promoting that new SHA. The host
-diagnostic identifies the loaded unit as
-`/etc/systemd/system/fieldgrid@staging.service`, not the generic template. Stop
-the web service, runner and worker timer for this operator update and install
-the reviewed `deploy/fieldgrid@.service` exactly on that staging-instance path;
-only updating `/etc/systemd/system/fieldgrid@.service` would leave the loaded
-override in force. Run `daemon-reload` and both contract controls before
-restarting only the runner. Do not regenerate the key/certificate, trusted
-root, sudo rule, identities or directories. The Supabase Send Email Hook
-remains off and production remains untouched.
+That recovery step is now historical. The checksummed operator update installed
+the reviewed web unit at the actually loaded
+`/etc/systemd/system/fieldgrid@staging.service` path and updated the public
+runner-contract checker. The operator ran `daemon-reload`; the metadata-only
+root control and current runner control passed before only the runner was
+restarted. This is not execution of the later expanded rootchecker. No key/certificate,
+trusted root, sudo rule, identity or protected directory was regenerated.
+
+Commit `d9084380f8278e634cb6ee372d2cc4ebe5e9b11e` passed complete `main` CI. Its
+staging verify, host-preflight and hosted prepare jobs also passed; the broker
+then installed and activated that exact release with database readiness. The
+public health endpoint currently returns HTTP 503 with
+`scanner=unavailable`, so acceptance was skipped, the worker timer remains off,
+and staging remains NO-GO. Current runtime evidence now establishes the cause:
+`PING`, runtime UID/groups, the `clamav:clamav` `0660` socket, active services
+with current definitions, EICAR rejection and PNG/PDF acceptance all pass, but
+clamd `VERSION` returns `COMMAND UNAVAILABLE`. Fieldgrid therefore cannot
+complete its mandatory engine/database-age validation. Do not retry the broker
+with this already installed SHA: existing release paths are intentionally
+non-replayable. Preserve the current ownership, mode and runner-denial
+boundaries. If release content must change, promote a new fully reviewed SHA.
+The Supabase Send Email Hook remains off and production remains untouched.
 
 ### One-time hardened handoff (operator)
 
@@ -247,17 +262,46 @@ not run these commands against production.
    sudo systemctl daemon-reload
    ```
 
-8. Run the root-only control first. It alone verifies `/etc/fieldgrid`, the
-   handoff key/certificate, attestation trusted root, broker and protected
-   runtime metadata. It accepts the protected legacy `fieldgrid.env` during the
-   coordinated first transition and must be rerun after deployment has created
-   `runtime.env`:
+8. Install the new checksummed rootchecker before bringing ClamAV into its
+   expanded rootgate contract. This is a targeted checker/config correction;
+   do not repeat the one-time handoff and do not reinstall the already verified
+   webunit, runnerchecker or broker solely for VERSION. The operator-owned
+   `/etc/clamav/clamd.conf` must be a non-symlinked, root-owned
+   file with one hardlink, no group/world-write or extended-access indicator,
+   exactly one active `EnableVersionCommand yes` and no active `TCPSocket`.
+   Never replace the complete daemon configuration with the repository example
+   and never edit it in place without a backup. If VERSION is disabled, use the
+   checksummed operator package to stop runner, worker timer/service and web;
+   create a root-only backup; validate an atomic candidate with the installed
+   ClamAV tooling; restart `clamav-daemon.service`; and roll back automatically
+   if the daemon or VERSION probe fails. Preserve the canonical Unix socket,
+   resource limits and freshclam configuration.
+
+   The root-only control then verifies both protected release metadata and the
+   live scanner boundary. Besides `/etc/fieldgrid`, the handoff key/certificate,
+   attestation trusted root, broker and protected runtime metadata, it checks
+   the canonical ClamAV config, the effective `clamav-daemon.socket` listener
+   and active state, and binds the daemon `MainPID` plus listening Unix socket to
+   the same service tree. It checks that tree and all other `clamd*` processes
+   fail-closed for IPv4/IPv6 TCP listeners, then requires a bounded structured
+   VERSION response on the Unix socket. It accepts the protected legacy
+   `fieldgrid.env` during the coordinated
+   first transition and must be rerun after deployment has created `runtime.env`:
 
    ```sh
    sudo /usr/bin/env -i \
      PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
      /usr/bin/bash /usr/local/libexec/fieldgrid/check-staging-root-contract.sh
    ```
+
+   A successful expanded check prints exactly:
+
+   ```text
+   Root-only staging key, trust, protected runtime and scanner host contract verified.
+   ```
+
+   The historical output ending in `protected runtime metadata verified.` came
+   from the older `c3dd469…` metadata-only checker and is insufficient here.
 
 9. Run the unprivileged control as `fieldgrid-runner` with only canonical
    non-secret values. It must not traverse `/etc/fieldgrid` or read runtime
@@ -395,23 +439,29 @@ selected for diagnosis. The workflow never restores older, potentially
 incompatible code automatically; use a reviewed forward fix or a separately
 proven compatible operator action.
 
-For the confirmed 2 October scanner-preflight incident, do not weaken socket
-ownership/mode and do not add runner access. Stop the failing web restart-loop,
-leave the worker timer off, stop the runner during the host mutation and install
-the reviewed updated webtemplate at the actually loaded
-`/etc/systemd/system/fieldgrid@staging.service` instance path before promoting
-the new forward-fix SHA. Reload systemd, rerun the root and runner controls and
-then restart only the runner. The new release must package
-`clamav-preflight.mjs`; systemd retains `test -S` for path type and then proves
-actual runtime reachability with clamd `PING`/`PONG` over the canonical Unix
-socket. A `test -w` result is not positive scanner proof and must not return in
-the unit. The runner contract rejects that legacy check and proves its own
-negative boundary through exact runner groups, a non-writable root/clamav-
-controlled parent without extended access, plus exact socket type,
-`clamav:clamav` ownership, mode `0660`, one hardlink and no access indicator;
-it never connects to clamd. Start no current release manually
-between the unit update and the new promotion because candidate `bd7f69f6`
-does not contain the packaged preflight.
+The 2 October `bd7f69f6` scanner-preflight incident and its operator fix are
+complete: the reviewed unit is installed at the loaded staging-instance path,
+systemd was reloaded, the historical metadata-rootcheck and current runnercheck
+passed, and `d9084380` packages
+`clamav-preflight.mjs`. Systemd retains `test -S` for path type and uses the
+bounded clamd `PING`/`PONG` probe over the canonical Unix socket; `test -w` is
+not positive scanner proof. The runner contract continues to prove its negative
+boundary through exact runner groups, a non-writable root/clamav-controlled
+parent without extended access, plus exact socket type, `clamav:clamav`
+ownership, mode `0660`, one hardlink and no access indicator; it never connects
+to clamd.
+
+The current `d9084380` release is active and database-ready but reports
+`scanner=unavailable` with HTTP 503. The current runtime, daemon, definition,
+socket and direct-scan evidence proves that clamd is reachable and scans
+correctly, while its disabled `VERSION` command withholds the engine/database
+timestamp required by Fieldgrid's strict definition-age readiness. Keep the
+worker timer off, do not broaden socket or runner access, and do not replay the
+same SHA through the broker. The cause is diagnosed but not remediated. If a
+code, packaging or reviewed host configuration change is required, promote or
+apply it through the applicable controlled flow. Resume the timer only after
+public health validates the exact active SHA with scanner readiness; then
+require a new successful worker invocation that started after that activation.
 
 ## 7. First administrator and tenant
 
@@ -459,7 +509,8 @@ The web service separately performs a bounded clamd `PING`/`PONG` over the Unix
 socket before Node starts; it does not treat `test -w` as proof of socket
 connectability. This availability probe is not a replacement for the healthcheck
 or the EICAR/clean-file acceptance.
-See [ClamAV operator steps](clamav.md) before installing updated unit templates.
+See [ClamAV operator steps](clamav.md) for the current config/rootgate
+remediation. Do not reinstall the already verified webunit solely for VERSION.
 
 Tickets share `/api/worker` and the existing timer. Check a fresh successful
 invocation after deploying, not just an active timer or historical unit result.

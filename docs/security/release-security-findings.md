@@ -1,6 +1,7 @@
 # Releasebevindingen — 1 oktober 2026, omgevingsaddendum 2 oktober
 
-**NO-GO.** Lokale reparatie is geen staging- of volledige vrijgaveverificatie.
+**NO-GO.** Lokale reparatie en een gedegradeerde stagingruntime zijn geen
+volledige vrijgaveverificatie.
 De query-first SQL-reparaties zijn vastgelegd in zestien forward-migraties van
 `20261001013206_release_security_privacy.sql` tot en met
 `20261001091500_release_public_commercial_entitlements.sql`, gevolgd door de
@@ -17,9 +18,20 @@ de gecorrigeerde broker heeft kandidaat `bd7f69f6` opnieuw volledige CI en de
 afgeschermde stagingworkflow doorlopen. De broker installeerde release, runtime
 en backup, maar de webstart stopte vóór Node omdat de geïnstalleerde unit
 `test -w` ten onrechte als positieve ClamAV Unix-socketcontrole gebruikte.
-Public health gaf 502 en acceptance is overgeslagen. De bevindingentabel
-hieronder blijft het lokale reparatiebewijs beschrijven; stagingacceptatie en
-het totale vrijgavebesluit blijven **NO-GO**.
+Public health gaf 502 en acceptance is overgeslagen. De gedeployde, maar
+gedegradeerde stagingrelease
+`d9084380f8278e634cb6ee372d2cc4ebe5e9b11e` heeft vervolgens volledige
+`main`-CI in run `37029578368` doorlopen en is exact naar staging gepromoveerd.
+Run `37031911962` rondde verify, host-preflight en prepare groen af; de broker
+activeerde d908. De healthcheck gaf daarna HTTP 503 met exact d908, database
+gereed en scanner niet beschikbaar. Een daaropvolgende runtimeproef bewees de
+oorzaak: clamd is via de verwachte socket bereikbaar en scant correct, maar
+`VERSION` is uitgeschakeld. Fieldgrid kan daardoor de verplichte engine- en
+databaseversie/timestamp voor de definitie-ouderdomscontrole niet valideren en
+faalt gesloten. Worker en acceptance zijn overgeslagen en de worker-timer staat
+uit. Deze diagnose is nog geen remedie. De bevindingentabel hieronder blijft
+het lokale reparatiebewijs beschrijven; stagingacceptatie en het totale
+vrijgavebesluit blijven **NO-GO**.
 
 | ID | Grens / bewijs vóór herstel | Huidige stand |
 | --- | --- | --- |
@@ -92,7 +104,7 @@ en bedieningspunt, geen geaccepteerde integriteits- of toegangsuitzondering.
   vond nul rapporteerbare bevindingen in de gewijzigde/ongetrackte implementatie
   en de beveiligingskritieke grenzen. De codedekking is partieel omdat niet ieder
   ongewijzigd presentatie-, documentatie- en fixturebestand opnieuw regel voor
-  regel is onderzocht. Alle 835 ontdekte autorisatie-/data-/releaseoppervlakken hebben
+  regel is onderzocht. Alle 836 ontdekte autorisatie-/data-/releaseoppervlakken hebben
   afzonderlijk een afgeronde reviewstatus en bewijsset; een inventaris of
   nulbevindingenscan is desondanks geen formele risicoacceptatie.
 - Configureerbaar rollenbeheer is geen onderdeel van deze release: het
@@ -106,36 +118,43 @@ en bedieningspunt, geen geaccepteerde integriteits- of toegangsuitzondering.
   personeelsbestand groter dan 10 MB blijft bewaard maar is niet vrijgegeven:
   de huidige scannergrens moet via een gecontroleerde vervolgactie worden
   afgehandeld. Antivirus detecteert bekende patronen, niet alle mogelijke schade.
-- De operator heeft VPS-identiteiten, actuele procesgroepen, socketrechten,
-  staging-specifieke unitverwijzingen en beide gescheiden contractcontroles
-  bevestigd met de toen geïnstalleerde checker. De lokaal geharde runnerchecker
-  vereist daarnaast een niet-vervangbare scannerdirectory en exacte socket-
-  metadata/access-indicators en moet nog via het checksummed operatorpakket
-  worden geïnstalleerd en opnieuw op de host draaien.
-  De gecorrigeerde broker is geïnstalleerd en heeft de tweede
-  kandidaat veilig overgedragen. De staging-specifieke webunit moet nu worden
-  bijgewerkt van de ongeschikte `test -w`-predicate naar de verpakte, begrensde
-  clamd-`PING`/`PONG`-preflight. De runnercontrole is aangescherpt op exacte
-  groepen, bovenliggende map en exacte socketmetadata zonder verbinding; een
-  echte Unix-sockettest bewijst de negatieve grens, permissiedrift en
-  vervangingsrisico. Socketrechten na daemonherstart,
-  scannerdefinities, echte providerhooks en runtimeacceptatie blijven open; zie
-  operationele runbooks.
+- De operator heeft de huidige runnerchecker, staging-specifieke webunit en vaste
+  broker geïnstalleerd; hun gepubliceerde hashes matchen op de host. De
+  historische metadata-rootchecker `c3dd469…` en de huidige runnercontrole zijn
+  geslaagd. De lokaal uitgebreide rootchecker voor VERSION, socketunit en live
+  ClamAV TCP-listeners is nog niet geïnstalleerd of op de VPS uitgevoerd en kan
+  pas slagen na `EnableVersionCommand yes` plus daemonherstart. De broker heeft
+  exact d908 geactiveerd.
+  De gedeployde healthcheck geeft 503 met dezelfde SHA en database gereed, maar
+  scanner niet beschikbaar. Onder `fieldgrid` zijn de juiste UID/groepen,
+  `clamav:clamav`-socketmodus `0660`, actieve daemon/freshclam met actuele
+  definities, `PING`, EICAR-weigering en PNG/PDF-acceptatie aangetoond. clamd
+  antwoordt op `VERSION` met `COMMAND UNAVAILABLE`; daardoor faalt de strikte
+  engine/database-age readiness. Een beoordeelde remedie, gezonde
+  scannerreadiness via de app en socket-/TCP-hercontrole na daemonherstart
+  blijven te bewijzen.
 - De staging-runner met eigen label is nu online. De operator bevestigt
   UID-/groepsscheiding, socketrechten, `r-x` op `/home/fieldgrid`, een echte
   schrijf-/verwijderproef en de GitHub-verbinding. Units, stagingbackup en de
   complete migratiehistorie zijn inmiddels bewezen; `runtime.env` is door de
-  broker geïnstalleerd. Een geïsoleerde restoreproef, verse workeruitvoering en
-  exacte SHA-health moeten nog volgen.
-- De finale ClamAV-forward-fix diffscan
-  `0bccadf0-62e4-437a-b038-32007b495141` vond na herstel van socket- én
-  parent-directorygrenzen nul rapporteerbare bevindingen in alle tien
-  uitvoerbare/test-diffoppervlakken. Dit is lokaal bronbewijs; de nieuwe checker
-  moet nog via het SHA-gebonden operatorpakket op de VPS worden uitgevoerd.
-- Kandidaat `bd7f69f6` had volledige GitHub-CI en bereikte veilige installatie,
-  maar niet webactivatie. De ClamAV-preflight-forward-fix krijgt daarom een
-  nieuwe beoordeelde SHA en moet de volledige keten opnieuw doorlopen;
-  stagingacceptatie ontbreekt nog. Details staan in
+  broker geïnstalleerd. De healthbody bewijst de exacte d908-SHA, maar geen
+  gezonde HTTP-status. Een geïsoleerde restoreproef en verse workeruitvoering
+  moeten nog volgen; de timer blijft uit.
+- Security-diffscan `548d8357-9301-41c9-8604-2f35830bf97d` vond één low
+  bevinding: de kandidaat-rootgate bewees nog niet dat de draaiende clamd geen
+  TCP-listener had. Dat pad is lokaal uitgebreid met controle van de effectieve
+  socketunit, canonical MainPID/Unix-socketeigendom en proces-/namespacegebonden
+  IPv4/IPv6-listeners; masked-active of onleesbare listenerstatus faalt gesloten.
+  Na deze correcties beoordeelde schone scan
+  `c5098c3a-5e76-421c-acee-51069d9c8de9` de lokale remediatiekandidaat met nul
+  rapporteerbare bevindingen. De kandidaat heeft nog geen commit-SHA,
+  `main`-CI of deploymentbewijs. Oudere scan
+  `d4a5edc3-2752-4c36-a6bc-bf2ed846ee07` blijft uitsluitend historisch
+  bronbewijs voor de gedeployde d908-release.
+- De gedeployde release d908 heeft volledige `main`-CI en is door de broker
+  geactiveerd, maar stagingrun `37031911962` eindigde na 503-health zonder
+  worker- of acceptancejob. De Supabase Send Email Hook blijft uit;
+  provideracceptatie ontbreekt en productie is onaangeraakt. Details staan in
   `release-security-verification.md`.
 
 ## Aanvullende bevindingen: ernst en bewijs
@@ -236,5 +255,5 @@ restrictie: oude onveilig brede toegang verdwijnt, de historische gegevens
 blijven behouden. Geen vrijgave van staging of formele risicoacceptatie.
 
 Geen formele risicoacceptatie namens de eigenaar en geen volledige
-veiligheidsclaim. De twee vastgelegde stagingpromoties leveren nog geen
+veiligheidsclaim. Ook de huidige exact-SHA-promotie levert nog geen
 geaccepteerde deployment op; productie is niet benaderd of gewijzigd.

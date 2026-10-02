@@ -9,7 +9,7 @@ regel voor regel is onderzocht. Alle daadwerkelijk ontdekte autorisatie- en
 dataoppervlakken hebben inmiddels wel een expliciete voltooide status en
 bewijsverwijzing. Operationele stagingvoorwaarden blijven NO-GO.
 
-De structurele CI-inventaris `authorization-surfaces.json` beschrijft **835**
+De structurele CI-inventaris `authorization-surfaces.json` beschrijft **836**
 ingangen/resources uit de huidige bron en een schone database met 55 migraties:
 
 | Soort | Aantal | Wat de registratie bewijst |
@@ -17,7 +17,7 @@ ingangen/resources uit de huidige bron en een schone database met 55 migraties:
 | Server-actionmodules | 27 | Exportnamen, waargenomen helpers en letterlijke tabel/RPC-afhankelijkheden |
 | Routes en RSC-pagina's/layouts | 94 | Bestaande ingangen, inclusief publieke schermen zonder datahelper |
 | Overige data-accessmodules | 44 | Gevonden queries/RPC's, indirecte autorisatiehelpers, servercomponenten, browser-/Realtimeclients en privileged-clientaanmaak |
-| Operationele releasepaden | 52 | Inhoudshashes van alle ontdekte workflows/deploybestanden plus package/lock/config, serviceworker, migratiemanifest en runtime-/backup-/migratiescripts, inclusief de vier stagingmigratie-trust-boundaries en de releasegebonden ClamAV-preflight |
+| Operationele releasepaden | 53 | Inhoudshashes van alle ontdekte workflows/deploybestanden plus package/lock/config, serviceworker, migratiemanifest en runtime-/backup-/migratiescripts, inclusief de vier stagingmigratie-trust-boundaries en de releasegebonden ClamAV-preflight |
 | Public/private tabellen | 177 | RLS/FORCE en effectieve basisgrants |
 | Public RPC's | 167 | Signatuur, definerstatus en executegrants |
 | Private functies | 181 | Signatuur, definerstatus en executegrants |
@@ -33,7 +33,7 @@ inhoudelijke dekking of de verplichte actor/resource-tests.
 De inventaris omvat nu ook `components` met serverdata, browserclients en
 helpermodules die alleen een indirecte auth/provider-/bestandscontrole uitvoeren;
 deze paden konden eerder buiten de structurele diffgate blijven.
-`authorization-review.json` koppelt ieder van de 835 IDs aan een expliciete
+`authorization-review.json` koppelt ieder van de 836 IDs aan een expliciete
 status en bewijsset. `scripts/check-authorization-review.mjs` faalt bij een
 ontbrekend, dubbel, verouderd, onbewezen, `pending` of `blocked` item. De
 `--capture`-stand neemt bestaande beoordelingen over maar zet iedere nieuw
@@ -54,7 +54,7 @@ bijwerken kan een inhoudswijziging daardoor niet als eerder beoordeeld laten gel
 | Betaling/capability | Gedeelde token-intrekking; providerwrites/settlement afgeschermd; uitgegeven bundels en definitieve bronregels onveranderlijk; atomische voorbereiding en retries, huidige modulecontrole en betaling/finalisatiereplay-concurrency getest; de complete stagingmigratiehistorie is bevestigd | Werkelijke Mollie-testbetaling en deployed runtimegedrag nog niet geaccepteerd |
 | Modulegrenzen/werkbonmeldingen | Tenant kan entitlements niet via verwijderen/heraanmaken/verplaatsen omzeilen; secundaire moduledata in dossier/staffprojectie afgeschermd; dispatchreplay gebonden; personeel ziet alleen eigen werkbonmeldingen/eigen bewijs; indirecte helpers zijn structureel geïnventariseerd | Deployed entitlementgedrag na migratie accepteren |
 | Tickets/notificaties/mail | Scope-, lease-, providerpermit-, hook-, ontvanger-, bytes- en retrytests; upgrade behoudt historie. Bestaande grants ook na rowlock begrensd, globale concepttemplates niet naar tenant, actuele leesbevestigingen/herinneringen en minimale nieuwe klantaudit; routehelpers staan in de reviewledger | Werkelijke provideractivatie/levering en historische auditretentie |
-| Deployment | Standalone guards/TLS, geheimvrije argv/logs, runtime.env, backupretry, CI-gates; externe acties op volledige commit-SHA en stagingsecrets uitsluitend per noodzakelijke stap; workersecret niet in procesargumenten; root-only key/trust/runtimecontrole strikt gescheiden van runnercontrole; echte Linux-UID/GID- en directoryrechten getest; runner online en operatorbewijs voor UIDs/socket. De eerste promotiepoging bewees backup, forwardmigraties, 55-regel-historie, versleuteling en attestaties; de tweede bewees de gecorrigeerde broker en installeerde release/runtime/backup. Webactivatie stopte fail-closed vóór Node doordat de staging-specifieke unit `test -w` als positieve Unix-socketcontrole gebruikte | Nieuwe volledig geteste SHA met verpakte clamd-`PING`/`PONG`-preflight; bijgewerkte geladen instance-unit `/etc/systemd/system/fieldgrid@staging.service` plus geharde runnercontrole via checksummed operatorpakket en verse hosthercontrole; daarna web-health/exacte SHA, timer hervatten, verse workeruitvoering, scanner na daemonherstart, geïsoleerde restore en provideracceptatie |
+| Deployment | Standalone guards/TLS, geheimvrije argv/logs, runtime.env, backupretry, CI-gates; externe acties op volledige commit-SHA en stagingsecrets uitsluitend per noodzakelijke stap; workersecret niet in procesargumenten; root-only key/trust/runtimecontrole strikt gescheiden van runnercontrole; echte Linux-UID/GID- en directoryrechten getest. Het unit/preflightincident is opgelost; geïnstalleerde webunit, runnerchecker en broker matchen hun gepubliceerde hashes. Exact `d9084380` is actief en database-ready, maar health blijft HTTP 503 doordat clamd `VERSION` is uitgeschakeld; de timer blijft uit | De lokaal uitgebreide rootchecker/configremedie is nog niet op de host geïnstalleerd of bewezen. Daarna ontbreken nog gezonde exact-SHA web/scannerhealth, een verse workeruitvoering, geïsoleerde restore en provideracceptatie |
 
 ## Werkelijk gecontroleerde lokale catalogus
 
