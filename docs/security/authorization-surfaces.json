@@ -5659,7 +5659,7 @@
     {
       "id": "operation:package.json",
       "classification": "operation",
-      "source_sha256": "93f881de609bf7293ff229d0d747c51b5e7a56e14c058a058526212039bc2a04"
+      "source_sha256": "f69ecd987afd1c9a9e7e9475d686c9e58313cbf02e5021fa98b44cb6bdc4f057"
     },
     {
       "id": "operation:playwright.config.ts",
@@ -5669,7 +5669,7 @@
     {
       "id": "operation:pnpm-lock.yaml",
       "classification": "operation",
-      "source_sha256": "1c21f81cf7d62f0470bd6eea7a8523533f8cd3ed65c89af03f3c1e5a19d5e224"
+      "source_sha256": "b169ff59b0821b3980321555e27adf46870bc9c1281fb4fa9cab094c37c1f6bb"
     },
     {
       "id": "operation:public/sw.js",

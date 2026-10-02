@@ -3934,12 +3934,12 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "b21db1150ab28961db547e850c88c5ae77dd49dd21cd04fbc7dda0be1a8b361c",
-      "status": "controlled",
+      "surfaceFingerprint": "9f7bf329fd5ba2ec8240bd415d8a65e25fdaf8f13cce3c72bc8a88ad5336d963",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
+        "manual-cli-regression-review:2026-10-02",
+        "Supabase CLI 2.117.0 clean local replay preserved all 55 exact statement-history hashes.",
+        "lib/env/staging-migration-command.test.ts",
         "docs/deployment/staging-runbook.md"
       ]
     },
@@ -3956,12 +3956,12 @@
     },
     {
       "id": "operation:pnpm-lock.yaml",
-      "surfaceFingerprint": "ae126d5fbc6ed31b05328ce1b1cd1b4625f9a6921a8dfa7468af77ec592285d4",
-      "status": "controlled",
+      "surfaceFingerprint": "488ba369d75c0187d22cde1f8fe9bfe93998b11355fe178a239374dc41ed0811",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
+        "manual-cli-regression-review:2026-10-02",
+        "Frozen lockfile installs Supabase CLI 2.117.0 from pinned integrity hashes and passes repository supply-chain policy.",
+        "Supabase CLI 2.117.0 clean local replay preserved all 55 exact statement-history hashes.",
         "docs/deployment/staging-runbook.md"
       ]
     },

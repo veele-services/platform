@@ -308,7 +308,16 @@ a backup, and only then applies forward migrations. Immediately before that
 write phase, the same isolated adapter and work directory perform a non-writing
 Supabase CLI `db push --dry-run`. A failed dry-run or migration logs only its phase, a
 repository-allowlisted migration filename, an allowlisted SQLSTATE and a coarse
-failure category; raw database and connection diagnostics remain suppressed.
+failure category plus the allowlisted connection class (`direct` or
+`session-pooler`); raw database and connection diagnostics remain suppressed.
+
+The release is deliberately pinned to Supabase CLI `2.117.0`. Version `2.118.0`
+moved remote `db push` to a new database-driver implementation and the first
+staging dry-run stopped before producing a migration plan, while the preceding
+project/history guard and backup adapters remained healthy. A clean local
+`2.117.0` replay produces the exact same 55 statement-history hashes recorded
+by the repository manifest. Do not upgrade this release pin without repeating
+that complete history check and a non-writing hosted staging dry-run.
 
 ## 6. First promotion
 

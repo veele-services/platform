@@ -47,6 +47,54 @@ describe("staging migration diagnostics", () => {
     expect(formatStagingMigrationDiagnostic(diagnostic)).toBe("phase=dry-run category=pooler");
   });
 
+  it("does not classify connection options echoed in an exec error message as TLS", () => {
+    const failure = Object.assign(new Error([
+      "Command failed: pnpm exec supabase db push",
+      "--db-url postgresql://user:secret@db.abcdefghijklmnopqrst.supabase.co/postgres?sslmode=verify-full&sslrootcert=/tmp/roots.pem",
+    ].join(" ")), {
+      stderr: "unexpected EOF while reading the server response",
+      stdout: "",
+      code: 1,
+    });
+    const diagnostic = stagingMigrationDiagnostic("dry-run", failure, allowed);
+    expect(diagnostic).toEqual({
+      phase: "dry-run",
+      category: "transport",
+      connection: "direct",
+    });
+    expect(formatStagingMigrationDiagnostic(diagnostic)).toBe(
+      "phase=dry-run category=transport connection=direct",
+    );
+  });
+
+  it("reports only a safe session-pooler class from a process command", () => {
+    const failure = Object.assign(new Error(
+      "Command failed: supabase db push --db-url postgresql://postgres.secret-ref:password@aws-1-eu-west-1.pooler.supabase.com:5432/postgres",
+    ), {
+      stderr: "unexpected EOF",
+      code: 1,
+    });
+    const output = formatStagingMigrationDiagnostic(
+      stagingMigrationDiagnostic("dry-run", failure, allowed),
+    );
+    expect(output).toBe("phase=dry-run category=transport connection=session-pooler");
+    expect(output).not.toMatch(/secret-ref|password|aws-|supabase\.com/i);
+  });
+
+  it("returns unknown when only a child-process command echo mentions TLS options", () => {
+    const failure = Object.assign(new Error(
+      "Command failed: supabase db push --db-url postgresql://database.invalid/postgres?sslmode=verify-full&sslrootcert=/tmp/roots.pem",
+    ), {
+      stderr: "",
+      stdout: "",
+      code: 1,
+    });
+    expect(stagingMigrationDiagnostic("dry-run", failure, allowed)).toEqual({
+      phase: "dry-run",
+      category: "unknown",
+    });
+  });
+
   it("accepts allowlisted codes from structured process errors and migration stems", () => {
     const diagnostic = stagingMigrationDiagnostic("apply", {
       code: "28p01",

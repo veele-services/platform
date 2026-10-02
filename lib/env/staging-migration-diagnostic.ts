@@ -13,6 +13,7 @@ export type StagingMigrationCategory =
 export type StagingMigrationDiagnostic = Readonly<{
   phase: StagingMigrationPhase;
   category: StagingMigrationCategory;
+  connection?: "direct" | "session-pooler";
   migration?: string;
   sqlstate?: string;
 }>;
@@ -43,22 +44,46 @@ const safeText = (value: unknown) => {
   return "";
 };
 
-function failureText(failure: unknown) {
+function failureOutputText(failure: unknown) {
   if (!failure || typeof failure !== "object") return safeText(failure);
   const record = failure as Record<string, unknown>;
   const cause = record.cause && typeof record.cause === "object"
     ? record.cause as Record<string, unknown>
     : undefined;
+  // Only process output is suitable classification input. Node includes the
+  // complete executable and arguments in child-process error messages; those
+  // arguments can contain harmless connection options such as `sslmode` and
+  // `sslrootcert`. Inspecting `message` would therefore turn unrelated CLI
+  // failures into false TLS diagnoses. Structured error codes are considered
+  // separately by `sqlstateFrom`.
+  //
   // Bound inspection cost while retaining both the start and end of CLI
   // diagnostics. This text is classification input only and is never returned.
-  return [record.stderr, record.stdout, record.message, record.code,
-    cause?.stderr, cause?.stdout, cause?.message, cause?.code]
+  return [record.stderr, record.stdout, cause?.stderr, cause?.stdout]
     .map(safeText)
     .map((text) => text.length > 1_048_576
       ? `${text.slice(0, 524_288)}\n${text.slice(-524_288)}`
       : text)
     .filter(Boolean)
     .join("\n");
+}
+
+function connectionFrom(failure: unknown) {
+  if (!failure || typeof failure !== "object") return undefined;
+  const record = failure as Record<string, unknown>;
+  const cause = record.cause && typeof record.cause === "object"
+    ? record.cause as Record<string, unknown>
+    : undefined;
+  // `execFile` repeats the full command in Error.message. Inspect that value
+  // only for an allowlisted connection class; never return the URL, hostname,
+  // project ref, user or any other part of the untrusted text.
+  const text = [record.message, cause?.message, record.stderr, cause?.stderr]
+    .map(safeText)
+    .join("\n");
+  const direct = /\bdb\.[a-z0-9]{20}\.supabase\.co(?=[:/\s?]|$)/iu.test(text);
+  const pooler = /\baws-[a-z0-9-]+\.pooler\.supabase\.com(?=[:/\s?]|$)/iu.test(text);
+  if (direct === pooler) return undefined;
+  return direct ? "direct" as const : "session-pooler" as const;
 }
 
 function migrationFrom(text: string, allowedMigrationNames: readonly string[]) {
@@ -123,12 +148,14 @@ export function stagingMigrationDiagnostic(
   failure: unknown,
   allowedMigrationNames: readonly string[],
 ): StagingMigrationDiagnostic {
-  const text = failureText(failure);
+  const text = failureOutputText(failure);
   const sqlstate = sqlstateFrom(text, failure);
   const migration = migrationFrom(text, allowedMigrationNames);
+  const connection = connectionFrom(failure);
   return Object.freeze({
     phase,
     category: categoryFrom(text, sqlstate),
+    ...(connection ? { connection } : {}),
     ...(migration ? { migration } : {}),
     ...(sqlstate ? { sqlstate } : {}),
   });
@@ -138,6 +165,7 @@ export function formatStagingMigrationDiagnostic(diagnostic: StagingMigrationDia
   return [
     `phase=${diagnostic.phase}`,
     `category=${diagnostic.category}`,
+    ...(diagnostic.connection ? [`connection=${diagnostic.connection}`] : []),
     ...(diagnostic.migration ? [`migration=${diagnostic.migration}`] : []),
     ...(diagnostic.sqlstate ? [`sqlstate=${diagnostic.sqlstate}`] : []),
   ].join(" ");
