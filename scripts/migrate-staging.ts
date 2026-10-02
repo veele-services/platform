@@ -6,6 +6,33 @@ import { tmpdir } from "node:os";
 import { rootCertificates } from "node:tls";
 import { stagingDatabaseUrl } from "../lib/env/staging-database";
 import { stagingMigrationCommand } from "../lib/env/staging-migration-command";
+import {
+  formatStagingMigrationDiagnostic,
+  stagingMigrationDiagnostic,
+  type StagingMigrationPhase,
+} from "../lib/env/staging-migration-diagnostic";
+
+const execFileAsync = promisify(execFile);
+
+async function runMigrationPhase(
+  phase: StagingMigrationPhase,
+  invocation: ReturnType<typeof stagingMigrationCommand>,
+  migrationNames: readonly string[],
+) {
+  try {
+    // Capture, but never relay raw CLI diagnostics: database errors may
+    // contain records or connection details. Credentials exist only in the
+    // child environment.
+    await execFileAsync(invocation.command, invocation.args, {
+      env: invocation.env,
+      timeout: 1_200_000,
+      maxBuffer: 16 * 1024 * 1024,
+    });
+  } catch (failure) {
+    console.error(`Veilige stagingmigratiediagnose: ${formatStagingMigrationDiagnostic(stagingMigrationDiagnostic(phase, failure, migrationNames))}`);
+    throw failure;
+  }
+}
 
 async function main() {
   // Also guarded when invoked directly, before filesystem writes or connections.
@@ -26,10 +53,17 @@ async function main() {
       const target = join(migrations, name);
       await copyFile(resolve("supabase/migrations", name), target); created.push(target);
     }
-    const invocation = stagingMigrationCommand(process.env, directory, ca);
-    // Capture, but do not relay CLI diagnostics: database errors can contain
-    // sensitive records. Credentials are exclusively in the child's environment.
-    await promisify(execFile)(invocation.command, invocation.args, { env: invocation.env, timeout: 1_200_000, maxBuffer: 16 * 1024 * 1024 });
+    await runMigrationPhase(
+      "dry-run",
+      stagingMigrationCommand(process.env, directory, ca, { dryRun: true }),
+      names,
+    );
+    console.log("Stagingmigratieverbinding en migratievolgorde niet-schrijvend gevalideerd.");
+    await runMigrationPhase(
+      "apply",
+      stagingMigrationCommand(process.env, directory, ca),
+      names,
+    );
     console.log("Voorwaartse stagingmigraties voltooid met geverifieerde TLS en geïsoleerde CLI-configuratie.");
   } finally {
     // Only remove the exact temporary files this process created. A CLI-created

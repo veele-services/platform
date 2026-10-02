@@ -5749,7 +5749,7 @@
     {
       "id": "operation:scripts/migrate-staging.ts",
       "classification": "operation",
-      "source_sha256": "35c5624a91eb8690ae5f954a623d916ea3f550a6756812af2f8f7a738f5c2339"
+      "source_sha256": "37c67ae257a3421cb4de98661536f3be40df1fdb5a5fc339fe9655334b03e04f"
     },
     {
       "id": "operation:scripts/migration-manifest.json",
@@ -5794,7 +5794,7 @@
     {
       "id": "operation:scripts/verify-migration-target.ts",
       "classification": "operation",
-      "source_sha256": "109b6b87f168bc6f3759fba51d212398923dafdf5dbcee0f0586143c33730fac"
+      "source_sha256": "673b37f36e5e29675b87dc4e5593cc9a129d08a6f68c4a84369cf8dc32698aa8"
     },
     {
       "id": "operation:scripts/write-runtime-env.sh",

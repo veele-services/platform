@@ -26,6 +26,21 @@ describe("staging deployment broker boundary", () => {
     expect(backup).not.toContain("sudo");
   });
 
+  it("keeps staging migrations prefix-only, dry-runs first and suppresses raw diagnostics", () => {
+    const command = read("lib/env/staging-migration-command.ts");
+    const migrate = read("scripts/migrate-staging.ts");
+    const target = read("scripts/verify-migration-target.ts");
+    expect(command).toContain('args.push("--dry-run")');
+    expect(command).not.toContain('args.push("--include-all")');
+    expect(migrate.indexOf('"dry-run"')).toBeLessThan(migrate.indexOf('"apply"'));
+    expect(migrate).toContain("stagingMigrationDiagnostic(phase, failure, migrationNames)");
+    expect(migrate).not.toMatch(/console\.(?:log|error)\([^\n]*\b(?:stderr|stdout)\b/);
+    expect(migrate).not.toContain("console.error(failure");
+    expect(target).toContain("to_regclass('public.permission_catalog')");
+    expect(target).toContain("to_regclass('public.tickets')");
+    expect(target).toContain("to_regclass('private.ticket_config')");
+  });
+
   it("passes the canonical deployment contract into the hosted preflight", () => {
     const workflow = read(".github/workflows/deploy-staging.yml");
     const prepare = workflow.slice(workflow.indexOf("  prepare:"), workflow.indexOf("  deploy:"));

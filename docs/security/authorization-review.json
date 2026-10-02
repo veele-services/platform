@@ -4129,12 +4129,12 @@
     },
     {
       "id": "operation:scripts/migrate-staging.ts",
-      "surfaceFingerprint": "a5a4141894b56fb3fc868921c5c4890014cce4e58e71ed9a2da5e8cefbe026b4",
+      "surfaceFingerprint": "2a1f46f4b2fb9b047f7bc80ab95a3c1ae0c8d9ef4c5e9724f6d8ac9717725718",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
+        "manual-release-diagnostic-review:2026-10-02",
+        "lib/env/staging-migration-diagnostic.test.ts",
+        "lib/env/staging-migration-command.test.ts",
         "docs/deployment/staging-runbook.md"
       ]
     },
@@ -4225,12 +4225,12 @@
     },
     {
       "id": "operation:scripts/verify-migration-target.ts",
-      "surfaceFingerprint": "699b9247959ccecd7198de5a6d99fca68bb2cf3d84d5ba7c31dc40d39221aa27",
+      "surfaceFingerprint": "e6e6f72f765e6137a6eff5293ed7767f17dc8896535b9bb1ee671f16fd6ba67a",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
+        "manual-release-diagnostic-review:2026-10-02",
+        "lib/operations/deployment-broker.test.ts",
+        "lib/env/staging-migration-diagnostic.test.ts",
         "docs/deployment/staging-runbook.md"
       ]
     },

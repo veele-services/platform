@@ -14,8 +14,15 @@ it("keeps the password out of arguments, verifies TLS and suppresses ambient rou
   expect(target.searchParams.get("sslrootcert")).toBe("/tmp/fieldgrid-test/roots.pem");
   expect(target.searchParams.get("options")).toBe("-c statement_timeout=600000");
   expect(invocation.args).toContain("--skip-vault");
+  expect(invocation.args).not.toContain("--include-all");
 });
 it("does not start the CLI for missing credentials or a foreign CA path", () => {
   expect(() => stagingMigrationCommand({ ...env, MIGRATION_DATABASE_URL: env.MIGRATION_DATABASE_URL.replace(":FICTITIOUS%21@", "@") }, "/tmp/fieldgrid-test", "/tmp/fieldgrid-test/roots.pem")).toThrow();
   expect(() => stagingMigrationCommand(env, "/tmp/fieldgrid-test", "/legacy/roots.pem")).toThrow();
+});
+it("can validate the same isolated target without applying migrations", () => {
+  const invocation = stagingMigrationCommand(env, "/tmp/fieldgrid-test", "/tmp/fieldgrid-test/roots.pem", { dryRun: true });
+  expect(invocation.args).toContain("--dry-run");
+  expect(invocation.args.filter((value) => value === "--db-url")).toHaveLength(1);
+  expect(invocation.env.PGPASSWORD).toBe("FICTITIOUS!");
 });

@@ -304,7 +304,11 @@ Before promotion, verify in the dedicated staging project:
 Do not reset any remote database. The workflow checks all three database URLs
 and both API URLs against `EXPECTED_SUPABASE_PROJECT_REF`, refuses the known
 production ref, inspects migration history, builds first, creates and validates
-a backup, and only then applies forward migrations.
+a backup, and only then applies forward migrations. Immediately before that
+write phase, the same isolated adapter and work directory perform a non-writing
+Supabase CLI `db push --dry-run`. A failed dry-run or migration logs only its phase, a
+repository-allowlisted migration filename, an allowlisted SQLSTATE and a coarse
+failure category; raw database and connection diagnostics remain suppressed.
 
 ## 6. First promotion
 

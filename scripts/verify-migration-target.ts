@@ -47,6 +47,22 @@ async function main() {
       throw new Error("Migratiedoel bevat publieke applicatietabellen zonder Fieldgrid V1-migratiegeschiedenis");
     }
     assertMigrationHistory(manifest, remote, process.env.REQUIRE_COMPLETE_MIGRATION_HISTORY === "true");
+
+    // A failed transaction must not leave ticket schema behind without the
+    // migration-history record that owns it. Detect that drift before the CLI
+    // can reinterpret or adopt any out-of-band objects.
+    if (!remote.some((entry) => entry.version === "20260930192504")) {
+      const ticketSchema = await client.query<{ unexpected: boolean }>(`
+        select
+          to_regclass('public.permission_catalog') is not null
+          or to_regclass('public.tickets') is not null
+          or to_regclass('private.ticket_config') is not null
+          as unexpected
+      `);
+      if (ticketSchema.rows[0]?.unexpected) {
+        throw new Error("Migratiedoel bevat ticketstructuur zonder bijbehorende V1-migratiegeschiedenis");
+      }
+    }
     console.log(`Migratiedoel gevalideerd: ${remote.length}/${expected.length} V1-migraties aanwezig.`);
   } finally {
     await client.end();
