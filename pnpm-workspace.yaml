@@ -1,3 +1,14 @@
 allowBuilds:
   esbuild: true
   unrs-resolver: true
+
+# The registry has no fixed release for GHSA-vfj7-8cjw-p6xm. The local patch is
+# the reviewed upstream fix at micromatch/braces#72; a regression test exercises
+# the installed transitive copy. Keep the version-based audit exception paired
+# with that patch until an official fixed release replaces both.
+audit:
+  ignore:
+    - GHSA-vfj7-8cjw-p6xm
+
+patchedDependencies:
+  braces@3.0.3: patches/braces@3.0.3.patch

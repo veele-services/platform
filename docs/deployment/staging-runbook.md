@@ -1,8 +1,9 @@
 # Fieldgrid V1 staging runbook
 
-The completed first-host transition, current fail-closed scanner gate and
-still-pending worker-resume gate are recorded in
+The first-host transition and scanner remediation history are recorded in
 [staging-handoff-evidence-2026-10-01.md](staging-handoff-evidence-2026-10-01.md).
+The later successful activation, paused-worker failure and recovery procedure
+are recorded in [staging-worker-recovery-2026-10-03.md](staging-worker-recovery-2026-10-03.md).
 
 This runbook prepares the existing staging VPS for the new Fieldgrid V1
 runtime. It does not reuse, stop or remove a legacy application. Inspect live
@@ -59,25 +60,16 @@ Install the repository templates as system units:
   `/etc/systemd/system/fieldgrid-worker@.timer`
 
 Initial host bootstrap is an operator action: units cannot start before a
-release and its generated runtime file exist. The current staging host has
-completed the hardened handoff and the subsequent checksummed forward-fix
-operator update: staging-specific web/worker unit references, the fixed root
-broker and the current runnerchecker are installed, superseded `fieldgrid.env`
-drop-ins are in the protected operator backup, and the historical metadata-only
-root check plus current unprivileged runner check passed. The expanded local
-rootchecker for VERSION, socketunit and live TCP-listeners is not yet installed
-or executed on staging. Exact release
-`d9084380f8278e634cb6ee372d2cc4ebe5e9b11e` is now installed, selected and
-active. Its database health is ready, but public health is HTTP 503 because the
-scanner is unavailable; acceptance was skipped and the worker timer therefore
-remains intentionally inactive. Runtime evidence has since proven that clamd is
-reachable and scans EICAR/PNG/PDF correctly, but its disabled `VERSION` command
-prevents Fieldgrid from obtaining the mandatory engine/database timestamp for
-the definition-age check. Do not repeat the one-time handoff, replay the same
-SHA through the broker, or edit/recreate the installed runtime file. Preflight
-checks the installed timer target; final acceptance requires a reviewed remedy
-and healthy exact-SHA web/scanner validation, after which the operator resumes
-the timer and proves a fresh successful invocation.
+release and its generated runtime file exist. The staging host has completed
+the hardened handoff and subsequent checksummed scanner remediation. Exact
+release `916ab0ec1ae9dbffe78f436c6d0a64dcb8e01a58` was installed on 3 October
+2026 and returned exact-SHA public health with database and scanner ready. Its
+workflow failed only because the worker timer remained paused after activation;
+the operator has since resumed that timer. Do not repeat the one-time handoff,
+replay the installed SHA through the broker, or edit/recreate the installed
+runtime file. A new promotion must prove a fresh successful worker invocation
+and complete hosted acceptance. See the linked recovery evidence for the exact
+run and the workflow correction.
 The ticket pipeline does not bootstrap a replacement VPS or bypass this gate;
 restore a replacement host through a separately reviewed operator procedure.
 
@@ -119,10 +111,10 @@ root control and current runner control passed before only the runner was
 restarted. This is not execution of the later expanded rootchecker. No key/certificate,
 trusted root, sudo rule, identity or protected directory was regenerated.
 
-Commit `d9084380f8278e634cb6ee372d2cc4ebe5e9b11e` passed complete `main` CI. Its
+Historically, commit `d9084380f8278e634cb6ee372d2cc4ebe5e9b11e` passed complete `main` CI. Its
 staging verify, host-preflight and hosted prepare jobs also passed; the broker
 then installed and activated that exact release with database readiness. The
-public health endpoint currently returns HTTP 503 with
+public health endpoint then returned HTTP 503 with
 `scanner=unavailable`, so acceptance was skipped, the worker timer remains off,
 and staging remains NO-GO. Current runtime evidence now establishes the cause:
 `PING`, runtime UID/groups, the `clamav:clamav` `0660` socket, active services
@@ -336,10 +328,18 @@ complete.
 An already installed release SHA is never reactivated from a retained handoff.
 The broker also requires the signed GitHub observer timestamp of every
 attestation to be no older than six hours (and not more than five minutes in the
-future). A delayed deployment must rerun the protected workflow. A retry after
-activation or a rollback therefore requires a new reviewed commit and a new
-hosted-runner attestation; use a forward fix instead of replaying an older
-release package.
+future). If activation has not occurred and the handoff has expired, use
+**Re-run all jobs** to create a fresh backup, build and attestations. Re-running
+only a failed deploy reuses the expired preparation. Each preparation attempt
+has its own immutable artifact, and deployment downloads its exact artifact ID.
+
+After successful activation, retry only the separate `worker-acceptance` or
+hosted `acceptance` job that failed. The worker job rechecks exact-SHA public
+health before observing a fresh successful execution; it never invokes the
+broker. A failure inside activation itself, a changed release, or a rollback
+still requires a new reviewed commit and hosted-runner attestation. Historical
+runs that combined activation and worker verification also require a forward
+fix: retrying them executes the historical workflow and replays activation.
 
 ## 3. DNS and Caddy
 
@@ -514,7 +514,7 @@ remediation. Do not reinstall the already verified webunit solely for VERSION.
 
 Tickets share `/api/worker` and the existing timer. Check a fresh successful
 invocation after deploying, not just an active timer or historical unit result.
-The deploy gate observes the timer without starting or changing system units:
+The separate `worker-acceptance` job observes the timer without starting or changing system units:
 `scripts/check-worker-timer.sh` requires a successful execution that **started
 after** the new web-service activation. An old successful result is insufficient.
 It observes for up to ten minutes, allowing a bounded provider/scan batch to

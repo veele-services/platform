@@ -314,7 +314,7 @@ including the worker's old
 `shared/fieldgrid.env` reference, are preserved in the protected operator
 backup. See `docs/deployment/staging-handoff-evidence-2026-10-01.md`.
 
-Current release evidence, 2 October 2026: the checksummed forward-fix operator
+Historical release evidence, 2 October 2026: the checksummed forward-fix operator
 package installed the loaded staging web unit, fixed broker and current runner
 checker while the runner and worker timer were stopped. Their published hashes
 match the installed files. The historical root result was produced by the
@@ -388,6 +388,14 @@ invocation. The runner never starts timers or installs/reloads units and has no
 direct service-restart sudo permission. Its only privileged route is the fixed,
 no-argument release broker.
 
+Subsequent evidence on 3 October supersedes that incident state. Commit
+`916ab0ec1ae9dbffe78f436c6d0a64dcb8e01a58` was installed and returned exact-SHA
+public health with database and scanner ready. Its deployment stopped only at
+the read-only worker gate because the timer was still paused; the operator has
+since resumed the timer. The next promotion must still prove a fresh worker
+execution and complete hosted acceptance. See
+`docs/deployment/staging-worker-recovery-2026-10-03.md`.
+
 The target deployment boundary deliberately splits credentials from the
 persistent host runner:
 
@@ -409,7 +417,12 @@ persistent host runner:
    validates and atomically installs `shared/runtime.env` as `root:fieldgrid`
    mode `0640`, the backup root-only, and the release without group/other write
    bits. Only then does it select `current` and restart the fixed web service.
-5. A fresh GitHub-hosted acceptance job receives only the credentials needed
+5. A separate read-only self-hosted `worker-acceptance` job rechecks public
+   health for the exact release and requires a successful worker execution
+   started after web activation. Worker recovery can therefore rerun this job
+   without replaying the successful broker activation. Only the operator may
+   resume a paused timer; workflow code gains no additional sudo authority.
+6. A fresh GitHub-hosted acceptance job receives only the credentials needed
    for public health/SHA/scanner validation and rollback-only database smoke
    tests. The one-shot platform-admin bootstrap also runs hosted, never on the
    persistent runner.

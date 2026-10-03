@@ -43,6 +43,8 @@ jobs:
     runs-on: ubuntu-24.04
     environment: staging
     timeout-minutes: 30
+    outputs:
+      handoff-artifact-id: ${{ steps.handoff.outputs.artifact-id }}
     permissions:
       contents: read
       id-token: write
@@ -206,9 +208,11 @@ jobs:
           install -m 0600 "$RUNNER_TEMP/fieldgrid-staging-backup.dump.cms" "$RUNNER_TEMP/fieldgrid-handoff/backup.dump.cms"
           install -m 0600 "${{ steps.backup_attestation.outputs.bundle-path }}" "$RUNNER_TEMP/fieldgrid-handoff/backup.attestation.json"
       - name: Transfer only ciphertext and attested release bytes
+        id: handoff
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: fieldgrid-staging-${{ github.sha }}
+          # A full rerun creates a fresh handoff without replacing prior evidence.
+          name: fieldgrid-staging-${{ github.sha }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/fieldgrid-handoff/*
           if-no-files-found: error
           retention-days: 1
@@ -240,10 +244,18 @@ jobs:
         run: bash scripts/check-staging-runner-contract.sh
       - name: Verify the installed worker timer (it may be paused for runtime transition)
         run: bash scripts/check-worker-timer.sh --installed
+      - name: Require the exact prepared handoff ID
+        env:
+          HANDOFF_ARTIFACT_ID: ${{ needs.prepare.outputs.handoff-artifact-id }}
+        run: |
+          [[ "$HANDOFF_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]] || {
+            echo "Prepare did not provide a valid immutable handoff ID; refusing artifact download." >&2
+            exit 1
+          }
       - name: Download the immutable handoff
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          name: fieldgrid-staging-${{ github.sha }}
+          artifact-ids: ${{ needs.prepare.outputs.handoff-artifact-id }}
           path: ${{ runner.temp }}/fieldgrid-handoff
       - name: Activate through the single fixed root broker
         env:
@@ -254,11 +266,33 @@ jobs:
           BACKUP_ENVELOPE_PATH: ${{ runner.temp }}/fieldgrid-handoff/backup.dump.cms
           BACKUP_ATTESTATION_PATH: ${{ runner.temp }}/fieldgrid-handoff/backup.attestation.json
         run: scripts/deploy-local.sh
+
+  # Activation is deliberately non-replayable. Retrying worker acceptance must
+  # only observe the installed release, never download or activate its handoff.
+  worker-acceptance:
+    needs: deploy
+    runs-on: [self-hosted, Linux, X64, fieldgrid-staging]
+    environment: staging
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      DEPLOY_TARGET: staging
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
+      RELEASE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify exact deployed release before worker acceptance
+        run: node scripts/verify-healthcheck.mjs
       - name: Verify a fresh successful staging worker execution (read-only)
         run: bash scripts/check-worker-timer.sh
 
   acceptance:
-    needs: deploy
+    needs: worker-acceptance
     runs-on: ubuntu-24.04
     environment: staging
     timeout-minutes: 15
