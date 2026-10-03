@@ -29,6 +29,7 @@ const baseOperationalPaths = [
   "package.json",
   "playwright.config.ts",
   "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
   "public/sw.js",
   "scripts/backup-database.sh",
   "scripts/backup-database.ts",
@@ -62,7 +63,7 @@ const baseOperationalPaths = [
 ];
 
 export function operationalPaths() {
-  const discovered = filesUnder([".github/workflows", "deploy"]);
+  const discovered = filesUnder([".github/workflows", "deploy", "patches"]);
   return [...new Set([...baseOperationalPaths, ...discovered])].sort();
 }
 

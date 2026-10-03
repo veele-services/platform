@@ -5682,6 +5682,11 @@
       "source_sha256": "353932340bdb29922b4e598795730afea5cc1ac7a93aa06d6b834e692dd9c1ae"
     },
     {
+      "id": "operation:patches/braces@3.0.3.patch",
+      "classification": "operation",
+      "source_sha256": "bfdb0c171556074c2785f98d0a7355209223df8e29dbc2ff489240c16a47da97"
+    },
+    {
       "id": "operation:playwright.config.ts",
       "classification": "operation",
       "source_sha256": "5faa5ce9cd43d735bdd67b4d32d7c7279ffa27ed78e8c820406abf034cced28e"
@@ -5689,7 +5694,12 @@
     {
       "id": "operation:pnpm-lock.yaml",
       "classification": "operation",
-      "source_sha256": "aa4cc7706710552b2292fb587ecd9d1614264aad9c5a6424c30611731fc6eb4f"
+      "source_sha256": "f193b4215b71282c139a8033e36197488c0fc0bff1461c5e6a9010662608e902"
+    },
+    {
+      "id": "operation:pnpm-workspace.yaml",
+      "classification": "operation",
+      "source_sha256": "de62b07b4dc650635f100be6794d6837628bb18d614a9b46fbcd72b067b25343"
     },
     {
       "id": "operation:public/sw.js",
@@ -5734,7 +5744,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "231d455a5edbd59cb2b0b9f386220a4ea7a3fd4da6298da22bc70886850de941"
+      "source_sha256": "3f2c0cdd516475f5b9c5ee93c0348f7664d11f13a87cbb7476c1ad976ee4bf64"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",

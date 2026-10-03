@@ -3990,6 +3990,14 @@
       ]
     },
     {
+      "id": "operation:patches/braces@3.0.3.patch",
+      "surfaceFingerprint": "35d1ec525bbffc0ad956b86b227fea0ba82bb077d603160fb6a7bd6a909a0d36",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "Reviewed upstream micromatch/braces#72 depth-limit and cyclic-parent fix, exercised against the installed transitive dependency by lib/operations/dependency-security.test.ts (2026-10-03)."
+      ]
+    },
+    {
       "id": "operation:playwright.config.ts",
       "surfaceFingerprint": "ef06e61526f588b6830ab866605ed33d147d563acb8414cf32e40706eca9a99b",
       "status": "controlled",
@@ -4002,13 +4010,22 @@
     },
     {
       "id": "operation:pnpm-lock.yaml",
-      "surfaceFingerprint": "19e5d896b38b807dc5862146d36af4aa34686872217962a7107c8f637c369632",
+      "surfaceFingerprint": "8e58a406a54f49168be59732925091ed869472d317a2a83c065bb1d4d77728e7",
       "status": "corrected-and-rechecked",
       "evidence": [
         "manual-staging-migration-client-review:2026-10-02",
         "Frozen lockfile installs both exact CLI packages from pinned integrity hashes and passes repository supply-chain policy.",
         "Supabase CLI 2.109.1 applied the exact isolated 35-to-55 forward plan and preserved all 55 statement-history hashes.",
-        "docs/deployment/staging-runbook.md"
+        "docs/deployment/staging-runbook.md",
+        "Patched braces resolution is content-hashed in the lockfile and verified by frozen install plus lib/operations/dependency-security.test.ts (2026-10-03)."
+      ]
+    },
+    {
+      "id": "operation:pnpm-workspace.yaml",
+      "surfaceFingerprint": "2f0b496da55567a312aaffc057340a47ec178cc7ee8b0a1422cb8604aa63e199",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "The sole audit exception is paired with a committed local patch for GHSA-vfj7-8cjw-p6xm and executable regression coverage; remove both after an official fixed release (2026-10-03)."
       ]
     },
     {
@@ -4100,12 +4117,13 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "26eebdff1dac6658a85d9494b8bbc5e572daa6cc348fb073f84e04aac1e8bb98",
+      "surfaceFingerprint": "d2699f46fad645d2fc2cb7ad470939bbf7e5a515c69013bccbcb7da7cf1516cf",
       "status": "corrected-and-rechecked",
       "evidence": [
         "The new scanner startup gate is explicitly included in the deterministic operational surface inventory.",
         "lib/auth/security-surface.test.ts requires scripts/check-clamav-socket.mjs to remain inventoried; the complete captured ledger has a reviewed entry for every surface.",
-        "The packaged-release launch smoke is explicitly inventoried as an operational release control (2026-10-02)."
+        "The packaged-release launch smoke is explicitly inventoried as an operational release control (2026-10-02).",
+        "The operational inventory now fingerprints pnpm workspace security settings and all committed dependency patches (2026-10-03)."
       ]
     },
     {
