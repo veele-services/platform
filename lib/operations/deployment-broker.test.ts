@@ -1,4 +1,5 @@
 import { readFileSync, statSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 const read = (path: string) => readFileSync(path, "utf8");
@@ -60,6 +61,58 @@ describe("staging deployment broker boundary", () => {
     expect(prepare).toContain("HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}");
     expect(workflow).toContain("needs: [verify, host-preflight]");
     expect(workflow).toContain("Verify host contract before backup or migrations");
+  });
+
+  it("keeps fresh handoffs distinct across full reruns and downloads the prepared artifact by ID", () => {
+    const workflow = read(".github/workflows/deploy-staging.yml");
+    const prepare = workflow.slice(workflow.indexOf("  prepare:"), workflow.indexOf("  deploy:"));
+    const deploy = workflow.slice(workflow.indexOf("  deploy:"), workflow.indexOf("  worker-acceptance:"));
+    expect(prepare).toContain("handoff-artifact-id: ${{ steps.handoff.outputs.artifact-id }}");
+    expect(prepare).toContain("id: handoff");
+    expect(prepare).toContain("name: fieldgrid-staging-${{ github.sha }}-${{ github.run_attempt }}");
+    expect(prepare).not.toContain("overwrite: true");
+    expect(deploy).toContain("artifact-ids: ${{ needs.prepare.outputs.handoff-artifact-id }}");
+    expect(deploy).not.toContain("name: fieldgrid-staging-");
+    expect(deploy).not.toContain("github.run_attempt");
+  });
+
+  it("fails before artifact download when prepare has no exact artifact ID", () => {
+    const workflow = read(".github/workflows/deploy-staging.yml");
+    const deploy = workflow.slice(workflow.indexOf("  deploy:"), workflow.indexOf("  worker-acceptance:"));
+    const guard = deploy.match(/      - name: Require the exact prepared handoff ID\n[\s\S]*?        run: \|\n((?:          .*\n)+)/);
+    expect(guard).not.toBeNull();
+    const script = guard![1].split("\n").map((line) => line.slice(10)).join("\n");
+    expect(deploy.indexOf(guard![0])).toBeLessThan(deploy.indexOf("uses: actions/download-artifact@"));
+    for (const value of ["", "0", "123,456", "*", "123suffix", "-1"]) {
+      const result = spawnSync("bash", ["-euo", "pipefail", "-c", script], {
+        encoding: "utf8", env: { NODE_ENV: "test", HANDOFF_ARTIFACT_ID: value },
+      });
+      expect(result.status, `Invalid artifact ID ${JSON.stringify(value)}`).toBe(1);
+      expect(result.stderr).toContain("refusing artifact download");
+    }
+    const valid = spawnSync("bash", ["-euo", "pipefail", "-c", script], {
+      encoding: "utf8", env: { NODE_ENV: "test", HANDOFF_ARTIFACT_ID: "11259889177" },
+    });
+    expect(valid.status).toBe(0);
+  });
+
+  it("retries worker acceptance independently of irreversible release activation", () => {
+    const workflow = read(".github/workflows/deploy-staging.yml");
+    const deploy = workflow.slice(workflow.indexOf("  deploy:"), workflow.indexOf("  worker-acceptance:"));
+    const worker = workflow.slice(workflow.indexOf("  worker-acceptance:"), workflow.indexOf("  acceptance:"));
+    const acceptance = workflow.slice(workflow.indexOf("  acceptance:"));
+    expect(deploy).toContain("run: scripts/deploy-local.sh");
+    expect(deploy).not.toMatch(/run: bash scripts\/check-worker-timer\.sh\s*$/m);
+    expect(worker).toContain("needs: deploy");
+    expect(worker).toContain("runs-on: [self-hosted, Linux, X64, fieldgrid-staging]");
+    expect(worker).toContain("RELEASE_SHA: ${{ github.sha }}");
+    expect(worker).toContain("ref: ${{ github.sha }}");
+    const healthcheck = worker.indexOf("run: node scripts/verify-healthcheck.mjs");
+    const workerGate = worker.indexOf("run: bash scripts/check-worker-timer.sh");
+    expect(healthcheck).toBeGreaterThan(0);
+    expect(workerGate).toBeGreaterThan(healthcheck);
+    expect(worker).not.toMatch(/deploy-local|download-artifact|actions\/attest@|sudo|systemctl\s+(?:start|restart|enable)|\$\{\{ secrets\./);
+    expect(acceptance).toContain("needs: worker-acceptance");
   });
 
   it("ships root-owned broker templates with strict artifact and identity checks", () => {

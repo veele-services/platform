@@ -27,7 +27,9 @@ naar het productieproject of de productie-VPS wijzen.
 - De premigratiebackup bestaat en `pg_restore --list` kan hem lezen.
 - `/api/healthz?release=<sha>` retourneert `status=ok`,
   `environment=staging`, `database=ready` en de verwachte release-SHA.
-- De worker-timer draait en een handmatige worker-call levert geen autorisatiefout op.
+- De worker-timer draait en de aparte `worker-acceptance`-job bewijst een geslaagde
+  workeruitvoering die na de actuele webactivatie is gestart. Een herhaling van
+  deze acceptatiejob voert de releasebroker niet opnieuw uit.
 
 ## Eerste platformbeheerder en tenant
 

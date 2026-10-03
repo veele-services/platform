@@ -3809,14 +3809,15 @@
     },
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
-      "surfaceFingerprint": "572b58ae291580c1accca2a82665a9fda7a7039bea211887031b86acfb34ff40",
+      "surfaceFingerprint": "b227e13049c302bc2e4a61683ca380ead06c8b0b75a3d181683e34bc92f44709",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
         "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh.",
         "Hosted staging preflight receives the canonical DEPLOY_ROOT, SERVICE_NAME and HEALTHCHECK_URL only from GitHub Environment staging; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-02).",
         "A secret-free self-hosted host-preflight now proves runner separation, PostgreSQL archive compatibility and the installed worker timer before hosted backup or forward migrations can start (2026-10-02).",
-        "The exact staging artifact is extracted and booted with isolated non-secret smoke configuration before backup or forward migrations begin (2026-10-02)."
+        "The exact staging artifact is extracted and booted with isolated non-secret smoke configuration before backup or forward migrations begin (2026-10-02).",
+        "Activation and retryable worker acceptance are separate jobs; the latter has no handoff download, broker call, secrets or service-management authority. Full reruns use attempt-scoped immutable handoffs selected by artifact ID; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-03)."
       ]
     },
     {
