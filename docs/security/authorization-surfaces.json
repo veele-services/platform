@@ -5599,7 +5599,7 @@
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
       "classification": "operation",
-      "source_sha256": "a36f271466fb16d34b243feec30608a96aaae130939428c45974ee984a173407"
+      "source_sha256": "30ac4fdeaa306cc75ecf7d4fc4dfa7fee617c910e0e34701571b6fed96863a8e"
     },
     {
       "id": "operation:deploy/Caddyfile.example",
