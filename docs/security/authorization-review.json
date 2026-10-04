@@ -4221,11 +4221,11 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "6422a4541ac8bb564dc150d8c03903fd07028a4998ed77cc343cd26f254b70e0",
+      "surfaceFingerprint": "fbcc9d0df58aafb2b9fd416553f13a0d44842c2bd6ffad6db52cbf4658706de9",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "Clean local Supabase replay on 2026-10-01 preserved exactly 55 ordered migration identities and regenerated their statement hashes.",
-        "Only 20261001124500_release_security_gate differed from the prior manifest; pnpm db:verify-manifest passed against the clean replay after the reviewed one-entry correction."
+        "Clean local Supabase replay on 2026-10-04 applied exactly 56 ordered migrations and pnpm db:verify-manifest confirmed every stored statement hash.",
+        "The append-only 20261004164500_fix_ticket_claim_guards migration added one reviewed manifest entry; no previously applied migration identity or hash changed."
       ]
     },
     {
@@ -6694,11 +6694,15 @@
     },
     {
       "id": "rpc:private.ticket_entitlement_guard()",
-      "surfaceFingerprint": "80f56330eaed53bca7d7799de49774443937a49d69f3a6206e00b5ac4f1a9874",
-      "status": "controlled",
+      "surfaceFingerprint": "ac266d9bfbdf3a61d51c8ff4b6048349a7225d9080022315117cfca42ba1b06a",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "manual-staging-acceptance-review:2026-10-04",
+        "supabase/migrations/20261004164500_fix_ticket_claim_guards.sql",
+        "Empty or missing request.jwt.claims is normalized before JSON parsing while the existing service-role and PostgreSQL-owner authorization decisions remain unchanged.",
+        "The trigger function remains a private security definer with no anon, authenticated or service_role execute grant.",
+        "scripts/test-tickets.mjs",
+        "scripts/test-ticket-delivery.mjs",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
       ]
@@ -6859,11 +6863,15 @@
     },
     {
       "id": "rpc:private.ticket_onboard_membership()",
-      "surfaceFingerprint": "205f84051098ed45a2c6e32d89d166b1e5370fe08ac0a32be03026ebcd24844b",
-      "status": "controlled",
+      "surfaceFingerprint": "808cb688763c3cbde7512240a597847f1cc5f7bc14e00f319bc6920a32b4e138",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "manual-staging-acceptance-review:2026-10-04",
+        "supabase/migrations/20261004164500_fix_ticket_claim_guards.sql",
+        "Empty or missing request.jwt.claims is normalized before JSON parsing while the existing service-role and PostgreSQL-owner onboarding decisions remain unchanged.",
+        "The trigger function remains a private security definer with no anon, authenticated or service_role execute grant.",
+        "scripts/test-tickets.mjs",
+        "scripts/test-ticket-delivery.mjs",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
       ]
