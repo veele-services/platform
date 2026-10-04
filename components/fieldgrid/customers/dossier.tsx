@@ -56,6 +56,7 @@ import { ObjectForm } from "../objects/forms";
 import { uploadCustomerDocument } from "@/app/app/operations-actions";
 import { customerCommand, updateCustomerDocumentMetadata } from "@/app/app/klanten/actions";
 import { CUSTOMER_DOCUMENT_ACCEPT } from "@/lib/customers/documents";
+import { CompactFilterMenu } from "../compact-filter-menu";
 
 function Empty({ children }: { children: ReactNode }) {
   return <p className="dossier-empty">{children}</p>;
@@ -171,16 +172,21 @@ export function CustomerDossier({
     </div>
   );
   const toolbar = (children?: ReactNode) => (
-    <div className="dossier-toolbar">
-      <label>
-        Zoeken
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Zoeken in dit tabblad…"
-        />
-      </label>
-      {children}
+    <div className="compact-filter-bar customer-dossier-filter">
+      <span className="compact-filter-result">Overzicht verfijnen</span>
+      <CompactFilterMenu activeCount={[q, status, object, from, to, service].filter(Boolean).length}>
+        <div className="compact-filter-grid">
+          <label className="wide">
+            Zoeken
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Zoeken in dit tabblad…"
+            />
+          </label>
+          {children}
+        </div>
+      </CompactFilterMenu>
     </div>
   );
   const selectedObjects = data.objects.filter(

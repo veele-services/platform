@@ -1048,13 +1048,12 @@ export function DayPlanboard({
             <Popover open={filterOpen} onOpenChange={setFilterOpen}>
               <PopoverTrigger asChild>
                 <button
-                  className="secondary-button pb-filter-button"
-                  aria-label="Zoeken & filteren"
+                  className="compact-filter-trigger pb-filter-button"
+                  aria-label={activeFilters > 0 ? `Zoeken en filteren, ${activeFilters} actief` : "Zoeken en filteren"}
+                  title="Zoeken en filteren"
                 >
-                  <SlidersHorizontal size={15} />
-                  <span className="pb-filter-long">Zoeken & filteren</span>
-                  <span className="pb-filter-short">Filters</span>
-                  {activeFilters > 0 && <b>{activeFilters}</b>}
+                  <SlidersHorizontal size={18} />
+                  {activeFilters > 0 && <span aria-hidden="true">{activeFilters}</span>}
                 </button>
               </PopoverTrigger>
               <PopoverContent
