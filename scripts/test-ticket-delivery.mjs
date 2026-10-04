@@ -18,6 +18,9 @@ test("Tickets: private file binding, live audiences and delivery state", async t
  let category,ticket,message;
  const draftFiles=[];
  try {
+  // Supabase's session pooler can expose an unset request claim as an empty
+  // string. Owner fixture setup must remain safe while user calls fail closed.
+  await db.query("select set_config('request.jwt.claims','',true)");
   for(const user of users){await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())",[user,`${user}@ticket-fixture.invalid`]);await db.query("insert into auth.sessions(id,user_id,created_at,updated_at) values($1,$2,now(),now())",[sessions[user],user]);}
   await db.query("insert into public.tenants(id,slug,name) values($1,$2,'Fictitious file tenant')",[tenant,`ticket-files-${tenant}`]);
   await db.query("insert into public.tenant_settings(tenant_id,enabled_services) values($1,array['tickets','personeel'])",[tenant]);

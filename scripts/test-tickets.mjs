@@ -38,6 +38,9 @@ test("Tickets: current identity, exact scope, audience projections and atomic co
   };
   let category, hrCategory, supportCategory, first, hrTicket;
   try {
+    // Supabase's session pooler can expose an unset request claim as an empty
+    // string. Owner fixture setup must remain safe while user calls fail closed.
+    await db.query("select set_config('request.jwt.claims','',true)");
     for (const [name, id] of Object.entries(users)) {
       await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())", [id, `${name}-${id}@tickets.test`]);
       await db.query("insert into auth.sessions(id,user_id,created_at,updated_at) values($1,$2,now(),now())", [sessions[id], id]);
