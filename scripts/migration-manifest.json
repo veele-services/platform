@@ -276,6 +276,11 @@
       "version": "20261001152000",
       "name": "object_document_download_scope",
       "sha256": "a2037d7a155ae22c2a924e5053d0dde94179d15a1137382b468bdd875955d5a8"
+    },
+    {
+      "version": "20261004164500",
+      "name": "fix_ticket_claim_guards",
+      "sha256": "bcbd7b0569eae140df1f838502fb121dde8394a3115964bea11580b17c30d6be"
     }
   ]
 }
