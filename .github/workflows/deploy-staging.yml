@@ -301,6 +301,7 @@ jobs:
     env:
       DEPLOY_TARGET: staging
       APP_ENV: development
+      APP_URL: ${{ vars.APP_URL }}
       EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.EXPECTED_SUPABASE_PROJECT_REF }}
       FORBIDDEN_SUPABASE_PROJECT_REF: ${{ vars.FORBIDDEN_SUPABASE_PROJECT_REF }}
       RELEASE_SHA: ${{ github.sha }}

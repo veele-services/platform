@@ -113,6 +113,7 @@ describe("staging deployment broker boundary", () => {
     expect(workerGate).toBeGreaterThan(healthcheck);
     expect(worker).not.toMatch(/deploy-local|download-artifact|actions\/attest@|sudo|systemctl\s+(?:start|restart|enable)|\$\{\{ secrets\./);
     expect(acceptance).toContain("needs: worker-acceptance");
+    expect(acceptance).toContain("APP_URL: ${{ vars.APP_URL }}");
   });
 
   it("ships root-owned broker templates with strict artifact and identity checks", () => {
