@@ -22,7 +22,10 @@ describe("signed Auth mail endpoint", () => {
     expect((await POST(request("recovery", false))).status).toBe(401); expect(mocks.rpc).not.toHaveBeenCalled(); expect(mocks.send).not.toHaveBeenCalled();
   });
   it("uses trusted tenant context and persists no token/body in receipts", async () => {
-    expect((await POST(request())).status).toBe(200);
+    const response = await POST(request());
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toMatch(/^application\/json(?:;|$)/);
+    expect(await response.json()).toEqual({});
     expect(mocks.send).toHaveBeenCalledOnce();
     expect(mocks.send.mock.calls[0][0]).toMatchObject({ disableTracking: true, policy: { kind: "security", flow: "auth_hook", tenantId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb" } });
     expect(JSON.stringify(mocks.rpc.mock.calls)).not.toContain("a".repeat(64));
@@ -30,7 +33,11 @@ describe("signed Auth mail endpoint", () => {
   });
   it("returns success for completed duplicates without sending again", async () => {
     mocks.rpc.mockImplementation(async (_db, name) => name === "email_auth_context" ? { tenant_id: null, company: "Fieldgrid", primary: "#222C35", accent: "#41AC42", logo: false } : { claimed: false, state: "done" });
-    expect((await POST(request())).status).toBe(200); expect(mocks.send).not.toHaveBeenCalled();
+    const response = await POST(request());
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toMatch(/^application\/json(?:;|$)/);
+    expect(await response.json()).toEqual({});
+    expect(mocks.send).not.toHaveBeenCalled();
   });
   it("does not retry uncertain or in-progress sends", async () => {
     mocks.rpc.mockImplementation(async (_db, name) => name === "email_auth_context" ? { tenant_id: null, company: "Fieldgrid", primary: "#222C35", accent: "#41AC42", logo: false } : { claimed: false, state: "uncertain" });

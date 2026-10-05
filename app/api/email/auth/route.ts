@@ -32,7 +32,9 @@ export async function POST(request: Request) {
     const context = contextSchema.parse(await ticketRpc(db, "email_auth_context", { target_slug: destination.slug, actor: payload.user.id, recipient: payload.user.email, action_type: payload.email_data.email_action_type }));
     const messages = authMailMessages(payload, destination.origin, context.company);
     const claim = z.object({ claimed: z.boolean(), state: z.string().optional() }).parse(await receipt("begin"));
-    if (!claim.claimed) return claim.state === "done" ? new Response(null, { status: 200, headers }) : failure(409);
+    // Supabase requires a JSON body and Content-Type for HTTP 200 hook replies,
+    // including acknowledgements of previously completed deliveries.
+    if (!claim.claimed) return claim.state === "done" ? Response.json({}, { status: 200, headers }) : failure(409);
     claimed = true;
     for (const [index, message] of messages.entries()) {
       const html = renderTenantEmailHtml({
@@ -48,7 +50,7 @@ export async function POST(request: Request) {
       });
     }
     const saved = z.object({ ok: z.literal(true) }).safeParse(await receipt("done"));
-    return saved.success ? new Response(null, { status: 200, headers }) : failure(503);
+    return saved.success ? Response.json({}, { status: 200, headers }) : failure(503);
   } catch (error) {
     if (claimed) {
       // Do not replay a partial two-address change or an uncertain provider send.

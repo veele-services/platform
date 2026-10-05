@@ -311,10 +311,19 @@ vervangen de daaropvolgende OTP-login niet en vragen geen wachtwoordkeuze.
 Hosted Auth-template/hookinstellingen veranderen niet door een applicatiedeploy:
 bewuste operatoractivatie en echte codemail-/replayacceptatie voor alle rollen
 blijven nodig. De onderstaande historische hookstatus is geen bevestiging van
-die nieuwe activatie. Op 5 oktober 2026 bevestigde de eigenaar opnieuw dat
-de hook uit staat. De toen actieve release `1f47c7b8621c18cd2a70b570a2ea0cda275154ad`
-was publiek gezond (database en scanner gereed); dit vervangt de historische
-ongezonde runtimestatus hieronder, maar bewijst geen OTP-provideracceptatie.
+die nieuwe activatie. Een operatorscreenshot van 5 oktober 2026 toont een
+ingeschakelde **Customize Access Token (JWT) Claims hook** die ten onrechte
+naar `/api/email/auth` wijst. Alleen het hooktype **Send Email** vervangt Auth-SMTP;
+de verkeerd gekoppelde JWT-hook moet uit, omdat de mailendpoint geen JWT-claims
+retourneert. De juiste configuratie en acceptatie staan in
+[`mail-hooks.md`](../deployment/mail-hooks.md). De eigenaar heeft daarna
+bevestigd dat de emailhook opnieuw is aangemaakt en de GitHub-secret is
+bijgewerkt en de verkeerde JWT-hook uit staat; een volgende stagingdeploy moet
+die nieuwe secret in de runtime
+installeren. De release
+`a5aa341af743a57bb1fe7f0878ff50fc729f26c3` is publiek gezond (database en scanner
+gereed); dit vervangt de historische ongezonde runtimestatus hieronder, maar
+bewijst geen OTP-provideracceptatie.
 
 ### Auth/mail integration status — 2026-10-01
 
