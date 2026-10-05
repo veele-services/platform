@@ -22,7 +22,7 @@ function form(intent: string, email = "user@example.test", next?: string, code?:
 
 describe("universal email OTP login actions", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.spyOn(Date, "now").mockReturnValue(1_800_000_000_000);
     vi.stubEnv("APP_URL", "https://staging.fieldgrid.nl");
     vi.stubEnv("DEPLOY_TARGET", "staging");
@@ -37,6 +37,8 @@ describe("universal email OTP login actions", () => {
   it.each(["/app", "/staff", "/klant", "/platform"])("requests a non-creating code for %s without exposing account access", async next => {
     const result = await loginOtp({ step: "email" }, form("request", " User@Example.test ", next));
     expect(result).toMatchObject({ step: "code", email: "user@example.test", next, requestedAt: 1_800_000_000_000 });
+    expect(result.notice).toContain("eenmalige inlogcode");
+    expect(result.notice).not.toMatch(/zes|six|6/);
     expect(mocks.signInWithOtp).toHaveBeenCalledWith({ email: "user@example.test", options: { emailRedirectTo: "https://staging.fieldgrid.nl/login", shouldCreateUser: false } });
     expect(mocks.access).not.toHaveBeenCalled();
     expect(mocks.signInWithPassword).not.toHaveBeenCalled();
@@ -83,10 +85,23 @@ describe("universal email OTP login actions", () => {
     expect(mocks.signOut).not.toHaveBeenCalled();
   });
 
-  it.each(["12345", "1234567", "abcdef", "12 456", "１２３４５６"])("rejects non-six-digit code %j before verifying", async code => {
+  it.each(["012345", "0123456", "01234567", "012345678", "0123456789"])("passes the full supported email code %s to Auth and rechecks workspace rights", async code => {
+    await expect(loginOtp({ step: "code" }, form("verify", "user@example.test", "/app", code))).rejects.toThrow("redirect:/app");
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({ email: "user@example.test", token: code, type: "email" });
+    expect(mocks.access).toHaveBeenCalledOnce();
+  });
+
+  it.each(["12345", "12345678901", "abcdef", "12 456", "１２３４５６"])("rejects an unsupported email code %j before verifying", async code => {
     expect(await loginOtp({ step: "code" }, form("verify", "user@example.test", "/staff", code))).toMatchObject({ step: "code", next: "/staff", error: expect.stringContaining("ongeldig of verlopen") });
     expect(mocks.verifyOtp).not.toHaveBeenCalled();
     expect(mocks.access).not.toHaveBeenCalled();
+  });
+
+  it.each(["01234567", "0123456789"])("clears the session when a supported longer code %s verifies but workspace access is revoked", async code => {
+    mocks.access.mockResolvedValueOnce({ workspaces: [] });
+    expect(await loginOtp({ step: "code" }, form("verify", "user@example.test", "/klant", code))).toMatchObject({ error: expect.stringContaining("ongeldig of verlopen") });
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({ email: "user@example.test", token: code, type: "email" });
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
   });
 
   it.each([

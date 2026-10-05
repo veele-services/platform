@@ -27,10 +27,15 @@ describe("one compact OTP form for every workspace", () => {
     expect(html).not.toContain("Wachtwoord vergeten");
     expect(html).not.toContain("Veilig inloggen");
   });
-  it("has numeric six-digit autofill, verification and fresh-code actions without exposing a credential-bearing URL", () => {
-    mocks.state = { step: "code", email: "fictitious@example.test", next: "/klant", requestedAt: 1_800_000_000_000, notice: "Als dit account toegang heeft, ontvang je een e-mail met een zescijferige code." };
+  it("accepts supported numeric OTP lengths with autofill, verification and fresh-code actions without exposing a credential-bearing URL", () => {
+    mocks.state = { step: "code", email: "fictitious@example.test", next: "/klant", requestedAt: 1_800_000_000_000, notice: "Als dit account toegang heeft, ontvang je een e-mail met een eenmalige inlogcode." };
     const html = renderToStaticMarkup(createElement(LoginForm, { next: "/klant" }));
-    for (const attribute of ['name="code"', 'inputMode="numeric"', 'autoComplete="one-time-code"', 'pattern="[0-9]{6}"', 'minLength="6"', 'maxLength="6"']) expect(html).toContain(attribute);
+    for (const attribute of ['name="code"', 'inputMode="numeric"', 'autoComplete="one-time-code"', 'pattern="[0-9]{6,10}"', 'minLength="6"', 'maxLength="10"']) expect(html).toContain(attribute);
+    const pattern = new RegExp(`^(?:${html.match(/pattern="([^"]+)"/)![1]})$`);
+    for (const code of ["012345", "0123456", "01234567", "012345678", "0123456789"]) expect(pattern.test(code)).toBe(true);
+    for (const code of ["12345", "12345678901", "1234abcd", "１２３４５６"]) expect(pattern.test(code)).toBe(false);
+    expect(html).toContain("Vul de volledige code uit de e-mail in.");
+    expect(html).not.toContain("zescijferige");
     expect(html).toContain("Code controleren");
     expect(html).toContain("Nieuwe code aanvragen (60s)");
     expect(html).toContain("Ander e-mailadres gebruiken");

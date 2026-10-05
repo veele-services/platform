@@ -1,0 +1,54 @@
+name: Diagnose staging Auth mail (read-only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fieldgrid-staging
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 5
+    env:
+      DEPLOY_TARGET: staging
+      APP_ENV: development
+      APP_URL: ${{ vars.APP_URL }}
+      EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.EXPECTED_SUPABASE_PROJECT_REF }}
+      FORBIDDEN_SUPABASE_PROJECT_REF: ${{ vars.FORBIDDEN_SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require reviewed main and identify the explicit staging promotion
+        run: |
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor origin/staging origin/main
+          printf 'RELEASE_SHA=%s\n' "$(git rev-parse origin/staging)" >> "$GITHUB_ENV"
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.7.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check the active promotion and inspect safe mail outcomes
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          SUPABASE_SEND_EMAIL_HOOK_SECRET: ${{ secrets.SUPABASE_SEND_EMAIL_HOOK_SECRET }}
+        run: pnpm exec tsx scripts/diagnose-auth-mail.ts
+      - name: Verify read-only platform Auth mail context
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: pnpm exec tsx scripts/diagnose-auth-mail-context.ts

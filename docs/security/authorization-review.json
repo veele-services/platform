@@ -1023,11 +1023,15 @@
     },
     {
       "id": "code:app/login/actions.ts",
-      "surfaceFingerprint": "6126602e5092f16b5fc072e6ede3579b11c6e276698cd8e39d40791ac51c846f",
-      "status": "controlled",
+      "surfaceFingerprint": "44326f6b918dfbda14245759bce72c8e03bd1f3dd7c8fc19ff7b561b98bd2bb5",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/otp-activity-verification-2026-10-05.md"
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/auth/login-actions.test.ts",
+        "lib/email-centre/auth-message.test.ts",
+        "lib/communications/email.test.ts",
+        "tests/e2e/auth-mail-hook.spec.ts",
+        "tests/e2e/universal-otp.spec.ts"
       ]
     },
     {
@@ -1743,11 +1747,15 @@
     },
     {
       "id": "code:lib/email-centre/auth-message.ts",
-      "surfaceFingerprint": "03f8c6241ce79f1b26f1f8f24b12f7bb71a19ff1ca21936ddff219ec7a1a8d00",
-      "status": "controlled",
+      "surfaceFingerprint": "7cbc496bc91de5792bc8e306fe6ea8ed8088be5e4cf816cc83ccacc94d0638eb",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/otp-activity-verification-2026-10-05.md"
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/auth/login-actions.test.ts",
+        "lib/email-centre/auth-message.test.ts",
+        "lib/communications/email.test.ts",
+        "tests/e2e/auth-mail-hook.spec.ts",
+        "tests/e2e/universal-otp.spec.ts"
       ]
     },
     {
@@ -4276,6 +4284,16 @@
       ]
     },
     {
+      "id": "operation:.github/workflows/diagnose-auth-mail.yml",
+      "surfaceFingerprint": "7c63910baeb640573e2c0ffce09745a6c40aca2614d7f0b625b377efdc9c4bee",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
+      ]
+    },
+    {
       "id": "operation:deploy/Caddyfile.example",
       "surfaceFingerprint": "7800a093fdbb98c151c2126f4b2ee9f2a04b87207e87d7e571e093a19d818ce1",
       "status": "controlled",
@@ -4419,6 +4437,26 @@
         "manual-release-diagnostic-review:2026-10-02",
         "lib/env/staging-migration-diagnostic.test.ts",
         "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:lib/operations/auth-mail-context-diagnostic.ts",
+      "surfaceFingerprint": "afe49573e636e781e7c71ed5d30f9082146688a61ace3bf23385ed02ed031af4",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
+      ]
+    },
+    {
+      "id": "operation:lib/operations/auth-mail-diagnostic.ts",
+      "surfaceFingerprint": "578cc7aae7424ef576d42965a43e9cd92a09d002df4cb69c6ce19b33e9e6346a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
       ]
     },
     {
@@ -4567,15 +4605,12 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "5421e1e788b4b7ffeef19e018071239d20deea25c5c80510b48e5dd5c22f6832",
+      "surfaceFingerprint": "0502da51ea3a5cebddf39ec5d5ef54852b519f33e4d61477224f75b1410ac894",
       "status": "controlled",
       "evidence": [
-        "The new scanner startup gate is explicitly included in the deterministic operational surface inventory.",
-        "lib/auth/security-surface.test.ts requires scripts/check-clamav-socket.mjs to remain inventoried; the complete captured ledger has a reviewed entry for every surface.",
-        "The packaged-release launch smoke is explicitly inventoried as an operational release control (2026-10-02).",
-        "The operational inventory now fingerprints pnpm workspace security settings and all committed dependency patches (2026-10-03).",
-        "docs/security/staging-redirect-verification-2026-10-05.md",
-        "scripts/verify-public-auth-redirect.mjs"
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
       ]
     },
     {
@@ -4643,6 +4678,26 @@
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
         "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:scripts/diagnose-auth-mail-context.ts",
+      "surfaceFingerprint": "42f5a167a89ec91bd75930a5e5f1486657209f36780476110f75efda6d0894a4",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
+      ]
+    },
+    {
+      "id": "operation:scripts/diagnose-auth-mail.ts",
+      "surfaceFingerprint": "dfc5d58e7358d4133c276038e381b193786f8d610e0ae6a9445b9fb4ec06339f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
       ]
     },
     {
@@ -4800,11 +4855,15 @@
     },
     {
       "id": "operation:supabase/config.toml",
-      "surfaceFingerprint": "4c6ca954326034eb4b9fea99ad2b023a1a2c25f7ca1d851ba26f323359e4198a",
+      "surfaceFingerprint": "ff5a5b3aa54b9b4f0c6888ec643c5d9578ef27af90b18ce75ad04ddf63d6f24c",
       "status": "controlled",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/otp-activity-verification-2026-10-05.md"
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/auth/login-actions.test.ts",
+        "lib/email-centre/auth-message.test.ts",
+        "lib/communications/email.test.ts",
+        "tests/e2e/auth-mail-hook.spec.ts",
+        "tests/e2e/universal-otp.spec.ts"
       ]
     },
     {

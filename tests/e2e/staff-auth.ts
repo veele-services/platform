@@ -43,7 +43,7 @@ async function newMailCode(email: string, previousIds: Set<string>) {
   const detailResponse = await fetch(new URL(`/api/v1/message/${encodeURIComponent(latest.ID)}`, mailbox), { cache: "no-store" });
   if (!detailResponse.ok) return "";
   const detail = (await detailResponse.json()) as MailDetail;
-  return `${detail.Text ?? ""}\n${detail.HTML ?? ""}`.match(/\b\d{6}\b/)?.[0] ?? "";
+  return `${detail.Text ?? ""}\n${detail.HTML ?? ""}`.match(/\b\d{6,10}\b/)?.[0] ?? "";
 }
 
 /**
@@ -65,9 +65,11 @@ export async function signInStaffWithEmailOtp(page: Page, email: string, target 
   await expect.poll(async () => {
     oneTimeCode = await newMailCode(email, previousIds);
     return oneTimeCode.length;
-  }, { message: "A fresh local staff login email should contain a six-digit code" }).toBe(6);
+  }, { message: "A fresh local staff login email must contain the full eight-digit Auth code" }).toBe(8);
 
-  await page.getByLabel("Inlogcode").fill(oneTimeCode);
+  const input = page.getByLabel("Inlogcode", { exact: true });
+  await input.fill(oneTimeCode);
+  expect((await input.inputValue()).length, "The staff login form must retain the full eight-digit Auth code").toBe(8);
   oneTimeCode = "";
   await page.getByRole("button", { name: "Code controleren", exact: true }).click();
   await page.waitForURL((url) => url.pathname === destination.pathname && url.search === destination.search);

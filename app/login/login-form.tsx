@@ -29,8 +29,8 @@ export function LoginForm({ next }: { next?: string; staffLogin?: boolean }) {
         <p className="staff-login-recipient">Code verstuurd naar <strong>{state.email}</strong></p>
         <label>
           <span id="otp-code-label">Inlogcode</span>
-          <span className="auth-input"><ShieldCheck size={18} /><input name="code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required autoFocus aria-labelledby="otp-code-label" aria-describedby="otp-code-help" /></span>
-          <small id="otp-code-help">Vul de zescijferige code uit de e-mail in.</small>
+          <span className="auth-input"><ShieldCheck size={18} /><input name="code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,10}" minLength={6} maxLength={10} required autoFocus aria-labelledby="otp-code-label" aria-describedby="otp-code-help" /></span>
+          <small id="otp-code-help">Vul de volledige code uit de e-mail in.</small>
         </label>
         {state.error && <p className="auth-message error" role="alert">{state.error}</p>}
         <button className="primary-button full" name="intent" value="verify" disabled={pending}>

@@ -38,6 +38,17 @@ verification suite, including the required Playwright flows, before its deploy
 job can start. It also proves that the branch tip equals the workflow SHA and
 that this SHA is contained in `origin/main`.
 
+The manually dispatched `diagnose-auth-mail.yml` runs only the reviewed `main`
+tip on an ephemeral hosted runner. It does not deploy or change provider
+configuration. It identifies the existing explicit `origin/staging` promotion,
+requires that promotion to be contained in `main`, and checks its exact public
+health SHA before diagnostics. Configuration comes only from Environment
+`staging`. A signed empty hook payload is rejected before any database or mail
+action; database inspection uses a read-only transaction and fixed aggregate
+queries. No addresses, credentials, OTPs, message bodies or provider error
+payloads enter its output. The shared staging concurrency group prevents it
+from overlapping a deployment.
+
 ## 3. Runtime contract
 
 | Property | Canonical staging value |
@@ -294,8 +305,12 @@ provider itself, never in source, examples, logs or committed service files.
 
 ### Uniforme OTP-login — eigenaarsopdracht 2026-10-05
 
-Alle Fieldgrid-gebruikers melden zich aan met een eenmalige zescijferige
-e-mailcode: personeel, management, klanten en platformbeheerders. `/login`
+Alle Fieldgrid-gebruikers melden zich aan met een eenmalige numerieke
+e-mailcode van de provider: personeel, management, klanten en platformbeheerders.
+De eigenaar bevestigde dat hosted staging acht cijfers gebruikt; die instelling
+blijft behouden. De mailhook en verificatie accepteren de door Supabase
+ondersteunde zes tot en met tien cijfers en geven de volledige code ongewijzigd
+door. Er is geen tweede OTP-generator of nieuwe configuratiebron. `/login`
 heeft geen wachtwoord- of magic-link-inlog. Een codeaanvraag maakt geen account
 aan en onthult niet of een adres bestaat. Na verificatie worden de actuele
 sessie, hostname en werkruimterechten opnieuw gecontroleerd; een geslaagde Auth

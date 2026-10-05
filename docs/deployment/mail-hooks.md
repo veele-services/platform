@@ -27,7 +27,7 @@ personeel en klanten. Er is geen wachtwoord- of magic-link-login. Configureer
 dit uitsluitend in het **nieuwe staging-Supabaseproject** onder Authentication:
 
 - Email provider: ingeschakeld;
-- Email OTP length: `6`;
+- Email OTP length: `8` (door de eigenaar bevestigd; applicatie ondersteunt `6`–`10`);
 - Email OTP expiry: `3600` seconden;
 - minimale resend-interval voor magic-link/OTP-mail: `60` seconden;
 - Email Templates → **Magic Link**, onderwerp `Je inlogcode voor Fieldgrid`,
@@ -47,7 +47,8 @@ hosted Supabaseproject neemt die niet automatisch over bij een deploy. De
 operator kopieert de inhoud daarom bewust via de hosted projectinstellingen.
 
 Wanneer de Send Email Hook actief is, vervangt die het hosted mailsjabloon en
-maakt `/api/email/auth` iedere loginmail als gebrande zescijferige codemail.
+maakt `/api/email/auth` iedere loginmail als gebrande codemail met de volledige
+door Supabase uitgegeven code.
 De tenant komt uitsluitend uit de gecontroleerde hostname en de bestaande
 server-side lidmaatschappen/klantbindingen. De platformhost gebruikt Fieldgrid.
 De hosted Magic Link-template blijft verplicht, zodat een bewuste terugval
@@ -110,6 +111,49 @@ configuratie heeft geïnstalleerd. Dit is operatorbevestiging van de wijziging;
 de juiste signing secret in de actieve runtime en echte codemailbezorging
 moeten nog na de deploy worden bevestigd.
 
+De release `dcd9fd70feb7a80cf72c732949a660060638c733` heeft daarna alle zes
+stagingworkflowjobs en de publieke exacte-SHA healthcontrole doorlopen. De
+eigenaar ontving bij een nieuwe codeaanvraag geen mail en meldde in Auth Logs
+`500: Service currently unavailable due to hook`. Mailbezorging en OTP-login
+zijn daarmee nog niet geaccepteerd.
+
+De eigenaar bevestigde daarna dat **Email OTP length op 8 staat**. De eerdere
+implementatie valideerde loginmail en ingevoerde codes op exact zes cijfers;
+de achtcijferige hookcode werd daardoor vóór de receiptclaim met HTTP 503
+afgewezen. Staging blijft op acht cijfers. De correctie accepteert in hook,
+mailrendering en login de volledige providercode van zes tot en met tien
+cijfers. De lokale Email Auth-configuratie gebruikt acht cijfers zodat echte
+browserlogins deze situatie verifiëren; afzonderlijke applicatie-OTP's voor
+object- en rechtenacties behouden hun eigen bestaande contract.
+
+### Niet-schrijvende maildiagnose
+
+Dispatch `diagnose-auth-mail.yml` bewust vanaf de gereviewde `main`-tip. Deze
+workflow deployt niets. Hij bepaalt de bestaande stagingpromotie uit
+`origin/staging`, controleert de afkomst en de exacte publieke health-SHA en
+gebruikt uitsluitend Environment `staging` op een tijdelijke hosted runner.
+
+De ondertekende probe bevat alleen `{}`. HTTP 400 bevestigt dat de actieve
+endpoint de GitHub-hooksecret accepteert en de ongeldige payload afwijst vóór
+database- of mailtoegang. Dit bewijst niet dat Supabase dezelfde secret gebruikt.
+Een ondertekende 401 wijst op een mismatch tussen GitHub en de runtime; een 503
+kan op ontbrekende runtimeconfiguratie wijzen. De ongetekende probe moet 401
+geven. Geen van beide probes verstuurt een mail.
+
+Een afzonderlijke vaste platform-context-RPC gebruikt een fictieve actor en
+een `example.invalid`-adres om de service-only Auth-mailcontext te controleren.
+Deze RPC leest alleen de platformhuisstijl en maakt geen account, receipt of
+verzending. Het resultaat wordt teruggebracht tot een status en een boolean;
+credentials en ruwe responsen worden niet getoond.
+
+Vaste read-only databasequeries rapporteren alleen aantallen per hook-,
+transport- en providerstatus en aantallen expliciete mailstops. Een
+verzending met `accepted` is door SendGrid aangenomen, maar bewijst geen
+mailboxbezorging. Geen receipts kan ook betekenen dat contextvalidatie faalde
+vóór de claim. Ontbrekende delivery-events kunnen eveneens op een niet-actieve
+SendGrid Event Webhook wijzen. Interpreteer deze signalen samen met Auth Logs;
+log nooit adressen, ids, hashes, mailinhoud, OTPs of ruwe providerfouten.
+
 ### Controleerbare activatiegrens — 5 oktober 2026
 
 De repository bevat geen workflow of script dat hosted Auth-instellingen
@@ -150,7 +194,8 @@ succesvolle lokale ondertekende test is geen bewijs van echte Auth-levering.
    enabled. Never edit the production project.
 4. Request a code with operator-owned accounts for `/platform`, tenant `/app`,
    `/staff` and `/klant`. Confirm each mail uses the correct Fieldgrid/tenant
-   brand and exactly a six-digit code without a credential-bearing URL. Enter
+   brand and the complete provider-issued code (eight digits on hosted staging)
+   without a credential-bearing URL. Enter
    it once, confirm only the authorized workspace opens, and confirm replay
    fails. All four screens must have no password field. An unknown address
    receives the same browser response without account-status disclosure.
@@ -193,7 +238,7 @@ report those limitations explicitly.
 - Account-activation and email-change credentials travel in a fragment, removed
   immediately from browser history. GET never verifies; a deliberate server
   action does, using an isolated session that never logs the browser in. Every
-  login mail contains only the one-use six-digit code and no credential-bearing
+  login mail contains only the complete one-use provider code and no credential-bearing
   link. Tracking is disabled on all of these mails.
 - Endpoint unit tests and local DB checks do not establish actual provider
   delivery, real-world hook timing, or staging configuration correctness.

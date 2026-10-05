@@ -50,4 +50,17 @@ describe("Auth email destination and content", () => {
     payload.email_data.token = "12345";
     expect(() => authMailMessages(payload, origin, "Fieldgrid")).toThrow("Invalid Auth login code");
   });
+  it.each(["magiclink", "email"].flatMap(type => ["012345", "0123456", "01234567", "012345678", "0123456789"].map(code => ({ type, code }))))("preserves the full $code OTP for $type without a sign-in link", ({ type, code }) => {
+    const payload = fixture(type);
+    payload.email_data.token = code;
+    const message = authMailMessages(payload, origin, "FICTITIOUS tenant")[0];
+    expect(message).toMatchObject({ otp: true, subject: "Je inlogcode voor FICTITIOUS tenant", targetUrl: `${origin}/login`, label: "" });
+    expect(message.body).toContain(`Je eenmalige inlogcode is ${code}.`);
+    expect(JSON.stringify(message)).not.toContain(payload.email_data.token_hash);
+  });
+  it.each(["magiclink", "email"].flatMap(type => ["12345", "12345678901", "1234abcd", "１２３４５６", "12 45678"].map(code => ({ type, code }))))("rejects unsupported $type OTP $code", ({ type, code }) => {
+    const payload = fixture(type);
+    payload.email_data.token = code;
+    expect(() => authMailMessages(payload, origin, "Fieldgrid")).toThrow("Invalid Auth login code");
+  });
 });

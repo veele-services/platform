@@ -68,19 +68,19 @@ test.afterAll(async () => {
   } finally { await db.end(); }
 });
 
-test("management zonder platformrol logt met een echte e-mailcode in op de backoffice", async ({ page }) => {
+test("management zonder platformrol logt met een echte achtcijferige e-mailcode in op de backoffice", async ({ page }) => {
   await page.context().addCookies([{ name: "fieldgrid_tenant_id", value: tenant, url: "http://127.0.0.1:3000" }]);
   await signInWithEmailOtp(page, emails.management, "/app");
   await expect(page.getByRole("link", { name: "Klanten", exact: true }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Code controleren", exact: true })).toHaveCount(0);
 });
 
-test("platformbeheerder zonder tenantlidmaatschap logt met een echte e-mailcode in op het platform", async ({ page }) => {
+test("platformbeheerder zonder tenantlidmaatschap logt met een echte achtcijferige e-mailcode in op het platform", async ({ page }) => {
   await signInWithEmailOtp(page, emails.platform, "/platform");
   await expect(page.getByRole("heading", { name: "Grip op iedere tenant.", exact: true })).toBeVisible();
 });
 
-test("klant zonder personeelslidmaatschap logt met een echte e-mailcode in op uitsluitend het eigen klantportaal", async ({ page }) => {
+test("klant zonder personeelslidmaatschap logt met een echte achtcijferige e-mailcode in op uitsluitend het eigen klantportaal", async ({ page }) => {
   await page.context().addCookies([{ name: "fieldgrid_tenant_id", value: tenant, url: "http://127.0.0.1:3000" }]);
   await signInWithEmailOtp(page, emails.customer, "/klant");
   await expect(page.locator(".customer-portal")).toBeVisible();

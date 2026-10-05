@@ -38,7 +38,7 @@ export function authMailMessages(payload: AuthMailPayload, origin: string, compa
     case "invite": return [link(u.email, d.token_hash, "invite", `Uitnodiging voor ${company}`, `Je bent uitgenodigd voor de beveiligde omgeving van ${company}. Accepteer de uitnodiging. Daarna log je in met een eenmalige e-mailcode; een wachtwoord is niet nodig.`, "Uitnodiging accepteren")];
     case "recovery": return [{ recipient: u.email, subject: `Inloggen bij ${company}`, body: `Je hebt gevraagd om je wachtwoord opnieuw in te stellen. Bij ${company} log je in met een eenmalige e-mailcode. Open het inlogscherm en vraag daar een nieuwe code aan. Een wachtwoord is niet nodig.\n\nHeb je dit niet aangevraagd? Dan hoef je niets te doen.`, targetUrl: new URL("/login", origin).href, label: "Inlogcode aanvragen", otp: false }];
     case "magiclink": case "email": {
-      if (!/^\d{6}$/.test(d.token)) throw new Error("Invalid Auth login code");
+      if (!/^\d{6,10}$/.test(d.token)) throw new Error("Invalid Auth login code");
       return [{ recipient: u.email, subject: `Je inlogcode voor ${company}`, body: `Je eenmalige inlogcode is ${d.token}.\n\nVul deze code alleen in het geopende inlogscherm van ${company} in. De code verloopt en kan maar één keer worden gebruikt. Heb je dit niet aangevraagd? Deel de code niet en neem contact op met je beheerder.`, targetUrl: new URL("/login", origin).href, label: "", otp: true }];
     }
     case "email_change": {
