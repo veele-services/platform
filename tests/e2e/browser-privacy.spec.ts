@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
+import { authenticateStaff } from "./staff-auth";
 
 test.use({trace:"off",screenshot:"off",video:"off"});
 async function login(page:Page,email="platform-admin@fieldgrid.test",password="Fieldgrid-E2E-2026"){
@@ -51,11 +52,11 @@ test("logout removes legacy searches, fences another tab before logout completes
       const sessionSignal=await sessionResponse.json();
       expect({status:sessionResponse.status(),active:Boolean(sessionSignal.sessionKey),error:sessionSignal.error??null}).toEqual({status:200,active:false,error:null});
       // The cross-tab pulse may already have completed the safe navigation.
-      // Only a still-protected document should issue a fresh focus recheck.
+      // If a protected document is still present, focus must finish fencing it.
+      // Do not wait for a particular fetch: the earlier pulse can win the race
+      // between this URL check and the focus event and navigate immediately.
       if(new URL(other.url()).pathname!=="/login"){
-        const rechecked=other.waitForResponse(response=>new URL(response.url()).pathname==="/api/auth/session",{timeout:3000});
         await other.evaluate(()=>window.dispatchEvent(new Event("focus")));
-        await rechecked;
       }
       await expect.poll(()=>new URL(other.url()).pathname).toBe("/login");
     },{timeout:10000});
@@ -90,6 +91,7 @@ test("delayed hydration cannot attach a new account to an old rendered document"
 });
 
 for(const audience of ["staff","customer"] as const)test(`${audience}: two real accounts on one device never share the prior profile, object or document`,async({page,context})=>{
+  test.setTimeout(audience==="staff"?120000:60000);
   const api=requireLocalApiUrl(),database=requireLocalDatabaseUrl();
   const admin=createClient(api.href,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false,autoRefreshToken:false}});
   const db=new pg.Client({connectionString:database.href});await db.connect();
@@ -99,11 +101,14 @@ for(const audience of ["staff","customer"] as const)test(`${audience}: two real 
   const emails=[0,1].map(()=>`device-${randomUUID()}@fieldgrid.test`);
   const names=["FICTITIOUS Device Alpha","FICTITIOUS Device Beta"];
   const target=audience==="staff"?"/staff":"/klant",other=await context.newPage();
+  if(audience==="staff")await Promise.all([page.setViewportSize({width:390,height:844}),other.setViewportSize({width:390,height:844})]);
   const checked=async(result:{error:unknown})=>{if(result.error)throw new Error("Synthetic fixture operation failed");};
   const enter=async(index:number)=>{
-    await page.goto(`/login?next=${target}`);await page.getByLabel("E-mailadres").fill(emails[index]);
+    if(audience==="staff")await authenticateStaff(page,emails[index],target,password);
+    else{await page.goto(`/login?next=${target}`);await page.getByLabel("E-mailadres").fill(emails[index]);
     await page.getByLabel("Wachtwoord",{exact:true}).fill(password);await page.getByRole("button",{name:"Inloggen",exact:true}).click();
-    await page.waitForURL(url=>url.pathname===target);await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked");
+    await page.waitForURL(url=>url.pathname===target);}
+    await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked");
     if(audience==="staff")await page.getByRole("button",{name:"Meer",exact:true}).click();
     await expect(page.getByRole("heading",{name:names[index],exact:true})).toBeVisible();
     await expect(page.getByText(names[1-index],{exact:true})).toHaveCount(0);
@@ -117,7 +122,7 @@ for(const audience of ["staff","customer"] as const)test(`${audience}: two real 
       if(!result.data.user)throw new Error("Synthetic user missing");users.push(result.data.user.id);
       if(audience==="staff"){
         await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,array['staff']::public.app_role[],'active')",[tenant,users[i]]);
-        await db.query("insert into public.personnel(id,tenant_id,user_id,employee_number,full_name,status) values($1,$2,$3,$4,$5,'active')",[people[i],tenant,users[i],`FIX-${i}`,names[i]]);
+        await db.query("insert into public.personnel(id,tenant_id,user_id,employee_number,full_name,status,onboarding_step,onboarding_completed_at) values($1,$2,$3,$4,$5,'active',5,now())",[people[i],tenant,users[i],`FIX-${i}`,names[i]]);
         const bytes=Buffer.from(`%PDF-1.4\n% FICTITIOUS own document ${i}\n%%EOF`),path=`${tenant}/${people[i]}/${documents[i]}.pdf`;paths.push(path);
         // Historical unpublished bytes are scanned by the real download gateway.
         await checked(await admin.storage.from("personnel-documents").upload(path,bytes,{contentType:"application/pdf"}));
@@ -130,27 +135,35 @@ for(const audience of ["staff","customer"] as const)test(`${audience}: two real 
       }
     }
     await context.addCookies([{name:"fieldgrid_tenant_id",value:tenant,url:"http://127.0.0.1:3000"}]);
-    await enter(0);await other.goto(target);await expect(other.locator("html")).not.toHaveAttribute("data-account-blocked");
-    if(audience==="staff"){
-      await other.getByRole("button",{name:"Meer",exact:true}).click();
-      const own=await page.request.get(`/api/files/personnel-document/${documents[0]}`);expect(own.status()).toBe(200);expect(await own.text()).toContain("FICTITIOUS own document 0");
-      expect((await page.request.get(`/api/files/personnel-document/${documents[1]}`)).status()).toBe(404);
-      expect(await page.content()).not.toContain("FICTITIOUS INTERNAL HR");
-    }
-    await expect(other.getByRole("heading",{name:names[0],exact:true})).toBeVisible();
-    await page.getByRole("button",{name:"Uitloggen",exact:true}).click();await page.waitForURL(url=>url.pathname==="/login");
-    await expect(other.getByRole("heading",{name:names[0],exact:true})).not.toBeVisible();
-    await enter(1);
-    await page.goBack();await expect(page.getByRole("heading",{name:names[0],exact:true})).not.toBeVisible();
-    await other.bringToFront();await other.evaluate(()=>window.dispatchEvent(new Event("focus")));
-    await expect(other.getByRole("heading",{name:names[0],exact:true})).not.toBeVisible();
-    await page.goto(target);await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked");
-    if(audience==="staff"){
-      await page.getByRole("button",{name:"Meer",exact:true}).click();
-      expect((await page.request.get(`/api/files/personnel-document/${documents[0]}`)).status()).toBe(404);
-      const own=await page.request.get(`/api/files/personnel-document/${documents[1]}`);expect(own.status()).toBe(200);expect(await own.text()).toContain("FICTITIOUS own document 1");
-    }
-    await expect(page.getByRole("heading",{name:names[1],exact:true})).toBeVisible();
+    await test.step("open the first account safely in both tabs",async()=>{
+      await enter(0);await other.goto(target);await expect(other.locator("html")).not.toHaveAttribute("data-account-blocked");
+      if(audience==="staff"){
+        await other.getByRole("button",{name:"Meer",exact:true}).click();
+        const own=await page.request.get(`/api/files/personnel-document/${documents[0]}`);expect(own.status()).toBe(200);expect(await own.text()).toContain("FICTITIOUS own document 0");
+        expect((await page.request.get(`/api/files/personnel-document/${documents[1]}`)).status()).toBe(404);
+        expect(await page.content()).not.toContain("FICTITIOUS INTERNAL HR");
+      }
+      await expect(other.getByRole("heading",{name:names[0],exact:true})).toBeVisible();
+    },{timeout:30000});
+    await test.step("logout fences the first account in every tab",async()=>{
+      await page.getByRole("button",{name:"Uitloggen",exact:true}).click();await page.waitForURL(url=>url.pathname==="/login");
+      await expect(other.getByRole("heading",{name:names[0],exact:true})).not.toBeVisible();
+    },{timeout:30000});
+    await test.step("the second account cannot revive the first account",async()=>{
+      await enter(1);
+      await page.goBack();await expect(page.getByRole("heading",{name:names[0],exact:true})).not.toBeVisible();
+      await other.bringToFront();await other.evaluate(()=>window.dispatchEvent(new Event("focus")));
+      await expect(other.getByRole("heading",{name:names[0],exact:true})).not.toBeVisible();
+      await page.goto(target);await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked");
+    },{timeout:30000});
+    await test.step("the second account sees only its own resources",async()=>{
+      if(audience==="staff"){
+        await page.getByRole("button",{name:"Meer",exact:true}).click();
+        expect((await page.request.get(`/api/files/personnel-document/${documents[0]}`)).status()).toBe(404);
+        const own=await page.request.get(`/api/files/personnel-document/${documents[1]}`);expect(own.status()).toBe(200);expect(await own.text()).toContain("FICTITIOUS own document 1");
+      }
+      await expect(page.getByRole("heading",{name:names[1],exact:true})).toBeVisible();
+    },{timeout:30000});
   }catch(error){primaryFailure=error;}finally{
     await other.close();
     try{

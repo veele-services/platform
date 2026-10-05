@@ -52,12 +52,16 @@ test('release privacy boundaries use real authenticated principals', async t => 
       assert.equal((await call('select id from public.customers where id=$1',[customer],manager)).length,1);
       assert.equal((await call('select id from public.customers where id=$1',[foreignCustomer],manager)).length,0);
     });
-    await t.test('own raw report remains available, colleague private report does not',async()=>{
+    await t.test('own raw report remains available and changes only through the versioned command',async()=>{
       assert.deepEqual((await call('select id from public.report_entries where work_order_id=$1',[order])).map(r=>r.id),[entries[0]]);
       const data=await workspace();assert.deepEqual(data.reports.map(r=>r.id),[entries[0]]);assert.deepEqual(data.attachments.map(r=>r.id),[files[0]]);
       assert.equal((await call('select id from public.report_entries where work_order_id=$1',[order],manager)).length,2);
-      assert.equal((await call("update public.report_entries set body='FICTITIOUS EDIT' where id=$1 returning id",[entries[0]])).length,1);
+      assert.equal((await call("update public.report_entries set body='FICTITIOUS DIRECT EDIT' where id=$1 returning id",[entries[0]])).length,0);
       assert.equal((await call("update public.report_entries set body='FICTITIOUS FORGED EDIT' where id=$1 returning id",[entries[1]])).length,0);
+      const version=(await call('select version from public.report_entries where id=$1',[entries[0]]))[0].version;
+      const [updated]=await call("select public.staff_report_entry_command($1::uuid,'update',jsonb_build_object('reportEntryId',$2::uuid,'version',$3::integer,'body','FICTITIOUS EDIT'),$4::uuid) data",[tenant,entries[0],version,randomUUID()]);
+      assert.equal(updated.data.row.body,'FICTITIOUS EDIT');
+      assert.equal((await call('select body from public.report_entries where id=$1',[entries[0]]))[0].body,'FICTITIOUS EDIT');
     });
     await t.test('Storage blocks colleague read/update but permits own file',async()=>{
       assert.equal((await call("select id from storage.objects where bucket_id='reports' and name=$1",[paths[1]])).length,0);
@@ -161,12 +165,20 @@ test('release privacy boundaries use real authenticated principals', async t => 
       try{await assert.rejects(db.query('update public.invoices set pdf_storage_path=$1 where id=$2',[`${foreignTenant}/${invoice}/FICTITIOUS.pdf`,invoice]),e=>e.code==='23514');}
       finally{await db.query('rollback to savepoint direct_invoice_writer');await db.query('release savepoint direct_invoice_writer');}
     });
-    await t.test('own completed draft report still supports attachment soft-delete',async()=>{
+    await t.test('own completed draft report still supports versioned atomic soft-delete',async()=>{
       await db.query('savepoint completed_report');
       try {
         await db.query("update public.work_orders set status='completed',report_state='draft' where id=$1",[order]);
-        assert.equal((await call('update public.attachments set deleted_at=now() where id=$1 returning id',[files[0]])).length,1);
-        assert.equal((await call('update public.report_entries set deleted_at=now() where id=$1 returning id',[entries[0]])).length,1);
+        assert.equal((await call('update public.attachments set deleted_at=now() where id=$1 returning id',[files[0]])).length,0);
+        assert.equal((await call('update public.report_entries set deleted_at=now() where id=$1 returning id',[entries[0]])).length,0);
+        const version=(await call('select version from public.report_entries where id=$1',[entries[0]]))[0].version;
+        const [deleted]=await call("select public.staff_report_entry_command($1::uuid,'delete',jsonb_build_object('reportEntryId',$2::uuid,'version',$3::integer),$4::uuid) data",[tenant,entries[0],version,randomUUID()]);
+        assert.equal(deleted.data.deleted,true);
+        const deletedWorkspace=await workspace();
+        assert.equal(deletedWorkspace.reports.some(entry=>entry.id===entries[0]),false);
+        assert.equal(deletedWorkspace.attachments.some(attachment=>attachment.id===files[0]),false);
+        assert.equal((await call('select id from public.report_entries where id=$1 and deleted_at is not null',[entries[0]],manager)).length,1);
+        assert.equal((await call('select id from public.attachments where id=$1 and deleted_at is not null',[files[0]],manager)).length,1);
       }finally{await db.query('rollback to savepoint completed_report');await db.query('release savepoint completed_report');}
     });
     await t.test('shared tasks expose aggregate results, not colleague identities or notes',async()=>{
@@ -174,12 +186,13 @@ test('release privacy boundaries use real authenticated principals', async t => 
       try{
         const tasks=[randomUUID(),randomUUID()];
         for(let i=0;i<2;i++)await db.query("insert into public.work_order_tasks(id,tenant_id,work_order_id,task_code,task_name,duration_minutes,unit,unit_price_cents,vat_basis_points,assigned_personnel_id,added_by) values($1,$2,$3,$4,'FICTITIOUS task',30,'visit',100,2100,$5,$6)",[tasks[i],tenant,order,`FICTITIOUS-${i}`,i===0?people[1]:null,colleague]);
-        for(const id of tasks)await call("select public.complete_work_order_task($1,true,'PRIVATE COLLEAGUE NOTE')",[id],colleague);
+        for(const id of tasks){
+          const version=(await db.query('select execution_version from public.work_order_tasks where id=$1',[id])).rows[0].execution_version;
+          await call("select public.record_task_execution($1,$2,$3,'completed',1,'PRIVATE COLLEAGUE NOTE')",[tenant,id,version],colleague);
+        }
         const projection=(await workspace()).workOrderTasks;
         assert.equal(projection.length,2);assert.equal(JSON.stringify(projection).includes(people[1]),false);assert.equal(JSON.stringify(projection).includes(colleague),false);assert.equal(JSON.stringify(projection).includes('PRIVATE COLLEAGUE NOTE'),false);
-        const retry=(await call('select (public.complete_work_order_task($1,true,null)).*',[tasks[1]]))[0];
-        assert.equal(retry.completion_note,null);assert.equal(retry.added_by,null);
-        assert.equal((await call('select (public.complete_work_order_task($1,true,null)).completion_note note',[tasks[0]],colleague))[0].note,'PRIVATE COLLEAGUE NOTE');
+        await assert.rejects(call('select public.complete_work_order_task($1,true,null)',[tasks[1]],colleague),e=>e.code==='42501');
       }finally{await db.query('rollback to savepoint shared_tasks');await db.query('release savepoint shared_tasks');}
     });
     await t.test('both execution RPCs reject a task explicitly assigned to another employee',async()=>{

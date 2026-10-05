@@ -9,6 +9,7 @@ import { getNotificationAccess, getNotificationCampaign, getNotificationCampaign
 import { getNotificationPermissions } from "@/lib/notifications/data";
 import { channelLabels, notificationPaths, notificationQueryFromSearch, tabLabels, type NotificationAccess, type NotificationQuery, type NotificationWorkspace } from "@/lib/notifications/model";
 import { BackofficeShell } from "@/components/fieldgrid/backoffice-shell";
+import { StaffRouteShell } from "@/components/fieldgrid/staff/route-shell";
 import { FieldgridBrand, ProductBrand } from "@/components/fieldgrid/brand";
 import { NotificationBell, InboxActions, InboxRows, NotificationDetail } from "./inbox";
 import { CampaignDetail, CampaignTable, NewCampaignButton } from "./campaigns";
@@ -28,8 +29,9 @@ export async function NotificationRouteLayout({ workspace, children }: { workspa
   const access = await getNotificationAccess(workspace);
   if (!access.allowed) notFound();
   if (workspace === "backoffice") { const context = await getAuthContext(); if (!context.tenant || context.tenant.id !== access.tenant?.id) notFound(); const shell = await getPlanningShellData(context.tenant.id); return <BackofficeShell context={{ ...context, tenant: context.tenant }} data={shell} initialView="notificaties">{children}</BackofficeShell>; }
-  const home = workspace === "staff" ? "/staff" : workspace === "customer" ? "/klant" : "/platform";
-  return <div className="nt-standalone" style={brandThemeStyle(access.tenant?.primaryColor, access.tenant?.accentColor)}><header>{access.tenant ? <FieldgridBrand tenantName={access.tenant.name} logoUrl={access.tenant.logoUrl}/> : <ProductBrand/>}<nav><Link href={home}>{workspace === "staff" ? "Mijn werk" : workspace === "customer" ? "Mijn afspraken" : "Platform"}</Link><NotificationBell workspace={workspace} actorKey={`${access.userId}:${access.tenant?.id ?? "platform"}`}/><form method="post" action="/auth/signout"><button className="secondary-button">Uitloggen</button></form></nav></header><main>{children}</main></div>;
+  if (workspace === "staff") return <StaffRouteShell active="notifications">{children}</StaffRouteShell>;
+  const home = workspace === "customer" ? "/klant" : "/platform";
+  return <div className="nt-standalone" style={brandThemeStyle(access.tenant?.primaryColor, access.tenant?.accentColor)}><header>{access.tenant ? <FieldgridBrand tenantName={access.tenant.name} logoUrl={access.tenant.logoUrl}/> : <ProductBrand/>}<nav><Link href={home}>{workspace === "customer" ? "Mijn afspraken" : "Platform"}</Link><NotificationBell workspace={workspace} actorKey={`${access.userId}:${access.tenant?.id ?? "platform"}`}/><form method="post" action="/auth/signout"><button className="secondary-button">Uitloggen</button></form></nav></header><main>{children}</main></div>;
 }
 export async function NotificationIndexRoute({ workspace, searchParams }: { workspace: NotificationWorkspace; searchParams: Promise<NotificationSearch> }) {
   const access = await getNotificationAccess(workspace); if (!access.allowed) notFound();

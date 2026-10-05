@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const auth = vi.hoisted(() => ({ exchangeCodeForSession: vi.fn(), signInWithPassword: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth }) }));
+vi.mock("@/lib/auth/context", () => ({ getAuthContext: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`redirect:${url}`); } }));
 import { GET } from "@/app/auth/confirm/route";
 import { signIn } from "@/app/login/actions";

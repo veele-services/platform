@@ -5,6 +5,7 @@ import type { Database } from "../../lib/database.types";
 
 const ADMIN_EMAIL = "platform-admin@fieldgrid.test";
 const STAFF_EMAIL = "field-worker@fieldgrid.test";
+const ONBOARDING_EMAIL = "new-field-worker@fieldgrid.test";
 export const E2E_PASSWORD = "Fieldgrid-E2E-2026";
 
 async function user(admin: ReturnType<typeof createClient<Database>>, email: string) {
@@ -28,6 +29,7 @@ export default async function globalSetup() {
   const admin = createClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   const owner = await user(admin, ADMIN_EMAIL);
   const worker = await user(admin, STAFF_EMAIL);
+  const onboardingWorker = await user(admin, ONBOARDING_EMAIL);
   await admin.from("platform_admins").upsert({ user_id: owner.id });
   let { data: tenant } = await admin.from("tenants").select("id").eq("slug", "fieldgrid-e2e").maybeSingle();
   if (!tenant) {
@@ -45,7 +47,9 @@ export default async function globalSetup() {
   const { error: settingsError } = await admin.from("tenant_settings").update({ white_label_enabled: false }).eq("tenant_id", tenantId);
   if (settingsError) throw settingsError;
   await admin.from("tenant_memberships").upsert({ tenant_id: tenantId, user_id: worker.id, roles: ["staff"], status: "active", activated_at: new Date().toISOString() }, { onConflict: "tenant_id,user_id" });
-  await admin.from("personnel").upsert({ id: "e1000000-0000-4000-8000-000000000001", tenant_id: tenantId, user_id: worker.id, employee_number: "FG-001", full_name: "Robin de Vries", email: STAFF_EMAIL, status: "active" }, { onConflict: "tenant_id,id" });
+  await admin.from("tenant_memberships").upsert({ tenant_id: tenantId, user_id: onboardingWorker.id, roles: ["staff"], status: "active", activated_at: new Date().toISOString() }, { onConflict: "tenant_id,user_id" });
+  await admin.from("personnel").upsert({ id: "e1000000-0000-4000-8000-000000000001", tenant_id: tenantId, user_id: worker.id, employee_number: "FG-001", full_name: "Robin de Vries", email: STAFF_EMAIL, status: "active", onboarding_step: 5, onboarding_completed_at: "2026-09-28T08:00:00.000Z" }, { onConflict: "tenant_id,id" });
+  await admin.from("personnel").upsert({ id: "e1000000-0000-4000-8000-000000000002", tenant_id: tenantId, user_id: onboardingWorker.id, employee_number: "FG-002", full_name: "Sam Nieuw", email: ONBOARDING_EMAIL, mobile_phone: null, home_address: {}, status: "active", availability_self_service_enabled: true, onboarding_step: 0, onboarding_completed_at: null, onboarding_draft: {} }, { onConflict: "tenant_id,id" });
   await admin.from("customers").upsert({ id: "e2000000-0000-4000-8000-000000000001", tenant_id: tenantId, customer_number: "KL-001", name: "Noordhaven Vastgoed", billing_email: "finance@customer.test", billing_address: { street: "Marktstraat 12", postal_code: "2511 AA", city: "Den Haag", country: "NL" } }, { onConflict: "tenant_id,id" });
   await admin.from("objects").upsert({ id: "e3000000-0000-4000-8000-000000000001", tenant_id: tenantId, customer_id: "e2000000-0000-4000-8000-000000000001", object_number: "OB-001", name: "Noordhaven Kantoor", address: { street: "Marktstraat 12", postal_code: "2511 AA", city: "Den Haag", country: "NL" } }, { onConflict: "tenant_id,id" });
   await admin.from("task_catalog").upsert({ id: "e4000000-0000-4000-8000-000000000001", tenant_id: tenantId, code: "SCH-001", discipline: "Onderhoud", name: "Periodieke controle" }, { onConflict: "tenant_id,id" });

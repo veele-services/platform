@@ -281,6 +281,11 @@
       "version": "20261004164500",
       "name": "fix_ticket_claim_guards",
       "sha256": "bcbd7b0569eae140df1f838502fb121dde8394a3115964bea11580b17c30d6be"
+    },
+    {
+      "version": "20261004220000",
+      "name": "staff_personnel_app",
+      "sha256": "efa48045eb2c7987a7d0126ef2b563c0c67a5df0330b1aa1b88fce513dc38fc5"
     }
   ]
 }

@@ -96,7 +96,7 @@
         "verifyAuthMailHook"
       ],
       "resources": [],
-      "source_sha256": "2b51e295d35564e7bbf7fa31f0374bdcabb2166ae22171cb44d695e32e4905a1"
+      "source_sha256": "c1cea4f62a98e1e29f8c393e91fd0165ba05fd0686b2586344c9b72b4001a873"
     },
     {
       "id": "code:app/api/email/events/route.ts",
@@ -194,7 +194,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "98e54df05a13b425314b4153a2b9ca78f4a850893a2c6345e17b7a28dd5adb5c"
+      "source_sha256": "86aa09466c4e3502f34da4646b8aaad1537767c63519e5a5ebcacacfbc00470d"
     },
     {
       "id": "code:app/api/healthz/route.ts",
@@ -520,10 +520,9 @@
       ],
       "resources": [
         "rpc:customer_command",
-        "rpc:customer_document_metadata",
         "rpc:customer_list"
       ],
-      "source_sha256": "5d3273b052a24bf43ad32092cef334b8f3fd2fe24dcaadad149bf3a9a48c5477"
+      "source_sha256": "e6123f8ff2db8a4dbcbafc8f2b097e3366997779043ad54b081395c17a427a36"
     },
     {
       "id": "code:app/app/klanten/page.tsx",
@@ -785,7 +784,7 @@
         "rpc:review_work_order",
         "rpc:suggest_personnel_number"
       ],
-      "source_sha256": "4c8f4a3d665c248e7d126e72056dcde5f30cc667c4e3bb4d6570e98903468943"
+      "source_sha256": "a86eadb1b7fa225b41e930ab7db567e70ce7b9322b3275cb6915c31898a90565"
     },
     {
       "id": "code:app/app/opvolging/page.tsx",
@@ -809,7 +808,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "3fedc0b6b7c512a07ae47167f4cfa1d1466fbaa69f2f90f9716232af1cac0249"
+      "source_sha256": "24fc96917b0300f1963166396b36f228d6c235084b347b605a28e2dbf145372b"
     },
     {
       "id": "code:app/app/personeel/[personnelId]/page.tsx",
@@ -826,7 +825,7 @@
         "from:personnel_dossier_access",
         "rpc:personnel_qualification_gaps"
       ],
-      "source_sha256": "867a8824cf08b86116be5e97057de609ae6ce9c75615c21f3139a2b5dde61c3b"
+      "source_sha256": "5b30db7082e9342dce47afbbf6a4ad3ea0a1808673ac1a37d1cb7a02b9bd69ad"
     },
     {
       "id": "code:app/app/personeel/acties/page.tsx",
@@ -841,18 +840,23 @@
       "resources": [
         "from:certificates",
         "from:personnel_contracts",
-        "from:personnel_dossier_items"
+        "from:personnel_dossier_items",
+        "from:staff_time_correction_requests"
       ],
-      "source_sha256": "710e2d4dabbfadf9488ab194998f8918a93a9b8090aef322c4ea8c3eea321a39"
+      "source_sha256": "da738fd41b0918445444c1a7dadf79c61fcd6cc85b9f00144bf46b7efb45750f"
     },
     {
       "id": "code:app/app/personeel/dossier-actions.ts",
       "exports": [
         "dossierRecordHistory",
         "prepareDossierChecklist",
+        "reviewStaffLeaveRequest",
+        "reviewStaffTimeCorrection",
         "saveDossierRecord",
         "saveQualificationCatalog",
         "setQualificationRequirementActive",
+        "setStaffAvailabilitySelfService",
+        "setStaffLeaveEntitlement",
         "updateDossierDocument",
         "updateDossierTaskState",
         "uploadDossierDocument"
@@ -877,7 +881,7 @@
         "from:tenant_memberships",
         "rpc:prepare_personnel_checklist"
       ],
-      "source_sha256": "b093cf8a6898f30ad28b112ee8d92f9f2df81baccb3637cd18b9d98ef3ef40b5"
+      "source_sha256": "3d1bea16c2ab5c8f26137fe10dc41fda345432711ccd2a2574b2db54a7595812"
     },
     {
       "id": "code:app/app/planning/actions.ts",
@@ -988,7 +992,7 @@
         "rpc:travel_day_departure",
         "rpc:travel_session_active"
       ],
-      "source_sha256": "59ac1c94fbd6fd456af39d751432aea967043135a44fdc7333e022907edac877"
+      "source_sha256": "189f9ab493e64b7739b0f1c946b894863c9eebbcab8b3f3f78d33f7c3eaf9e77"
     },
     {
       "id": "code:app/app/werkbonnen/[workOrderId]/page.tsx",
@@ -1382,14 +1386,17 @@
       "exports": [
         "requestPasswordReset",
         "signIn",
+        "staffOtp",
         "updatePassword"
       ],
       "classification": "server-action",
       "observedControls": [
-        "createClient"
+        "auth.verifyOtp",
+        "createClient",
+        "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "ae375ed3ac4cb329d356422e186abbf7b16c6574f0fb1faf9e00332db3d6a38a"
+      "source_sha256": "84c18c462a0be393b08fdafd0098cf088046074cbf982a40740537289505bcc0"
     },
     {
       "id": "code:app/login/page.tsx",
@@ -1400,7 +1407,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "eba74aa610047b86aa13e555fb217af38bd5033f36a535e30e05e73d23fa3184"
+      "source_sha256": "3a363b028a0fb901675de398148198345e3c8b7de0a7c5feb158f98abb159ed5"
     },
     {
       "id": "code:app/notifications/actions.ts",
@@ -1616,33 +1623,53 @@
         "addReportEntry",
         "captureSignature",
         "deleteReportEntry",
+        "loadStaffSignaturePreview",
         "markAnnouncementRead",
+        "reportStaffCustomerAbsent",
+        "requestStaffExtraWork",
         "requestTimeCorrection",
+        "runStaffDayCommand",
+        "runStaffLeaveCommand",
+        "runStaffWorkOrderCostCommand",
+        "saveStaffOnboarding",
         "setTaskCompletion",
         "toggleShiftInterest",
         "transitionWorkOrder",
-        "updateReportEntry"
+        "updateReportEntry",
+        "updateStaffAvailability",
+        "updateStaffProfile"
       ],
       "classification": "server-action",
       "observedControls": [
+        "authorizeUpload",
         "createAdminClient",
         "createClient",
         "getAuthContext",
+        "publishScannedFile",
+        "resolveStaffTimeCorrection",
         "scanFileBytes",
         "uploadScannedFile"
       ],
       "resources": [
         "from:announcement_reads",
-        "from:attachments",
         "from:report_entries",
         "from:reports",
-        "from:time_entries",
         "rpc:add_extra_work",
-        "rpc:complete_work_order_task",
+        "rpc:record_task_execution",
         "rpc:set_shift_interest",
         "rpc:transition_work_order"
       ],
-      "source_sha256": "3ecb389915f3ef02d7a4bfe330db04f999b6feece47fe4d17960692b1dea6888"
+      "source_sha256": "c65e92aedf09593d85e5c32ed281c29fd0b8d92438e0b81ac733a48feca365da"
+    },
+    {
+      "id": "code:app/staff/layout.tsx",
+      "exports": [
+        "default"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "3fcd5041708542c2fb638d2fb54ca394bb66f58921fc2e5f24e38858758da8cb"
     },
     {
       "id": "code:app/staff/meldingen/[id]/page.tsx",
@@ -1757,7 +1784,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "816f47df548cd6a3729916d8c54a6696996d66e2f7c03169ede4660852fc7cb6"
+      "source_sha256": "b12063d030b55340af390923b693b4e9a25b41050c11f31a633705f2ce7b403d"
     },
     {
       "id": "code:app/tickets/actions.ts",
@@ -1793,19 +1820,68 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "f6f252fe01963d721ea432ef42e97f13840be2a054ec2770f4c681c392022a69"
+      "source_sha256": "fc05c5954cf1c91ccccb7594ea1150e142fa50c57282dd97ab72ea1d35d54f90"
     },
     {
-      "id": "code:components/fieldgrid/staff-app.tsx",
+      "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
       "exports": [
-        "StaffApp"
+        "DayPlanboard"
       ],
       "classification": "data-access-module",
       "observedControls": [
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "0145223cebd59a353ab221bbe58c9323650c5e2a11ef066ddda931f29f91baa7"
+      "source_sha256": "20ce79141a402a85f962b85f3dd05d188b709b2d1a3ac48202c8edf10522095a"
+    },
+    {
+      "id": "code:components/fieldgrid/staff-app.tsx",
+      "exports": [
+        "StaffApp",
+        "StaffOrderSheet"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createClient"
+      ],
+      "resources": [],
+      "source_sha256": "fe37b7c1325699f3a7c17b5020d96daeeba2585d9f360ea3846697eddbd90e0a"
+    },
+    {
+      "id": "code:components/fieldgrid/staff/personnel-app.tsx",
+      "exports": [
+        "PersonnelApp"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createClient"
+      ],
+      "resources": [],
+      "source_sha256": "012365879e59af4298319306a6a328a12128508b9d865edd671f3c50a7221927"
+    },
+    {
+      "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
+      "exports": [
+        "StaffRouteShellClient"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createClient"
+      ],
+      "resources": [],
+      "source_sha256": "eb4246316589a236eb7980cb2c81b9335e112fd3f4e552e7e868bd271f8e68de"
+    },
+    {
+      "id": "code:components/fieldgrid/staff/route-shell.tsx",
+      "exports": [
+        "StaffRouteShell"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "7864a504f8b7544c1f8cfb87261569a95e95569ee7ce6d4f2237daeece84cb5a"
     },
     {
       "id": "code:components/fieldgrid/tickets/routes.tsx",
@@ -1820,7 +1896,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "05c40542a7f83b29d1fb16b6f1702a58c83bc430977782c4b5895d0a303360b4"
+      "source_sha256": "b507ae43b625cc790bf634ce7c8e0167701e7f24f85f821553667e6f514b5fff"
     },
     {
       "id": "code:lib/auth/browser-session.ts",
@@ -1981,7 +2057,7 @@
         "rpc:personnel_availability",
         "rpc:personnel_dossier_summary"
       ],
-      "source_sha256": "d0d69f736a3e1e0cd426075986102ec2dd7a97b47a87f0e0b232a69d53185f5e"
+      "source_sha256": "0998fcc2bef73859e80edc254d44010c757d1c09e4d255850fc5089ba92d5378"
     },
     {
       "id": "code:lib/dossiers/download.ts",
@@ -2014,7 +2090,7 @@
         "resolveHostContext"
       ],
       "resources": [],
-      "source_sha256": "dd1151e742e98c47100446b3c625ccf1204ae9d605e192de71a505e757ac8c3e"
+      "source_sha256": "8e168112cd8d0c48af095bc220f1beb7f7b6d9cdc85ca3840c1833e932269beb"
     },
     {
       "id": "code:lib/email-centre/transport.ts",
@@ -2251,7 +2327,6 @@
       ],
       "resources": [
         "from:certificates",
-        "from:personnel",
         "from:personnel_contracts",
         "from:personnel_documents",
         "from:personnel_dossier_deliveries",
@@ -2260,10 +2335,10 @@
         "from:personnel_notes",
         "from:qualification_requirements",
         "from:qualification_types",
-        "from:tenant_memberships",
-        "rpc:personnel_dossier_owners"
+        "rpc:personnel_dossier_owners",
+        "rpc:personnel_dossier_staff_projection"
       ],
-      "source_sha256": "5417646fbd3c3ed77c1fb0ff0a6ddc9fdee6cf101550054d0cbf7e5fb944b5f0"
+      "source_sha256": "89865e171f6b2947dc67b06d5309fa74d474dd91b8bf2fcea8c0ee8cfc547774"
     },
     {
       "id": "code:lib/personnel/invitations.ts",
@@ -2282,7 +2357,7 @@
         "from:mail_deliveries",
         "from:tenant_branding"
       ],
-      "source_sha256": "b751bf9d922306c352e626f5f4c2b01bb6fa2152ee8ad0ae94bb1e07cbdd24c5"
+      "source_sha256": "0e92980594ebae5e77f29151f98904fff9018d32e2e332e4a737d7e6dc70759a"
     },
     {
       "id": "code:lib/personnel/invite-tenant.ts",
@@ -2565,7 +2640,7 @@
         "resolveHostContext"
       ],
       "resources": [],
-      "source_sha256": "8d7bf1255227240a1df2a9f5dcd9c3cedb744e83e00e0d4569bdceefa4567ff0"
+      "source_sha256": "dee9e48ba2d1ea63dca7f8e0823e366130a8eaa4bfe16e7ce7ab32dd913e5eea"
     },
     {
       "id": "db:private.commercial_commands",
@@ -3367,6 +3442,23 @@
       "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
     },
     {
+      "id": "db:private.staff_app_command_receipts",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
       "id": "db:private.ticket_audit",
       "classification": "table",
       "rls": true,
@@ -3602,7 +3694,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+      "authorization_sha256": "d9fa89e0628896586923988608495729cf15a30648df24ec1a793b4a458c2cd6"
     },
     {
       "id": "db:private.work_order_policy_changes",
@@ -3687,7 +3779,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "6c17fd545d150c49ae533aff352aefdbb04816dbe7ca0921ff8ce40991ca16cd"
+      "authorization_sha256": "7565d4bb010abfbbf49d86c0a76c32363fc974b15eabb40696b13a239184bb7a"
     },
     {
       "id": "db:public.announcements",
@@ -3704,7 +3796,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "dfcef3fffc5fbc01b40adc9751c5ed2337ef46d373e71d932ffe8d243d6fe47b"
+      "authorization_sha256": "64dddd8e7efac2383bc79750d500d24a55018fc6ef5ea94474a86d598824c54e"
     },
     {
       "id": "db:public.appointment_slots",
@@ -3738,7 +3830,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "58bc5a67a5affb9f346a972982c358783cb8c68feea91ced7b7aa22d3f2278eb"
+      "authorization_sha256": "f40d787a14fa4d7e5121cacc9fceda94a2e5c04b8cf641f1bdd8c355b881dbfc"
     },
     {
       "id": "db:public.audit_events",
@@ -3772,7 +3864,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "82343ea95664a34f3247cefcb18b270f67746e3b8740a82900d369971e8bffa4"
+      "authorization_sha256": "599650c3880830f43b71f4d81671e89c6913994cb634d2bcf96d27d7a0da27a1"
     },
     {
       "id": "db:public.booking_options",
@@ -3959,7 +4051,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "50fc9d1ae0a6ed5a033732d244cae3d83971c8cf0bbe85ff4a9febee6034ef7b"
+      "authorization_sha256": "2fa77469f562b0da509c7cf7aada4f17c880e2797d461969c785cbae639b31f9"
     },
     {
       "id": "db:public.dispatches",
@@ -3976,7 +4068,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "db29d0c7c0bbedc5e1d8bbb30ca2b2679747384aefb35fe81a87613e2bb16c0b"
+      "authorization_sha256": "1400ac26f2e003cce7e7d1375de60ac3828a78583b9544114f96ad2f2c96adb2"
     },
     {
       "id": "db:public.dossier_documents",
@@ -4027,7 +4119,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "1de4fd9dd08435ee83f7d240e8a85808dc1c1ab05759021dd6745e6c25d797b7"
+      "authorization_sha256": "96124256c15bfecf435607aeb16383edb3e553bcfb607c958f6c1367229688cd"
     },
     {
       "id": "db:public.function_catalog",
@@ -4367,7 +4459,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "8e043846c90a51c77a510ed049001c3dd9d0db771fa95dfadf08fc201cd6ff28"
+      "authorization_sha256": "c11860690f0cac739de2cc16f22e2746899cacb3b1718a89bc9a810b55278a27"
     },
     {
       "id": "db:public.open_shifts",
@@ -4384,7 +4476,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "dc60bb53f3194673a5f6a1eaf0d02573792434049828c914905e6ba418b180c5"
+      "authorization_sha256": "f7038cc90f076c25eb4b643fb10e078748621cbf2854168b8321f9a5eaf4c346"
     },
     {
       "id": "db:public.outbox_events",
@@ -4503,7 +4595,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "63c08fb2eb35a40965754145084def204d1542861615a6dfce1f3a2f2603c1fd"
+      "authorization_sha256": "3dc60d517ddaac80011f4b6307c2f6e166e28e813e5802c4bd3f4bc44b0f015b"
     },
     {
       "id": "db:public.personnel_contracts",
@@ -4537,7 +4629,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "ef5dca0987330c036e44933531b5346ecb053c20cac7ba6629eb7ee870055a27"
+      "authorization_sha256": "f388d10aeda3d6531262f7e3f1ed259e6883ffbd975d00793ca2002d1838835f"
     },
     {
       "id": "db:public.personnel_dossier_access",
@@ -4622,7 +4714,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "c5b34dc40eb8b52d853c28871dab833701615007e0eba9d7d4a17ca1fb417c6d"
+      "authorization_sha256": "de9239e2177ba1663f4e76bf9e7e232daf7914c14a53d6dc2d4760058d44a2ab"
     },
     {
       "id": "db:public.personnel_notes",
@@ -4758,7 +4850,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "43ff7f22af6daf9b0901c57d574e5cd8f4297ccdd5bf6111a21bd5a665b3713f"
+      "authorization_sha256": "c8b00e738475f1476166fe8195d580d4cd89d8c25c0e848d4091b5314e4ca3b4"
     },
     {
       "id": "db:public.quotes",
@@ -4809,7 +4901,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "cf1c1bbbd9fbe30d41e63671913497085f635871739d1522076a1cf974a87c2b"
+      "authorization_sha256": "39d98d97360c9316933124b106d2288efed5d106ec5a107d1d58dffb6f0094bc"
     },
     {
       "id": "db:public.requests",
@@ -4860,7 +4952,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "8f5c32da6007e8c8eb428d8ab74e07fbed275f7603c2ecd4ed5f8089bdfd0094"
+      "authorization_sha256": "d6799af8336a8ac42578212695fc6a9a62ae0c111e86771866387faf859a84e0"
     },
     {
       "id": "db:public.signatures",
@@ -4877,7 +4969,92 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "1865f82a81511c11af4ae0ff8d3e420681a2a6a4c6c8e6312e923d00c47935cc"
+      "authorization_sha256": "3bb35eeef45a1956b962bd9ea247ccb16832a65941599be4652e26fe22edba91"
+    },
+    {
+      "id": "db:public.staff_day_reviews",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": true,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "82444c3a28f1992d4a73016cc4787e601227cd725b519e51a90fda42ccc5fd57"
+    },
+    {
+      "id": "db:public.staff_leave_entitlements",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": true,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "bffb23f3fbe3207257b6264a4021a3681bf359ea368528d1b87fff30207b34d9"
+    },
+    {
+      "id": "db:public.staff_leave_requests",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": true,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "33ecb1a525c0ff0705800a364a4b093d7f6c742a49eb0008a8db7dc802dc76f3"
+    },
+    {
+      "id": "db:public.staff_time_correction_requests",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": true,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "22b7538c57e8872a0f4d6ab51d63e1d9624f0b634edaefb1f77bdc9577d61cf1"
+    },
+    {
+      "id": "db:public.staff_workspace_revisions",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": true,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "dbadbd3a444a34f32b1d74cc0ae9b6253eb59af0f8c310c854f153302a29318e"
     },
     {
       "id": "db:public.status_events",
@@ -4894,7 +5071,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "b5e1626edaa59fb06c85a761878423b390f0a9dddb42220f7dc74552b6b2f4d0"
+      "authorization_sha256": "080b74d4c2bafd600051b1d5fd8f930cb52b434ae136fa9583d7d58e7fad2de4"
     },
     {
       "id": "db:public.task_catalog",
@@ -4911,7 +5088,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "554f9b7e1761028a1a3cd5263ad8db73f0695e98b9eea142ee96cc547ba3d823"
+      "authorization_sha256": "bb979a30400c59ef747a38ca8d346808ced54f40074b90d0a2e9be740f534eb5"
     },
     {
       "id": "db:public.task_revisions",
@@ -4928,7 +5105,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "04b16bbfadbeb1f7aeabad5666c1ab3502555010ec95eda3cabed8000d7b721e"
+      "authorization_sha256": "486751a5d12cb3f43a8e53b1253f181cd085ba4b887a969456210648b655ad8b"
     },
     {
       "id": "db:public.tenant_admin_invitations",
@@ -4996,7 +5173,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "a7ffe2da209d3bc045cdbaf7718659309707ae6764a767e23818b029e1859dd3"
+      "authorization_sha256": "0efe393b1273512e3360a33f13822e5a95ce62de4b0203b5f47ed40f335a53fd"
     },
     {
       "id": "db:public.tenant_message_template_revisions",
@@ -5064,7 +5241,7 @@
       "authenticated_insert": false,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "9ecfa1977103b28548ce77efccb7212fed7a48a9ff80fd8ee45f45bf70530e2b"
+      "authorization_sha256": "41152842200a25bbbae1ffbfbf0cf8eee703e8e8c48aeba1b10ea390fd1168db"
     },
     {
       "id": "db:public.tenants",
@@ -5081,7 +5258,7 @@
       "authenticated_insert": false,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "9e963f273d2ae2dd366a7af6e5a698db532bbbe589799e0d378872eb6529ca82"
+      "authorization_sha256": "7257f41b514960de384905d43b1e55cce34afac8a11ec3d3834472ac6100abd0"
     },
     {
       "id": "db:public.ticket_categories",
@@ -5234,7 +5411,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "906576041ad04dac54e07350253edaf56b7254a38f94fc5daf9bb001ade7aeaf"
+      "authorization_sha256": "dacb3f469528d5052e7b6bfa43f52f408ef39d16820b174346c8cfe06859f5e3"
     },
     {
       "id": "db:public.travel_depots",
@@ -5251,7 +5428,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "0dd20d04c9195d3390ec2928f4fb0f92e64644037fa6f16dce6d58f8841f9a7d"
+      "authorization_sha256": "c9936fd585e5b494f78f2c551ce784422d1df0f0305a0c9323420f1566b2c9ce"
     },
     {
       "id": "db:public.travel_legs",
@@ -5268,7 +5445,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "92cbf4218fcaa9abf64e193e316a6cda9c90c44a74639a0e410ac784b4818fb7"
+      "authorization_sha256": "b89e4e98a6228f9cfb44462f30e8e8c0d8b1b8133894f0dce81461c99e88fa13"
     },
     {
       "id": "db:public.work_order_allowed_extra_work",
@@ -5285,7 +5462,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "e999d497623ee5eea31720c2c9e55f2d75e3eb6c8fff171f1837cbd2d7c876bb"
+      "authorization_sha256": "26386bd09eae922b9620acac8bc1da9750a650b520883ba02ce8fdbc4c4c2320"
     },
     {
       "id": "db:public.work_order_assignments",
@@ -5302,7 +5479,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "f0cc46cdd56dd7cc032e76ff21a3312e40a669c1525d224eb715683cd25923ed"
+      "authorization_sha256": "f7a75da486f5613f041e61a9a4f5441c73569939ec8e7be8320252f560843240"
     },
     {
       "id": "db:public.work_order_checklist_answers",
@@ -5353,7 +5530,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "3d6aaf7f233b7aa8a3575bc8751e9d26b44ec630e1c4597be5770b53c0790480"
+      "authorization_sha256": "feb81ca504ec7497a3a0633cc12f6580e0b3ad0e1b3d489673cb5dea17a3a8cb"
     },
     {
       "id": "db:public.work_order_exceptions",
@@ -5373,6 +5550,23 @@
       "authorization_sha256": "b97e152c5137f5d5f8d8e27493a29f81879db6db2c25bd6749e44d27999850a6"
     },
     {
+      "id": "db:public.work_order_expenses",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": true,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "f585278ed9ba3c8882dda95147a01374d5b1a240a8e7fad958b99afae1f8de40"
+    },
+    {
       "id": "db:public.work_order_material_usage",
       "classification": "table",
       "rls": true,
@@ -5387,7 +5581,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+      "authorization_sha256": "ce015ab461b36c7a9a872a6cf8a677454e887361699ae2a4c7eed9249d16187f"
     },
     {
       "id": "db:public.work_order_occurrences",
@@ -5506,7 +5700,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+      "authorization_sha256": "036d6cbed7f0eda1c795504100a3e11fc73365f07e14836f31ef2af5067b23b3"
     },
     {
       "id": "db:public.work_order_tasks",
@@ -5523,7 +5717,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "e8a12d0c4aed827bcb62ae26f2bdd2683ddbf5ac07429219144834248804bf33"
+      "authorization_sha256": "5e021d7ab3156620cf0d646d9268769ec2a89c42f47eac943bdecf8cd770b980"
     },
     {
       "id": "db:public.work_order_template_versions",
@@ -5574,7 +5768,7 @@
       "authenticated_insert": true,
       "authenticated_update": false,
       "authenticated_delete": true,
-      "authorization_sha256": "f60b3dc5ddf8f9aff8606265872cca0cec8c528669e869052de363931407b984"
+      "authorization_sha256": "e6ebf2e0a7dcb67d1cb345bbd1deb4866694e3b64794083a80355fe28a54c6dd"
     },
     {
       "id": "operation:.env.example",
@@ -5674,7 +5868,7 @@
     {
       "id": "operation:next.config.ts",
       "classification": "operation",
-      "source_sha256": "47d9c195733bdecbf48c5f2110485f433c87cb9deca7c5cf1b1b0c6c44264c62"
+      "source_sha256": "daaced14b72c839eebdca60695f96da5bbf55668c38169955763b9039f280895"
     },
     {
       "id": "operation:package.json",
@@ -5789,7 +5983,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "5ef24c4a0c8c31d5ac1e542bd45107fbc0c6a89fe3db8581d2cdeb7c5b15ebc9"
+      "source_sha256": "cb27e0091a5062440d3ebae78b75d73666574010819038c3ac7b8f41a6ab4a78"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -5844,7 +6038,7 @@
     {
       "id": "operation:supabase/config.toml",
       "classification": "operation",
-      "source_sha256": "3b002359c402ad0a94f9820ba47cabbbb7a3d356b32b7598f5cb8b97c6a72b8c"
+      "source_sha256": "7f7e81c1701904fe9d1e87a5b1fb2bc60d5c78eaafadb90fc8696235eae9417f"
     },
     {
       "id": "operation:vitest.config.mts",
@@ -5942,6 +6136,15 @@
       "definition_sha256": "9cec6ee6f353d30917de9fa6a2cf1e9052a450ae97da4674557994a585172c6a"
     },
     {
+      "id": "rpc:private.bump_staff_workspace_revision()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "efb0af1d40d3ad36157cf90679281de179274d3e82a0444c92e56a46fbfb18bd"
+    },
+    {
       "id": "rpc:private.bump_travel_revision()",
       "classification": "trigger-function",
       "security_definer": true,
@@ -6020,7 +6223,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "f43eb6c17a3e3262c38fdba3a4ca652972f895177e2e3bc36834ffb0fd7a81a0"
+      "definition_sha256": "370676baeaf321cc004551ed2825eaa95c4fb628019929faa370f591eb343fd5"
     },
     {
       "id": "rpc:private.check_qualification_scope()",
@@ -6239,6 +6442,15 @@
       "definition_sha256": "5f9214c38550ca80d1cff18fc932b1086771bd64624595a386a9b8d553c06443"
     },
     {
+      "id": "rpc:private.customer_signature_snapshot(snapshot jsonb)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c567d78621a20a8aeecd009f957e95b080e5cd18061c021aae4586639aaeef30"
+    },
+    {
       "id": "rpc:private.customer_visit_access(t uuid, o uuid, w uuid)",
       "classification": "private-function",
       "security_definer": true,
@@ -6443,7 +6655,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "2619d676cd5ae6839f27224dac10418356f870e1f3410ee7441ff5c0148b6145"
+      "definition_sha256": "ebef9ee3dcc7d200d113ddac2cecbe131587d3de7e3e69f19fd272b12509f514"
     },
     {
       "id": "rpc:private.member_roles(target_tenant_id uuid)",
@@ -6777,6 +6989,15 @@
       "authenticated": false,
       "service": false,
       "definition_sha256": "94e36b2566dae50b04d77770c6e12af5b99e115e267d09eb1c912060334aa9c4"
+    },
+    {
+      "id": "rpc:private.notification_domain_staff_time_correction()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "cce2fc7486827cf2ce809abe3ef86c2d6e4cc524b7387af265066283d00b568d"
     },
     {
       "id": "rpc:private.notification_domain_task()",
@@ -7271,7 +7492,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "dfa2482eceb7e1b7f3e23bbb7c7ac15c081e0fb7f691d6a135b6f0cb2c21c2d3"
+      "definition_sha256": "b1b1eab4afcd332d8eb8f4595bb9bc6cf044cc6202fa464eeac847e9fbd339d8"
     },
     {
       "id": "rpc:private.owns_report_path(t uuid, w uuid, path text)",
@@ -7487,7 +7708,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "c8c4e8ccca08255196eb128ca756d673a3d7ac3b0eff27f04efbc156de14ebe7"
+      "definition_sha256": "a9331fa3ab62d3ad8dea4632303430e41c38cca41afeae37be72cea56947da80"
     },
     {
       "id": "rpc:private.report_storage_frozen(bucket text, path text)",
@@ -7497,6 +7718,15 @@
       "authenticated": true,
       "service": false,
       "definition_sha256": "4d6cf08cae90e431676ec1737f833da38cc5f24eefaa9160cbf939d5ec30c85f"
+    },
+    {
+      "id": "rpc:private.require_staff_personnel(target_tenant uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "560d4ce37e459cad9a3c24b1ad5ed3faea5ed2070db72b13064b1662e7bed5dc"
     },
     {
       "id": "rpc:private.review_object_request_base(target_tenant uuid, target_request uuid, expected_version bigint, decision text, input jsonb)",
@@ -7535,6 +7765,87 @@
       "definition_sha256": "0f8683b457b6c21036cadd90dd80c08036333d22d3fee04ca69e1da0f5e716b4"
     },
     {
+      "id": "rpc:private.staff_availability_preferences_valid(value jsonb, require_selection boolean)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": true,
+      "service": true,
+      "definition_sha256": "8f2672bf3958485408802f077d816e2e1b576a7fb6d134b2e57c4c7339a5eca8"
+    },
+    {
+      "id": "rpc:private.staff_confirmed_day_time_guard()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "702a4aa9ab9f4995089f36263944f4a51b2a4ee7a8ca2904509f602fba64c33c"
+    },
+    {
+      "id": "rpc:private.staff_home_address_complete(value jsonb)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c4f18edbbbfd0a74f58231e6320cecdabf392c5147bff9fdd3467433cd991481"
+    },
+    {
+      "id": "rpc:private.staff_leave_allocate_minutes_by_year(starts_on date, ends_on date, requested_by_year jsonb, total_minutes integer)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "a0c0ba7e95fb64fb9b354511fd66810ca18d91911bad72ebea57ab85f5ea5cf1"
+    },
+    {
+      "id": "rpc:private.staff_leave_minutes_by_year(target_tenant uuid, target_personnel uuid, starts_on date, ends_on date)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "8e51f203c73d4b944fc94c9809bb21b255c91ba1de5c02be64559e179ac08876"
+    },
+    {
+      "id": "rpc:private.staff_leave_minutes_for_period(target_tenant uuid, target_personnel uuid, starts_on date, ends_on date)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "bdfa46994f3094c210d47fbcba8c688a896630ba39772e21fb384d252aa290fe"
+    },
+    {
+      "id": "rpc:private.staff_leave_overlap_guard()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "3fb67009083a08b1a5745c66ebf540d8f2215eef6fcbaa34e1923e7d59745a13"
+    },
+    {
+      "id": "rpc:private.staff_normalize_address(value jsonb)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "1caca8fda357765ebf0cf683a44bcd2e6da3fc7395ff4ad463cefcfc27d30489"
+    },
+    {
+      "id": "rpc:private.staff_normalize_profile_payload(value jsonb)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "bf04ea41aa91084fcb5cd4adeafdd5ef2e3d353d296c86bf60cdb92028aaed91"
+    },
+    {
       "id": "rpc:private.staff_report_editable(t uuid, w uuid)",
       "classification": "private-function",
       "security_definer": true,
@@ -7550,7 +7861,25 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "b5278f65965a4545ea18417cd721b564cfbf984e06969ee44072d4aaa96f6b98"
+      "definition_sha256": "949c47fbf8db67f7bbbd3f19b125f52bc43173e109a210d130ec3328e81b1da9"
+    },
+    {
+      "id": "rpc:private.staff_text_array_valid(value text[], max_items integer, max_item_length integer)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": true,
+      "service": true,
+      "definition_sha256": "e6947ee10850af5e8a388ed7aa078be8997654ecd170c5bce479774c4ea58f44"
+    },
+    {
+      "id": "rpc:private.staff_transition_time_segments()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "f145a72d597772b35261f35dab30c73a2aae6be2c9940e36472ac38c5f332d84"
     },
     {
       "id": "rpc:private.staff_work_order_result(w work_orders)",
@@ -7586,7 +7915,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "0867ce664f5ee5bae9b75de26aed9ea969529379c18e482cee7a29929194fe57"
+      "definition_sha256": "36a71ec7b72f037fb7234b91291f9b4b3c1abd71e24ac46c6c073f806444f02c"
     },
     {
       "id": "rpc:private.sync_certificate_qualification()",
@@ -8225,7 +8554,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "2c63e7cec1bb19462425b6277fef6c69dacd870528490728d97ce6dbce0ff8c4"
+      "definition_sha256": "9f04ef5848416396e727046647ade56479dd06502e716c20e73d8034ac065658"
     },
     {
       "id": "rpc:private.work_order_report_source_guard()",
@@ -8234,7 +8563,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "ab3f031144ef69c7017a28bf5025da2dacbdd6ddf52747aed586fc4e7ecb1668"
+      "definition_sha256": "c944002ff590977de811de1f92c386220adc3ebd035beb8d593dccc3c85e7239"
     },
     {
       "id": "rpc:private.work_order_review_legacy(target_work_order_id uuid, decision text, reason text)",
@@ -8637,7 +8966,7 @@
       "classification": "public-rpc",
       "security_definer": true,
       "anonymous": false,
-      "authenticated": true,
+      "authenticated": false,
       "service": false,
       "definition_sha256": "7508654bfe981281b720d2acc7e8e22000b3ad6438874e5b454165223d9707c0"
     },
@@ -9173,6 +9502,15 @@
       "definition_sha256": "ec39cf19995a955a67a6d05dc2535846ae9faba20d8ffb6262d32c78e14a27ba"
     },
     {
+      "id": "rpc:public.personnel_dossier_staff_projection(target_tenant uuid, target_personnel uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "ac454022b8cc92bfbdd9f8fcc1fab6eee3cfaa6e942143adc9a75d4b522d6c1c"
+    },
+    {
       "id": "rpc:public.personnel_dossier_summary(target_tenant uuid)",
       "classification": "public-rpc",
       "security_definer": true,
@@ -9224,7 +9562,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "4fd730e54c1b290e4a0ca22dc894fbd9c783f87e75889a408bb0c50db28cdb28"
+      "definition_sha256": "ef5c532d6556e39299b6afe284f8ac5fb1169a62455d763773f1f94515c7cb54"
     },
     {
       "id": "rpc:public.process_customer_reminders()",
@@ -9296,7 +9634,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "58fcb4b00bb0b603bdd5ab84743d11ede46a5c99305ba0f8c7f33dbf2f39b62b"
+      "definition_sha256": "a65425f28e7d31a270f6a35495761787a12d6e67ccfb593faa7c7b5481d07e27"
     },
     {
       "id": "rpc:public.register_manual_payment(target_tenant_id uuid, payment_date timestamp with time zone, reference text, allocations jsonb, idempotency_key text)",
@@ -9351,6 +9689,33 @@
       "authenticated": true,
       "service": false,
       "definition_sha256": "89ec047731774a2bfd2467641af49bba3886806f8129f5b161879fb35496fd5a"
+    },
+    {
+      "id": "rpc:public.review_staff_leave_request(target_tenant uuid, target_request uuid, decision text, expected_version bigint, approved_minutes integer, note text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "26c19c46734d462fea057cd105909636b121d7e5148473aad922ab31d4ed3616"
+    },
+    {
+      "id": "rpc:public.review_staff_leave_request(target_tenant uuid, target_request uuid, decision text, expected_version bigint, note text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "13f773d98c51561371bfa606d9a417461c5ad153033057f2415a75b05d2d7e87"
+    },
+    {
+      "id": "rpc:public.review_staff_time_correction(target_tenant uuid, target_request uuid, decision text, expected_version bigint, note text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "f51ab89d04355927e3b75d517cb25f0d193e9383aee23831a4513e2de6cdccc3"
     },
     {
       "id": "rpc:public.review_work_order_report(target_work_order_id uuid, target_report_id uuid, decision text, reason text)",
@@ -9431,7 +9796,151 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "ae69e22e33de043df12bd0748b2b6362e73c67297540f32d5fac633d6dc97a68"
+      "definition_sha256": "f364e261d9d9941d38705e023ed83c68c0ad3c337c5fd6c93ec8fa1c6138a314"
+    },
+    {
+      "id": "rpc:public.set_staff_availability_permission(target_tenant uuid, target_personnel uuid, enabled boolean, expected_version bigint)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "6b5e92291f5de666c4704b558eb788a357849142a1f1e14b190099568030c508"
+    },
+    {
+      "id": "rpc:public.set_staff_leave_entitlement(target_tenant uuid, target_personnel uuid, calendar_year integer, allowance_minutes integer, carryover_minutes integer, expected_version bigint)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "40e341b098789aadd644fd62a59cc4fcae4335330fee5634b4e950ec69b80934"
+    },
+    {
+      "id": "rpc:public.staff_day_command(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "33efc5943cec8a26086188f4c32cb0581ef948da55e4417d143ae758e8052a67"
+    },
+    {
+      "id": "rpc:public.staff_finalize_report_entry(target_tenant uuid, input jsonb, idempotency_key uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "7591e268b38481ace94ba61cdd823c76517acd506045de855575bc9f79e4ca08"
+    },
+    {
+      "id": "rpc:public.staff_leave_command(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "2b59146953d7b1d49c399866778567d6389cc9c017b9b5be9c351c10ad90aac5"
+    },
+    {
+      "id": "rpc:public.staff_report_customer_absent(target_tenant uuid, target_report uuid, expected_content_hash text, absence_reason text, idempotency_key uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "4108f5517896bf84a1f4a46372c2e0255ea9c8e5a864ac4250ab94c5544fb4e7"
+    },
+    {
+      "id": "rpc:public.staff_report_entry_command(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "163598fb902fe25b6631461aed5f8ab981c0509c57cb25909943d57099804d96"
+    },
+    {
+      "id": "rpc:public.staff_report_signature_preview_file(target_report uuid, asset_id uuid, expected_content_hash text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "8d46bbb018781dc71aa2df6a8abd25608a0115ab8a16855ae7cc90cc023dc318"
+    },
+    {
+      "id": "rpc:public.staff_report_signature_preview(target_tenant uuid, target_report uuid, expected_content_hash text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "75d43f7dea9967307baf9189c6a714614af66a372f907fa96015b0a5f1410766"
+    },
+    {
+      "id": "rpc:public.staff_report_upload_allowed(target_tenant uuid, target_order uuid, target_entry uuid, target_path text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "04542ae478271e9ffd1e745f55536ff814876ff17cf90e295164b26a4f3cb5d5"
+    },
+    {
+      "id": "rpc:public.staff_request_extra_work(target_tenant uuid, input jsonb, idempotency_key uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "ec3b35c88bc231917207c4eb6c127678a62d457e1ca90045d9a4ea1c81af32ff"
+    },
+    {
+      "id": "rpc:public.staff_request_time_correction(target_tenant uuid, target_time_entry uuid, expected_version bigint, correction_mode text, requested_start timestamp with time zone, requested_end timestamp with time zone, requested_duration integer, reason text, idempotency_key uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "2fe5ace6e541127dd1149b754928729badfcab65a4c746c59f67aa2c4f7c5d39"
+    },
+    {
+      "id": "rpc:public.staff_save_onboarding(target_tenant uuid, input jsonb, complete boolean)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "f8893ded0d8171798b4e7678ef1ec55274a4bdd8b85e5b669465432bd52719db"
+    },
+    {
+      "id": "rpc:public.staff_update_availability(target_tenant uuid, input jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "c88058fd635d96960bd5c2ed09a7cced7cec8df9a2597bc2188a0b79d5654586"
+    },
+    {
+      "id": "rpc:public.staff_update_profile(target_tenant uuid, input jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "f4368c2710a35537df90c5a3a5b5c4a8501fd9e06dac5e06c403a4ce534089ae"
+    },
+    {
+      "id": "rpc:public.staff_work_order_cost_command(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "f9dce96a75f589d00472b57271e6c5ca203e0e10ddd95ea1b3b2e550b01fe1b7"
     },
     {
       "id": "rpc:public.staff_workspace(target_tenant uuid)",
@@ -9440,7 +9949,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "1b474cf8e8606a3082813bfbb36b50226307ee665018d42213bf4e330d7d1486"
+      "definition_sha256": "439d8cbfc8d35716c857da663e3462fd23f93d4f0d8d1f500c3d42a1efa1688e"
     },
     {
       "id": "rpc:public.store_travel_estimates(t uuid, revision bigint, legs jsonb, manual_action text, actor uuid, actor_session uuid)",

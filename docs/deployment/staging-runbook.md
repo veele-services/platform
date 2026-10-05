@@ -477,6 +477,13 @@ Use the platform tenant detail to upload the approved tenant logo, set branding,
 select modules and review the four message templates before visual acceptance.
 A remaining `LOGO` placeholder means branding acceptance is incomplete.
 
+Before accepting personnel access, apply and verify the provider-only Auth
+settings in [Staging mail hooks](mail-hooks.md#personeelslogin-exacte-staging-auth-instelling).
+The application deploy does not copy `supabase/templates/magic_link.html` into a
+hosted Supabase project. Acceptance therefore requires a real tenant `/staff`
+code mail, one successful verification and one rejected replay; a green deploy
+alone is not proof of this operator configuration.
+
 Complete `docs/staging-acceptance.md`. Only after explicit staging acceptance
 may a separate production architecture, GitHub Environment, branch and runner
 be designed.

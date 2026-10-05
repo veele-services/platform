@@ -11,6 +11,7 @@ import {
 } from "@/lib/customers/model";
 import type { ActionResult } from "@/lib/actions/result";
 import type { Json } from "@/lib/database.types";
+import { reportRpc } from "@/lib/work-orders/report-rpc";
 
 async function actor() {
   const ctx = await getAuthContext();
@@ -97,7 +98,7 @@ export async function updateCustomerDocumentMetadata(
     }).parse(input);
     if (value.visibility === "customer" && !value.portalObjectId)
       return { ok: false, error: "Kies het object waarvoor dit document zichtbaar mag zijn." };
-    const result = await db.rpc("customer_document_metadata", {
+    await reportRpc(db, "customer_document_metadata", {
       target_tenant: tenant.id,
       target_document: value.id,
       expected_version: value.version,
@@ -106,7 +107,6 @@ export async function updateCustomerDocumentMetadata(
       portal_object: value.visibility === "customer" ? value.portalObjectId : null,
       input_archived: value.archived,
     });
-    if (result.error) throw result.error;
     revalidatePath("/app", "layout");
     revalidatePath("/klant", "layout");
     return { ok: true };

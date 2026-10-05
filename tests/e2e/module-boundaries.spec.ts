@@ -3,20 +3,25 @@ import {createClient} from "@supabase/supabase-js";
 import {randomUUID} from "node:crypto";
 import pg from "pg";
 import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
+import { authenticateStaff, E2E_APP_ORIGIN } from "./staff-auth";
 
 test.use({trace:"off",screenshot:"off",video:"off"});
 test("module switches preserve own personnel access and label unavailable report views",async({page,browser})=>{
- test.setTimeout(60000);
+ test.setTimeout(180000);
  const api=requireLocalApiUrl(),database=requireLocalDatabaseUrl();
  const db=new pg.Client({connectionString:database.href});await db.connect();
  const admin=createClient(api.href,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false,autoRefreshToken:false}});
  const tenant=randomUUID(),person=randomUUID(),customer=randomUUID(),object=randomUUID(),order=randomUUID(),report=randomUUID();
  const users:string[]=[],password="Fictitious-Modules-2026",emails=[0,1].map(()=>`modules-${randomUUID()}@fieldgrid.test`);
- const staffContext=await browser.newContext(),staffPage=await staffContext.newPage();
+ const staffContext=await browser.newContext({baseURL:E2E_APP_ORIGIN}),staffPage=await staffContext.newPage();
+ await staffPage.setViewportSize({width:390,height:844});
  let failure:unknown;
  const checked=async(result:{error:unknown})=>{if(result.error)throw new Error("Synthetic module fixture failed");};
  const enter=async(target:Page,index:number,next:string)=>{
   await target.context().addCookies([{name:"fieldgrid_tenant_id",value:tenant,url:"http://127.0.0.1:3000"}]);
+  if(next==="/staff"||next.startsWith("/staff/")||next.startsWith("/staff?")){
+   await authenticateStaff(target,emails[index],next,password);await expect(target.locator("html")).not.toHaveAttribute("data-account-blocked");return;
+  }
   await target.goto(`http://127.0.0.1:3000/login?next=${encodeURIComponent(next)}`);
   await target.getByLabel("E-mailadres").fill(emails[index]);await target.getByLabel("Wachtwoord",{exact:true}).fill(password);
   await target.getByRole("button",{name:"Inloggen",exact:true}).click();await target.waitForURL(url=>url.pathname===next.split("?")[0]);
@@ -31,7 +36,7 @@ test("module switches preserve own personnel access and label unavailable report
    if(!created.data.user)throw new Error("Synthetic user missing");users.push(created.data.user.id);
    await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,$3,'active')",[tenant,users[i],i===0?['tenant_admin','management','planner','finance']:['staff']]);
   }
-  await db.query("insert into public.personnel(id,tenant_id,user_id,full_name) values($1,$2,$3,'FICTITIOUS own employee')",[person,tenant,users[1]]);
+  await db.query("insert into public.personnel(id,tenant_id,user_id,full_name,onboarding_step,onboarding_completed_at) values($1,$2,$3,'FICTITIOUS own employee',5,now())",[person,tenant,users[1]]);
   await db.query("insert into public.customers(id,tenant_id,customer_number,name) values($1,$2,$3,'FICTITIOUS module customer')",[customer,tenant,`C-${customer}`]);
   await db.query("insert into public.objects(id,tenant_id,customer_id,object_number,name,address) values($1,$2,$3,$4,'FICTITIOUS module object','{}')",[object,tenant,customer,`O-${object}`]);
   await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,created_by) values($1,$2,$3,$4,$5,'FICTITIOUS module order','planned',$6)",[order,tenant,customer,object,`W-${order}`,users[0]]);

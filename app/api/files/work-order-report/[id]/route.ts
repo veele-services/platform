@@ -8,8 +8,18 @@ import { authorizedFileResponse, bufferPrivateFile, samePrivateFile, privateFile
 
 export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){
  try{
-  const id=z.uuid().parse((await params).id),asset=z.uuid().nullable().parse(new URL(request.url).searchParams.get("asset"));
-  const db=await createClient();const data=await reportRpc(db,"work_order_report_file",{target_report_id:id,asset_id:asset});
+  const query=new URL(request.url).searchParams;
+  const id=z.uuid().parse((await params).id),asset=z.uuid().nullable().parse(query.get("asset"));
+  const signatureHash=z.string().regex(/^[a-f0-9]{64}$/).nullable().parse(query.get("signatureHash"));
+  const db=await createClient();
+  if(signatureHash){
+   if(!asset)throw new Error();
+   return await authorizedFileResponse(async()=>{
+    const info=await reportRpc(db,"staff_report_signature_preview_file",{target_report:id,asset_id:asset,expected_content_hash:signatureHash}) as PrivateFile;
+    if(!info.sha256)throw new Error();return info;
+   },"attachment");
+  }
+  const data=await reportRpc(db,"work_order_report_file",{target_report_id:id,asset_id:asset});
   if(asset)return await authorizedFileResponse(async()=>{
     const info=await reportRpc(db,"work_order_report_file",{target_report_id:id,asset_id:asset}) as PrivateFile;
     if(!info.sha256)throw new Error();return info;

@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/database.types";
 import { reportRpc } from "@/lib/work-orders/report-rpc";
 import { operationalOrderRows,operationalTaskData } from "@/lib/work-orders/operational-data";
+import type { StaffDayReview, StaffDepot, StaffExpense, StaffLeaveRequest, StaffMaterial, StaffStatusEvent, StaffWorkOrderContact } from "@/lib/staff/model";
+import { parseStaffWorkspaceProjection, type StaffWorkspaceData } from "@/lib/staff/workspace";
 
 type Row<T extends keyof Database["public"]["Tables"]> = Database["public"]["Tables"][T]["Row"];
 
@@ -51,6 +53,13 @@ export type WorkspaceData = {
   brandingLogoUrl: string | null;
   dossierSummary?: Database["public"]["Functions"]["personnel_dossier_summary"]["Returns"];
   qualificationGaps?: Database["public"]["Functions"]["personnel_qualification_gaps"]["Returns"];
+  staffLeaveRequests?: StaffLeaveRequest[];
+  staffDayReviews?: StaffDayReview[];
+  staffStatusEvents?: StaffStatusEvent[];
+  staffContacts?: StaffWorkOrderContact[];
+  staffDepots?: StaffDepot[];
+  staffMaterials?: StaffMaterial[];
+  staffExpenses?: StaffExpense[];
 };
 
 function rows<T>(result: { data: T[] | null; error: { message: string } | null }): T[] {
@@ -58,7 +67,9 @@ function rows<T>(result: { data: T[] | null; error: { message: string } | null }
   return result.data ?? [];
 }
 
-export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "staff" = "backoffice"): Promise<WorkspaceData> {
+export function getWorkspaceData(tenantId: string, scope: "staff"): Promise<StaffWorkspaceData>;
+export function getWorkspaceData(tenantId: string, scope?: "backoffice"): Promise<WorkspaceData>;
+export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "staff" = "backoffice"): Promise<WorkspaceData | StaffWorkspaceData> {
   const supabase = await createClient();
   if (scope === "staff") {
     const [projection, brandingResult] = await Promise.all([
@@ -68,12 +79,7 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     if (brandingResult.error) throw new Error("Huisstijl niet beschikbaar");
     const branding = brandingResult.data;
     const logo = await getBrandingLogoUrl(supabase, branding?.logo_path);
-    return {
-      customers: [], contacts: [], customerNotes: [], customerDocuments: [], objects: [], requests: [], quotes: [], tasks: [], taskRevisions: [],
-      personnel: [], personnelFunctions: [], functions: [], qualifications: [], workOrders: [], assignments: [], workOrderTasks: [], dispatches: [], reports: [], attachments: [], signatures: [], reviews: [],
-      invoices: [], invoiceLines: [], payments: [], allocations: [], announcements: [], reminders: [], openShifts: [], shiftInterests: [], timeEntries: [], notifications: [], personnelDocuments: [], availability: [], announcementReads: [], extraWorkRules: [], allowedExtraWork: [], travelLegs: [], settings: null,
-      ...(projection as Partial<WorkspaceData>), branding, brandingLogoUrl: logo,
-    };
+    return { ...parseStaffWorkspaceProjection(projection, tenantId), brandingLogoUrl: logo };
   }
   const taskProjection=operationalTaskData(supabase,tenantId);
   const results = await Promise.all([
@@ -124,10 +130,20 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
   };
   const branding = singleton(results[29]);
   const signedLogo = await getBrandingLogoUrl(supabase, branding?.logo_path);
-  return {
+  const workspace: WorkspaceData = {
     customers: rows(results[0]), contacts: rows(results[1]), objects: rows(results[2]),
     requests: rows(results[3]), quotes: rows(results[4]), tasks: rows(results[5]), taskRevisions: rows(results[6]),
-    personnel: rows(results[7]).map(p=>({...p,emergency_contact:{},home_address:{},alternate_departure_address:{}})), functions: rows(results[8]), qualifications: rows(results[9]),
+    personnel: rows(results[7]).map(p=>({
+      ...p,
+      emergency_contact: {}, home_address: {}, alternate_departure_address: {},
+      preferred_name: null, mobile_phone: null, birth_date: null,
+      driving_license: false, driving_license_categories: [], carpool_allowed: false,
+      own_transport: false, travel_limitations: null,
+      notification_preferences: {}, availability_preferences: {},
+      availability_self_service_enabled: false,
+      onboarding_draft: {}, onboarding_step: 0,
+      onboarding_completed_at: null, onboarding_version: 1,
+    })), functions: rows(results[8]), qualifications: rows(results[9]),
     workOrders: rows(results[10]), assignments: rows(results[11]), workOrderTasks: rows(results[12]), dispatches: rows(results[13]),
     reports: rows(results[14]), attachments: rows(results[15]), signatures: rows(results[16]), reviews: rows(results[17]),
     invoices: rows(results[18]), invoiceLines: rows(results[19]), payments: rows(results[20]), allocations: rows(results[21]),
@@ -142,4 +158,5 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     customerDocuments: rows(results[38]),
     dossierSummary: rows(results[39]),
   };
+  return workspace;
 }

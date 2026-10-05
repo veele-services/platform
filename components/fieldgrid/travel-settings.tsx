@@ -52,7 +52,7 @@ export function VehicleSelect({
       </select>
       <small>
         Bestelauto: standaard autoroute, zonder hoogte-, gewicht- of bijzondere
-        toegangscontrole. Scooter, brommer, motor en OV: kies Overig.
+        toegangscontrole. Motor, scooter en OV vragen een handmatige reistijd.
       </small>
     </label>
   );

@@ -94,8 +94,13 @@ select throws_ok(
   '23514', null, 'completion is blocked while a required task is unchecked'
 );
 select lives_ok(
-  $$select public.complete_work_order_task('c7000000-0000-4000-8000-000000000001', true, null)$$,
-  'staff can complete the assigned task'
+  $$select public.record_task_execution(
+    'c0000000-0000-4000-8000-000000000001',
+    'c7000000-0000-4000-8000-000000000001',
+    (select execution_version from public.work_order_tasks where id = 'c7000000-0000-4000-8000-000000000001'),
+    'completed', 1, 'Assigned task completed'
+  )$$,
+  'staff can complete the assigned task through the versioned execution command'
 );
 select lives_ok(
   $$select public.transition_work_order('c6000000-0000-4000-8000-000000000001', 'complete', (public.staff_workspace('c0000000-0000-4000-8000-000000000001')->'workOrders'->0->>'version')::bigint, 'complete-1')$$,

@@ -8,15 +8,30 @@ import { randomBytes } from "node:crypto";
 export function createContentSecurityPolicy(
   development = process.env.NODE_ENV === "development",
   secureTransport = process.env.DEPLOY_TARGET !== "local" && (process.env.APP_URL?.startsWith("https://") ?? false),
+  supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL,
 ) {
   const nonce = randomBytes(18).toString("base64");
+  const supabaseSources: string[] = [];
+  if (supabaseUrl) {
+    try {
+      const origin = new URL(supabaseUrl);
+      if (!origin.username && !origin.password && ["http:", "https:"].includes(origin.protocol)) {
+        supabaseSources.push(origin.origin);
+        origin.protocol = origin.protocol === "https:" ? "wss:" : "ws:";
+        supabaseSources.push(origin.origin);
+      }
+    } catch {
+      // An invalid public URL must not broaden the browser policy. Runtime
+      // environment validation remains responsible for rejecting deployment.
+    }
+  }
   const directives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${development ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
     "img-src 'self' data: blob: https://tiles.openfreemap.org",
-    "connect-src 'self' https://tiles.openfreemap.org",
+    `connect-src 'self' https://tiles.openfreemap.org${supabaseSources.length ? ` ${supabaseSources.join(" ")}` : ""}`,
     "worker-src 'self' blob:",
     "frame-src 'self'",
     "manifest-src 'self'",

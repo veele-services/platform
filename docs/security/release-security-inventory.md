@@ -1,27 +1,30 @@
 # Release-inventaris — dekking en resterende controle
 
 De oorspronkelijke scan telde 669 bronbestanden en was alleen een
-bestandsinventaris. De verse Codex Security Standard-scan inventariseerde 781
-bestanden en vond nul rapporteerbare bevindingen binnen de gewijzigde/ongetrackte
-implementatie en de beveiligingskritieke grenzen. De algemene codedekking bleef
-partieel omdat niet ieder ongewijzigd presentatie-, documentatie- en fixturebestand
-regel voor regel is onderzocht. Alle daadwerkelijk ontdekte autorisatie- en
-dataoppervlakken hebben inmiddels wel een expliciete voltooide status en
-bewijsverwijzing. Operationele stagingvoorwaarden blijven NO-GO.
+bestandsinventaris. De Codex Security Standard-scan van de eerdere
+releasekandidaat inventariseerde 781 bestanden en vond toen nul rapporteerbare
+bevindingen binnen de onderzochte gewijzigde/ongetrackte implementatie en de
+beveiligingskritieke grenzen. Dat is historisch bewijs en wordt niet als een
+nieuwe scan van de personeelsapp gepresenteerd. De actuele personeelswijzigingen
+zijn hieronder afzonderlijk op bron, actor/resourcegrens, grants en regressies
+beoordeeld. Alle daadwerkelijk ontdekte autorisatie- en dataoppervlakken hebben
+een expliciete voltooide status en bewijsverwijzing. Operationele
+stagingvoorwaarden blijven NO-GO totdat de uiteindelijke SHA is uitgerold en
+geaccepteerd.
 
-De structurele CI-inventaris `authorization-surfaces.json` beschrijft **836**
-ingangen/resources uit de huidige bron en een schone database met 55 migraties:
+De structurele CI-inventaris `authorization-surfaces.json` beschrijft **885**
+ingangen/resources uit de huidige bron en een schone database met 57 migraties:
 
 | Soort | Aantal | Wat de registratie bewijst |
 | --- | ---: | --- |
 | Server-actionmodules | 27 | Exportnamen, waargenomen helpers en letterlijke tabel/RPC-afhankelijkheden |
-| Routes en RSC-pagina's/layouts | 94 | Bestaande ingangen, inclusief publieke schermen zonder datahelper |
-| Overige data-accessmodules | 44 | Gevonden queries/RPC's, indirecte autorisatiehelpers, servercomponenten, browser-/Realtimeclients en privileged-clientaanmaak |
-| Operationele releasepaden | 53 | Inhoudshashes van alle ontdekte workflows/deploybestanden plus package/lock/config, serviceworker, migratiemanifest en runtime-/backup-/migratiescripts, inclusief de vier stagingmigratie-trust-boundaries en de releasegebonden ClamAV-preflight |
-| Public/private tabellen | 177 | RLS/FORCE en effectieve basisgrants |
-| Public RPC's | 167 | Signatuur, definerstatus en executegrants |
-| Private functies | 181 | Signatuur, definerstatus en executegrants |
-| Triggerfuncties | 93 | Apart van rechtstreeks aanroepbare RPC's geclassificeerd |
+| Routes en RSC-pagina's/layouts | 95 | Bestaande ingangen, inclusief publieke schermen zonder datahelper |
+| Overige data-accessmodules | 48 | Gevonden queries/RPC's, indirecte autorisatiehelpers, servercomponenten, browser-/Realtimeclients en privileged-clientaanmaak |
+| Operationele releasepaden | 55 | Inhoudshashes van alle ontdekte workflows/deploybestanden plus package/lock/config, serviceworker, migratiemanifest en runtime-/backup-/migratiescripts, inclusief de vier stagingmigratie-trust-boundaries en de releasegebonden ClamAV-preflight |
+| Public/private tabellen | 184 | RLS/FORCE en effectieve basisgrants |
+| Public RPC's | 187 | Signatuur, definerstatus en executegrants |
+| Private functies | 191 | Signatuur, definerstatus en executegrants |
+| Triggerfuncties | 98 | Apart van rechtstreeks aanroepbare RPC's geclassificeerd |
 
 `scripts/check-security-surface.mjs` laat CI falen bij toegevoegde/verwijderde
 ingangen, gewijzigde resources of grants. Een reviewer moet de wijziging,
@@ -33,7 +36,7 @@ inhoudelijke dekking of de verplichte actor/resource-tests.
 De inventaris omvat nu ook `components` met serverdata, browserclients en
 helpermodules die alleen een indirecte auth/provider-/bestandscontrole uitvoeren;
 deze paden konden eerder buiten de structurele diffgate blijven.
-`authorization-review.json` koppelt ieder van de 836 IDs aan een expliciete
+`authorization-review.json` koppelt ieder van de 885 IDs aan een expliciete
 status en bewijsset. `scripts/check-authorization-review.mjs` faalt bij een
 ontbrekend, dubbel, verouderd, onbewezen, `pending` of `blocked` item. De
 `--capture`-stand neemt bestaande beoordelingen over maar zet iedere nieuw
@@ -41,6 +44,79 @@ ontdekte ingang bewust op `pending`; een snapshotvernieuwing kan haar dus niet
 automatisch goedkeuren. Iedere code-, SQL-functie-, policyset- en operationele
 review is aan de actuele SHA-256-vingerafdruk gebonden; alleen een snapshot
 bijwerken kan een inhoudswijziging daardoor niet als eerder beoordeeld laten gelden.
+
+### Personeelsapp-review — 5 oktober 2026
+
+De personeelsapp en de gedeelde compacte-filterwijzigingen veranderden 117
+geregistreerde oppervlakken: 26 code-ingangen, 40 tabel-/policyoppervlakken,
+48 functies en drie operationele bestanden. Daarvan zijn er 47 nieuw en 70
+inhoudelijk gewijzigd; er is geen oppervlak verwijderd of alleen op naam
+verplaatst. De review heeft niet de oude status overgenomen: capture zette alle
+117 fingerprints eerst op `pending`, waarna ieder item aan concrete bronreview
+en bestaand regressiebewijs is gekoppeld. De eindclassificatie is 74
+`controlled`, 42 `corrected-and-rechecked` en één `not-applicable`: de nieuwe
+staff-layout importeert alleen CSS en rendert `children`; iedere onderliggende
+route houdt haar eigen sessie- en capabilitygrens.
+
+- Identiteit en profiel: de personeels-OTP blijft beperkt tot `/staff`, maakt
+  geen account aan, geeft onbekende adressen dezelfde response en controleert na
+  OTP opnieuw actieve staffrol, tenant en personeelskaart. Profiel, onboarding,
+  beschikbaarheid, verlof en uren gebruiken een veldallowlist, actuele
+  objectsessie, module- en rolcontrole, own-recordscope en optimistic locking.
+  Bewijs: `lib/auth/staff-login*.test.ts`, `tests/e2e/staff-login.spec.ts` en
+  `supabase/tests/database/staff_personnel_app.sql`.
+- Herstel en preflight: een ontbrekende/inactieve personeelskaart toont herstel
+  vóór profielgebonden notificatie-RPC's. Ticket-/notificatieshells laden geen
+  impliciet personeel-workspace. Rapportbijlagen worden vóór byteverwerking
+  geautoriseerd; publicatie herhaalt de live check en voert één scan uit.
+  Bewijs: `lib/staff/route-boundaries.test.ts`,
+  `lib/staff/report-upload-action.test.ts` en de 10 groene HTTP/security-tests
+  op 2026-10-05. De vier gewijzigde codefingerprints zijn opnieuw beoordeeld.
+- Managementbesluiten: verlofsaldo, verlofbeoordeling,
+  beschikbaarheidsvrijgave en urencorrectiebeoordeling vereisen een actieve
+  tenantcontext plus tenantadmin/management/HR. De correctieflow verifieert de
+  vastgelegde bronversie en inhoud, voorkomt overlap, audit voor/na en dwingt na
+  wijziging expliciete herbevestiging af. Bewijs: de 138 gerichte assertions in
+  `staff_personnel_app.sql` en de dossierflows in
+  `tests/e2e/personnel-dossier.spec.ts`.
+- Werkbon en rapport: staff schrijft alleen binnen een actuele eigen dispatch en
+  actieve personeel/planning/rapportagemodules. Directe staffwrites naar
+  rapportregels/bijlagen en de onversioneerde taakshortcut zijn gesloten;
+  idempotente RPC's bewaken versies, eigenaarschap, scannerattest, exacte
+  rapporthash en ondertekenprojectie. Bewijs:
+  `staff_direct_rpc_guards.sql`, `staff_report_upload_finalize.sql`,
+  `scripts/test-release-security.mjs` en
+  `scripts/test-release-storage-http.mjs`.
+- Projectie en realtime: `staff_workspace` projecteert alleen de eigen
+  personeelskaart en actuele/toegestane werkbonrelaties. De browser valideert de
+  complete DTO strict. Alle rijke brontabellen zijn uit de Realtime-publicatie;
+  alleen de tenantgebonden revisionrij is leesbaar en niet schrijfbaar. De
+  gerichte pgTAP-test controleert iedere brontrigger, de RLS/grants en de enige
+  gepubliceerde relatie; `scripts/test-personnel-privacy.mjs` en
+  `scripts/test-planboard.mjs` controleren de gedeelde projectiegrenzen.
+- Catalogus en operatie: alle public tabellen hebben RLS én FORCE RLS, definers
+  hebben een lege `search_path`, anon heeft geen applicatietabel of niet-trigger-
+  RPC en de private receipt-/financegrenzen hebben geen gewone grants. De hogere
+  Server Action-limiet is alleen transport voor maximaal vijf al begrensde en
+  gescande rapportbijlagen; de action en databasefinalisatie blijven de
+  autorisatiegrens. Bewijs: `scripts/test-security-catalog.mjs`,
+  `lib/staff/report-upload-action.test.ts`, de HTTP-scannergate en het
+  migratiemanifest voor alle 57 inhoudshashes.
+
+De verhoging van de Next.js Server Action-bodylimiet naar 55 MB is begrensd op
+de maximale vijf rapportbijlagen van ieder 10 MB en wordt daarna door
+inhoudsvalidatie, scanner, herautorisatie en atomische databasefinalisatie
+afgedwongen. Parsing vindt echter plaats vóór de action-autorisatie. Een
+reverse-proxy/rate-limit en monitoring blijven daarom een operationele
+beschikbaarheidsmaatregel; dit is geen verruiming van data- of mutatierechten.
+De hosted Supabase OTP-instellingen en echte tenant-host code/replay-smoke
+blijven eveneens stagingacceptatie en worden niet door de repositorydeploy
+geconfigureerd.
+
+Deze handmatige, fingerprintgebonden review is geen nieuwe Codex Security
+Standard-scan en geen stagingacceptatie. De huidige bronsecretcontrole bekeek
+798 tekstbestanden zonder herkend credentialformat; onbekende formats en
+Git-historie vallen buiten die specifieke controle.
 
 | Oppervlak | Gedaan | Nog open |
 | --- | --- | --- |
@@ -58,8 +134,8 @@ bijwerken kan een inhoudswijziging daardoor niet als eerder beoordeeld laten gel
 
 ## Werkelijk gecontroleerde lokale catalogus
 
-De schone release-replaydatabase op `127.0.0.1:60322` heeft public **112/112**
-tabellen met RLS én FORCE RLS, private **65/65** met RLS (**48/65** FORCE) en
+De schone release-replaydatabase op `127.0.0.1:60322` heeft public **118/118**
+tabellen met RLS én FORCE RLS, private **66/66** met RLS (**49/66** FORCE) en
 Storage **10/10** met RLS. Alle negen applicatiebuckets zijn private. Er zijn
 geen public/private views of materialized views in deze migraties.
 

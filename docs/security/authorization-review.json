@@ -70,13 +70,15 @@
     },
     {
       "id": "code:app/api/email/auth/route.ts",
-      "surfaceFingerprint": "1a10b2ca0e600f07fe551c92286f8dba7a625b216d0c6943306745c1b831385a",
-      "status": "controlled",
+      "surfaceFingerprint": "8d38114c4d3854e032944d1303e937b7e78c882a8ac744c661413cde688bdfda",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/email-centre/auth-message.test.ts",
+        "lib/email-centre/webhook-security.test.ts",
+        "tests/e2e/staff-login.spec.ts",
+        "tests/e2e/auth-mail-hook.spec.ts",
+        "docs/deployment/mail-hooks.md#personeelslogin-exacte-staging-auth-instelling"
       ]
     },
     {
@@ -158,13 +160,15 @@
     },
     {
       "id": "code:app/api/files/work-order-report/[id]/route.ts",
-      "surfaceFingerprint": "20201d6659448885fa414f038fd39d02dedb59b435aaa30bb8deb9863a57153e",
-      "status": "controlled",
+      "surfaceFingerprint": "3a6510fcbe01a0b273054f5e1b5bf68a3e8749f97c6001670169fe91d506b430",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-release-security.mjs",
+        "scripts/test-release-storage-http.mjs",
+        "lib/work-orders/report-pdf.test.ts",
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
       ]
     },
     {
@@ -378,13 +382,13 @@
     },
     {
       "id": "code:app/app/klanten/actions.ts",
-      "surfaceFingerprint": "6762c8794eba9fa3b55af8b49910ad7da6859a8b24df9699c553f5bd7d7aeba8",
+      "surfaceFingerprint": "4fc426abf9699581f190fe19ad6f74469a4f43950089d9cb833d0ca33cfee69a",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/customers/profile-action.test.ts",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
       ]
     },
     {
@@ -532,13 +536,13 @@
     },
     {
       "id": "code:app/app/operations-actions.ts",
-      "surfaceFingerprint": "c8f8f0900e7c2912c5bd22d2090e42107a73f0d0ec1ebbb78c4fba9636e7fb79",
-      "status": "controlled",
+      "surfaceFingerprint": "020cad260e032f3caa264a97b3c5dc4d2b3b01402bb28f010c5c4919b3c49ff3",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "manual-personnel-app-authz-review:2026-10-05",
+        "tests/e2e/personnel-invitation.spec.ts#existing-accounts-keep-their-password-and-roles-when-invited-to-the-personnel-portal",
+        "tests/e2e/personnel-invitation.spec.ts#failed-invitation-can-be-resent-without-duplicating-personnel-and-revoked-access-cannot-activate",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026"
       ]
     },
     {
@@ -554,46 +558,50 @@
     },
     {
       "id": "code:app/app/page.tsx",
-      "surfaceFingerprint": "3f1d744af99a46f678dc1e8a9f6430b46c861b262ee3089f573346502b5e26f3",
-      "status": "controlled",
+      "surfaceFingerprint": "c61c117539e62b499abb7334e8fe2c1e1120c3fd3f614d6a473cb8fe6866c377",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/auth/staff-login-actions.test.ts",
+        "lib/auth/staff-login.test.ts",
+        "lib/auth/auth-destinations.test.ts",
+        "lib/tenancy/proxy-boundary.test.ts",
+        "tests/e2e/staff-login.spec.ts"
       ]
     },
     {
       "id": "code:app/app/personeel/[personnelId]/page.tsx",
-      "surfaceFingerprint": "d8661685daf95a84eba5673ab8b5da941a3243aee1bd232a1e00e87ad2b19e91",
+      "surfaceFingerprint": "755ad95a0472422e4e1c4826c08bfc7c36c8c529523e095c3e1b1356b53a4a38",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "manual-personnel-app-authz-review:2026-10-05",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "tests/e2e/personnel-dossier.spec.ts",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026"
       ]
     },
     {
       "id": "code:app/app/personeel/acties/page.tsx",
-      "surfaceFingerprint": "9f8e42b6ba522c1df99d180efe9bf8f923dd53723db50e5edee0bb18bfd72cea",
+      "surfaceFingerprint": "4d2f8cf5c146ca7ef25ad249f553f17d66de8ab65e60f49c2d9a393cd595f2aa",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "manual-personnel-app-authz-review:2026-10-05",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "lib/staff/time-correction.test.ts",
+        "tests/e2e/personnel-dossier.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
       ]
     },
     {
       "id": "code:app/app/personeel/dossier-actions.ts",
-      "surfaceFingerprint": "5c52eac0bba12827dd0b9a953085b453cea26b20b6d672053ffcdcbed69844c4",
-      "status": "controlled",
+      "surfaceFingerprint": "5965f851c922083ee5a5d89a57c7b77ec06d201ce40e8f065c3007fa28aa1e02",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-dossier-alignment.mjs",
+        "tests/e2e/personnel-dossier.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
       ]
     },
     {
@@ -675,13 +683,14 @@
     },
     {
       "id": "code:app/app/travel-actions.ts",
-      "surfaceFingerprint": "92a8ed8164291fd83c58b032d952833734cf0637c4b8dfcfb2cd9ffa34be7e47",
+      "surfaceFingerprint": "0165ac8ce30ae584a78fc7ab9a7c736fa6a8d090a7eb4d5d5c8a8447c5ed7716",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/travel/model.test.ts",
+        "scripts/test-travel.mjs",
+        "tests/e2e/travel.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#planning-en-werkbonkaart"
       ]
     },
     {
@@ -983,24 +992,28 @@
     },
     {
       "id": "code:app/login/actions.ts",
-      "surfaceFingerprint": "0cfb8a4f86ec68e3445da8686a59232b8b9e3f6a392c15f9be34df75f6a965af",
-      "status": "controlled",
+      "surfaceFingerprint": "fc681fcf576139435bfee6337dc56c5be87ec07fbfcf59c292cff1f398c179fb",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/auth/staff-login-actions.test.ts",
+        "lib/auth/staff-login.test.ts",
+        "lib/auth/auth-destinations.test.ts",
+        "lib/tenancy/proxy-boundary.test.ts",
+        "tests/e2e/staff-login.spec.ts"
       ]
     },
     {
       "id": "code:app/login/page.tsx",
-      "surfaceFingerprint": "703df853e71837764441422d9a103cb672757672ce82c8838a56f855e4382541",
-      "status": "controlled",
+      "surfaceFingerprint": "c9995f060618b6c5de4d15efa404e732cb11f807585b9c1e24f7f3d718a0d3e7",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/auth/staff-login-actions.test.ts",
+        "lib/auth/staff-login.test.ts",
+        "lib/auth/auth-destinations.test.ts",
+        "lib/tenancy/proxy-boundary.test.ts",
+        "tests/e2e/staff-login.spec.ts"
       ]
     },
     {
@@ -1181,13 +1194,28 @@
     },
     {
       "id": "code:app/staff/actions.ts",
-      "surfaceFingerprint": "8330a5fc008ff14f6c3889fa1e732e42991597923db7e5ade840b82f58df2d7d",
-      "status": "controlled",
+      "surfaceFingerprint": "66f99252ae578963fb495f6491d90983003b4edf34a3d986b5cee5908c50ce5b",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "manual-personnel-app-authz-review:2026-10-05",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "supabase/tests/database/staff_direct_rpc_guards.sql",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "lib/staff/time-correction.test.ts",
+        "lib/staff/report-upload-action.test.ts",
+        "scripts/test-release-security.mjs"
+      ]
+    },
+    {
+      "id": "code:app/staff/layout.tsx",
+      "surfaceFingerprint": "cedfab40fc7d3f02189488187fa0af1724c3fdbdc33e99d4e4b82cf1ff1f4f70",
+      "status": "not-applicable",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "app/staff/page.tsx",
+        "components/fieldgrid/staff/route-shell.tsx",
+        "proxy.ts",
+        "tests/e2e/module-boundaries.spec.ts"
       ]
     },
     {
@@ -1302,13 +1330,16 @@
     },
     {
       "id": "code:app/staff/page.tsx",
-      "surfaceFingerprint": "f9f361a2effdbba4ebdb0bab2d4bec1d1ddbfb96d0dfbe4b386a70cf2fddd100",
-      "status": "controlled",
+      "surfaceFingerprint": "ce4c4293a2e6b65f0f31a9161abf6ef5b793ff5b8a05d802f9e1ee4940666fc6",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/staff/route-boundaries.test.ts",
+        "lib/staff/workspace.test.ts",
+        "lib/staff/work-order-completion.test.ts",
+        "tests/e2e/fieldgrid.spec.ts",
+        "tests/e2e/module-boundaries.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#toegangs--en-privacycontract"
       ]
     },
     {
@@ -1324,35 +1355,90 @@
     },
     {
       "id": "code:components/fieldgrid/notifications/routes.tsx",
-      "surfaceFingerprint": "56506ca89dc5d1a6e7007e1cbc23a85d7b3610774622599a33677a8d07688447",
+      "surfaceFingerprint": "3f29cbedaaca4b794fbef8f43630a8f0aac5307074085c1fb3f6d403ddaf0a3b",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "tests/e2e/notifications.spec.ts",
+        "tests/e2e/tickets.spec.ts",
+        "tests/e2e/module-boundaries.spec.ts",
+        "docs/implementation/staff-realtime-and-release.md#clientgedrag"
+      ]
+    },
+    {
+      "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
+      "surfaceFingerprint": "47689065fee20e2e32e613df9b6eb4707f42af458ddf4801655b183787b1b071",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "scripts/test-planboard.mjs",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-realtime-and-release.md#realtimepad"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
-      "surfaceFingerprint": "a043cec310467c57bd52c92d01863d4337bd1a1f939c63fe52d0cc58d1b3fe20",
+      "surfaceFingerprint": "c696fef169abf3c92d83aeb1fe55f386b23b26d0034e9debda8786c69f628e95",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "manual-personnel-app-authz-review:2026-10-05",
+        "lib/staff/workspace.test.ts",
+        "lib/staff/time-correction.test.ts",
+        "lib/staff/work-order-completion.test.ts",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#toegangs--en-privacycontract"
+      ]
+    },
+    {
+      "id": "code:components/fieldgrid/staff/personnel-app.tsx",
+      "surfaceFingerprint": "d3166201ffa6a2376532ace9ab1e8f3f6dcb25e523eb726eb2ef46803cbab1c4",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "manual-personnel-app-authz-review:2026-10-05",
+        "lib/staff/workspace.test.ts",
+        "lib/staff/time-correction.test.ts",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+      ]
+    },
+    {
+      "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
+      "surfaceFingerprint": "77777fecd4e9e744174f8e64681c080771b9a410c58a2687b54d788b4991ce6f",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-release-storage-http.mjs",
+        "tests/e2e/fieldgrid.spec.ts",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#realtimepad"
+      ]
+    },
+    {
+      "id": "code:components/fieldgrid/staff/route-shell.tsx",
+      "surfaceFingerprint": "f86d03cd8cb45311ddb859f48b815a110ee94c78a250f0191b668b113fb0519b",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/staff/route-boundaries.test.ts",
+        "tests/e2e/notifications.spec.ts",
+        "tests/e2e/tickets.spec.ts",
+        "tests/e2e/module-boundaries.spec.ts",
+        "docs/implementation/staff-realtime-and-release.md#clientgedrag"
       ]
     },
     {
       "id": "code:components/fieldgrid/tickets/routes.tsx",
-      "surfaceFingerprint": "b4e3b03891080370ef1c52494c6ac2c99da4f51d9d984257ab7e607a91547a5b",
+      "surfaceFingerprint": "4d209a208589a5493c441b53f24996ef67372df85b66be9c788a9a84b0686425",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "tests/e2e/notifications.spec.ts",
+        "tests/e2e/tickets.spec.ts",
+        "tests/e2e/module-boundaries.spec.ts",
+        "docs/implementation/staff-realtime-and-release.md#clientgedrag"
       ]
     },
     {
@@ -1423,13 +1509,14 @@
     },
     {
       "id": "code:lib/data/workspace.ts",
-      "surfaceFingerprint": "707cc7b43ff57c51e9c0a6794e4a2eb2af2d65c5abc968c025e7f2a87c64b7b4",
-      "status": "controlled",
+      "surfaceFingerprint": "4b588615a12936af6353d9840365e8da729afe1c21bf6e223e3404223c6806ab",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/staff/workspace.test.ts",
+        "scripts/test-personnel-privacy.mjs",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "docs/implementation/staff-personnel-app-traceability.md#toegangs--en-privacycontract"
       ]
     },
     {
@@ -1445,13 +1532,15 @@
     },
     {
       "id": "code:lib/email-centre/auth-message.ts",
-      "surfaceFingerprint": "8109a686be1796caca62e731579dc67929dbf2bd04c3824c2ef31bbe198e94e6",
-      "status": "controlled",
+      "surfaceFingerprint": "f56ae280531477adfcb1a723a04406f6ed42b3fb1df0f2425682954f86f15c2d",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/email-centre/auth-message.test.ts",
+        "lib/email-centre/webhook-security.test.ts",
+        "tests/e2e/staff-login.spec.ts",
+        "tests/e2e/auth-mail-hook.spec.ts",
+        "docs/deployment/mail-hooks.md#personeelslogin-exacte-staging-auth-instelling"
       ]
     },
     {
@@ -1599,24 +1688,26 @@
     },
     {
       "id": "code:lib/personnel/dossier-data.ts",
-      "surfaceFingerprint": "bc00fc79694910ca8c9e1c8fb9ced8d94e1901a5b3052cdfb45f82a6732405c4",
-      "status": "controlled",
+      "surfaceFingerprint": "80e37c00598c68a5eb78b60f4d225df5e53ec39a52490e0f86da2482d9d511b7",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "manual-personnel-app-authz-review:2026-10-05",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-dossier-alignment.mjs",
+        "tests/e2e/personnel-dossier.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
       ]
     },
     {
       "id": "code:lib/personnel/invitations.ts",
-      "surfaceFingerprint": "4a76bebe27678474aa061b3a76d81365f9bcd74a9d8cb65756727e0ea7b2e356",
-      "status": "controlled",
+      "surfaceFingerprint": "aeab06565b869dbf780bce4bfe258048578c69ad51527a81e5eca84a64457fcb",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "manual-personnel-app-authz-review:2026-10-05",
+        "tests/e2e/personnel-invitation.spec.ts#existing-accounts-keep-their-password-and-roles-when-invited-to-the-personnel-portal",
+        "lib/communications/personnel-invitation.test.ts",
+        "scripts/test-notification-delivery.mjs#delivery-ui-filters-preserve-snake-case-fields-and-frozen-template-revision",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026"
       ]
     },
     {
@@ -1808,13 +1899,15 @@
     },
     {
       "id": "code:proxy.ts",
-      "surfaceFingerprint": "332f40331b8ec2085b93c3829e495f7c12c3afa63ef535d1bc4e9d1fdf382495",
-      "status": "controlled",
+      "surfaceFingerprint": "f5944ec56205f3dde944f0850ba135b3264e818d483b16cc9bd4636b66783497",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/auth/staff-login-actions.test.ts",
+        "lib/auth/staff-login.test.ts",
+        "lib/auth/auth-destinations.test.ts",
+        "lib/tenancy/proxy-boundary.test.ts",
+        "tests/e2e/staff-login.spec.ts"
       ]
     },
     {
@@ -2335,6 +2428,17 @@
       ]
     },
     {
+      "id": "db:private.staff_app_command_receipts",
+      "surfaceFingerprint": "c8aee218bd1e4b300185210a1f1b56736d4f0aa61b0e2b8b3a6653e9ba93e63b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-realtime-and-release.md#tijd--en-lifecyclecontract"
+      ]
+    },
+    {
       "id": "db:private.ticket_audit",
       "surfaceFingerprint": "d6568fbe289caa44c8a0156ffb42b57b37dce448ee2d2df3b355855057995d31",
       "status": "controlled",
@@ -2479,13 +2583,15 @@
     },
     {
       "id": "db:private.work_order_material_finance",
-      "surfaceFingerprint": "04176298557f79e1d86ca9d98cd2f775c8b9e55bdddc1acc5a295a398b7ce3a2",
+      "surfaceFingerprint": "0ee36b24c2496569d66ad5186225d99c3ee852f2e67fdac6fb298b0657672c0a",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -2534,24 +2640,28 @@
     },
     {
       "id": "db:public.announcement_reads",
-      "surfaceFingerprint": "f524331921815b71c00d5dae2a69c14627d085d0043a8da6b37f9a141b84dc06",
+      "surfaceFingerprint": "4a840f693a676fdf37ad42f15e2ce1a5674ebfc448a62d261b6b6528803ded9e",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
       "id": "db:public.announcements",
-      "surfaceFingerprint": "b074a41561dbd3ba4356564ef9bb34cad97928ff958edb4bc80c7120dfe3949f",
+      "surfaceFingerprint": "31006a711871f6fcf277117112443381edc3c3fa0e972937ef1bae4dcf38f3e6",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -2567,13 +2677,15 @@
     },
     {
       "id": "db:public.attachments",
-      "surfaceFingerprint": "ef93d40e4b8c8ceefd400e3325405cfeec0e51705f2e12368de60ecd512ea25a",
-      "status": "controlled",
+      "surfaceFingerprint": "34fdb8e73ad2c80ab00d5ac1ae4c47aa31a799307e376573dcd313743ffee88b",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-release-security.mjs",
+        "scripts/test-release-storage-http.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapportnotities-en-scannerbevestigde-bijlagen"
       ]
     },
     {
@@ -2589,13 +2701,13 @@
     },
     {
       "id": "db:public.availability",
-      "surfaceFingerprint": "a868809369d6069912b7d3e6eda5822d9ef4bc559183ff30adea04b7fd74927e",
-      "status": "controlled",
+      "surfaceFingerprint": "4ba92d5ad28588f33ab47be7730ac3a6f1a0406a3f93db52108d4821ce343bce",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-personnel-privacy.mjs",
+        "docs/implementation/staff-realtime-and-release.md#tijd--en-lifecyclecontract"
       ]
     },
     {
@@ -2710,24 +2822,28 @@
     },
     {
       "id": "db:public.customers",
-      "surfaceFingerprint": "8f2887f896e89599b6ee1bed5e14d0697db1efb989bb13380a3a8d06ea1a7c88",
+      "surfaceFingerprint": "b972809ded767aba84c301b1d680f080e4203bbb025560d110cd4f4a38dc5b87",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
       "id": "db:public.dispatches",
-      "surfaceFingerprint": "edad9c44fc4332c197351d395ca58df6c176124b84b8acd0e056f55d90ce1f2c",
+      "surfaceFingerprint": "77ed88357881fbb871a68d65ad179216cecf5fdbb9e89317023143549c8c7660",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -2754,13 +2870,15 @@
     },
     {
       "id": "db:public.extra_work_rules",
-      "surfaceFingerprint": "973bab4bb0f7cadf1cca2485d0d68f3e3fcf3d094224e6dc5123e4e4a25cd6dd",
+      "surfaceFingerprint": "d237ae9ca4287a181caa2fd5a82cb1812af365dc745cc22b11060dda5906fc14",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -2974,24 +3092,28 @@
     },
     {
       "id": "db:public.objects",
-      "surfaceFingerprint": "0d1438269f3890567146a6110b866d915b92dc803a4a019a3488261226d6ab8f",
+      "surfaceFingerprint": "0894ae86dfb9de38a4eedfbee4bd7196a3936f937cf2aca596e90361632edf38",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
       "id": "db:public.open_shifts",
-      "surfaceFingerprint": "00dbdbe367654fcc638090aa4e56cd4b9e27f929f5d0f718920937d62ea8919b",
+      "surfaceFingerprint": "db74fb75dfa927c279370746fb84b7330facc3bd93f69ee41d0be5d911ca38c8",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3062,13 +3184,15 @@
     },
     {
       "id": "db:public.personnel",
-      "surfaceFingerprint": "1f54c20d13893859a08b29451c3961dc7a1066b5ebf6289c84a4c14961e0913b",
+      "surfaceFingerprint": "1ead2821e782f18bd112149e3cd4d9bd6b0703f5e41472e16348513d85b67c06",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3084,13 +3208,15 @@
     },
     {
       "id": "db:public.personnel_documents",
-      "surfaceFingerprint": "037fac66ac1c6454957047fe0f75f0659f03811261ea4fe7948a8628ca26afa0",
+      "surfaceFingerprint": "b10d04e1e765321f54be6fd0392e846ca908fd3c70d0401087e8fba0f0934e0c",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3139,13 +3265,15 @@
     },
     {
       "id": "db:public.personnel_functions",
-      "surfaceFingerprint": "def1b64ea4e4b8b920def52886c776f19e6b496bc1fda15b477c99d967b80cd0",
+      "surfaceFingerprint": "c210e40870d92c38592c180d7a8cdf7c712254056baf7b7c474b3837e4e6518b",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3227,13 +3355,15 @@
     },
     {
       "id": "db:public.qualifications",
-      "surfaceFingerprint": "844d91048f8b7f48acca612cafb3e35618908d2e0ac94a66179c37d6be8d369b",
+      "surfaceFingerprint": "680925c5cfbe3398832236bee10ba96207c755558783856f37865335fe07ee82",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3260,13 +3390,15 @@
     },
     {
       "id": "db:public.report_entries",
-      "surfaceFingerprint": "e835f4d731edaeedd9df49421d26bfa5f39b6f07456abe8decde28d527d71185",
-      "status": "controlled",
+      "surfaceFingerprint": "cf60d38adb2177ecabee5e7a550b853dfdb4602de140e3aa967e555a18b0ea67",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-release-security.mjs",
+        "scripts/test-release-storage-http.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapportnotities-en-scannerbevestigde-bijlagen"
       ]
     },
     {
@@ -3293,57 +3425,124 @@
     },
     {
       "id": "db:public.shift_interests",
-      "surfaceFingerprint": "bc0200c320744850ce7a08a4dc01857cdfdec9f275d827eb808cfbcd38ae97f5",
+      "surfaceFingerprint": "d8c5ae111682354512347736cd06b1039db3325ea06ac5b3daf22be6543fa144",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
       "id": "db:public.signatures",
-      "surfaceFingerprint": "89032fce579d946a5458a20f003019dd610cbef1973e5e594940274cc3289aac",
+      "surfaceFingerprint": "251938d13601f72a1e07a670b8f6e51ed3b9d0c037d3dc37b275375557c91914",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
+      ]
+    },
+    {
+      "id": "db:public.staff_day_reviews",
+      "surfaceFingerprint": "964460a2cf85d869296f3ae2d02827efd4c600f219e5076a27d066b049fc8da1",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-realtime-and-release.md#tijd--en-lifecyclecontract"
+      ]
+    },
+    {
+      "id": "db:public.staff_leave_entitlements",
+      "surfaceFingerprint": "5f2eb7073660623c96106c58f9c78372cfc56ee552c5108430b465818cacab77",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-realtime-and-release.md#tijd--en-lifecyclecontract"
+      ]
+    },
+    {
+      "id": "db:public.staff_leave_requests",
+      "surfaceFingerprint": "4457f62a6d833aceee71b591ae7bf2953bcba7d0f31d893c1600125bc6c47e9e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-realtime-and-release.md#tijd--en-lifecyclecontract"
+      ]
+    },
+    {
+      "id": "db:public.staff_time_correction_requests",
+      "surfaceFingerprint": "1868fc2164b63361b8bcccb9ea9416a265732bae5840b63c32ba97144109fac9",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "manual-personnel-app-authz-review:2026-10-05",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "scripts/test-notification-operational.mjs",
+        "docs/implementation/staff-realtime-and-release.md#urencorrectie-en-herbevestiging"
+      ]
+    },
+    {
+      "id": "db:public.staff_workspace_revisions",
+      "surfaceFingerprint": "4cfc575f39c2f006d37f1e8b033bb4f39aeb11b08a23f894d9c3d11a4221fc6f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#revisierij-en-rls"
       ]
     },
     {
       "id": "db:public.status_events",
-      "surfaceFingerprint": "70aac05be7f90e2514924f16a2f1bea46190fa979f8b0849c477672a8a0ff9a9",
+      "surfaceFingerprint": "51beef9f6a54ba4cf132d3d7d263c34acae428b53132723389590f3157be9808",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
       "id": "db:public.task_catalog",
-      "surfaceFingerprint": "dc59157c78e7d54f1509b9e0519728ed04e0d1011256cff3ef6cb88095f2c5b0",
+      "surfaceFingerprint": "73f29920ef29e85724e65e6617862db72149ec4d56733e2def1fc04b6532c383",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
       "id": "db:public.task_revisions",
-      "surfaceFingerprint": "cc205f3177076d4c77826ac4c68c59889c49f3cea23bf3e258948e6eee00d868",
+      "surfaceFingerprint": "0638512523c416df273bb3ee4c7794153e24219a9aee07a256109733b96465fd",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3381,13 +3580,15 @@
     },
     {
       "id": "db:public.tenant_memberships",
-      "surfaceFingerprint": "12a1cf145d592dd482c16818ace09624b7fb6111d402cd24e0432e58641dc758",
+      "surfaceFingerprint": "5926face1eaa209d37898543ace509854228d5dafc482e41ba688faeefa72e0d",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3425,24 +3626,28 @@
     },
     {
       "id": "db:public.tenant_settings",
-      "surfaceFingerprint": "3d8a8171b95d76f269c2c7d0594291772598ef40c3a85f136a04ed9c5eb71dfb",
+      "surfaceFingerprint": "ef6ed4ed0f52c8ade3bd0a4131118acd70b3cd69f60ef8c6b9b09d5af9fabacf",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
       "id": "db:public.tenants",
-      "surfaceFingerprint": "c37ada0e827af730909e3ca11f6f60a486cc201acc3521a741f0cc5956afac62",
+      "surfaceFingerprint": "07cbe457929f34d0432e97dabebc4478fa553c2ee9f9179dcb91a83d397ef219",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3535,57 +3740,65 @@
     },
     {
       "id": "db:public.time_entries",
-      "surfaceFingerprint": "e28606155092c6a895b1d6c280d768ca0af1a9603c582b3617b789311f347062",
-      "status": "controlled",
+      "surfaceFingerprint": "a8f4b2f48807e99450e27e1e49c029f27100503cb4c4528df641fa40f5cf8f63",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-personnel-privacy.mjs",
+        "docs/implementation/staff-realtime-and-release.md#tijd--en-lifecyclecontract"
       ]
     },
     {
       "id": "db:public.travel_depots",
-      "surfaceFingerprint": "3e21f3bb0f1b772b5318a1266e5d65fc70694209224e01aba0bc6e23161cf957",
+      "surfaceFingerprint": "305a8dc0b5a44755fb07337a458d6f71550f6cd59da76a589cf526fa3d0596ab",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
       "id": "db:public.travel_legs",
-      "surfaceFingerprint": "c04c1160ce97e0911049b0cd6080e2a5a3aadbd294221da64227a79c872f62cc",
+      "surfaceFingerprint": "8577591618b13ea58f6411fb9da2aa279dbbd306b5a6a137130f74dde8bea418",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
       "id": "db:public.work_order_allowed_extra_work",
-      "surfaceFingerprint": "e7bdfe138b02df5d1fe5e30e7542f4217dfd7238cf4ec5f713635f1a527c770b",
+      "surfaceFingerprint": "1b1515fc58fed7cab04d8e0fd43d2fc23f32677b767666233a2f0aa2af9c043c",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
       "id": "db:public.work_order_assignments",
-      "surfaceFingerprint": "913a358c569f7d301183f81aaede34f2d8fa85dca443abb17b4eee6b28a0e57f",
+      "surfaceFingerprint": "46fa273c54013319981675cbd5f9425d0070b8796c035af7e7f0a5f49becb5df",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3612,13 +3825,15 @@
     },
     {
       "id": "db:public.work_order_contacts",
-      "surfaceFingerprint": "19221d48870472c4ce3c1670026821cee5dfe458a6934ed753d53ec38e34ac24",
+      "surfaceFingerprint": "4863a440c4d871aa2231dcf54cf561f264d303f679195411a85495bced11a116",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3633,14 +3848,25 @@
       ]
     },
     {
-      "id": "db:public.work_order_material_usage",
-      "surfaceFingerprint": "a5f51c82efe108f8b88c988e1da2ae534ac521613ee55d4dc9a8bc52d168b097",
+      "id": "db:public.work_order_expenses",
+      "surfaceFingerprint": "0022407123a3afd882c646cee68256d10fc83841e0b9c55c4a02e07ef1749662",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
+      ]
+    },
+    {
+      "id": "db:public.work_order_material_usage",
+      "surfaceFingerprint": "20d1d58a8d5883d320fce9e8f63f68718d249302e06a402f1b6cff5d2f5cd904",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
       ]
     },
     {
@@ -3711,24 +3937,28 @@
     },
     {
       "id": "db:public.work_order_task_contributions",
-      "surfaceFingerprint": "10643b0f2e02585333d4d683612c2bd2b4f8e59937a9f0a9bb72ae27d047eb3f",
+      "surfaceFingerprint": "b713d194878ad066de83530d970527306410cd30fb61dae07c0dcfe5770a5b7a",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
       "id": "db:public.work_order_tasks",
-      "surfaceFingerprint": "846ed6ff6237e9e92cc70fde308996cb50418904272cd5dfeaa2a16c44d8d7bf",
+      "surfaceFingerprint": "25fc11cad39656f691276c52f889bd1f1ca7956be7b451b0eeaae5dc74081072",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3755,13 +3985,15 @@
     },
     {
       "id": "db:public.work_orders",
-      "surfaceFingerprint": "64e6841cb0efa8aae6d9dd6cbbce74c807348018226acf0a23269cf61e0b2bb4",
+      "surfaceFingerprint": "aac7663d9716aa1ef737d82fc0e06dcc29aee28f1733659b94b9c2b752c33f61",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-personnel-privacy.mjs",
+        "scripts/test-planboard.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
       ]
     },
     {
@@ -3969,13 +4201,14 @@
     },
     {
       "id": "operation:next.config.ts",
-      "surfaceFingerprint": "5c6aa3978687471418211f214008bdfe0f496c92887dca33530203eb28392eb0",
-      "status": "controlled",
+      "surfaceFingerprint": "86a5aa22a0d7a1e27ab78538dcb84980aa9a66de2298257d2a38325d7fea4dfe",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/staff/report-upload-action.test.ts",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "scripts/test-release-storage-http.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapportnotities-en-scannerbevestigde-bijlagen"
       ]
     },
     {
@@ -4221,11 +4454,13 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "fbcc9d0df58aafb2b9fd416553f13a0d44842c2bd6ffad6db52cbf4658706de9",
+      "surfaceFingerprint": "add5cf2781d67af48a88c9fbae2dacae2c388d7791e0ce4e8d8a9ed70c23cf10",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "Clean local Supabase replay on 2026-10-04 applied exactly 56 ordered migrations and pnpm db:verify-manifest confirmed every stored statement hash.",
-        "The append-only 20261004164500_fix_ticket_claim_guards migration added one reviewed manifest entry; no previously applied migration identity or hash changed."
+        "manual-clean-replay:2026-10-05:398/398-pgtap+320/320-node-db",
+        "scripts/verify-local-migration-manifest.ts",
+        "package.json#db:verify-manifest",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026"
       ]
     },
     {
@@ -4340,13 +4575,13 @@
     },
     {
       "id": "operation:supabase/config.toml",
-      "surfaceFingerprint": "0aa8997e9aa2ff99040209f08b2a320c057a1097680ffa3df6b67f10d512766a",
-      "status": "controlled",
+      "surfaceFingerprint": "cc4c6b252385be595a2778933431bb9e08b52d31202bc8fcf588d868daa8d319",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "tests/e2e/staff-login.spec.ts",
+        "supabase/templates/magic_link.html",
+        "docs/deployment/mail-hooks.md#personeelslogin-exacte-staging-auth-instelling"
       ]
     },
     {
@@ -4471,6 +4706,17 @@
       ]
     },
     {
+      "id": "rpc:private.bump_staff_workspace_revision()",
+      "surfaceFingerprint": "cb96e52cccc6c799f58650be11a404045f204b729f581442fb60de45cd168488",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-realtime-and-release.md#brondekking"
+      ]
+    },
+    {
       "id": "rpc:private.bump_travel_revision()",
       "surfaceFingerprint": "505a34c73e9d10d7e6ac1d5d0b00b91e64643dba48c20e1beb5b1b824c6aa8bb",
       "status": "controlled",
@@ -4560,13 +4806,16 @@
     },
     {
       "id": "rpc:private.capture_report_ownership()",
-      "surfaceFingerprint": "9d42d176d08383c1d00bfcd325fdadc410a9ff96923e40ffb73366772b7edda1",
-      "status": "controlled",
+      "surfaceFingerprint": "fe5bb452bba3749ac472635a89c9428d567617348c30c4a8853595a888eb268b",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-release-storage-http.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
       ]
     },
     {
@@ -4834,6 +5083,18 @@
       ]
     },
     {
+      "id": "rpc:private.customer_signature_snapshot(snapshot jsonb)",
+      "surfaceFingerprint": "ab35c38ece18602d56527ed807e5e4ae00653430ca06eed23b252103bb6c7c6e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#rapportage-en-ondertekening"
+      ]
+    },
+    {
       "id": "rpc:private.customer_visit_access(t uuid, o uuid, w uuid)",
       "surfaceFingerprint": "059a10ed068356b47f97f9df5fdfc5cd371580d2962d6fb7b8ba907fb3e9f9e8",
       "status": "controlled",
@@ -5077,13 +5338,14 @@
     },
     {
       "id": "rpc:private.margins_guard()",
-      "surfaceFingerprint": "060db23613a91694c5e8f7051e048859b23404814dee2386aacdff5ef3d3d894",
+      "surfaceFingerprint": "c206cf06af0c67fc1eb012e79622f9d90412eeaabd2b765c5e4d891ea699b86e",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/travel/model.test.ts",
+        "scripts/test-travel.mjs",
+        "tests/e2e/travel.spec.ts",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -5491,6 +5753,18 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:private.notification_domain_staff_time_correction()",
+      "surfaceFingerprint": "a27ff39b39c5c5997495b3069b323b090843bccf351bf6df8afa07350508e963",
+      "status": "controlled",
+      "evidence": [
+        "manual-personnel-app-authz-review:2026-10-05",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-notification-operational.mjs",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-realtime-and-release.md#urencorrectie-en-herbevestiging"
       ]
     },
     {
@@ -6089,13 +6363,13 @@
     },
     {
       "id": "rpc:private.open_shift_eligible(t uuid, s uuid, p uuid)",
-      "surfaceFingerprint": "49b0150973c9914c4db5cac633a5b9e61aa00764b4517174bceb1b3f33de7a00",
-      "status": "controlled",
+      "surfaceFingerprint": "a203c81f21da1bab2edcb78c01e63b181136c5af45fcc473fdf7e92696c14d9c",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_direct_rpc_guards.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/staff-personnel-app-traceability.md#werkbon-uitvoering-en-tijd"
       ]
     },
     {
@@ -6353,13 +6627,16 @@
     },
     {
       "id": "rpc:private.report_snapshot_for_actor(r work_order_report_versions)",
-      "surfaceFingerprint": "21bba4ce4602bec927bdbfa90d17beaeb097e58b932ecec8361fd9c19ee75650",
-      "status": "controlled",
+      "surfaceFingerprint": "14b94d3edc9ea5c1f6d1cf88af231f6163f9ed8c6e26fb331e764faa255abb85",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-release-storage-http.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
       ]
     },
     {
@@ -6371,6 +6648,18 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:private.require_staff_personnel(target_tenant uuid)",
+      "surfaceFingerprint": "6b47aa99de8257a0b0a9bbfcda4758106c79caedd98333a86fce2ec8f0e3654f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
       ]
     },
     {
@@ -6418,6 +6707,110 @@
       ]
     },
     {
+      "id": "rpc:private.staff_availability_preferences_valid(value jsonb, require_selection boolean)",
+      "surfaceFingerprint": "010a23389175749ac7c6e59e10e94ecea1daa479960630e6c871adfff26ab94e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
+      ]
+    },
+    {
+      "id": "rpc:private.staff_confirmed_day_time_guard()",
+      "surfaceFingerprint": "2150d490f86539bb1d8daa0ca1e13e261829b50b7918aa37993605fe55f3770d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "lib/staff/time-correction.test.ts",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-realtime-and-release.md#urencorrectie-en-herbevestiging"
+      ]
+    },
+    {
+      "id": "rpc:private.staff_home_address_complete(value jsonb)",
+      "surfaceFingerprint": "326792446dda14d9b47ffa87beb052ddb913007d188fe0f39ba1b7ed63b2f8e5",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
+      ]
+    },
+    {
+      "id": "rpc:private.staff_leave_allocate_minutes_by_year(starts_on date, ends_on date, requested_by_year jsonb, total_minutes integer)",
+      "surfaceFingerprint": "ecfae8ae5d6c59e18eb391d7b931fb828c9dd3f7e25e3fcd543c302023e0c7a3",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+      ]
+    },
+    {
+      "id": "rpc:private.staff_leave_minutes_by_year(target_tenant uuid, target_personnel uuid, starts_on date, ends_on date)",
+      "surfaceFingerprint": "37fc49c1ba5bc2b6b2d91bbebde3e63f30ab79d77c212fc8c6cce0a47efc90bc",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+      ]
+    },
+    {
+      "id": "rpc:private.staff_leave_minutes_for_period(target_tenant uuid, target_personnel uuid, starts_on date, ends_on date)",
+      "surfaceFingerprint": "f0a76c8be8fcb3ed01159566788fcdf47d78acda7c5eac9566b9643008981612",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+      ]
+    },
+    {
+      "id": "rpc:private.staff_leave_overlap_guard()",
+      "surfaceFingerprint": "05b6c2b70d4cff497573b9734592d858b06f7cdbd3b3918158424fbc14ed0b02",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+      ]
+    },
+    {
+      "id": "rpc:private.staff_normalize_address(value jsonb)",
+      "surfaceFingerprint": "e22c35e0c1926549b06eb9a20cb581815d66363c3650a3cbb1157bacb58baf83",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
+      ]
+    },
+    {
+      "id": "rpc:private.staff_normalize_profile_payload(value jsonb)",
+      "surfaceFingerprint": "e6732d96bba6fb6b0957c45a713dccd9b7eefae90faeb32fa782ab6edda138ab",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
+      ]
+    },
+    {
       "id": "rpc:private.staff_report_editable(t uuid, w uuid)",
       "surfaceFingerprint": "0e89fc99f865a021f8a3cd40283b837679838e634ed57856b6c5a1811c1e32fb",
       "status": "controlled",
@@ -6430,13 +6823,38 @@
     },
     {
       "id": "rpc:private.staff_task_dto(task work_order_tasks)",
-      "surfaceFingerprint": "96c427e812ebfd0990666f5dc6aab7ea1654b3a6c44004cc8827cd536d85a6fa",
+      "surfaceFingerprint": "19002d6a6eea357abcd2799d0bb398910085a4b7c5dd5e74e42faf7463fb5d3a",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/staff-personnel-app-traceability.md#rapportage-en-ondertekening"
+      ]
+    },
+    {
+      "id": "rpc:private.staff_text_array_valid(value text[], max_items integer, max_item_length integer)",
+      "surfaceFingerprint": "9a1b8f7c3ae23e78b086f748a4e2e5e7e7bd93f98be542e2d03e4fa2fe5346d8",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
+      ]
+    },
+    {
+      "id": "rpc:private.staff_transition_time_segments()",
+      "surfaceFingerprint": "643c4a0b362e51903313a245ee7543c20f0adeccf32f22d404883aff5d12f786",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "lib/staff/time-correction.test.ts",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-realtime-and-release.md#urencorrectie-en-herbevestiging"
       ]
     },
     {
@@ -6474,13 +6892,14 @@
     },
     {
       "id": "rpc:private.store_travel_estimates(t uuid, revision bigint, legs jsonb, manual_action text, actor uuid)",
-      "surfaceFingerprint": "32eeff7ce7a2c289b2b57baa92120542117eadd05989652046c34c3f54ec037b",
+      "surfaceFingerprint": "aa315dfb379b642e4e7632ff0c3d39eebc1fa98a0bf741a9a92102f72ffbdc43",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "lib/travel/model.test.ts",
+        "scripts/test-travel.mjs",
+        "tests/e2e/travel.spec.ts",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -7263,24 +7682,30 @@
     },
     {
       "id": "rpc:private.work_order_report_snapshot(w work_orders, summary text)",
-      "surfaceFingerprint": "30037972fd144bc72539d3b2f8fc51b70e24b3d519cb446c5b3c692218a3ff69",
-      "status": "controlled",
+      "surfaceFingerprint": "c4ed0854f70d2925ec108550eaddf515bde2c5d92f11a318f3dc512086c84256",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-release-storage-http.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
       ]
     },
     {
       "id": "rpc:private.work_order_report_source_guard()",
-      "surfaceFingerprint": "89c1f4fc3fc79e3473f02719e555ca78e383b7b7b184f78aaad425655a5b6343",
-      "status": "controlled",
+      "surfaceFingerprint": "4d43bcd6be4bebd834c13b263174e5d729317bb53c68f2d8ac504af85ba5ecd0",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-release-storage-http.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
       ]
     },
     {
@@ -7769,13 +8194,13 @@
     },
     {
       "id": "rpc:public.complete_work_order_task(target_task_id uuid, completed boolean, completion_note text)",
-      "surfaceFingerprint": "b4190c05ee2bb3265c08ea433b687e42624814e9886c63b738786d1d43bfdbe6",
-      "status": "controlled",
+      "surfaceFingerprint": "d48f2ccb32dc63e41690969ac9ab46f6d473a58515d66bcf89038ec881d3f350",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_direct_rpc_guards.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/staff-personnel-app-traceability.md#werkbon-uitvoering-en-tijd"
       ]
     },
     {
@@ -8428,6 +8853,18 @@
       ]
     },
     {
+      "id": "rpc:public.personnel_dossier_staff_projection(target_tenant uuid, target_personnel uuid)",
+      "surfaceFingerprint": "8aaf7e6a7a96cb4c0dfb68c492228bc63425df3211336ddc95a5607ecf5efc0f",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "manual-personnel-app-authz-review:2026-10-05",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-dossier-alignment.mjs",
+        "tests/e2e/personnel-dossier.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+      ]
+    },
+    {
       "id": "rpc:public.personnel_dossier_summary(target_tenant uuid)",
       "surfaceFingerprint": "3bfe79ed026e29bf5ec45d42d6729e2da3a9e1c99849db64c466dff00ce1df7f",
       "status": "controlled",
@@ -8484,13 +8921,16 @@
     },
     {
       "id": "rpc:public.prepare_work_order_signature(target_work_order_id uuid, target_report_id uuid, expected_hash text, signer_name text, signer_capacity text, signature_kind text, idempotency_key uuid)",
-      "surfaceFingerprint": "53ab47afd69708650239d6e62116a29a0c29958c1c010fe854b04c0bdf154860",
-      "status": "controlled",
+      "surfaceFingerprint": "e98aa8a62887f822a74957a63b9af224ac4fe0ce3bd1225b251e31ef2a910e67",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-release-storage-http.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
       ]
     },
     {
@@ -8572,13 +9012,13 @@
     },
     {
       "id": "rpc:public.record_task_execution(target_tenant uuid, target_task uuid, expected_version bigint, result text, actual_quantity numeric, reason text)",
-      "surfaceFingerprint": "9eeb22ae9b7dbbc6c23b2788d6d1b8097eb525be4de0ac8c8b5e3eb9cc035fc4",
-      "status": "controlled",
+      "surfaceFingerprint": "af99410f6f39e7fbdfad91a003ccf8e70882ea624a28a8aa796b94fa209d9d09",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_direct_rpc_guards.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/staff-personnel-app-traceability.md#werkbon-uitvoering-en-tijd"
       ]
     },
     {
@@ -8645,6 +9085,41 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:public.review_staff_leave_request(target_tenant uuid, target_request uuid, decision text, expected_version bigint, approved_minutes integer, note text)",
+      "surfaceFingerprint": "56beab9353a6bd0fdc0a209dbc04b0a23920001736e9dc6fad089b9746e0ba12",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+      ]
+    },
+    {
+      "id": "rpc:public.review_staff_leave_request(target_tenant uuid, target_request uuid, decision text, expected_version bigint, note text)",
+      "surfaceFingerprint": "8692dde871ff5822061a2cabb88b29c37c52353ae95e0792826e83e047384ce2",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+      ]
+    },
+    {
+      "id": "rpc:public.review_staff_time_correction(target_tenant uuid, target_request uuid, decision text, expected_version bigint, note text)",
+      "surfaceFingerprint": "a80edb4b0dfc6f13f801d51da5b9b5081f8865107315ef61515ddd628e0445ac",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "manual-personnel-app-authz-review:2026-10-05",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "lib/staff/time-correction.test.ts",
+        "scripts/test-security-catalog.mjs",
+        "scripts/test-notification-operational.mjs",
+        "docs/implementation/staff-realtime-and-release.md#urencorrectie-en-herbevestiging"
       ]
     },
     {
@@ -8737,24 +9212,222 @@
     },
     {
       "id": "rpc:public.set_shift_interest(target_tenant uuid, target_shift uuid, interested boolean)",
-      "surfaceFingerprint": "f4e8d390a02299627b8f79fb541430633124f43d5540965ee8f01ff6634dd50c",
+      "surfaceFingerprint": "6b2b2aab984df03c00b8eb740f1e02d233ae9ac8c7beb5543942a414578582c3",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_direct_rpc_guards.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#werkbon-uitvoering-en-tijd"
+      ]
+    },
+    {
+      "id": "rpc:public.set_staff_availability_permission(target_tenant uuid, target_personnel uuid, enabled boolean, expected_version bigint)",
+      "surfaceFingerprint": "5813323d29ef1448803ece7149c90e52708385993e476e7788917749cff134c8",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
+      ]
+    },
+    {
+      "id": "rpc:public.set_staff_leave_entitlement(target_tenant uuid, target_personnel uuid, calendar_year integer, allowance_minutes integer, carryover_minutes integer, expected_version bigint)",
+      "surfaceFingerprint": "37d6ddcd5d008529a90f3b52a01d517dfc097f068eb93f17147407563b71716f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_day_command(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
+      "surfaceFingerprint": "f111789ce80b720e0cd0150c001edfff467c883401d0da9f16273cfd038df23d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "lib/staff/time-correction.test.ts",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-realtime-and-release.md#urencorrectie-en-herbevestiging"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_finalize_report_entry(target_tenant uuid, input jsonb, idempotency_key uuid)",
+      "surfaceFingerprint": "9c56d81f76b86bc869b05c95bbac8a1407da0a386691436a568418f28ce945d8",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-release-storage-http.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_leave_command(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
+      "surfaceFingerprint": "ee6274c23814b846f0d710dccc8693f26d91d3adb441bfe9b0e8d5d498484a36",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_report_customer_absent(target_tenant uuid, target_report uuid, expected_content_hash text, absence_reason text, idempotency_key uuid)",
+      "surfaceFingerprint": "8d77c3507e3d997fa255d01734e83fe28499146436a1fc8beb07dcb10e88c85a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#rapportage-en-ondertekening"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_report_entry_command(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
+      "surfaceFingerprint": "4908211dec4f620704c23c7b4c4a1299f12c50440d1b4b587fee9f2f1a5d7953",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-release-storage-http.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_report_signature_preview_file(target_report uuid, asset_id uuid, expected_content_hash text)",
+      "surfaceFingerprint": "de78a7b5add9c7594881f915fb0da82ba30b21d586ace05a3ca6860fdd8c03e1",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#rapportage-en-ondertekening"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_report_signature_preview(target_tenant uuid, target_report uuid, expected_content_hash text)",
+      "surfaceFingerprint": "846b7101f609f9a91b5d284aaa28afa597a30096b6949b5293b6ee3b7de5ba15",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#rapportage-en-ondertekening"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_report_upload_allowed(target_tenant uuid, target_order uuid, target_entry uuid, target_path text)",
+      "surfaceFingerprint": "e848a881d1bff62498f3ae94d735f6d6f1f10ef7bb86492c512fe5fbef89720f",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_report_upload_finalize.sql",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-release-storage-http.mjs",
+        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_request_extra_work(target_tenant uuid, input jsonb, idempotency_key uuid)",
+      "surfaceFingerprint": "a61c650e4ad1c4c50ab99af38ff0792962e6114b733c7b1fafe336aa9f6d10bf",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#rapportage-en-ondertekening"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_request_time_correction(target_tenant uuid, target_time_entry uuid, expected_version bigint, correction_mode text, requested_start timestamp with time zone, requested_end timestamp with time zone, requested_duration integer, reason text, idempotency_key uuid)",
+      "surfaceFingerprint": "51dd34b5f912f1ffad2fc61a642ad852be733a52a25ff639f6b8336f13c4622b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "lib/staff/time-correction.test.ts",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-realtime-and-release.md#urencorrectie-en-herbevestiging"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_save_onboarding(target_tenant uuid, input jsonb, complete boolean)",
+      "surfaceFingerprint": "1f33d4e6f9f0700f7d712c7f9e63767885582a7022a0723765e468363713096f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_update_availability(target_tenant uuid, input jsonb)",
+      "surfaceFingerprint": "69539aeb1291918b13169289776815c74bfa2b23d34eafc5c6dd3c4478a00eb8",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_update_profile(target_tenant uuid, input jsonb)",
+      "surfaceFingerprint": "6b648010ffb09e0f19e66720501ceaf110edf14e6115d3e074b74560d9bf8d04",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_work_order_cost_command(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
+      "surfaceFingerprint": "8868a4f4ed5c44019293dc7aef86b830388da69a0418523aef1253bcb43d3156",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "scripts/test-work-order-lineage.mjs",
+        "scripts/test-security-catalog.mjs",
+        "docs/implementation/staff-personnel-app-traceability.md#rapportage-en-ondertekening"
       ]
     },
     {
       "id": "rpc:public.staff_workspace(target_tenant uuid)",
-      "surfaceFingerprint": "15452b7f19cd3ab6b6b4cf91f465a0c552fddac47060b9300c7907b58470a6a8",
-      "status": "controlled",
+      "surfaceFingerprint": "501f673eac819945a0b7f8adb3e15718f0a72cf53bb5ab0389e6b9b43e6ec660",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "supabase/tests/database/staff_personnel_app.sql",
+        "lib/staff/workspace.test.ts",
+        "scripts/test-personnel-privacy.mjs",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/staff-personnel-app-traceability.md#toegangs--en-privacycontract"
       ]
     },
     {

@@ -33,3 +33,10 @@ it("rejects unknown hosts and clears tenant headers on the platform host",async(
  const platform=await proxy(new NextRequest("https://staging.fieldgrid.nl/quote/unused.png",{headers:{host:"staging.fieldgrid.nl",[TENANT_SLUG_HEADER]:"alpha"}}));
  expect(platform.headers.get(`x-middleware-request-${TENANT_SLUG_HEADER}`)).toBeNull();
 });
+it("preserves a staff query deep link only inside the validated next destination",async()=>{
+ const response=await proxy(new NextRequest("https://alpha.staging.fieldgrid.nl/staff?tab=meer&section=beschikbaarheid&workOrder=00000000-0000-4000-8000-000000000001",{headers:{host:"alpha.staging.fieldgrid.nl"}}));
+ const location=new URL(response.headers.get("location")!);
+ expect(location.pathname).toBe("/login");
+ expect(location.searchParams.get("next")).toBe("/staff?tab=meer&section=beschikbaarheid&workOrder=00000000-0000-4000-8000-000000000001");
+ expect([...location.searchParams.keys()]).toEqual(["next"]);
+});

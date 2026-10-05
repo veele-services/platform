@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../lib/database.types";
 import { requireLocalApiUrl } from "./local-target";
+import { authenticateStaff, E2E_APP_ORIGIN } from "./staff-auth";
 
 // Invitations contain one-use credentials. Never record browser/network traces.
 test.use({ trace: "off", screenshot: "off", video: "off" });
@@ -61,7 +62,7 @@ function activationUrl(mail: Mail): URL {
 
 async function openInvitation(page: Page, url: URL) {
   // Do not include the credential in an error if navigation fails.
-  try { await page.goto(url.href); } catch { throw new Error("Could not open local invitation"); }
+  try { await page.goto(url.href, { waitUntil: "commit" }); } catch { throw new Error("Could not open local invitation"); }
   await expect.poll(() => page.evaluate(() => location.hash === "")).toBe(true);
   await expect.poll(() => page.locator('input[name="tokenHash"]').evaluate((node: HTMLInputElement) => node.value.length >= 32)).toBe(true);
 }
@@ -78,7 +79,7 @@ test("branded personnel invitation activates once and opens the personnel portal
   test.setTimeout(90_000);
   const { admin, tenant } = await fixture();
   const email = `invite-${crypto.randomUUID()}@fieldgrid.test`;
-  const recipient = await browser.newContext();
+  const recipient = await browser.newContext({ baseURL: E2E_APP_ORIGIN });
   const employee = await recipient.newPage();
   try {
     await loginAdmin(page);
@@ -103,7 +104,9 @@ test("branded personnel invitation activates once and opens the personnel portal
     const { data: person } = await admin.from("personnel").select("employee_number").eq("tenant_id", tenant.id).eq("email", email).single();
     await preview.setViewportSize({ width: 800, height: 1100 });
     await preview.setContent(html.replaceAll(token, "voorbeeld-activatielink").replaceAll(person!.employee_number, "P-0100"));
-    await expect(preview.getByRole("img", { name: "Demo Organisatie" })).toBeVisible();
+    const logo = preview.getByRole("img", { name: "Demo Organisatie" });
+    await expect(logo).toBeVisible();
+    await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
     await expect(preview).toHaveScreenshot("personnel-invitation-email-800.png", { fullPage: true });
     await preview.setViewportSize({ width: 390, height: 844 });
     await expect(preview).toHaveScreenshot("personnel-invitation-email-390.png", { fullPage: true });
@@ -123,11 +126,14 @@ test("branded personnel invitation activates once and opens the personnel portal
     await employee.waitForURL("**/staff");
     await expect(employee.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
     await recipient.request.post("/auth/signout");
+    // Leave the revoked app document before opening the one-use link again:
+    // its account fence may otherwise supersede the explicit test navigation.
+    await employee.goto("about:blank");
     await openInvitation(employee, url);
     await employee.getByRole("button", { name: "Uitnodiging accepteren" }).click();
     await expect(employee.locator(".auth-message[role='alert']")).toContainText("ongeldig, verlopen of al gebruikt");
     await employee.goto("/staff");
-    await expect(employee.getByRole("button", { name: /Inloggen/ })).toBeVisible();
+    await expect(employee.getByRole("button", { name: "Inlogcode versturen", exact: true })).toBeVisible();
   } finally {
     await recipient.request.post("/auth/signout");
     await recipient.close();
@@ -141,7 +147,7 @@ test("existing accounts keep their password and roles when invited to the person
   const email = `existing-${crypto.randomUUID()}@fieldgrid.test`;
   const { data: account, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (error) throw new Error("Could not create local existing-account fixture");
-  const recipient = await browser.newContext();
+  const recipient = await browser.newContext({ baseURL: E2E_APP_ORIGIN });
   try {
     await admin.from("tenant_memberships").insert({ tenant_id: tenant.id, user_id: account.user.id, roles: ["management"], status: "active" });
     await loginAdmin(page);
@@ -154,11 +160,9 @@ test("existing accounts keep their password and roles when invited to the person
     const { data: membership } = await admin.from("tenant_memberships").select("roles").eq("tenant_id", tenant.id).eq("user_id", account.user.id).single();
     expect(membership?.roles.sort()).toEqual(["management", "staff"]);
     const employee = await recipient.newPage();
-    await employee.goto("/staff");
-    await employee.getByLabel("E-mailadres").fill(email);
-    await employee.getByLabel("Wachtwoord", { exact: true }).fill(password);
-    await employee.getByRole("button", { name: /Inloggen/ }).click();
-    await employee.waitForURL("**/staff");
+    // A direct local session both proves that the existing password still
+    // authenticates and avoids consuming the staff OTP email budget here.
+    await authenticateStaff(employee, email, "/staff", password);
     await expect(employee.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
   } finally {
     await recipient.request.post("/auth/signout");
@@ -171,7 +175,7 @@ test("failed invitation can be resent without duplicating personnel and revoked 
   test.setTimeout(60_000);
   const { admin, tenant } = await fixture();
   const email = `retry-${crypto.randomUUID()}@fieldgrid.test`;
-  const recipient = await browser.newContext();
+  const recipient = await browser.newContext({ baseURL: E2E_APP_ORIGIN });
   try {
     await loginAdmin(page);
     // A confirmed 429 rejection is safely retryable; a 503 is an uncertain
@@ -196,7 +200,7 @@ test("failed invitation can be resent without duplicating personnel and revoked 
     await employee.getByRole("button", { name: "Uitnodiging accepteren" }).click();
     await expect(employee.locator(".auth-message[role='alert']")).toContainText("ongeldig, verlopen of al gebruikt");
     await employee.goto("/staff");
-    await expect(employee.getByRole("button", { name: /Inloggen/ })).toBeVisible();
+    await expect(employee.getByRole("button", { name: "Inlogcode versturen", exact: true })).toBeVisible();
   } finally {
     await recipient.request.post("/auth/signout");
     await recipient.close();
