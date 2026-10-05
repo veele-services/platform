@@ -54,9 +54,9 @@ describe("staff email OTP actions", () => {
     expect({ ...unknown, email: "known@example.test" }).toEqual(delivered);
   });
 
-  it("verifies exactly six digits and preserves only staff subroutes", async () => {
-    await expect(staffOtp({ step: "code" }, verify("worker@example.test", "123456", "/staff/werkbon/123?tab=taken"))).rejects.toThrow("redirect:/staff/werkbon/123?tab=taken");
-    expect(mocks.verifyOtp).toHaveBeenCalledWith({ email: "worker@example.test", token: "123456", type: "email" });
+  it.each(["012345", "01234567", "0123456789"])("verifies the full supported staff code %s and preserves only staff subroutes", async code => {
+    await expect(staffOtp({ step: "code" }, verify("worker@example.test", code, "/staff/werkbon/123?tab=taken"))).rejects.toThrow("redirect:/staff/werkbon/123?tab=taken");
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({ email: "worker@example.test", token: code, type: "email" });
 
     const invalid = await staffOtp({ step: "code" }, verify("worker@example.test", "12345", "/app"));
     expect(invalid).toMatchObject({ step: "code", next: "/staff", error: expect.stringContaining("ongeldig of verlopen") });

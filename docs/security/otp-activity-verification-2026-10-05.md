@@ -10,7 +10,9 @@ Beoordeeld: `app/login`, `app/auth`, `lib/auth`,
 templates en de platformbeheerbootstrap.
 
 - Iedere login gebruikt `signInWithOtp` met `shouldCreateUser: false`, gevolgd
-  door verificatie van exact zes cijfers. Onbekende adressen en leveringsfouten
+  door verificatie van de volledige providercode van zes tot tien cijfers.
+  Hosted staging gebruikt acht cijfers, zoals de eigenaar bevestigde bij de
+  latere hookcorrectie; die instelling blijft behouden. Onbekende adressen en leveringsfouten
   krijgen dezelfde browserrespons. De aanvraag kiest geen browserrol/tenant.
 - Na verificatie controleert de server actuele hostname-, tenant-, module- en
   werkruimtetoegang. Een geweigerde bestemming verwijdert de nieuwe lokale
@@ -119,3 +121,10 @@ Email Hook uitgeschakeld is. Dit is actuele operatorbevestiging en geen
 provider-API-inspectie. Voor echte gebrande OTP-bezorging zijn
 de configuratie- en acceptatiestappen in
 [`mail-hooks.md`](../deployment/mail-hooks.md) nog vereist.
+
+De bovenstaande aantallen beschrijven de eerdere portaalrelease. De eigenaar
+heeft daarna de juiste Send Email-hook aangemaakt, de staging-secret vervangen
+en de verkeerde JWT-hook uitgeschakeld. De achtcijferige hosted OTP werd nog
+door de oorspronkelijke zescijfercontrole geweigerd. De aanvullende correctie
+en niet-schrijvende diagnose zijn vastgelegd in
+[`auth-mail-diagnostics-2026-10-05.md`](auth-mail-diagnostics-2026-10-05.md).

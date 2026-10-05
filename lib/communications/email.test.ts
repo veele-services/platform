@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderTenantEmailHtml } from "./email";
 import { templateDefinition } from "./templates";
+import { authMailMessages, authMailPayload } from "../email-centre/auth-message";
 
 const brand = {
   company: "Fieldgrid Test",
@@ -11,6 +12,22 @@ const brand = {
 };
 
 describe("HTML e-mailrenderer", () => {
+  it.each(["001234", "00123456", "0012345678"])("bewaart de volledige Auth-code %s zonder link of vaste lengteclaim", code => {
+    const payload = authMailPayload.parse({
+      user: { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", email: "fixture@example.test" },
+      email_data: { email_action_type: "magiclink", token: code, token_hash: "fictitious-unused-hash" },
+    });
+    const message = authMailMessages(payload, "https://test.staging.fieldgrid.nl", brand.company)[0];
+    const html = renderTenantEmailHtml({ brand, kind: "auth_otp", message, targetUrl: message.targetUrl });
+    expect(html).toContain(`Je eenmalige inlogcode is ${code}.`);
+    expect(html).toContain(`Je inlogcode voor ${brand.company}`);
+    expect(html).toContain("background:#41AC42");
+    expect(html).not.toMatch(/zescijfer|zes cijfers|6 cijfers|acht cijfers|8 cijfers/i);
+    expect(html).not.toContain("fictitious-unused-hash");
+    expect(html).not.toContain("Werkt de knop niet?");
+    expect(html).not.toContain(message.targetUrl);
+  });
+
   it("rendert een responsieve prijsopgave met veilige CTA en huisstijl", () => {
     const template = templateDefinition("quote");
     const html = renderTenantEmailHtml({

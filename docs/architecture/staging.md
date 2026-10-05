@@ -305,8 +305,12 @@ provider itself, never in source, examples, logs or committed service files.
 
 ### Uniforme OTP-login — eigenaarsopdracht 2026-10-05
 
-Alle Fieldgrid-gebruikers melden zich aan met een eenmalige zescijferige
-e-mailcode: personeel, management, klanten en platformbeheerders. `/login`
+Alle Fieldgrid-gebruikers melden zich aan met een eenmalige numerieke
+e-mailcode van de provider: personeel, management, klanten en platformbeheerders.
+De eigenaar bevestigde dat hosted staging acht cijfers gebruikt; die instelling
+blijft behouden. De mailhook en verificatie accepteren de door Supabase
+ondersteunde zes tot en met tien cijfers en geven de volledige code ongewijzigd
+door. Er is geen tweede OTP-generator of nieuwe configuratiebron. `/login`
 heeft geen wachtwoord- of magic-link-inlog. Een codeaanvraag maakt geen account
 aan en onthult niet of een adres bestaat. Na verificatie worden de actuele
 sessie, hostname en werkruimterechten opnieuw gecontroleerd; een geslaagde Auth

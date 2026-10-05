@@ -29,7 +29,7 @@ const staffOtpRequestSchema = z.object({
 const staffOtpVerifySchema = z.object({
   intent: z.literal("verify"),
   email: z.string().trim().toLowerCase().email().max(320),
-  code: z.string().trim().regex(/^\d{6}$/),
+  code: z.string().trim().regex(/^\d{6,10}$/),
   next: z.string().max(2048).optional(),
 });
 
@@ -70,7 +70,7 @@ export async function loginOtp(_: OtpState, formData: FormData): Promise<OtpStat
       email: input.data.email,
       next,
       requestedAt: Date.now(),
-      notice: "Als dit account toegang heeft, ontvang je een e-mail met een zescijferige code.",
+      notice: "Als dit account toegang heeft, ontvang je een e-mail met een eenmalige inlogcode.",
     };
   }
 

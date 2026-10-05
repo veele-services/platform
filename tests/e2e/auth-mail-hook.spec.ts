@@ -5,7 +5,7 @@ import { requireLocalApiUrl } from "./local-target";
 
 // One-use credentials must not enter traces, screenshots, videos or logs.
 test.use({ trace: "off", screenshot: "off", video: "off" });
-test("signed Auth hook sends one branded OTP without a login link; only the code logs in and replay is denied", async ({ page, request }) => {
+test("signed Auth hook sends one branded eight-digit OTP without a login link; only the full code logs in and replay is denied", async ({ page, request }) => {
   const url = requireLocalApiUrl();
   const admin = createClient(url.href, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
   const email = `auth-hook-${randomUUID()}@fieldgrid.test`;
@@ -26,7 +26,7 @@ test("signed Auth hook sends one branded OTP without a login link; only the code
     if (generated.error || !generated.data.properties) throw new Error("Local OTP fixture unavailable");
     let oneTimeCode = generated.data.properties.email_otp;
     const tokenHash = generated.data.properties.hashed_token;
-    if (!/^\d{6}$/.test(oneTimeCode)) throw new Error("Local OTP fixture must contain six digits");
+    if (!/^\d{8}$/.test(oneTimeCode)) throw new Error("Local Auth OTP fixture must contain eight digits");
     const body = JSON.stringify({ user: { id: created.data.user.id, email }, email_data: { email_action_type: "magiclink", token: oneTimeCode, token_hash: tokenHash, redirect_to: "http://127.0.0.1:3000/login" } });
     const id = `fixture-${randomUUID()}`, timestamp = String(Math.floor(Date.now() / 1000));
     const signature = createHmac("sha256", Buffer.from("FICTITIOUS-LOCAL-AUTH-HOOK-KEY-ONLY-2026")).update(`${id}.${timestamp}.${body}`).digest("base64");
@@ -45,7 +45,9 @@ test("signed Auth hook sends one branded OTP without a login link; only the code
     expect(html.includes("/auth/verify")).toBe(false);
     expect(html.includes("/auth/v1/verify")).toBe(false);
     expect(mails[0].content.some((c: { type: string; value: string }) => c.type === "text/plain" && c.value.includes(oneTimeCode))).toBe(true);
-    await page.getByLabel("Inlogcode", { exact: true }).fill(oneTimeCode);
+    const input = page.getByLabel("Inlogcode", { exact: true });
+    await input.fill(oneTimeCode);
+    expect((await input.inputValue()).length, "The login form must retain the full provider-issued Auth code").toBe(8);
     await page.getByRole("button", { name: "Code controleren", exact: true }).click();
     await page.waitForURL("**/platform");
     await expect(page.getByRole("heading", { name: "Grip op iedere tenant.", exact: true })).toBeVisible();
