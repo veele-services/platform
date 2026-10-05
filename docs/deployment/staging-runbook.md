@@ -442,6 +442,8 @@ job build, back up, migrate, encrypt and attest. The self-hosted job only
 transfers the handoff and invokes the broker. A final fresh hosted acceptance
 job rejects the deployment unless `status`, `environment`, `database`,
 `scanner`, and `release` all match.
+It then verifies that a fictitious obsolete Auth link returns to OTP-login on
+the public staging origin without creating a session or forwarding credentials.
 
 If activation fails after a forward-only migration, the candidate remains
 selected for diagnosis. The workflow never restores older, potentially

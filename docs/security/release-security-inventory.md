@@ -13,7 +13,7 @@ een expliciete voltooide status en bewijsverwijzing. Operationele
 stagingvoorwaarden blijven NO-GO totdat de uiteindelijke SHA is uitgerold en
 geaccepteerd.
 
-De structurele CI-inventaris `authorization-surfaces.json` beschrijft **982**
+De structurele CI-inventaris `authorization-surfaces.json` beschrijft **983**
 ingangen/resources uit de huidige bron en een schone database met 109 migraties:
 
 | Soort | Aantal | Wat de registratie bewijst |
@@ -21,7 +21,7 @@ ingangen/resources uit de huidige bron en een schone database met 109 migraties:
 | Server-actionmodules | 42 | Exportnamen, waargenomen helpers en letterlijke tabel/RPC-afhankelijkheden |
 | Routes en RSC-pagina's/layouts | 102 | Bestaande ingangen, inclusief publieke schermen zonder datahelper |
 | Overige data-accessmodules | 55 | Gevonden queries/RPC's, indirecte autorisatiehelpers, servercomponenten, browser-/Realtimeclients en privileged-clientaanmaak |
-| Operationele releasepaden | 55 | Inhoudshashes van alle ontdekte workflows/deploybestanden plus package/lock/config, serviceworker, migratiemanifest en runtime-/backup-/migratiescripts, inclusief de vier stagingmigratie-trust-boundaries en de releasegebonden ClamAV-preflight |
+| Operationele releasepaden | 56 | Inhoudshashes van alle ontdekte workflows/deploybestanden plus package/lock/config, serviceworker, migratiemanifest en runtime-/backup-/migratiescripts, inclusief de vier stagingmigratie-trust-boundaries, de releasegebonden ClamAV-preflight en de publieke OTP-redirectcontrole |
 | Public/private tabellen | 188 | RLS/FORCE en effectieve basisgrants |
 | Public RPC's | 216 | Signatuur, definerstatus en executegrants |
 | Private functies | 213 | Signatuur, definerstatus en executegrants |
@@ -37,7 +37,7 @@ inhoudelijke dekking of de verplichte actor/resource-tests.
 De inventaris omvat nu ook `components` met serverdata, browserclients en
 helpermodules die alleen een indirecte auth/provider-/bestandscontrole uitvoeren;
 deze paden konden eerder buiten de structurele diffgate blijven.
-`authorization-review.json` koppelt ieder van de 982 IDs aan een expliciete
+`authorization-review.json` koppelt ieder van de 983 IDs aan een expliciete
 status en bewijsset. `scripts/check-authorization-review.mjs` faalt bij een
 ontbrekend, dubbel, verouderd, onbewezen, `pending` of `blocked` item. De
 `--capture`-stand neemt bestaande beoordelingen over maar zet iedere nieuw
@@ -48,9 +48,9 @@ bijwerken kan een inhoudswijziging daardoor niet als eerder beoordeeld laten gel
 
 ### Klantportaal, universele OTP en huisstijl — 5 oktober 2026
 
-Ten opzichte van de gedeployde baseline `1f47c7b8` zijn 162 oppervlakken
-inhoudelijk beoordeeld: 97 nieuw en 65 gewijzigd, zonder verwijderingen.
-De finale ledger kent deze delta 143 keer `controlled` en 19 keer
+Ten opzichte van de gedeployde baseline `1f47c7b8` zijn 165 oppervlakken
+inhoudelijk beoordeeld: 98 nieuw en 67 gewijzigd, zonder verwijderingen.
+De finale ledger kent deze delta 145 keer `controlled` en 20 keer
 `corrected-and-rechecked` toe. De bronreviews en concrete regressies staan in
 [de integratiecontrole](portal-release-verification-2026-10-05.md) en de daar
 gekoppelde afzonderlijke reviews voor klantprojecties, OTP en huisstijl.

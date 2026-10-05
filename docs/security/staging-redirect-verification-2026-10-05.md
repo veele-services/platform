@@ -21,10 +21,18 @@ Een onafhankelijke bronreview bevestigt het native Response-contract van de
 geïnstalleerde Next 16-runtime. Betalingscallbacks gebruiken `tenantAppUrl`;
 geen andere App Router-handler bouwt een browserredirect uit `request.url`.
 
-De structurele inventaris blijft 982 onderdelen bevatten. Alleen de
-vingerafdruk van `code:app/auth/confirm/route.ts` is gewijzigd en inhoudelijk
-opnieuw beoordeeld als `corrected-and-rechecked`. Database-, workflow- en
-runtimeconfiguratie zijn niet gewijzigd.
+De stagingacceptatie voert nu na de exacte-SHA healthcontrole een anonieme GET
+op de publieke `/auth/confirm` uit. Die volgt geen redirects en gebruikt
+uitsluitend fictieve parameters. De controle weigert iedere andere target dan
+de vaste publieke stagingorigin en controleert bestemming, OTP-parameters,
+cookieafwezigheid en privacyheaders. Op de oude live-release detecteert ze de
+fout; negen synthetische succes-, afwijzings- en targetguardchecks slagen.
+
+De structurele inventaris bevat nu 983 onderdelen. De confirmroute en de
+workflow zijn inhoudelijk opnieuw beoordeeld als `corrected-and-rechecked`;
+het nieuwe controlescript en zijn expliciete registratie in de structurele
+inventaris zijn als `controlled` beoordeeld. De vier vingerafdrukken zijn
+bijgewerkt na bronreview. Database- en runtimeconfiguratie zijn niet gewijzigd.
 
 Deze lokale controle is geen bevestiging van de gecorrigeerde stagingdeploy.
 De volledige CI en stagingworkflow moeten opnieuw slagen; de publieke
