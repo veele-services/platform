@@ -326,10 +326,12 @@ jobs:
           FIELDGRID_STAGING_SMOKE: "1"
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
-        run: node --test scripts/test-work-orders.mjs scripts/test-work-order-reports.mjs scripts/test-work-order-lineage.mjs
+        # Each rollback-only fixture holds shared policy locks until its rollback.
+        # Serialize files on the remote database; keep every assertion and guard.
+        run: node --test --test-concurrency=1 scripts/test-work-orders.mjs scripts/test-work-order-reports.mjs scripts/test-work-order-lineage.mjs
       - name: Verify ticket boundaries and delivery state with rollback-only staging fixtures
         env:
           FIELDGRID_STAGING_SMOKE: "1"
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
-        run: node --test scripts/test-tickets.mjs scripts/test-ticket-delivery.mjs
+        run: node --test --test-concurrency=1 scripts/test-tickets.mjs scripts/test-ticket-delivery.mjs

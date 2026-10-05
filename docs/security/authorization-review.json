@@ -4041,7 +4041,7 @@
     },
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
-      "surfaceFingerprint": "60b7294c7a1493e3e47418db2628ece2bec87ef431c56eb82d77a2d25caa75b3",
+      "surfaceFingerprint": "8da06eb04b126bc8b91d6ab232799d5c8121b6532aa4d93c0a5aa33b8dbf29d6",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
@@ -4050,7 +4050,8 @@
         "A secret-free self-hosted host-preflight now proves runner separation, PostgreSQL archive compatibility and the installed worker timer before hosted backup or forward migrations can start (2026-10-02).",
         "The exact staging artifact is extracted and booted with isolated non-secret smoke configuration before backup or forward migrations begin (2026-10-02).",
         "Activation and retryable worker acceptance are separate jobs; the latter has no handoff download, broker call, secrets or service-management authority. Full reruns use attempt-scoped immutable handoffs selected by artifact ID; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-03).",
-        "Hosted acceptance receives only the canonical public APP_URL from GitHub Environment staging, restoring the existing fail-closed staging target guard without adding credentials or authority; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-04)."
+        "Hosted acceptance receives only the canonical public APP_URL from GitHub Environment staging, restoring the existing fail-closed staging target guard without adding credentials or authority; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-04).",
+        "Remote rollback-only fixtures run serially because their existing global notification-policy lock lives until rollback. All suites/assertions, staging/TLS guards and worker/exact-SHA prerequisites remain; lib/operations/staging-smoke.test.ts and docs/deployment/staging-smoke-serialization-2026-10-05.md (2026-10-05)."
       ]
     },
     {
