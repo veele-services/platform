@@ -110,6 +110,40 @@ configuratie heeft geïnstalleerd. Dit is operatorbevestiging van de wijziging;
 de juiste signing secret in de actieve runtime en echte codemailbezorging
 moeten nog na de deploy worden bevestigd.
 
+De release `dcd9fd70feb7a80cf72c732949a660060638c733` heeft daarna alle zes
+stagingworkflowjobs en de publieke exacte-SHA healthcontrole doorlopen. De
+eigenaar ontving bij een nieuwe codeaanvraag geen mail en meldde in Auth Logs
+`500: Service currently unavailable due to hook`. Mailbezorging en OTP-login
+zijn daarmee nog niet geaccepteerd.
+
+### Niet-schrijvende maildiagnose
+
+Dispatch `diagnose-auth-mail.yml` bewust vanaf de gereviewde `main`-tip. Deze
+workflow deployt niets. Hij bepaalt de bestaande stagingpromotie uit
+`origin/staging`, controleert de afkomst en de exacte publieke health-SHA en
+gebruikt uitsluitend Environment `staging` op een tijdelijke hosted runner.
+
+De ondertekende probe bevat alleen `{}`. HTTP 400 bevestigt dat de actieve
+endpoint de GitHub-hooksecret accepteert en de ongeldige payload afwijst vóór
+database- of mailtoegang. Dit bewijst niet dat Supabase dezelfde secret gebruikt.
+Een ondertekende 401 wijst op een mismatch tussen GitHub en de runtime; een 503
+kan op ontbrekende runtimeconfiguratie wijzen. De ongetekende probe moet 401
+geven. Geen van beide probes verstuurt een mail.
+
+Een afzonderlijke vaste platform-context-RPC gebruikt een fictieve actor en
+een `example.invalid`-adres om de service-only Auth-mailcontext te controleren.
+Deze RPC leest alleen de platformhuisstijl en maakt geen account, receipt of
+verzending. Het resultaat wordt teruggebracht tot een status en een boolean;
+credentials en ruwe responsen worden niet getoond.
+
+Vaste read-only databasequeries rapporteren alleen aantallen per hook-,
+transport- en providerstatus en aantallen expliciete mailstops. Een
+verzending met `accepted` is door SendGrid aangenomen, maar bewijst geen
+mailboxbezorging. Geen receipts kan ook betekenen dat contextvalidatie faalde
+vóór de claim. Ontbrekende delivery-events kunnen eveneens op een niet-actieve
+SendGrid Event Webhook wijzen. Interpreteer deze signalen samen met Auth Logs;
+log nooit adressen, ids, hashes, mailinhoud, OTPs of ruwe providerfouten.
+
 ### Controleerbare activatiegrens — 5 oktober 2026
 
 De repository bevat geen workflow of script dat hosted Auth-instellingen

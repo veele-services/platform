@@ -4276,6 +4276,16 @@
       ]
     },
     {
+      "id": "operation:.github/workflows/diagnose-auth-mail.yml",
+      "surfaceFingerprint": "7c63910baeb640573e2c0ffce09745a6c40aca2614d7f0b625b377efdc9c4bee",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
+      ]
+    },
+    {
       "id": "operation:deploy/Caddyfile.example",
       "surfaceFingerprint": "7800a093fdbb98c151c2126f4b2ee9f2a04b87207e87d7e571e093a19d818ce1",
       "status": "controlled",
@@ -4419,6 +4429,26 @@
         "manual-release-diagnostic-review:2026-10-02",
         "lib/env/staging-migration-diagnostic.test.ts",
         "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:lib/operations/auth-mail-context-diagnostic.ts",
+      "surfaceFingerprint": "afe49573e636e781e7c71ed5d30f9082146688a61ace3bf23385ed02ed031af4",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
+      ]
+    },
+    {
+      "id": "operation:lib/operations/auth-mail-diagnostic.ts",
+      "surfaceFingerprint": "578cc7aae7424ef576d42965a43e9cd92a09d002df4cb69c6ce19b33e9e6346a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
       ]
     },
     {
@@ -4567,15 +4597,12 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "5421e1e788b4b7ffeef19e018071239d20deea25c5c80510b48e5dd5c22f6832",
+      "surfaceFingerprint": "0502da51ea3a5cebddf39ec5d5ef54852b519f33e4d61477224f75b1410ac894",
       "status": "controlled",
       "evidence": [
-        "The new scanner startup gate is explicitly included in the deterministic operational surface inventory.",
-        "lib/auth/security-surface.test.ts requires scripts/check-clamav-socket.mjs to remain inventoried; the complete captured ledger has a reviewed entry for every surface.",
-        "The packaged-release launch smoke is explicitly inventoried as an operational release control (2026-10-02).",
-        "The operational inventory now fingerprints pnpm workspace security settings and all committed dependency patches (2026-10-03).",
-        "docs/security/staging-redirect-verification-2026-10-05.md",
-        "scripts/verify-public-auth-redirect.mjs"
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
       ]
     },
     {
@@ -4643,6 +4670,26 @@
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
         "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:scripts/diagnose-auth-mail-context.ts",
+      "surfaceFingerprint": "42f5a167a89ec91bd75930a5e5f1486657209f36780476110f75efda6d0894a4",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
+      ]
+    },
+    {
+      "id": "operation:scripts/diagnose-auth-mail.ts",
+      "surfaceFingerprint": "dfc5d58e7358d4133c276038e381b193786f8d610e0ae6a9445b9fb4ec06339f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/auth-mail-diagnostics-2026-10-05.md",
+        "lib/operations/auth-mail-diagnostic.test.ts",
+        "lib/operations/auth-mail-context-diagnostic.test.ts"
       ]
     },
     {

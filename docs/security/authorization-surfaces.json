@@ -6231,6 +6231,11 @@
       "source_sha256": "2c0292f8296e74b247ec2d505f4d6c746bb7280242dce1386df91aa66f52b448"
     },
     {
+      "id": "operation:.github/workflows/diagnose-auth-mail.yml",
+      "classification": "operation",
+      "source_sha256": "7365b0f230e5d5b4e2b875d6639970a9022887dc4b3c7092497b4cf3308a1c59"
+    },
+    {
       "id": "operation:deploy/Caddyfile.example",
       "classification": "operation",
       "source_sha256": "924bc987c3e96aa3c4f906d4351049dc597aa4570355ae2f622168f4397557cf"
@@ -6299,6 +6304,16 @@
       "id": "operation:lib/env/staging-migration-diagnostic.ts",
       "classification": "operation",
       "source_sha256": "ee063256d4df244cbe4df78354dce76bfe0bab447fd565ca399f82122af09649"
+    },
+    {
+      "id": "operation:lib/operations/auth-mail-context-diagnostic.ts",
+      "classification": "operation",
+      "source_sha256": "7a0dcb06dee372f5347a832dc790c92eaffabfe15f1bc1740f0a812c5a90f08f"
+    },
+    {
+      "id": "operation:lib/operations/auth-mail-diagnostic.ts",
+      "classification": "operation",
+      "source_sha256": "ffafc4f29cac74454cf6f22a57f475cab4e80feb461a5ae33f23aa487a44be2a"
     },
     {
       "id": "operation:next.config.ts",
@@ -6373,7 +6388,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "159a5e9202ecd5b6ba56195491a14e0ce5d2832eba1b822aa8e95cae8072e92e"
+      "source_sha256": "b0c209677991e766e65e8a2de5ca9466a1c7a72e92396765b0ed185acaf9a670"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -6404,6 +6419,16 @@
       "id": "operation:scripts/deploy-local.sh",
       "classification": "operation",
       "source_sha256": "97057fcd1f0c750d709fa47110aaab3630a6f8855054caa39e40bd879b1ba305"
+    },
+    {
+      "id": "operation:scripts/diagnose-auth-mail-context.ts",
+      "classification": "operation",
+      "source_sha256": "d5e409e114b455be2cfaff43f5b359e819777fa53948af2e20822865f6f215a7"
+    },
+    {
+      "id": "operation:scripts/diagnose-auth-mail.ts",
+      "classification": "operation",
+      "source_sha256": "529354264d437ca772050ea27256e82b8b39647d401360b7f5cd49aa6992433f"
     },
     {
       "id": "operation:scripts/encrypt-staging-handoff.sh",
