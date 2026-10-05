@@ -13,11 +13,16 @@ naar het productieproject of de productie-VPS wijzen.
 - `fieldgrid@staging.service` en `fieldgrid-worker@staging.timer` zijn geïnstalleerd.
 - Het nieuwe staging-Supabaseproject is leeg en heeft nog geen applicatietabellen.
 - Supabase Auth heeft de staging Site URL en uitsluitend toegestane staging-redirects.
-- Supabase Auth heeft voor personeelslogin Email OTP length `6`, expiry `3600`
+- Supabase Auth heeft voor alle vier werkruimtes (`/platform`, `/app`, `/staff`
+  en `/klant`) Email OTP length `6`, expiry `3600`
   seconden en een provider-side resend-interval van minimaal `60` seconden.
   Het hosted **Magic Link**-sjabloon toont `{{ .Token }}` en bevat geen
   `ConfirmationURL` of zelfgebouwde tokenlink; zie
-  [Staging mail hooks](deployment/mail-hooks.md#personeelslogin-exacte-staging-auth-instelling).
+  [Staging mail hooks](deployment/mail-hooks.md#universele-otp-login-exacte-staging-auth-instelling).
+- De eigenaar bevestigde op 5 oktober 2026 dat de Send Email Hook nog **uit** staat.
+  Hosted Auth-instellingen en hookactivatie blijven operatorhandelingen; activeer
+  de hook pas na geslaagde healthcontrole voor de exacte universele-OTP-release,
+  volgens het mail-hookrunbook. Een geslaagde deploy bewijst geen echte mailbezorging.
 - De SendGrid-afzender of het afzenderdomein is geverifieerd.
 - Mollie gebruikt een `test_`-key; Google Routes is expliciet uitgeschakeld of gebruikt
   een tot staging beperkte serverkey.
@@ -73,9 +78,11 @@ naar het productieproject of de productie-VPS wijzen.
   testmailbox. De wizard legt de uitnodiging uit zonder technische providertermen.
   Controleer dat één uitnodigingsmail via SendGrid aankomt, met tenantlogo (of
   tenantnaam als er geen logo is), kleuren, personeelsnummer en een duidelijke
-  uitnodiging voor het **personeelsportaal**. Open de link, accepteer de uitnodiging,
-  kies een wachtwoord en controleer dat je op de juiste tenanthost in `/staff` komt.
-  Een bestaand account krijgt een portaallink en behoudt het bestaande wachtwoord.
+  uitnodiging voor het **personeelsportaal**. Open de link en accepteer de uitnodiging
+  zonder een wachtwoord te kiezen. Controleer dat acceptatie geen browsersessie
+  aanmaakt. Vraag daarna een verse OTP aan en controleer dat je na codeverificatie
+  op de juiste tenanthost in `/staff` komt. Ook een bestaand account krijgt toegang
+  via OTP; de uitnodiging of portaallink logt het account niet in.
   Test **Meer → Uitnodiging opnieuw versturen**; er mag geen tweede medewerker of
   personeelsnummer worden aangemaakt. Een gebruikte link of ingetrokken toegang
   mag geen nieuwe portalsessie opleveren.
@@ -83,20 +90,25 @@ naar het productieproject of de productie-VPS wijzen.
   `SENDGRID_FROM_EMAIL`, de ingestelde tenant-afzendernaam en het gedeelde
   huisstijlsjabloon; voor de **uitnodigingsmail zelf** is geen nieuwe secret,
   migratie of Supabase-uitnodigingssjabloon nodig. Dit staat los van het hosted
-  Magic Link/OTP-sjabloon dat de personeelslogin hierboven vereist.
+  Magic Link/OTP-sjabloon dat de universele login hierboven vereist.
   Klik-/open-tracking staat voor deze mails uit. Activatietokens staan niet in
   verzendlogs en worden pas verbruikt bij bevestiging, niet door een GET van een
   mailscanner. Echte inboxbezorging blijft een stagingacceptatiepunt: de lokale
   browsertests gebruiken uitsluitend een in-memory SendGrid-testontvanger.
-- Open op de juiste tenanthost `/staff`. Controleer dat alleen een e-mailadres
-  wordt gevraagd, dat de response voor een onbekend adres niet verraadt of het
-  account bestaat, en dat een actief personeelslid één e-mail met een
-  zescijferige code zonder loginlink ontvangt. Voer de code in, controleer dat
-  de personeelswerkruimte opent en dat dezelfde code niet opnieuw bruikbaar is.
-  Controleer daarnaast dat `/app` en `/platform` hun wachtwoordlogin behouden.
-  Als de signed Send Email Hook actief is, moet de mail via de gebrande
-  Fieldgrid-hook lopen; schakel bij terugval naar Auth-SMTP pas over nadat het
-  hosted Magic Link-sjabloon opnieuw op `{{ .Token }}` is gecontroleerd.
+- Open `/platform` op de platformhost en `/app`, `/staff` en `/klant` op de juiste
+  tenanthost. Gebruik voor iedere werkruimte een eigen testaccount van de operator
+  met de vereiste actuele toegang. Controleer dat alleen een e-mailadres wordt
+  gevraagd, zonder wachtwoord- of magic-link-login, en dat de response voor een
+  onbekend adres niet verraadt of het account bestaat. Na hookactivatie ontvangt
+  ieder account één mail met de juiste Fieldgrid- of tenantbranding en een
+  zescijferige code zonder credentialdragende loginlink. Voer de code in, controleer
+  dat alleen de toegestane werkruimte opent en dat dezelfde code niet opnieuw
+  bruikbaar is. Controleer dat een verkeerde tenant of ingetrokken klantbinding
+  geen toegang oplevert. Deze provider- en inboxacceptatie blijft een
+  operatorhandeling en is niet bewezen door lokale tests of een groene deploy.
+  Schakel bij terugval naar Auth-SMTP pas over nadat het hosted Magic Link-sjabloon
+  opnieuw op `{{ .Token }}` is gecontroleerd. Die terugval mist tenantbranding en
+  centrale mail-stopdekking voor Auth en geldt niet als volledige acceptatie.
 - Open **Klanten → Bekijk** en controleer de tabbladen **Overzicht**, **Contactpersonen**,
   **Objecten**, **Notities** en **Documenten**, ook op mobiel en met het toetsenbord.
   Voeg een contact, interne notitie en een PDF/JPG/PNG-document (maximaal 10 MB) toe;
