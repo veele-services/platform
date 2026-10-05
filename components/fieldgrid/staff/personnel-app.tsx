@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
   List, LockKeyhole, LogOut, Megaphone, Menu,
-  Info, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Settings2, SlidersHorizontal, Square, TicketCheck, Umbrella, UserRound,
+  Info, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Settings2, Square, TicketCheck, Umbrella, UserRound,
   UsersRound, X,
 } from "lucide-react";
 import {
@@ -35,7 +35,9 @@ import {
   markAnnouncementRead, requestTimeCorrection, runStaffDayCommand,
   runStaffLeaveCommand, toggleShiftInterest, transitionWorkOrder,
   updateStaffAvailability, updateStaffProfile,
+  updateStaffContact,
 } from "@/app/staff/actions";
+import { runNotificationCommand } from "@/app/notifications/actions";
 import { StaffOrderSheet, type StaffOrder } from "@/components/fieldgrid/staff-app";
 import { defaultAvailability, defaultTransport } from "@/lib/staff/onboarding";
 import { Onboarding } from "@/components/fieldgrid/staff/onboarding";
@@ -231,11 +233,11 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         </div>
       </header>
       <main className="ps-content">
-        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid"].includes(moreView)) && <header className="ps-page-heading"><div><span className="ps-page-kicker">FIELDGRID / PERSONEEL</span><h1>{title}</h1></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
+        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid", "instellingen"].includes(moreView)) && <header className="ps-page-heading"><div><span className="ps-page-kicker">FIELDGRID / PERSONEEL</span><h1>{title}</h1></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
         {view === "planning" && (tenant.enabledServices.includes("planning") ? <PlanningScreen orders={assigned} assignments={assignments} data={data} timezone={tenant.timezone} onOpen={openOrder} onHours={() => navigate("uren")} onNews={() => navigate("nieuws")}/> : <Empty icon={CalendarDays} title="Planning niet ingeschakeld">Vraag je beheerder om de module Planning te activeren.</Empty>)}
         {view === "nieuws" && <NewsScreen data={data} onRead={(id) => run(() => markAnnouncementRead(id), "Gemarkeerd als gelezen")}/>}
         {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run}/>}
-        {view === "meer" && <MoreScreen view={moreView} setView={setMoreView} data={data} profile={profile} timezone={tenant.timezone} email={context.user.email ?? profile.email ?? ""} ticketsEnabled={ticketsEnabled} pending={pending} run={run}/>}
+        {view === "meer" && <MoreScreen view={moreView} setView={setMoreView} data={data} profile={profile} timezone={tenant.timezone} email={context.user.email ?? profile.email ?? ""} tenantName={tenant.name} notificationPreferences={notificationPreferences} ticketsEnabled={ticketsEnabled} pending={pending} run={run}/>}
       </main>
       <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">
         <button className={view === "planning" ? "active" : ""} onClick={() => navigate("planning")}><CalendarDays/><span>Planning</span></button>
@@ -458,12 +460,12 @@ function CorrectionDialog({ entry, timezone, pending, close, submit }: { entry: 
   </Dialog>;
 }
 
-function MoreScreen({ view, setView, data, profile, timezone, email, ticketsEnabled, pending, run }: { view: MoreView; setView: (view: MoreView) => void; data: StaffWorkspaceData; profile: StaffPersonnel; timezone: string; email: string; ticketsEnabled: boolean; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
+function MoreScreen({ view, setView, data, profile, timezone, email, tenantName, notificationPreferences, ticketsEnabled, pending, run }: { view: MoreView; setView: (view: MoreView) => void; data: StaffWorkspaceData; profile: StaffPersonnel; timezone: string; email: string; tenantName: string; notificationPreferences: NotificationPreferences; ticketsEnabled: boolean; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
   if (view === "verlof") return <LeaveScreen requests={data.staffLeaveRequests} entitlements={data.staffLeaveEntitlements} timezone={timezone} pending={pending} run={run}/>;
   if (view === "beschikbaarheid") return <AvailabilityScreen key={profile.id} profile={profile} pending={pending} run={run} onLeave={() => setView("verlof")}/>;
   if (view === "documenten") return <DocumentsScreen data={data} profile={profile}/>;
   if (view === "profiel") return <ProfileScreen key={profile.id} profile={profile} depots={data.staffDepots} email={email} pending={pending} run={run}/>;
-  if (view === "instellingen") return <SettingsScreen profile={profile}/>;
+  if (view === "instellingen") return <SettingsScreen key={profile.id} profile={profile} email={email} tenantName={tenantName} notificationPreferences={notificationPreferences} pending={pending} run={run}/>;
   const actions: Array<[MoreView, string, string, ComponentType<{ size?: number }>]> = [
     ["verlof", "Verlof", "Bekijk en dien een aanvraag in", CalendarDays], ["beschikbaarheid", "Beschikbaarheid", "Je weekpatroon en dienstvoorkeuren", UsersRound],
     ["documenten", "Documenten", "Persoonlijk met jou gedeeld", FileText], ["profiel", "Profiel", "Contact- en vervoersgegevens", UserRound], ["instellingen", "Instellingen", "Meldingen en account", Settings2],
@@ -667,8 +669,69 @@ function ProfileScreen({ profile, depots, email, pending, run }: { profile: Staf
   </form></section>;
 }
 
-function SettingsScreen({ profile }: { profile: StaffPersonnel }) {
-  return <div className="ps-card-list"><section className="ps-panel"><div className="ps-panel-heading"><div><span>MELDINGEN</span><h2>Pushmeldingen</h2></div><Bell/></div><NotificationPushControl workspace="staff"/></section><section className="ps-panel"><div className="ps-panel-heading"><div><span>ACCOUNT</span><h2>{profile.full_name}</h2></div><UserRound/></div><p>Je gebruikt de beveiligde Fieldgrid-login van je organisatie.</p><Link className="ps-secondary" href="/staff/notificaties/instellingen"><SlidersHorizontal/>Meldingsvoorkeuren</Link></section><form action="/auth/signout" method="post"><button className="ps-danger"><LogOut/>Uitloggen op dit apparaat</button></form></div>;
+function SettingsScreen({ profile, email, tenantName, notificationPreferences, pending, run }: {
+  profile: StaffPersonnel; email: string; tenantName: string; notificationPreferences: NotificationPreferences; pending: boolean;
+  run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void;
+}) {
+  const [section, setSection] = useState<"profile" | "notifications" | "account">("profile");
+  const [contact, setContact] = useState(() => ({ fullName: profile.full_name, mobilePhone: profile.mobile_phone ?? "", version: profile.version ?? 1 }));
+  const [preferences, setPreferences] = useState(notificationPreferences);
+  const notificationKeys = useRef(new Map<string, string>());
+  const [dialog, setDialog] = useState<"push" | "login" | null>(null);
+  const saveContact = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pending) return;
+    run(async () => {
+      const result = await updateStaffContact(contact);
+      if (result.ok) setContact((current) => ({ ...current, version: result.version }));
+      return result;
+    }, "Gegevens opgeslagen");
+  };
+  const togglePreference = (field: "email" | "push" | "quietEnabled", checked: boolean) => {
+    if (pending) return;
+    const next = { ...preferences, [field]: checked };
+    const payload = { version: next.version, email: next.email, push: next.push, quietEnabled: next.quietEnabled, quietStart: next.quietStart, quietEnd: next.quietEnd, timezone: next.timezone, types: next.types.map(({ code, email, push }) => ({ code, email, push })) };
+    const fingerprint = JSON.stringify(payload);
+    const requestId = notificationKeys.current.get(fingerprint) ?? crypto.randomUUID();
+    notificationKeys.current.set(fingerprint, requestId);
+    run(async () => {
+      const result = await runNotificationCommand("staff", "preferences_save", payload, requestId);
+      if (result.ok) { setPreferences({ ...next, version: result.version ?? next.version + 1 }); notificationKeys.current.delete(fingerprint); }
+      return result;
+    }, "Meldingsvoorkeuren opgeslagen");
+  };
+  return <div className="ps-settings-screen">
+    <header className="ps-page-heading"><div><h1>Instellingen</h1><p>Jouw gegevens en voorkeuren.</p></div></header>
+    <div className="ps-settings-layout">
+      <nav className="ps-settings-nav" aria-label="Instellingenonderdelen">
+        {([["profile", "Mijn profiel"], ["notifications", "Meldingen"], ["account", "Account & toegang"]] as const).map(([key, label]) => <button type="button" key={key} aria-current={section === key ? "page" : undefined} onClick={() => setSection(key)}>{label}</button>)}
+      </nav>
+      {section === "profile" && <section className="ps-panel ps-settings-profile" aria-label="Mijn profiel">
+        <div className="ps-settings-identity"><span>{initials(profile.full_name)}</span><div><h2>{profile.full_name}</h2><p>Medewerker · {tenantName}</p></div></div>
+        <form onSubmit={saveContact}>
+          <label className="ps-field">Naam<input autoComplete="name" required minLength={2} maxLength={160} disabled={pending} value={contact.fullName} onChange={(event) => setContact({ ...contact, fullName: event.target.value })}/></label>
+          <div className="ps-field"><label htmlFor="ps-settings-email">E-mailadres</label><input id="ps-settings-email" type="email" autoComplete="email" readOnly aria-readonly="true" aria-describedby="ps-settings-email-help" value={email}/><small id="ps-settings-email-help">Je e-mailadres wordt beheerd door personeelszaken.</small></div>
+          <label className="ps-field">Telefoonnummer<input type="tel" autoComplete="tel" maxLength={50} disabled={pending} value={contact.mobilePhone} onChange={(event) => setContact({ ...contact, mobilePhone: event.target.value })}/></label>
+          <button type="submit" className="ps-primary" disabled={pending}>Gegevens opslaan</button>
+        </form>
+      </section>}
+      {section === "notifications" && <section className="ps-panel ps-settings-notifications" aria-label="Meldingen">
+        <h2>Meldingen</h2>
+        {([["push", "Pushmeldingen", "Nieuwe werkbonnen en belangrijke updates"], ["email", "E-mail", "Nieuws en personeelszaken"], ["quietEnabled", "Stille uren", `Van ${preferences.quietStart} tot ${preferences.quietEnd}`]] as const).map(([field, label, description]) => <div className="ps-settings-row" key={field}><div><strong>{label}</strong><small>{description}</small></div><input className="ps-settings-switch" role="switch" type="checkbox" aria-label={label} checked={preferences[field]} disabled={pending} onChange={(event) => togglePreference(field, event.target.checked)}/></div>)}
+        <p className="ps-hours-info"><Info aria-hidden="true"/><span>Push werkt op apparaten waarvoor je toestemming hebt gegeven. Je ontvangt meldingen volgens je voorkeuren en het beleid van je organisatie.</span></p>
+        <div className="ps-settings-notification-actions"><button type="button" className="ps-secondary" onClick={() => toast("Testmelding", { description: "Dit is een testmelding in je personeelsapp." })}><Bell/>Testmelding tonen</button><button type="button" className="ps-text-button" onClick={() => setDialog("push")}>Apparaat instellen</button><Link className="ps-text-button" href="/staff/notificaties/instellingen">Per onderwerp</Link></div>
+      </section>}
+      {section === "account" && <section className="ps-panel ps-settings-account" aria-label="Account & toegang">
+        <h2>Account & toegang</h2>
+        <div className="ps-settings-row"><div><strong>Inloggen met e-mailcode</strong><small>Geen wachtwoord onthouden</small></div><span className="ps-status" data-status="approved">OTP</span></div>
+        <div className="ps-settings-row"><div><strong>Dit apparaat</strong><small>Browser · huidige sessie</small></div><span className="ps-status" data-status="approved">Actief</span></div>
+        <button type="button" className="ps-secondary" onClick={() => setDialog("login")}><LockKeyhole/>Loginflow bekijken</button>
+        <form action="/auth/signout" method="post"><button className="ps-danger"><LogOut/>Uitloggen</button></form>
+      </section>}
+    </div>
+    {dialog === "push" && <Dialog title="Pushmeldingen instellen" kicker="DIT APPARAAT" close={() => setDialog(null)}><NotificationPushControl workspace="staff"/></Dialog>}
+    {dialog === "login" && <Dialog title="Inloggen met e-mailcode" kicker="ACCOUNT & TOEGANG" close={() => setDialog(null)}><p className="ps-settings-login-intro">Je logt in met een eenmalige code op je e-mailadres: <strong>{email}</strong>.</p><ol className="ps-settings-login-steps"><li>Vul je e-mailadres in op het inlogscherm.</li><li>Vraag een inlogcode aan en open de e-mail.</li><li>Voer de code in om naar je werkplek te gaan.</li></ol></Dialog>}
+  </div>;
 }
 
 function Dialog({ title, kicker, close, children, footer }: { title: string; kicker: string; close: () => void; children: ReactNode; footer?: ReactNode }) {

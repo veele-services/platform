@@ -1219,7 +1219,7 @@
     },
     {
       "id": "code:app/staff/actions.ts",
-      "surfaceFingerprint": "66f99252ae578963fb495f6491d90983003b4edf34a3d986b5cee5908c50ce5b",
+      "surfaceFingerprint": "1a0e59bec63debc3a83e55e7d9ba4f198ece666ee9f37af5136e985e1083b7a4",
       "status": "corrected-and-rechecked",
       "evidence": [
         "manual-personnel-app-authz-review:2026-10-05",
@@ -1228,7 +1228,10 @@
         "supabase/tests/database/staff_report_upload_finalize.sql",
         "lib/staff/time-correction.test.ts",
         "lib/staff/report-upload-action.test.ts",
-        "scripts/test-release-security.mjs"
+        "scripts/test-release-security.mjs",
+        "docs/security/release-security-inventory.md#instellingencontactactie-review--5-oktober-2026",
+        "lib/staff/contact-action.test.ts",
+        "tests/e2e/staff-settings.spec.ts"
       ]
     },
     {
@@ -1435,7 +1438,7 @@
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "d3166201ffa6a2376532ace9ab1e8f3f6dcb25e523eb726eb2ef46803cbab1c4",
+      "surfaceFingerprint": "9719f9f9ffbeb40492d40770a51b714c93382df268c72371d3a364d9251057e3",
       "status": "corrected-and-rechecked",
       "evidence": [
         "manual-personnel-app-authz-review:2026-10-05",
@@ -1443,7 +1446,10 @@
         "lib/staff/time-correction.test.ts",
         "supabase/tests/database/staff_personnel_app.sql",
         "tests/e2e/fieldgrid.spec.ts",
-        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken",
+        "docs/security/release-security-inventory.md#instellingencontactactie-review--5-oktober-2026",
+        "lib/staff/contact-action.test.ts",
+        "tests/e2e/staff-settings.spec.ts"
       ]
     },
     {

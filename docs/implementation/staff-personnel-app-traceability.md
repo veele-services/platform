@@ -166,6 +166,7 @@ een zichtbare parent maar slechts een deel van de bijlagemetadata.
 | Tickets en notificaties | Bestaande beveiligde routes in dezelfde personeels-shell; inbox, voorkeuren en push-control blijven beschikbaar. |
 | Documenten | Alleen employee-visible en niet dossier-managed eigen documenten, via de bestaande private downloadgrens. |
 | Profiel | Naam, roepnaam, telefoon, mobiel, geboortedatum, woonadres, noodcontact, vervoer en reisbeperkingen met optimistic concurrency. Login-e-mail is readonly en ontbreekt uit iedere write-allowlist. |
+| Instellingen | Prototype-indeling met Mijn profiel, Meldingen en Account & toegang. Naam en mobiel worden via een smalle eigen-profielactie opgeslagen; overige dossiergegevens en login-e-mail worden niet aangeleverd. Push/e-mail/stille uren gebruiken de bestaande versiegebonden centrale voorkeuren en bewaren typekeuzes. Apparaatregistratie en voorkeuren per onderwerp blijven beschikbaar. De testmelding verschijnt lokaal in de app; accountuitleg en uitloggen gebruiken de bestaande OTP- en sessiegrenzen. |
 | Open diensten | Alleen eligible open diensten; eigen interesse kan worden aangemeld of ingetrokken. |
 
 Verlofrecht wordt niet uit een UI-standaard verzonnen. Management legt per jaar

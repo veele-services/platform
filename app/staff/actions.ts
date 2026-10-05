@@ -77,6 +77,9 @@ const transportSchema = z.object({
   if (transport.drivingLicense && transport.drivingLicenseCategories.length === 0) issue.addIssue({ code: "custom", path: ["drivingLicenseCategories"], message: "Kies minimaal één rijbewijscategorie" });
 });
 const profileSchema = profileDetailsSchema.extend({ transport: transportSchema }).strict();
+const contactSchema = profileDetailsSchema.pick({ version: true, fullName: true, mobilePhone: true }).extend({
+  fullName: z.string().trim().min(2).max(160),
+}).strict();
 const notificationPreferenceSchema = z.object({
   version: z.number().int().nonnegative(),
   push: z.boolean(),
@@ -148,6 +151,7 @@ const customerAbsentSchema = z.object({
 
 export type SaveStaffOnboardingInput = z.input<typeof onboardingSchema>;
 export type UpdateStaffProfileInput = z.input<typeof profileSchema>;
+export type UpdateStaffContactInput = z.input<typeof contactSchema>;
 export type UpdateStaffAvailabilityInput = z.input<typeof updateAvailabilitySchema>;
 export type StaffLeaveCommandInput = z.input<typeof leaveCommandSchema>;
 export type StaffDayCommandInput = z.input<typeof dayCommandSchema>;
@@ -285,6 +289,18 @@ export async function updateStaffAvailability(input: UpdateStaffAvailabilityInpu
     const payload = updateAvailabilitySchema.parse(input);
     const updated = z.object({ version: z.coerce.number().int().positive() }).passthrough().parse(
       await reportRpc(await createClient(), "staff_update_availability", { target_tenant: context.tenant.id, input: payload }),
+    );
+    revalidateStaffWorkspaces();
+    return { ok: true, version: updated.version };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export async function updateStaffContact(input: UpdateStaffContactInput): Promise<ActionResult<{ version: number }>> {
+  try {
+    const context = await staffContext();
+    const payload = contactSchema.parse(input);
+    const updated = z.object({ version: z.coerce.number().int().positive() }).passthrough().parse(
+      await reportRpc(await createClient(), "staff_update_profile", { target_tenant: context.tenant.id, input: payload }),
     );
     revalidateStaffWorkspaces();
     return { ok: true, version: updated.version };

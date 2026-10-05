@@ -156,6 +156,26 @@ Git-historie vallen buiten die specifieke controle.
 | Tickets/notificaties/mail | Scope-, lease-, providerpermit-, hook-, ontvanger-, bytes- en retrytests; upgrade behoudt historie. Bestaande grants ook na rowlock begrensd, globale concepttemplates niet naar tenant, actuele leesbevestigingen/herinneringen en minimale nieuwe klantaudit; routehelpers staan in de reviewledger | Werkelijke provideractivatie/levering en historische auditretentie |
 | Deployment | Standalone guards/TLS, geheimvrije argv/logs, runtime.env, backupretry, CI-gates; externe acties op volledige commit-SHA en stagingsecrets uitsluitend per noodzakelijke stap; workersecret niet in procesargumenten; root-only key/trust/runtimecontrole strikt gescheiden van runnercontrole; echte Linux-UID/GID- en directoryrechten getest. Het unit/preflightincident is opgelost; geïnstalleerde webunit, runnerchecker en broker matchen hun gepubliceerde hashes. Exact `d9084380` is actief en database-ready, maar health blijft HTTP 503 doordat clamd `VERSION` is uitgeschakeld; de timer blijft uit | De lokaal uitgebreide rootchecker/configremedie is nog niet op de host geïnstalleerd of bewezen. Daarna ontbreken nog gezonde exact-SHA web/scannerhealth, een verse workeruitvoering, geïsoleerde restore en provideracceptatie |
 
+## Instellingencontactactie-review — 5 oktober 2026
+
+`updateStaffContact` accepteert uitsluitend de verwachte personeelsversie,
+naam en mobiel. De action resolveert de tenant uit de bestaande actuele
+staffcontext, vereist de personeelsmodule en staffrol en roept met de gewone
+sessie `staff_update_profile` aan. Die RPC bepaalt de medewerker uit de actor;
+de browser kan geen tenant, medewerker, login-e-mail of overige profielvelden
+kiezen. De teruggegeven versie blijft bij het zichtbare formulier. Bestaande
+centrale meldingsvoorkeuren gebruiken `preferences_save` met hun eigen versie
+en request-ID; apparaatregistratie en uitloggen behouden hun bestaande routes.
+
+Gericht bewijs: negen gevallen in `lib/staff/contact-action.test.ts` toetsen
+de beperkte velden, rol/module/tenantgrens en conflictafhandeling.
+`tests/e2e/staff-settings.spec.ts` bewijst echte eigen-profielopslag zonder
+andere dossierwijzigingen, opeenvolgende saves, voorkeurenopslag, conflictbehoud,
+apparaatbediening en intrekking van de sessie bij uitloggen. De twee gewijzigde
+code-oppervlakken zijn handmatig vergeleken; databasegrants en RPC's zijn niet
+veranderd. Dit is een gerichte bronreview, geen brede eindcontrole of
+stagingacceptatie.
+
 ## Werkelijk gecontroleerde lokale catalogus
 
 De schone release-replaydatabase op `127.0.0.1:60322` heeft public **118/118**
