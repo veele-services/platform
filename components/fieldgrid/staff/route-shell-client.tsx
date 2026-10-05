@@ -5,11 +5,12 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  CalendarDays, ChevronRight, Clock3, FileText, LogOut, Megaphone,
-  Menu, MessageSquareText, Settings2, UserRound, UsersRound,
+  CalendarCheck, CalendarDays, ChevronRight, Clock3, FileText, LogOut, Megaphone,
+  Menu, Newspaper, Settings, Settings2, Umbrella, UserRound,
 } from "lucide-react";
 import { NotificationBell } from "@/components/fieldgrid/notifications/inbox";
 import { createClient } from "@/lib/supabase/client";
+import { StaffTicketsEntry } from "./tickets-entry";
 
 type StaffRoute = "tickets" | "notifications";
 type SyncState = "offline" | "connecting" | "syncing" | "current";
@@ -174,18 +175,17 @@ export function StaffRouteShellClient({
     <aside className="ps-sidebar">
       <div className="ps-sidebar-brand"><div className="ps-sidebar-logo">Fieldgrid</div><small>PERSONEELSAPP</small></div>
       <nav className="ps-nav" aria-label="Hoofdnavigatie">
-        <span className="ps-nav-section">MIJN WERK</span>
         <Link className="ps-nav-button" href="/staff?tab=planning"><CalendarDays/><span>Dagplanning</span></Link>
-        <Link className="ps-nav-button" href="/staff?tab=nieuws"><Megaphone/><span>Nieuws</span></Link>
-        <Link className="ps-nav-button" href="/staff?tab=uren"><Clock3/><span>Uren</span></Link>
-        {ticketsEnabled && <Link className={`ps-nav-button${active === "tickets" ? " active" : ""}`} href="/staff/meldingen" aria-current={active === "tickets" ? "page" : undefined}><MessageSquareText/><span>Tickets</span></Link>}
+        <Link className="ps-nav-button" href="/staff?tab=nieuws"><Newspaper/><span>Nieuws</span></Link>
+        <Link className="ps-nav-button" href="/staff?tab=uren"><Clock3/><span>Mijn uren</span></Link>
+        <StaffTicketsEntry className={`ps-nav-button${active === "tickets" ? " active" : ""}`} active={active === "tickets"} enabled={ticketsEnabled}/>
         <span className="ps-nav-section">PERSONEELSZAKEN</span>
-        <Link className="ps-nav-button" href="/staff?tab=meer&section=verlof"><CalendarDays/><span>Verlof</span></Link>
-        <Link className="ps-nav-button" href="/staff?tab=meer&section=beschikbaarheid"><UsersRound/><span>Beschikbaarheid</span></Link>
+        <Link className="ps-nav-button" href="/staff?tab=meer&section=verlof"><Umbrella/><span>Verlof</span></Link>
+        <Link className="ps-nav-button" href="/staff?tab=meer&section=beschikbaarheid"><CalendarCheck/><span>Beschikbaarheid</span></Link>
         <Link className="ps-nav-button" href="/staff?tab=meer&section=documenten"><FileText/><span>Documenten</span></Link>
-        <Link className="ps-nav-button" href="/staff?tab=meer&section=instellingen"><Settings2/><span>Instellingen</span></Link>
+        <Link className="ps-nav-button" href="/staff?tab=meer&section=instellingen"><Settings/><span>Instellingen</span></Link>
       </nav>
-      <footer className="ps-sidebar-footer"><div className="ps-sidebar-person"><span>{initials(name)}</span><span><strong>{name}</strong><small>Medewerker</small></span></div><span className={`ps-sync ${sync}`}><i/>{syncLabel(sync)}</span></footer>
+      <footer className="ps-sidebar-footer"><div className="ps-sidebar-person"><span>{initials(name)}</span><span><strong>{name}</strong><small>Medewerker</small></span></div></footer>
     </aside>
     <div className="ps-workspace">
       <header className="ps-topbar">
@@ -193,11 +193,11 @@ export function StaffRouteShellClient({
         <div className="ps-top-actions"><NotificationBell workspace="staff" actorKey={actorKey}/><div className="ps-profile-wrap" ref={profileMenuWrap}><button className="ps-profile-button" aria-label={`Profielmenu van ${name}`} aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={() => setProfileMenuOpen((open) => !open)}><span>{initials(name)}</span><small>{name}</small><ChevronRight/></button><form id="staff-route-signout" action="/auth/signout" method="post"/>{profileMenuOpen && <div className="ps-profile-menu" role="menu"><Link role="menuitem" href="/staff?tab=meer&section=profiel" onClick={() => setProfileMenuOpen(false)}><UserRound/>Profiel</Link><Link role="menuitem" href="/staff?tab=meer&section=instellingen" onClick={() => setProfileMenuOpen(false)}><Settings2/>Instellingen</Link><button role="menuitem" type="submit" form="staff-route-signout"><LogOut/>Uitloggen</button></div>}</div></div>
       </header>
       <main className="ps-content ps-route-content">{children}</main>
-      <nav className={`ps-bottom-nav${ticketsEnabled ? "" : " without-tickets"}`} aria-label="Mobiele navigatie">
+      <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">
         <Link href="/staff?tab=planning"><CalendarDays/><span>Planning</span></Link>
         <Link href="/staff?tab=nieuws"><Megaphone/><span>Nieuws</span></Link>
-        <Link href="/staff?tab=uren"><Clock3/><span>Uren</span></Link>
-        {ticketsEnabled && <Link className={active === "tickets" ? "active" : ""} href="/staff/meldingen" aria-current={active === "tickets" ? "page" : undefined}><MessageSquareText/><span>Tickets</span></Link>}
+        <Link href="/staff?tab=uren"><Clock3/><span>Mijn uren</span></Link>
+        <StaffTicketsEntry className={active === "tickets" ? "active" : ""} active={active === "tickets"} enabled={ticketsEnabled}/>
         <Link href="/staff?tab=meer"><Menu/><span>Meer</span></Link>
       </nav>
     </div>

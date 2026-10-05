@@ -863,7 +863,7 @@
         "rpc:review_work_order",
         "rpc:suggest_personnel_number"
       ],
-      "source_sha256": "a86eadb1b7fa225b41e930ab7db567e70ce7b9322b3275cb6915c31898a90565"
+      "source_sha256": "f893afed686743a79c4f49c34ec3eb949ada75716702276d958a31cd11cf8b07"
     },
     {
       "id": "code:app/app/opvolging/page.tsx",
@@ -1206,7 +1206,7 @@
         "from:personnel",
         "from:tenant_memberships"
       ],
-      "source_sha256": "b3e8381ca991a29cb3a51450fcddf88c030a7c9efa736576cbf4eedc0a5509d4"
+      "source_sha256": "84602648cefbe00fdb46e069653aded5c751e02a5cf69002db17298c9ddb1616"
     },
     {
       "id": "code:app/auth/invite/page.tsx",
@@ -1698,6 +1698,7 @@
         "transitionWorkOrder",
         "updateReportEntry",
         "updateStaffAvailability",
+        "updateStaffContact",
         "updateStaffProfile"
       ],
       "classification": "server-action",
@@ -1720,7 +1721,7 @@
         "rpc:set_shift_interest",
         "rpc:transition_work_order"
       ],
-      "source_sha256": "c65e92aedf09593d85e5c32ed281c29fd0b8d92438e0b81ac733a48feca365da"
+      "source_sha256": "890055d08f44c9f66279637343e0d059bf401d98d6799881c2bf3b37957a3f1b"
     },
     {
       "id": "code:app/staff/layout.tsx",
@@ -1942,7 +1943,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "012365879e59af4298319306a6a328a12128508b9d865edd671f3c50a7221927"
+      "source_sha256": "c2530e4240757327c3eb74812ed1dcd9efdd2b5db692c47a10abd1445944cd59"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
@@ -1954,7 +1955,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "eb4246316589a236eb7980cb2c81b9335e112fd3f4e552e7e868bd271f8e68de"
+      "source_sha256": "070aeaf356e3248bfdbd99a945b78d3c7680d86a6b2884bc519779de72599fc6"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell.tsx",
@@ -1966,7 +1967,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "7864a504f8b7544c1f8cfb87261569a95e95569ee7ce6d4f2237daeece84cb5a"
+      "source_sha256": "bbdf69de4c37a2189b50727e8a5452f473f2808ba492708114b087c210a597c2"
     },
     {
       "id": "code:components/fieldgrid/tickets/routes.tsx",
@@ -6443,7 +6444,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "a7b950e4215db8154a9e489fd40ebb77d75a6886a640ddddfc0dfd5634d59f9d"
+      "source_sha256": "c2eca33180b796eb4a18ad091d91d17ac2b3381de909fb37dd91b8a3ccf2fe3f"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -8362,7 +8363,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "10a19e373ac618611b034400ab48e136a56743d8b8255473b9ca69e38e4a82df"
+      "definition_sha256": "ae8b843b725300196faf015a571a912c40ac0dcc6b3ae0da963c2b6cabedb10e"
     },
     {
       "id": "rpc:private.platform_invitation_identity()",
@@ -9523,7 +9524,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "60e230081c9649d6ffb2364915f75509aa23167d78efb8ea37ded844c70f00c1"
+      "definition_sha256": "5df56c84ee87bf9e8a6aa00954dc693b212cea6ab0a75bacd130dd3f97a58d64"
     },
     {
       "id": "rpc:public.change_work_order_signature_policy(target_order uuid, expected_version bigint, mode text, employee_required boolean, reason text, mutation_id uuid)",

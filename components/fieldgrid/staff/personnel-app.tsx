@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Bell, Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText,
-  List, LogOut, Megaphone, Menu, MessageSquareText,
-  Navigation, Phone, Settings2, SlidersHorizontal, TicketCheck, UserRound,
+  Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
+  List, LockKeyhole, LogOut, Megaphone, Menu,
+  Info, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Settings2, Square, TicketCheck, Umbrella, UserRound,
   UsersRound, X,
 } from "lucide-react";
 import {
@@ -24,21 +24,25 @@ import { Toaster, toast } from "sonner";
 import type { AuthContext } from "@/lib/auth/context";
 import type { Json } from "@/lib/database.types";
 import type { NotificationPreferences } from "@/lib/notifications/model";
-import type { StaffAvailabilityPreferences, StaffOnboardingDraft } from "@/lib/staff/model";
 import type { StaffPersonnel, StaffWorkspaceData } from "@/lib/staff/workspace";
 import { addStaffDays, assignmentInterval, staffClock, staffDate, staffDayLabel, staffDuration, staffWeek, summarizeEntries } from "@/lib/staff/time";
 import { localDateTime } from "@/lib/planning/time";
-import { brandThemeStyle } from "@/lib/branding/palette";
+import { personnelThemeStyle } from "@/lib/staff/theme";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationBell } from "@/components/fieldgrid/notifications/inbox";
 import { NotificationPushControl } from "@/components/fieldgrid/notifications/push";
 import {
   markAnnouncementRead, requestTimeCorrection, runStaffDayCommand,
-  runStaffLeaveCommand, saveStaffOnboarding, toggleShiftInterest, transitionWorkOrder,
+  runStaffLeaveCommand, toggleShiftInterest, transitionWorkOrder,
   updateStaffAvailability, updateStaffProfile,
+  updateStaffContact,
 } from "@/app/staff/actions";
+import { runNotificationCommand } from "@/app/notifications/actions";
 import { StaffOrderSheet, type StaffOrder } from "@/components/fieldgrid/staff-app";
+import { defaultAvailability, defaultTransport } from "@/lib/staff/onboarding";
+import { Onboarding } from "@/components/fieldgrid/staff/onboarding";
 import { StaffProfileRecovery } from "@/components/fieldgrid/staff/profile-recovery";
+import { StaffTicketsEntry } from "@/components/fieldgrid/staff/tickets-entry";
 
 type Assignment = StaffWorkspaceData["assignments"][number];
 type MainView = "planning" | "nieuws" | "uren" | "meer";
@@ -55,9 +59,6 @@ const statusLabels: Record<string, string> = {
 const leaveLabels: Record<string, string> = { vacation: "Vakantie", short: "Kort verlof", care: "Zorgverlof", unpaid: "Onbetaald verlof", other: "Anders" };
 const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 const dayLabels: Record<(typeof dayKeys)[number], string> = { monday: "Maandag", tuesday: "Dinsdag", wednesday: "Woensdag", thursday: "Donderdag", friday: "Vrijdag", saturday: "Zaterdag", sunday: "Zondag" };
-const shiftOptions = ["day", "evening", "night"] as const;
-const vehicleOptions = ["car", "van", "motorcycle", "scooter", "electric_bicycle", "bicycle", "public_transport", "walking", "other"] as const;
-const departureOptions = ["home", "depot", "alternate"] as const;
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 const objectAddress = (value: unknown) => {
@@ -66,76 +67,6 @@ const objectAddress = (value: unknown) => {
 };
 const jsonObject = (value: Json | undefined | null) => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, Json> : {};
 const asText = (value: Json | undefined) => typeof value === "string" ? value : "";
-
-function defaultAvailability(value: Json | undefined): StaffAvailabilityPreferences {
-  const input = jsonObject(value);
-  const sourceWeek = jsonObject(input.week);
-  return {
-    week: Object.fromEntries(dayKeys.map((key) => {
-      const day = jsonObject(sourceWeek[key]);
-      return [key, { enabled: day.enabled === true, start: asText(day.start) || "08:00", end: asText(day.end) || "17:00" }];
-    })),
-    shifts: Array.isArray(input.shifts) ? input.shifts.filter((item): item is (typeof shiftOptions)[number] => typeof item === "string" && shiftOptions.includes(item as (typeof shiftOptions)[number])) : [],
-    planningNote: asText(input.planningNote),
-    weekends: input.weekends === true,
-    holidays: input.holidays === true,
-  };
-}
-
-function defaultTransport(profile: StaffPersonnel): StaffOnboardingDraft["transport"] {
-  const alternate = jsonObject(profile.alternate_departure_address);
-  return {
-    vehicle: profile.standard_vehicle === "ebike" ? "electric_bicycle" : vehicleOptions.includes(profile.standard_vehicle as (typeof vehicleOptions)[number]) ? profile.standard_vehicle as (typeof vehicleOptions)[number] : "other",
-    departureKind: profile.departure_kind === "custom" ? "alternate" : departureOptions.includes(profile.departure_kind as (typeof departureOptions)[number]) ? profile.departure_kind as (typeof departureOptions)[number] : "home",
-    departureDepotId: profile.departure_depot_id ?? null,
-    alternateDepartureAddress: Object.keys(alternate).length ? { street: asText(alternate.street), postalCode: asText(alternate.postal_code), city: asText(alternate.city), country: asText(alternate.country) || "NL" } : null,
-    returnToDeparture: Boolean(profile.return_to_departure),
-    ownTransport: Boolean(profile.own_transport),
-    drivingLicense: Boolean(profile.driving_license),
-    drivingLicenseCategories: profile.driving_license_categories ?? [],
-    carpoolAllowed: Boolean(profile.carpool_allowed),
-    limitations: profile.travel_limitations ?? "",
-  };
-}
-
-function defaultOnboarding(profile: StaffPersonnel, notificationPreferences: NotificationPreferences): StaffOnboardingDraft {
-  const saved = jsonObject(profile.onboarding_draft);
-  const home = jsonObject(profile.home_address);
-  const emergency = jsonObject(profile.emergency_contact);
-  const base: StaffOnboardingDraft = {
-    profile: {
-      fullName: profile.full_name ?? "", preferredName: profile.preferred_name ?? "", phone: profile.phone ?? "",
-      mobilePhone: profile.mobile_phone ?? "", birthDate: profile.birth_date ?? "",
-      homeAddress: { street: asText(home.street), postalCode: asText(home.postal_code), city: asText(home.city), country: asText(home.country) || "NL" },
-      emergencyContact: { name: asText(emergency.name), phone: asText(emergency.phone), relation: asText(emergency.relation) },
-    },
-    transport: defaultTransport(profile),
-    notifications: notificationPreferences,
-    availability: defaultAvailability(profile.availability_preferences),
-    confirmations: { details: false, availability: false, notifications: false, privacy: false, terms: false },
-  };
-  if (!Object.keys(saved).length) return base;
-  const candidate = saved as unknown as Partial<StaffOnboardingDraft>;
-  const savedNotifications = candidate.notifications;
-  return {
-    ...base,
-    ...candidate,
-    profile: { ...base.profile, ...candidate.profile },
-    transport: { ...base.transport, ...candidate.transport },
-    availability: candidate.availability ?? base.availability,
-    notifications: {
-      ...notificationPreferences,
-      ...savedNotifications,
-      version: notificationPreferences.version,
-      timezone: notificationPreferences.timezone,
-      types: notificationPreferences.types.map((type) => {
-        const previous = savedNotifications?.types?.find((item) => item.code === type.code);
-        return previous ? { ...type, email: previous.email, push: previous.push } : type;
-      }),
-    },
-    confirmations: { ...base.confirmations, ...candidate.confirmations },
-  };
-}
 
 function useProfileMenu(wrap: RefObject<HTMLDivElement | null>) {
   const [open, setOpen] = useState(false);
@@ -183,6 +114,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
   const selected = assigned.find((item) => item.id === selectedId) ?? null;
   const tenant = context.tenant;
   const ticketsEnabled = tenant.enabledServices.includes("tickets");
+  const unreadNews = data.announcements.filter(announcement => !data.announcementReads.some(read => read.announcement_id === announcement.id)).length;
 
   const run = (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => startTransition(async () => {
     let result: { ok: boolean; error?: string };
@@ -263,24 +195,22 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
   if (!profile) return <StaffProfileRecovery/>;
 
   const title = view === "planning" ? "Planning" : view === "nieuws" ? "Nieuws" : view === "uren" ? "Mijn uren" : moreView === "menu" ? "Meer" : ({ verlof: "Verlof", beschikbaarheid: "Beschikbaarheid", documenten: "Documenten", instellingen: "Instellingen", profiel: "Profiel" } as Record<MoreView, string>)[moreView];
-  return <div className={`personnel-app${view === "planning" ? " ps-planning-screen" : ""}`} style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
+  return <div className={`personnel-app${view === "planning" ? " ps-planning-screen" : ""}`} style={personnelThemeStyle()}>
     <aside className="ps-sidebar">
       <div className="ps-sidebar-brand"><div className="ps-sidebar-logo">Fieldgrid</div><small>PERSONEELSAPP</small></div>
       <nav className="ps-nav" aria-label="Hoofdnavigatie">
-        <span className="ps-nav-section">MIJN WERK</span>
         <button className={`ps-nav-button${view === "planning" ? " active" : ""}`} onClick={() => navigate("planning")}><CalendarDays/><span>Dagplanning</span></button>
-        <button className={`ps-nav-button${view === "nieuws" ? " active" : ""}`} onClick={() => navigate("nieuws")}><Megaphone/><span>Nieuws</span>{data.announcements.some((announcement) => !data.announcementReads.some((read) => read.announcement_id === announcement.id)) && <i/>}</button>
-        <button className={`ps-nav-button${view === "uren" ? " active" : ""}`} onClick={() => navigate("uren")}><Clock3/><span>Uren</span></button>
-        {ticketsEnabled && <Link className="ps-nav-button" href="/staff/meldingen"><MessageSquareText/><span>Tickets</span></Link>}
+        <button className={`ps-nav-button${view === "nieuws" ? " active" : ""}`} onClick={() => navigate("nieuws")}><Newspaper/><span>Nieuws</span>{unreadNews > 0 && <b>{unreadNews}</b>}</button>
+        <button className={`ps-nav-button${view === "uren" ? " active" : ""}`} onClick={() => navigate("uren")}><Clock3/><span>Mijn uren</span></button>
+        <StaffTicketsEntry className="ps-nav-button" enabled={ticketsEnabled}/>
         <span className="ps-nav-section">PERSONEELSZAKEN</span>
-        <button className={`ps-nav-button${view === "meer" && moreView === "verlof" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("verlof"); }}><CalendarDays/><span>Verlof</span></button>
-        <button className={`ps-nav-button${view === "meer" && moreView === "beschikbaarheid" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("beschikbaarheid"); }}><UsersRound/><span>Beschikbaarheid</span></button>
+        <button className={`ps-nav-button${view === "meer" && moreView === "verlof" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("verlof"); }}><Umbrella/><span>Verlof</span></button>
+        <button className={`ps-nav-button${view === "meer" && moreView === "beschikbaarheid" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("beschikbaarheid"); }}><CalendarCheck/><span>Beschikbaarheid</span></button>
         <button className={`ps-nav-button${view === "meer" && moreView === "documenten" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("documenten"); }}><FileText/><span>Documenten</span></button>
-        <button className={`ps-nav-button${view === "meer" && moreView === "instellingen" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("instellingen"); }}><Settings2/><span>Instellingen</span></button>
+        <button className={`ps-nav-button${view === "meer" && moreView === "instellingen" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("instellingen"); }}><Settings/><span>Instellingen</span></button>
       </nav>
       <footer className="ps-sidebar-footer">
         <div className="ps-sidebar-person"><span>{initials(profile.preferred_name || profile.full_name)}</span><span><strong>{profile.preferred_name || profile.full_name}</strong><small>Medewerker</small></span></div>
-        <span className={`ps-sync ${sync}`}><i/>{sync === "current" ? "Alles bijgewerkt" : sync === "offline" ? "Offline" : sync === "syncing" ? "Synchroniseren…" : "Verbinden…"}</span>
       </footer>
     </aside>
     <div className="ps-workspace">
@@ -303,17 +233,17 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         </div>
       </header>
       <main className="ps-content">
-        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : <header className="ps-page-heading"><div><span className="ps-page-kicker">FIELDGRID / PERSONEEL</span><h1>{title}</h1></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
+        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid", "instellingen"].includes(moreView)) && <header className="ps-page-heading"><div><span className="ps-page-kicker">FIELDGRID / PERSONEEL</span><h1>{title}</h1></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
         {view === "planning" && (tenant.enabledServices.includes("planning") ? <PlanningScreen orders={assigned} assignments={assignments} data={data} timezone={tenant.timezone} onOpen={openOrder} onHours={() => navigate("uren")} onNews={() => navigate("nieuws")}/> : <Empty icon={CalendarDays} title="Planning niet ingeschakeld">Vraag je beheerder om de module Planning te activeren.</Empty>)}
         {view === "nieuws" && <NewsScreen data={data} onRead={(id) => run(() => markAnnouncementRead(id), "Gemarkeerd als gelezen")}/>}
         {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run}/>}
-        {view === "meer" && <MoreScreen view={moreView} setView={setMoreView} data={data} profile={profile} timezone={tenant.timezone} email={context.user.email ?? profile.email ?? ""} ticketsEnabled={ticketsEnabled} pending={pending} run={run}/>}
+        {view === "meer" && <MoreScreen view={moreView} setView={setMoreView} data={data} profile={profile} timezone={tenant.timezone} email={context.user.email ?? profile.email ?? ""} tenantName={tenant.name} notificationPreferences={notificationPreferences} ticketsEnabled={ticketsEnabled} pending={pending} run={run}/>}
       </main>
-      <nav className={`ps-bottom-nav${ticketsEnabled ? "" : " without-tickets"}`} aria-label="Mobiele navigatie">
+      <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">
         <button className={view === "planning" ? "active" : ""} onClick={() => navigate("planning")}><CalendarDays/><span>Planning</span></button>
         <button className={view === "nieuws" ? "active" : ""} onClick={() => navigate("nieuws")}><Megaphone/><span>Nieuws</span></button>
-        <button className={view === "uren" ? "active" : ""} onClick={() => navigate("uren")}><Clock3/><span>Uren</span></button>
-        {ticketsEnabled && <Link href="/staff/meldingen"><MessageSquareText/><span>Tickets</span></Link>}
+        <button className={view === "uren" ? "active" : ""} onClick={() => navigate("uren")}><Clock3/><span>Mijn uren</span></button>
+        <StaffTicketsEntry className="ps-bottom-tickets" enabled={ticketsEnabled}/>
         <button className={view === "meer" ? "active" : ""} onClick={() => navigate("meer")}><Menu/><span>Meer</span></button>
       </nav>
     </div>
@@ -382,9 +312,9 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
       : <Empty icon={CalendarDays} title="Geen werkbonnen op deze dag">Kies een andere dag. Nieuwe vrijgegeven opdrachten verschijnen automatisch.</Empty>}
     </section>
     <aside className="ps-planning-aside">
-      <section className="ps-panel ps-next-panel"><div className="ps-panel-heading"><span>EERSTVOLGENDE AFSPRAAK</span><CalendarDays/></div>{next && nextAssignment ? <><h2>{nextObject?.name ?? next.title}</h2><p>{objectAddress(nextObject?.address)}</p>{nextContact?.phone && <p className="ps-next-phone"><Phone/>{nextContact.phone}</p>}<strong className="ps-next-time">{assignmentInterval(nextAssignment, timezone).start}</strong><p>Verwachte start{nextTravel?.estimated_minutes != null ? ` · ${nextTravel.estimated_minutes} min reistijd` : ""}</p><button className="ps-primary ps-full" onClick={() => onOpen(next)}>Open werkbon</button><div className="ps-planner-line"><span className="ps-mini-avatar">FG</span><span>Toegewezen door je planning</span></div></> : <p>Er staat niets gepland.</p>}</section>
+      <section className="ps-panel ps-next-panel"><div className="ps-panel-heading"><span>EERSTVOLGENDE AFSPRAAK</span><CalendarDays/></div>{next && nextAssignment ? <><h2>{nextObject?.name ?? next.title}</h2><p>{objectAddress(nextObject?.address)}</p>{nextContact?.phone && <p className="ps-next-phone"><Phone/>{nextContact.phone}</p>}<strong className="ps-next-time">{assignmentInterval(nextAssignment, timezone).start}</strong><p>Verwachte start{nextTravel?.estimated_minutes != null ? ` · ${nextTravel.estimated_minutes} min reistijd` : ""}</p><button className="ps-primary ps-full" onClick={() => onOpen(next)}><Eye/>Open werkbon</button></> : <p>Er staat niets gepland.</p>}</section>
       <section className="ps-panel"><div className="ps-panel-heading"><h2>Jouw werkdag</h2><Clock3/></div><div className="ps-metric-row"><span>Werkbonnen afgerond</span><strong>{completedCount} / {visible.length}</strong></div><div className="ps-progress"><span style={{ width: `${visible.length ? completedCount / visible.length * 100 : 0}%` }}/></div><div className="ps-metric-row"><span>Geregistreerd vanaf</span><strong>{firstEntry ? staffClock(firstEntry.starts_at, timezone) : "–"}</strong></div><div className="ps-metric-row"><span>Werkdag tot nu toe</span><strong>{staffDuration(totals.paid)}</strong></div><button className="ps-text-button" onClick={onHours}>Bekijk mijn uren</button></section>
-      {data.announcements.length > 0 && <section className="ps-panel"><div className="ps-panel-heading"><h2>Goed om te weten</h2><Megaphone/></div>{data.announcements.slice(0, 2).map((announcement) => <button className="ps-mini-news" key={announcement.id} onClick={onNews}><small>Teamnieuws</small><strong>{announcement.title}</strong></button>)}</section>}
+      {data.announcements.length > 0 && <section className="ps-panel"><div className="ps-panel-heading"><h2>Goed om te weten</h2><Newspaper/></div>{data.announcements.slice(0, 2).map((announcement) => <button className="ps-mini-news" key={announcement.id} onClick={onNews}><small>Teamnieuws</small><strong>{announcement.title}</strong></button>)}</section>}
     </aside>
   </div>;
 }
@@ -399,12 +329,14 @@ function NewsScreen({ data, onRead }: { data: StaffWorkspaceData; onRead: (id: s
 
 function HoursScreen({ data, personnelId, timezone, pending, run }: { data: StaffWorkspaceData; personnelId: string; timezone: string; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
   const [correction, setCorrection] = useState<StaffWorkspaceData["timeEntries"][number] | null>(null);
+  const [chooseCorrection, setChooseCorrection] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const dayCommandKeys = useRef(new Map<string, string>());
-  const runDayCommand = (
-    intent: string,
-    input: WithoutIdempotency<Parameters<typeof runStaffDayCommand>[0]>,
-    success: string,
-  ) => {
+  const runDayCommand = (intent: string, input: WithoutIdempotency<Parameters<typeof runStaffDayCommand>[0]>, success: string) => {
     const idempotencyKey = dayCommandKeys.current.get(intent) ?? crypto.randomUUID();
     dayCommandKeys.current.set(intent, idempotencyKey);
     run(async () => {
@@ -413,60 +345,81 @@ function HoursScreen({ data, personnelId, timezone, pending, run }: { data: Staf
       return result;
     }, success);
   };
-  const today = staffDate(new Date(), timezone);
-  const currentWeekStart = staffWeek(today)[0]!;
-  const [selectedWeekStart, setSelectedWeekStart] = useState(currentWeekStart);
-  const week = staffWeek(selectedWeekStart);
-  const weekDays = new Set(week);
-  const entries = data.timeEntries.filter((item) => item.personnel_id === personnelId).sort((a, b) => Date.parse(b.starts_at) - Date.parse(a.starts_at));
-  const reviews = data.staffDayReviews;
-  const weekEntries = entries.filter((entry) => weekDays.has(staffDate(entry.starts_at, timezone)));
-  const days = [...new Set([
-    ...weekEntries.map((entry) => staffDate(entry.starts_at, timezone)),
-    ...reviews.filter((review) => weekDays.has(review.day)).map((review) => review.day),
-  ])].sort((left, right) => left.localeCompare(right));
-  const dayTotals = new Map(week.map((date) => [date, summarizeEntries(weekEntries.filter((entry) => staffDate(entry.starts_at, timezone) === date))]));
-  const weekTotal = summarizeEntries(weekEntries).paid;
-  const rangeFormatter = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-  const weekLabel = `${rangeFormatter.format(new Date(`${week[0]}T12:00:00.000Z`))} – ${rangeFormatter.format(new Date(`${week[6]}T12:00:00.000Z`))}`;
-  const weekNumberDate = new Date(`${week[0]}T12:00:00.000Z`);
-  weekNumberDate.setUTCDate(weekNumberDate.getUTCDate() + 4 - (weekNumberDate.getUTCDay() || 7));
-  const weekYearStart = new Date(Date.UTC(weekNumberDate.getUTCFullYear(), 0, 1));
-  const weekNumber = Math.ceil((((weekNumberDate.getTime() - weekYearStart.getTime()) / 86_400_000) + 1) / 7);
+  const today = staffDate(now, timezone);
+  const [selectedDay, setSelectedDay] = useState(today);
+  const week = staffWeek(selectedDay);
+  const currentWeek = week[0] === staffWeek(today)[0];
+  const entries = data.timeEntries.filter(item => item.personnel_id === personnelId).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+  const rows = entries.filter(entry => staffDate(entry.starts_at, timezone) === selectedDay);
+  const totals = summarizeEntries(rows, now);
+  const review = data.staffDayReviews.find(item => item.personnel_id === personnelId && item.day === selectedDay);
+  const requestsFor = (entry: typeof rows[number]) => data.staffTimeCorrectionRequests.filter(item => item.time_entry_id === entry.id).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+  const hasPendingCorrection = rows.some(entry => entry.status === "correction_requested" || requestsFor(entry).some(request => request.status === "pending"));
+  const running = rows.some(entry => !entry.ends_at);
+  const closed = review?.state === "closed" || review?.state === "confirmed";
+  const canClose = rows.length > 0 && !closed && !running && !hasPendingCorrection && selectedDay <= today && selectedDay >= addStaffDays(today, -366);
+  const canConfirm = review?.state === "closed" && rows.length > 0 && !running && !hasPendingCorrection;
+  const correctable = rows.filter(entry => entry.ends_at && entry.status !== "correction_requested" && !requestsFor(entry).some(request => request.status === "pending"));
+  const dayTotals = new Map(week.map(date => [date, summarizeEntries(entries.filter(entry => staffDate(entry.starts_at, timezone) === date), now)]));
+  const weekTotal = week.reduce((sum, date) => sum + dayTotals.get(date)!.paid, 0);
+  const visibleWeek = week.filter((date, index) => index < 5 || date === selectedDay || entries.some(entry => staffDate(entry.starts_at, timezone) === date));
+  const rangeDate = (date: string) => new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+  const dayLabel = new Intl.DateTimeFormat("nl-NL", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${selectedDay}T12:00:00Z`));
+  const entryContext = (entry: typeof rows[number]) => {
+    const assignment = data.assignments.find(item => item.id === entry.assignment_id);
+    const order = data.workOrders.find(item => item.id === assignment?.work_order_id);
+    const object = data.objects.find(item => item.id === order?.object_id);
+    return object?.name ?? (entry.kind === "travel" ? "Geregistreerde reistijd" : entry.kind === "work" ? "Geregistreerd op locatie" : "Geregistreerde overige werktijd");
+  };
+  const correctionStatus = (entry: typeof rows[number]) => {
+    const requests = requestsFor(entry);
+    const request = requests.find(item => item.status === "pending");
+    const latest = requests[0];
+    return request ? <small id={`time-correction-${request.id}`}>Correctie in behandeling · gewenst {staffClock(request.requested_starts_at, timezone)}–{staffClock(request.requested_ends_at, timezone)} ({request.requested_duration_minutes} min)</small> : latest && latest.status !== "withdrawn" ? <small id={`time-correction-${latest.id}`}>{latest.status === "approved" ? "Correctie goedgekeurd" : "Correctie afgewezen"}{latest.review_note ? ` · ${latest.review_note}` : ""}</small> : null;
+  };
+  const closeHint = closed ? "Deze werkdag is al afgesloten." : !rows.length ? "Start een werkbon om uren te registreren." : selectedDay > today ? "Een toekomstige werkdag kun je nog niet afsluiten." : selectedDay < addStaffDays(today, -366) ? "Deze werkdag valt buiten de afsluitperiode." : running ? "Rond eerst je lopende werkbon of tijdregistratie af." : hasPendingCorrection ? "Wacht eerst op de beoordeling van je correctieverzoek." : undefined;
+  const openCorrection = () => {
+    if (correctable.length === 1) setCorrection(correctable[0]!);
+    else setChooseCorrection(true);
+  };
   return <>
-    <section className="ps-panel ps-hours-week-panel" aria-labelledby="ps-hours-week-title">
-      <div className="ps-hours-week-toolbar">
-        <div><span className="ps-page-kicker">WEEK {weekNumber}</span><h2 id="ps-hours-week-title" aria-live="polite">{weekLabel}</h2></div>
-        <div className="ps-hours-week-actions"><button className="ps-week-arrow" aria-label="Vorige week" onClick={() => setSelectedWeekStart(addStaffDays(selectedWeekStart, -7))}><ChevronLeft/></button><button className="ps-secondary" disabled={selectedWeekStart === currentWeekStart} onClick={() => setSelectedWeekStart(currentWeekStart)}>Terug naar huidige week</button><button className="ps-week-arrow" aria-label="Volgende week" onClick={() => setSelectedWeekStart(addStaffDays(selectedWeekStart, 7))}><ChevronRight/></button></div>
+    <header className="ps-page-heading ps-hours-heading"><div><h1>Mijn uren</h1><p>Je volledige werkdag, met reistijd apart geregistreerd.</p></div><button className="ps-secondary" disabled={pending || !canClose} title={closeHint} onClick={() => runDayCommand(`close:${selectedDay}`, { command: "close", workDay: selectedDay, note: null }, "Werkdag afgesloten")}><Square/>{closed ? "Werkdag afgesloten" : "Werkdag afsluiten"}</button></header>
+    <div className="ps-hours-metrics" aria-label="Geregistreerde dagtotalen">
+      <section className="ps-panel"><span>Werkdag</span><strong>{staffDuration(totals.paid)}</strong><small>{rows[0] ? `Vanaf ${staffClock(rows[0].starts_at, timezone)}${running ? " tot nu" : " · geregistreerde tijd"}` : "Nog geen geregistreerde tijd"}</small></section>
+      <section className="ps-panel"><span>Op locatie</span><strong>{staffDuration(totals.work)}</strong><small>Uit je werkbonnen</small></section>
+      <section className="ps-panel"><span>Reistijd</span><strong>{staffDuration(totals.travel)}</strong><small>Inbegrepen in totaal</small></section>
+    </div>
+    <div className="ps-hours-grid">
+      <div className="ps-hours-main">
+        <section className="ps-panel ps-hours-day" aria-labelledby="ps-hours-day-title">
+          <div className="ps-panel-heading"><h2 id="ps-hours-day-title">{dayLabel}</h2><span className="ps-status" data-status={hasPendingCorrection ? "correction_requested" : review?.state ?? "open"}>{hasPendingCorrection ? "Correctie in behandeling" : review?.state === "confirmed" ? "Door mij akkoord" : closed ? "Afgesloten" : !rows.length ? "Nog geen uren" : selectedDay === today ? "Dag loopt" : "Nog af te sluiten"}</span></div>
+          {!rows.length && <p className="ps-hours-empty">Er zijn nog geen uren voor deze dag. Start een werkbon om uren te registreren of kies een andere dag.</p>}
+          {rows.filter(entry => entry.kind !== "break").map(entry => <div className="ps-hour-row" key={entry.id}>
+            <time>{staffClock(entry.starts_at, timezone)} – {entry.ends_at ? staffClock(entry.ends_at, timezone) : "nu"}</time>
+            <div className="ps-hour-detail" data-kind={entry.kind}><strong>{entry.kind === "work" ? "Werk op locatie" : entry.kind === "travel" ? "Reistijd" : "Overige werktijd"}</strong><small>{entryContext(entry)}</small>{correctionStatus(entry)}</div>
+            <strong>{staffDuration(summarizeEntries([entry], now).paid)}</strong>
+          </div>)}
+          {!rows.some(entry => !["work", "travel", "break"].includes(entry.kind)) && <div className="ps-hour-row"><span>Overige tijd</span><div className="ps-hour-detail" data-kind="other"><strong>Overige werktijd</strong><small>Geregistreerde overige tijd</small></div><strong>0 min</strong></div>}
+          <div className="ps-hours-break"><span>Pauze (niet meegerekend)</span><strong>{staffDuration(totals.break)}</strong></div>
+          {rows.filter(entry => entry.kind === "break").map(entry => <div className="ps-hours-break-detail" key={entry.id}><span>{staffClock(entry.starts_at, timezone)} – {entry.ends_at ? staffClock(entry.ends_at, timezone) : "nu"}</span>{correctionStatus(entry)}</div>)}
+          <div className="ps-hours-day-total"><strong>Totaal ter akkoord</strong><strong>{staffDuration(totals.paid)}</strong></div>
+          <footer className="ps-hours-day-actions"><button className="ps-secondary" disabled={pending || correctable.length === 0} onClick={openCorrection}><Pencil/>Correctie doorgeven</button><button className="ps-primary" disabled={pending || !canConfirm} onClick={() => review && runDayCommand(`confirm:${review.id}:${review.version}`, { command: "confirm", dayReviewId: review.id, version: review.version, note: null }, "Uren door jou bevestigd")}><Check/>{review?.state === "confirmed" ? "Uren akkoord gegeven" : "Uren akkoord geven"}</button></footer>
+          {rows.length > 0 && (hasPendingCorrection || running || !closed) && <p className="ps-hours-action-note">{hasPendingCorrection ? "Je kunt deze dag pas akkoord geven nadat het openstaande correctieverzoek is beoordeeld." : running ? "Rond eerst je lopende werkbon of tijdregistratie af om je werkdag af te sluiten." : "Sluit eerst je werkdag af om je uren akkoord te geven."}</p>}
+        </section>
+        <p className="ps-hours-info"><Info/><span>Je uren bestaan uit geregistreerde tijd op locatie, reistijd en overige werktijd. Reistijd telt mee en blijft apart zichtbaar. Pauzes worden niet meegerekend.</span></p>
       </div>
-      <div className="ps-hours-week-overview" aria-label="Geregistreerde tijd per weekdag">{week.map((date) => <div className="ps-hours-week-day" data-today={date === today || undefined} key={date}><span>{new Intl.DateTimeFormat("nl-NL", { weekday: "short", timeZone: "UTC" }).format(new Date(`${date}T12:00:00.000Z`)).replace(".", "")}</span><small>{Number(date.slice(-2))}</small><strong>{staffDuration(dayTotals.get(date)?.paid ?? 0)}</strong></div>)}</div>
-      <div className="ps-hours-week-total"><span>Geregistreerd weektotaal</span><strong>{staffDuration(weekTotal)}</strong></div>
-    </section>
-    <div className="ps-hours-grid">{days.map((date) => {
-      const rows = weekEntries.filter((entry) => staffDate(entry.starts_at, timezone) === date);
-      const totals = summarizeEntries(rows);
-      const review = reviews.find((item) => item.day === date);
-      const hasPendingCorrection = rows.some((entry) => data.staffTimeCorrectionRequests.some((request) => request.time_entry_id === entry.id && request.status === "pending"));
-      return <section className="ps-panel" key={date}>
-        <div className="ps-panel-heading"><div><span>WERKDAG</span><h2>{staffDayLabel(date, timezone)}</h2></div><span className="ps-status" data-status={hasPendingCorrection ? "correction_requested" : review?.state ?? "open"}>{hasPendingCorrection ? "Correctie in behandeling" : review?.state === "confirmed" ? "Door mij akkoord" : review?.state === "closed" ? "Afgesloten" : "Open"}</span></div>
-        <div className="ps-hours-summary"><div><small>Werk op locatie</small><strong>{staffDuration(totals.work)}</strong></div><div><small>Reis</small><strong>{staffDuration(totals.travel)}</strong></div><div><small>Pauze</small><strong>{staffDuration(totals.break)}</strong></div><div><small>Overig</small><strong>{staffDuration(totals.other)}</strong></div><div><small>Geregistreerd totaal</small><strong>{staffDuration(totals.paid)}</strong></div></div>
-        {rows.map((entry) => {
-          const requests = data.staffTimeCorrectionRequests
-            .filter((item) => item.time_entry_id === entry.id)
-            .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at));
-          const request = requests.find((item) => item.status === "pending");
-          const latest = requests[0];
-          return <div className="ps-hour-row" key={entry.id}><Clock3/><span><strong>{entry.kind === "work" ? "Werk" : entry.kind === "travel" ? "Reis" : entry.kind === "break" ? "Pauze" : "Overige tijd"}</strong><small>{staffClock(entry.starts_at, timezone)}–{entry.ends_at ? staffClock(entry.ends_at, timezone) : "nu"} · {entry.status}</small>{request ? <small id={`time-correction-${request.id}`}>Correctie in behandeling · gewenst {staffClock(request.requested_starts_at, timezone)}–{staffClock(request.requested_ends_at, timezone)} ({request.requested_duration_minutes} min)</small> : latest && latest.status !== "withdrawn" ? <small id={`time-correction-${latest.id}`}>{latest.status === "approved" ? "Correctie goedgekeurd" : "Correctie afgewezen"}{latest.review_note ? ` · ${latest.review_note}` : ""}</small> : null}</span>{entry.ends_at && entry.status !== "correction_requested" && !request && <button className="ps-secondary" onClick={() => setCorrection(entry)}>Corrigeren</button>}</div>;
-        })}
-        <footer className="ps-modal-footer">
-          {(!review || review.state === "open" || review.state === "correction_requested") && <button className="ps-secondary" disabled={pending} onClick={() => runDayCommand(`close:${date}`, { command: "close", workDay: date, note: null }, "Werkdag afgesloten")}>Werkdag afsluiten</button>}
-          {review?.state === "closed" && <button className="ps-primary" disabled={pending || hasPendingCorrection} title={hasPendingCorrection ? "Rond eerst het openstaande correctieverzoek af" : undefined} onClick={() => runDayCommand(`confirm:${review.id}:${review.version}`, { command: "confirm", dayReviewId: review.id, version: review.version, note: null }, "Uren door jou bevestigd")}>Uren accorderen</button>}
-        </footer>
-        {review?.state === "closed" && hasPendingCorrection && <p className="ps-toast-note">Je kunt deze dag pas accorderen nadat het openstaande correctieverzoek is beoordeeld.</p>}
-      </section>;
-    })}</div>
-    {!days.length && <Empty icon={Clock3} title="Geen uren in deze week">Kies een andere week of start een werkbon om uren te registreren.</Empty>}
-    {correction && <CorrectionDialog entry={correction} timezone={timezone} pending={pending} close={() => setCorrection(null)} submit={(input) => run(() => requestTimeCorrection(input), "Correctieverzoek verstuurd; je uren blijven ongewijzigd", () => setCorrection(null))}/>}
+      <aside className="ps-hours-aside">
+        <section className="ps-panel ps-hours-week-panel" aria-labelledby="ps-hours-week-title">
+          <div className="ps-hours-week-toolbar"><h2 id="ps-hours-week-title">{currentWeek ? "Deze week" : "Weekoverzicht"}</h2><div className="ps-hours-week-actions"><button className="ps-week-arrow" aria-label="Vorige week" onClick={() => setSelectedDay(addStaffDays(selectedDay, -7))}><ChevronLeft/></button><button className="ps-week-arrow" aria-label="Terug naar huidige week" title="Terug naar huidige week" disabled={currentWeek && selectedDay === today} onClick={() => setSelectedDay(today)}><RotateCcw/></button><button className="ps-week-arrow" aria-label="Volgende week" onClick={() => setSelectedDay(addStaffDays(selectedDay, 7))}><ChevronRight/></button></div></div>
+          {!currentWeek && <small className="ps-hours-week-range" aria-live="polite">{rangeDate(week[0]!)} – {rangeDate(week[6]!)}</small>}
+          <div className="ps-hours-week-overview" aria-label="Geregistreerde tijd per weekdag">{visibleWeek.map(date => <button type="button" className="ps-hours-week-day" aria-pressed={date === selectedDay} aria-label={`${staffDayLabel(date, timezone)}: ${staffDuration(dayTotals.get(date)!.paid)}`} onClick={() => setSelectedDay(date)} key={date}><span>{new Intl.DateTimeFormat("nl-NL", { weekday: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`))}</span><strong>{staffDuration(dayTotals.get(date)!.paid)}</strong></button>)}</div>
+          <div className="ps-hours-week-total"><span>Totaal</span><strong>{staffDuration(weekTotal)}</strong></div>
+        </section>
+        <section className="ps-panel ps-hours-retention"><h2>DUIDELIJK GEREGISTREERD</h2><p>Je uren blijven beschikbaar nadat werkbonnen uit de dagplanning zijn verdwenen.</p></section>
+      </aside>
+    </div>
+    {chooseCorrection && <Dialog title="Correctie doorgeven" kicker="MIJN UREN" close={() => setChooseCorrection(false)}><p>Kies de registratie die je wilt corrigeren.</p><div className="ps-hours-correction-options">{correctable.map(entry => <button type="button" className="ps-secondary" key={entry.id} onClick={() => { setChooseCorrection(false); setCorrection(entry); }}><span>{entry.kind === "work" ? "Werk op locatie" : entry.kind === "travel" ? "Reistijd" : entry.kind === "break" ? "Pauze" : "Overige werktijd"} · {staffClock(entry.starts_at, timezone)} – {staffClock(entry.ends_at!, timezone)}</span><ChevronRight/></button>)}</div></Dialog>}
+    {correction && <CorrectionDialog entry={correction} timezone={timezone} pending={pending} close={() => setCorrection(null)} submit={input => run(() => requestTimeCorrection(input), "Correctieverzoek verstuurd; je uren blijven ongewijzigd", () => setCorrection(null))}/>}
   </>;
 }
 
@@ -507,12 +460,12 @@ function CorrectionDialog({ entry, timezone, pending, close, submit }: { entry: 
   </Dialog>;
 }
 
-function MoreScreen({ view, setView, data, profile, timezone, email, ticketsEnabled, pending, run }: { view: MoreView; setView: (view: MoreView) => void; data: StaffWorkspaceData; profile: StaffPersonnel; timezone: string; email: string; ticketsEnabled: boolean; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
+function MoreScreen({ view, setView, data, profile, timezone, email, tenantName, notificationPreferences, ticketsEnabled, pending, run }: { view: MoreView; setView: (view: MoreView) => void; data: StaffWorkspaceData; profile: StaffPersonnel; timezone: string; email: string; tenantName: string; notificationPreferences: NotificationPreferences; ticketsEnabled: boolean; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
   if (view === "verlof") return <LeaveScreen requests={data.staffLeaveRequests} entitlements={data.staffLeaveEntitlements} timezone={timezone} pending={pending} run={run}/>;
-  if (view === "beschikbaarheid") return <AvailabilityScreen key={profile.id} profile={profile} pending={pending} run={run}/>;
+  if (view === "beschikbaarheid") return <AvailabilityScreen key={profile.id} profile={profile} pending={pending} run={run} onLeave={() => setView("verlof")}/>;
   if (view === "documenten") return <DocumentsScreen data={data} profile={profile}/>;
   if (view === "profiel") return <ProfileScreen key={profile.id} profile={profile} depots={data.staffDepots} email={email} pending={pending} run={run}/>;
-  if (view === "instellingen") return <SettingsScreen profile={profile}/>;
+  if (view === "instellingen") return <SettingsScreen key={profile.id} profile={profile} email={email} tenantName={tenantName} notificationPreferences={notificationPreferences} pending={pending} run={run}/>;
   const actions: Array<[MoreView, string, string, ComponentType<{ size?: number }>]> = [
     ["verlof", "Verlof", "Bekijk en dien een aanvraag in", CalendarDays], ["beschikbaarheid", "Beschikbaarheid", "Je weekpatroon en dienstvoorkeuren", UsersRound],
     ["documenten", "Documenten", "Persoonlijk met jou gedeeld", FileText], ["profiel", "Profiel", "Contact- en vervoersgegevens", UserRound], ["instellingen", "Instellingen", "Meldingen en account", Settings2],
@@ -522,7 +475,7 @@ function MoreScreen({ view, setView, data, profile, timezone, email, ticketsEnab
     <section className="ps-profile-summary"><span>{initials(profile.preferred_name || profile.full_name)}</span><div><small>MIJN PROFIEL</small><h2>{profile.preferred_name || profile.full_name}</h2><p>{profile.employee_number}</p></div></section>
     {actions.map(([key, title, text, Icon]) => <button className="ps-list-row" key={key} onClick={() => setView(key)}><Icon/><span><strong>{title}</strong><small>{text}</small></span><ChevronRight/></button>)}
     <Link className="ps-list-row" href="/staff/notificaties"><Bell/><span><strong>Notificaties</strong><small>Inbox en persoonlijke voorkeuren</small></span><ChevronRight/></Link>
-    {ticketsEnabled && <Link className="ps-list-row" href="/staff/meldingen"><TicketCheck/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span><ChevronRight/></Link>}
+    <StaffTicketsEntry className="ps-list-row" enabled={ticketsEnabled}><TicketCheck/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span><ChevronRight/></StaffTicketsEntry>
     <section className="ps-panel"><div className="ps-panel-heading"><div><span>OPEN DIENSTEN</span><h2>Interesse doorgeven</h2></div><CalendarDays/></div>{shifts.map((shift) => {
       const interest = data.shiftInterests.find((item) => item.open_shift_id === shift.id && item.personnel_id === profile.id);
       const interested = interest?.status === "interested";
@@ -574,40 +527,87 @@ function LeaveScreen({ requests, entitlements, timezone, pending, run }: { reque
   const pendingCount = requests.filter((item) => item.status === "pending").length;
   const approvedMinutes = requests.filter((item) => item.status === "approved" && item.leave_type === "vacation").reduce((total, item) => total + (item.approved_minutes_by_year[String(year)] ?? 0), 0);
   const availableMinutes = entitlement ? entitlement.allowance_minutes + entitlement.carryover_minutes - approvedMinutes : null;
-  return <>
-    <div className="ps-stat-grid"><div><small>Beschikbaar saldo</small><strong>{availableMinutes === null ? "Nog niet ingesteld" : staffDuration(Math.max(0, availableMinutes))}</strong><small>{year}</small></div><div><small>Goedgekeurd</small><strong>{staffDuration(approvedMinutes)}</strong><small>Dit kalenderjaar</small></div><div><small>In afwachting</small><strong>{pendingCount}</strong><small>{pendingCount === 1 ? "Aanvraag" : "Aanvragen"}</small></div></div>
-    <button className="ps-primary" onClick={() => setOpen(true)}>Verlof aanvragen</button>
-    <div className="ps-card-list">{requests.map((request) => <article className="ps-panel" key={request.id}>
-      <div className="ps-panel-heading"><div><span>{leaveLabels[request.leave_type] ?? request.leave_type}</span><h2>{request.starts_on} – {request.ends_on}</h2></div><span className="ps-status" data-status={request.status}>{request.status === "pending" ? "In behandeling" : request.status === "approved" ? "Goedgekeurd" : request.status === "rejected" ? "Afgewezen" : "Ingetrokken"}</span></div>
-      {(request.approved_minutes ?? request.requested_minutes) && <p>{request.status === "approved" ? "Goedgekeurd" : "Aangevraagd"}: {staffDuration(request.approved_minutes ?? request.requested_minutes ?? 0)}</p>}
-      {request.note && <p>{request.note}</p>}
-      {request.status === "pending" && <button className="ps-danger" disabled={pending} onClick={() => withdraw(request)}>Aanvraag intrekken</button>}
-    </article>)}</div>
-    {!requests.length && <Empty icon={CalendarDays} title="Nog geen verlofaanvragen">Je aanvragen en besluiten verschijnen hier.</Empty>}
+  const leaveDuration = (minutes: number) => minutes % 60 === 0 ? `${minutes / 60} uur` : staffDuration(minutes);
+  const dateLabel = (day: string) => new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`));
+  const requestYears = new Set(requests.flatMap(request => [request.starts_on.slice(0, 4), request.ends_on.slice(0, 4)]));
+  return <div className="ps-leave-screen">
+    <header className="ps-page-heading"><div><h1>Verlof</h1><p>Even tijd voor jezelf. Regel je aanvraag hier.</p></div><button className="ps-primary" onClick={() => setOpen(true)}><Plus/>Verlof aanvragen</button></header>
+    <div className="ps-stat-grid" aria-label="Verlofoverzicht"><div><small>Beschikbaar saldo</small><strong>{availableMinutes === null ? "Nog niet ingesteld" : leaveDuration(Math.max(0, availableMinutes))}</strong><small>{year}</small></div><div><small>Goedgekeurd</small><strong>{leaveDuration(approvedMinutes)}</strong><small>Dit kalenderjaar</small></div><div><small>In afwachting</small><strong>{pendingCount}</strong><small>{pendingCount === 1 ? "Aanvraag" : "Aanvragen"}</small></div></div>
+    <section className="ps-panel ps-leave-list" aria-labelledby="ps-leave-list-title">
+      <div className="ps-panel-heading"><h2 id="ps-leave-list-title">Mijn aanvragen</h2><span className="ps-leave-year">{requestYears.size > 1 ? "Alle jaren" : [...requestYears][0] ?? year}</span></div>
+      {requests.map(request => <article className="ps-leave-request" key={request.id}>
+        <div className="ps-leave-request-heading"><h3>{leaveLabels[request.leave_type] ?? request.leave_type}</h3><span className="ps-status" data-status={request.status}>{request.status === "pending" ? "In afwachting" : request.status === "approved" ? "Goedgekeurd" : request.status === "rejected" ? "Afgewezen" : "Ingetrokken"}</span></div>
+        <p className="ps-leave-dates">{dateLabel(request.starts_on)} – {dateLabel(request.ends_on)}</p>
+        {(request.approved_minutes ?? request.requested_minutes) != null && <p>{request.status === "approved" ? "Goedgekeurd" : "Aangevraagd"}: {leaveDuration(request.approved_minutes ?? request.requested_minutes ?? 0)}</p>}
+        {request.note && <p>{request.note}</p>}
+        {request.status === "pending" && <button className="ps-secondary" disabled={pending} onClick={() => withdraw(request)}>Aanvraag intrekken</button>}
+      </article>)}
+      {!requests.length && <div className="ps-leave-empty"><CalendarDays/><h3>Nog geen verlofaanvragen</h3><p>Je aanvragen en besluiten verschijnen hier.</p></div>}
+    </section>
+    <p className="ps-hours-info"><Info/><span>Een aanvraag reserveert nog geen verlof. Je ontvangt een melding zodra je manager een besluit heeft genomen.</span></p>
     {open && <Dialog title="Verlof aanvragen" kicker="PERSONEELSZAKEN" close={close} footer={<><button type="button" className="ps-secondary" onClick={close}>Annuleren</button><button type="submit" form="staff-leave-request" className="ps-primary" disabled={pending}>Aanvraag indienen</button></>}><form id="staff-leave-request" className="ps-form" onChange={() => { createKey.current = null; }} onSubmit={submit}><label className="ps-field">Type<select name="leaveType" required><option value="vacation">Vakantie</option><option value="short">Kort verlof</option><option value="care">Zorgverlof</option><option value="unpaid">Onbetaald verlof</option><option value="other">Anders</option></select></label><div className="ps-form-grid"><label className="ps-field">Vanaf<input type="date" name="startsOn" required/></label><label className="ps-field">Tot en met<input type="date" name="endsOn" required/></label></div><label className="ps-field">Toelichting<textarea name="note" rows={4} maxLength={1000}/></label></form></Dialog>}
-  </>;
+  </div>;
 }
 
-function AvailabilityScreen({ profile, pending, run }: { profile: StaffPersonnel; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
+function AvailabilityScreen({ profile, pending, run, onLeave }: { profile: StaffPersonnel; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void; onLeave: () => void }) {
   const [value, setValue] = useState(() => ({ ...defaultAvailability(profile.availability_preferences), version: profile.version ?? 1 }));
+  // Empty visible times represent an unavailable day. Keep the stored fallback
+  // times separately because the RPC requires valid times even for those days.
+  const [week, setWeek] = useState(() => Object.fromEntries(dayKeys.map((key) => [key, {
+    start: value.week[key].enabled ? value.week[key].start : "",
+    end: value.week[key].enabled ? value.week[key].end : "",
+  }])));
+  const [invalidDay, setInvalidDay] = useState<(typeof dayKeys)[number] | null>(null);
   const enabled = Boolean(profile.availability_self_service_enabled);
-  const toggleShift = (shift: (typeof shiftOptions)[number], checked: boolean) => setValue((current) => ({
+  const setTime = (key: (typeof dayKeys)[number], field: "start" | "end", time: string) => {
+    setWeek((current) => ({ ...current, [key]: { ...current[key], [field]: time } }));
+    setInvalidDay(null);
+  };
+  const toggleShift = (shift: "day" | "evening" | "night", checked: boolean) => setValue((current) => ({
     ...current,
     shifts: checked ? [...new Set([...current.shifts, shift])] : current.shifts.filter((item) => item !== shift),
   }));
-  return <section className="ps-panel">
-    <div className="ps-panel-heading"><div><span>WEEKPATROON</span><h2>Mijn beschikbaarheid</h2></div><span className="ps-status" data-status={enabled ? "approved" : "closed"}>{enabled ? "Bewerken toegestaan" : "Alleen-lezen"}</span></div>
-    {!enabled && <div className="ps-toast-note">Je planner beheert dit patroon. Vraag management om selfservice tijdelijk te activeren als je wijzigingen moet doorgeven.</div>}
-    <div className="ps-card-list">{dayKeys.map((key) => <div className="ps-list-row" key={key}><label className="ps-check"><input type="checkbox" disabled={!enabled} checked={value.week[key].enabled} onChange={(event) => setValue({ ...value, week: { ...value.week, [key]: { ...value.week[key], enabled: event.target.checked } } })}/><span><strong>{dayLabels[key]}</strong><small>{value.week[key].enabled ? "Beschikbaar" : "Niet beschikbaar"}</small></span></label><input aria-label={`${dayLabels[key]} vanaf`} type="time" disabled={!enabled || !value.week[key].enabled} value={value.week[key].start} onChange={(event) => setValue({ ...value, week: { ...value.week, [key]: { ...value.week[key], start: event.target.value } } })}/><input aria-label={`${dayLabels[key]} tot`} type="time" disabled={!enabled || !value.week[key].enabled} value={value.week[key].end} onChange={(event) => setValue({ ...value, week: { ...value.week, [key]: { ...value.week[key], end: event.target.value } } })}/></div>)}</div>
-    <fieldset className="ps-choice-group" disabled={!enabled}><legend>Dienstvoorkeur</legend><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("day")} onChange={(event) => toggleShift("day", event.target.checked)}/>Dag</label><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("evening")} onChange={(event) => toggleShift("evening", event.target.checked)}/>Avond</label><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("night")} onChange={(event) => toggleShift("night", event.target.checked)}/>Nacht</label></fieldset>
-    <div className="ps-form-grid"><label className="ps-check"><input type="checkbox" disabled={!enabled} checked={value.weekends} onChange={(event) => setValue({ ...value, weekends: event.target.checked })}/>Weekend inzetbaar</label><label className="ps-check"><input type="checkbox" disabled={!enabled} checked={value.holidays} onChange={(event) => setValue({ ...value, holidays: event.target.checked })}/>Feestdagen inzetbaar</label></div>
-    <label className="ps-field">Planningsopmerking<textarea disabled={!enabled} rows={4} maxLength={1000} value={value.planningNote} onChange={(event) => setValue({ ...value, planningNote: event.target.value })}/></label>
-    {enabled && <button className="ps-primary" disabled={pending} onClick={() => run(async () => {
-      const result = await updateStaffAvailability(value);
-      if (result.ok) setValue((current) => ({ ...current, version: result.version }));
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!enabled || pending) return;
+    const invalid = dayKeys.find((key) => (week[key].start || week[key].end) && (!week[key].start || !week[key].end || week[key].start >= week[key].end));
+    if (invalid) { setInvalidDay(invalid); return; }
+    const savedWeek = Object.fromEntries(dayKeys.map((key) => [key, {
+      enabled: Boolean(week[key].start && week[key].end),
+      start: week[key].start || value.week[key].start,
+      end: week[key].end || value.week[key].end,
+    }]));
+    run(async () => {
+      const result = await updateStaffAvailability({ ...value, week: savedWeek });
+      if (result.ok) setValue((current) => ({ ...current, week: savedWeek, version: result.version }));
       return result;
-    }, "Beschikbaarheid opgeslagen")}>Beschikbaarheid opslaan</button>}
-  </section>;
+    }, "Beschikbaarheid opgeslagen");
+  };
+  return <div className="ps-availability-screen">
+    <header className="ps-page-heading"><div><h1>Beschikbaarheid</h1><p>Geef aan wanneer je doorgaans kunt werken.</p></div></header>
+    <div className="ps-availability-grid">
+      <section className="ps-panel ps-availability-week" aria-labelledby="ps-availability-title"><form onSubmit={submit}>
+        <div className="ps-panel-heading"><h2 id="ps-availability-title">Mijn vaste week</h2><span className="ps-status" data-status={enabled ? "approved" : "managed"}>{enabled ? "Bewerken toegestaan" : "Beheerd door planning"}</span></div>
+        {!enabled && <p className="ps-availability-managed"><LockKeyhole size={19} aria-hidden="true"/><span>Je organisatie beheert je beschikbaarheid. Neem voor een wijziging contact op met de planning.</span></p>}
+        <div className="ps-availability-days">{dayKeys.map((key) => {
+          const required = Boolean(week[key].start || week[key].end);
+          return <div className="ps-availability-day" key={key}><span>{dayLabels[key]}</span><input aria-label={`${dayLabels[key]} vanaf`} aria-describedby="ps-availability-help" type={enabled ? "time" : "text"} placeholder="--:--" required={required} disabled={!enabled || pending} value={week[key].start} onChange={(event) => setTime(key, "start", event.target.value)}/><input aria-label={`${dayLabels[key]} tot`} aria-describedby={invalidDay === key ? "ps-availability-error" : "ps-availability-help"} aria-invalid={invalidDay === key || undefined} type={enabled ? "time" : "text"} placeholder="--:--" required={required} disabled={!enabled || pending} value={week[key].end} onChange={(event) => setTime(key, "end", event.target.value)}/></div>;
+        })}</div>
+        <p id="ps-availability-help" className="ps-availability-help">Laat beide tijden leeg als je die dag niet beschikbaar bent.</p>
+        {invalidDay && <p id="ps-availability-error" className="ps-availability-error" role="alert">{dayLabels[invalidDay]}: vul beide tijden in; de eindtijd moet na de begintijd liggen.</p>}
+        <button type="submit" className="ps-primary" disabled={!enabled || pending}>Beschikbaarheid opslaan</button>
+        <details className="ps-availability-preferences"><summary>Overige planningsvoorkeuren</summary>
+          <fieldset className="ps-choice-group" disabled={!enabled || pending}><legend>Dienstvoorkeur</legend><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("day")} onChange={(event) => toggleShift("day", event.target.checked)}/>Dag</label><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("evening")} onChange={(event) => toggleShift("evening", event.target.checked)}/>Avond</label><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("night")} onChange={(event) => toggleShift("night", event.target.checked)}/>Nacht</label></fieldset>
+          <div className="ps-form-grid"><label className="ps-check"><input type="checkbox" disabled={!enabled || pending} checked={value.weekends} onChange={(event) => setValue({ ...value, weekends: event.target.checked })}/>Weekend inzetbaar</label><label className="ps-check"><input type="checkbox" disabled={!enabled || pending} checked={value.holidays} onChange={(event) => setValue({ ...value, holidays: event.target.checked })}/>Feestdagen inzetbaar</label></div>
+          <div className="ps-field"><label htmlFor="ps-availability-note">Planningsopmerking</label><textarea id="ps-availability-note" disabled={!enabled || pending} rows={4} maxLength={1000} value={value.planningNote} onChange={(event) => setValue({ ...value, planningNote: event.target.value })}/></div>
+        </details>
+      </form></section>
+      <aside className="ps-availability-aside" aria-label="Over beschikbaarheid">
+        <section className="ps-panel"><h2>Goed om te weten</h2><p>Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan.</p></section>
+        <section className="ps-panel"><h2>Tijdelijk afwezig?</h2><p>Voor vakantie of een vrije dag dien je een verlofaanvraag in.</p><button type="button" className="ps-text-button" onClick={onLeave}>Naar mijn verlof</button></section>
+      </aside>
+    </div>
+  </div>;
 }
 
 function DocumentsScreen({ data, profile }: { data: StaffWorkspaceData; profile: StaffPersonnel }) {
@@ -669,126 +669,69 @@ function ProfileScreen({ profile, depots, email, pending, run }: { profile: Staf
   </form></section>;
 }
 
-function SettingsScreen({ profile }: { profile: StaffPersonnel }) {
-  return <div className="ps-card-list"><section className="ps-panel"><div className="ps-panel-heading"><div><span>MELDINGEN</span><h2>Pushmeldingen</h2></div><Bell/></div><NotificationPushControl workspace="staff"/></section><section className="ps-panel"><div className="ps-panel-heading"><div><span>ACCOUNT</span><h2>{profile.full_name}</h2></div><UserRound/></div><p>Je gebruikt de beveiligde Fieldgrid-login van je organisatie.</p><Link className="ps-secondary" href="/staff/notificaties/instellingen"><SlidersHorizontal/>Meldingsvoorkeuren</Link></section><form action="/auth/signout" method="post"><button className="ps-danger"><LogOut/>Uitloggen op dit apparaat</button></form></div>;
-}
-
-function Onboarding({ profile, depots, email, notificationPreferences, pending, run }: { profile: StaffPersonnel; depots: StaffWorkspaceData["staffDepots"]; email: string; notificationPreferences: NotificationPreferences; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
-  const panel = useRef<HTMLDivElement>(null);
-  const availabilityEnabled = Boolean(profile.availability_self_service_enabled);
-  const labels = availabilityEnabled ? ["Welkom", "Profiel", "Vervoer", "Beschikbaarheid", "Meldingen", "Controleren"] : ["Welkom", "Profiel", "Vervoer", "Meldingen", "Controleren"];
-  const [stepKey, setStepKey] = useState(() => labels[Math.min(profile.onboarding_step ?? 0, labels.length - 1)] ?? "Welkom");
-  const [draft, setDraft] = useState(() => defaultOnboarding(profile, notificationPreferences));
-  const [version, setVersion] = useState(profile.onboarding_version ?? 1);
-  const [personnelVersion, setPersonnelVersion] = useState(profile.version ?? 1);
-  const [pushDecision, setPushDecision] = useState<"enable" | "skip" | null>(null);
-  const [showPolicy, setShowPolicy] = useState(false);
-  const effectiveStepKey = labels.includes(stepKey) ? stepKey : "Meldingen";
-  const step = Math.max(0, labels.indexOf(effectiveStepKey));
-  const setStep = (next: number) => setStepKey(labels[Math.max(0, Math.min(next, labels.length - 1))] ?? "Welkom");
-  const review = labels.length - 1;
-  const notificationStep = availabilityEnabled ? 4 : 3;
-  const [firstName, ...lastNameParts] = draft.profile.fullName.trim().split(/\s+/);
-  const lastName = lastNameParts.join(" ");
-  const setNamePart = (part: "first" | "last", value: string) => setDraft((current) => {
-    const [currentFirst, ...currentLastParts] = current.profile.fullName.trim().split(/\s+/);
-    const fullName = part === "first" ? `${value} ${currentLastParts.join(" ")}`.trim() : `${currentFirst ?? ""} ${value}`.trim();
-    return { ...current, profile: { ...current.profile, fullName } };
-  });
-  const save = (complete: boolean, after?: () => void) => run(
-    () => saveStaffOnboarding({
-      // Never adopt a newer server version for an older in-memory draft. If
-      // another session or management changed the record, the RPC must reject
-      // this draft so the employee can reload and review the current values.
-      onboardingVersion: version,
-      personnelVersion,
-      draft,
-      step,
-      complete,
-    }),
-    complete ? "Je profiel is klaar" : "Voortgang opgeslagen",
-    () => {
-      setVersion((current) => current + 1);
-      setPersonnelVersion((current) => current + 1);
-      after?.();
-    },
-  );
-  const onboardingCountry = draft.profile.homeAddress.country.trim().toLocaleUpperCase("nl-NL");
-  const onboardingPostalCodeValid = !["NL", "NEDERLAND", "NETHERLANDS"].includes(onboardingCountry) || /^\d{4}\s?[A-Z]{2}$/i.test(draft.profile.homeAddress.postalCode.trim());
-  const profileReady = firstName.length >= 1 && lastName.length >= 1
-    && draft.profile.mobilePhone.trim().length >= 7
-    && Boolean(draft.profile.homeAddress.street.trim() && draft.profile.homeAddress.postalCode.trim() && draft.profile.homeAddress.city.trim() && draft.profile.homeAddress.country.trim())
-    && onboardingPostalCodeValid;
-  const transportReady = (draft.transport.departureKind !== "depot" || Boolean(draft.transport.departureDepotId))
-    && (draft.transport.departureKind !== "alternate" || Boolean(draft.transport.alternateDepartureAddress?.street.trim() && draft.transport.alternateDepartureAddress.postalCode.trim() && draft.transport.alternateDepartureAddress.city.trim()))
-    && (!draft.transport.drivingLicense || draft.transport.drivingLicenseCategories.length > 0);
-  const availabilityReady = Object.values(draft.availability.week).some((day) => day.enabled && day.start < day.end) && draft.availability.shifts.length > 0;
-  const canNext = step === 0 ? true : step === 1 ? profileReady : step === 2 ? transportReady : availabilityEnabled && step === 3 ? availabilityReady : step === notificationStep ? pushDecision !== null : step === review ? draft.confirmations.details && (!availabilityEnabled || draft.confirmations.availability) && draft.confirmations.notifications && draft.confirmations.privacy && draft.confirmations.terms : true;
-  useEffect(() => {
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    panel.current?.querySelector<HTMLElement>("main")?.focus();
-    return () => { document.body.style.overflow = previousOverflow; previous?.focus(); };
-  }, []);
-  const trapFocus = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Tab") return;
-    const focusable = [...(panel.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [])]
-      .filter((element) => element.getClientRects().length > 0);
-    if (!focusable.length) return;
-    const first = focusable[0]; const last = focusable.at(-1)!;
-    if (event.shiftKey && (document.activeElement === first || !focusable.includes(document.activeElement as HTMLElement))) { event.preventDefault(); last.focus(); }
-    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+function SettingsScreen({ profile, email, tenantName, notificationPreferences, pending, run }: {
+  profile: StaffPersonnel; email: string; tenantName: string; notificationPreferences: NotificationPreferences; pending: boolean;
+  run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void;
+}) {
+  const [section, setSection] = useState<"profile" | "notifications" | "account">("profile");
+  const [contact, setContact] = useState(() => ({ fullName: profile.full_name, mobilePhone: profile.mobile_phone ?? "", version: profile.version ?? 1 }));
+  const [preferences, setPreferences] = useState(notificationPreferences);
+  const notificationKeys = useRef(new Map<string, string>());
+  const [dialog, setDialog] = useState<"push" | "login" | null>(null);
+  const saveContact = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pending) return;
+    run(async () => {
+      const result = await updateStaffContact(contact);
+      if (result.ok) setContact((current) => ({ ...current, version: result.version }));
+      return result;
+    }, "Gegevens opgeslagen");
   };
-  return <div className="ps-onboarding-backdrop" role="presentation"><div ref={panel} className="ps-onboarding" role="dialog" aria-modal="true" aria-labelledby="onboarding-title" onKeyDown={trapFocus}><aside className="ps-onboarding-aside"><strong>Fieldgrid</strong><small>Eerste instelling</small><ol className="ps-onboarding-progress">{labels.map((label, index) => <li className={index === step ? "active" : index < step ? "done" : ""} aria-current={index === step ? "step" : undefined} key={label}><span>{index < step ? <Check/> : index + 1}</span><strong>{label}</strong></li>)}</ol><p>Je gegevens zijn alleen zichtbaar voor bevoegde collega’s binnen je organisatie.</p><form action="/auth/signout" method="post"><button className="ps-secondary">Uitloggen en later verder</button></form></aside><section className="ps-onboarding-main"><header>{showPolicy ? <div className="ps-onboarding-stepbar"><span>Privacy en gebruik</span><i><b style={{ width: "100%" }}/></i></div> : <div className="ps-onboarding-stepbar"><span>Stap {step + 1} van {labels.length}</span><i><b style={{ width: `${(step + 1) / labels.length * 100}%` }}/></i></div>}</header><main tabIndex={-1}>
-    {showPolicy ? <div className="ps-policy-information"><span className="ps-page-kicker">PRIVACY EN GEBRUIK</span><h1 id="onboarding-title">Zo gaan we met je gegevens om</h1><p>Deze korte uitleg helpt je om de instellingen te controleren. De formele privacy-informatie en gebruiksvoorwaarden van jouw organisatie blijven leidend.</p><section><h2>Welke gegevens gebruikt Fieldgrid?</h2><p>Je profiel- en contactgegevens, vervoer, eventuele beschikbaarheid en meldingskeuzes worden gebruikt om je werk te plannen, uit te voeren en je daarover te informeren. In werkbonnen kunnen ook notities, bestanden en ondertekeningen staan.</p></section><section><h2>Wie kan de gegevens zien?</h2><p>Alleen bevoegde gebruikers binnen je huidige organisatie krijgen toegang voor hun werkzaamheden. Wat je zelf mag bekijken of aanpassen hangt af van de rechten die je organisatie heeft ingesteld.</p></section><section><h2>Jouw keuzes en verzoeken</h2><p>Je kunt je gegevens en meldingskeuzes in Fieldgrid controleren en, waar toegestaan, wijzigen. Vraag je organisatiebeheerder om de volledige privacy-informatie of om een verzoek voor inzage, correctie, bewaartermijnen of verwijdering te behandelen.</p></section><section><h2>Veilig en zorgvuldig gebruik</h2><p>Gebruik je account persoonlijk, deel geen inloggegevens en voeg alleen informatie toe die nodig is voor je werk. Meld verlies van een apparaat of vermoed misbruik direct bij je organisatie.</p></section></div> : <>
-    {step === 0 && <div><span className="ps-page-kicker">WELKOM</span><h1 id="onboarding-title">Welkom bij Fieldgrid, {profile.preferred_name || profile.full_name.split(" ")[0]}</h1><p>Stel eenmalig je profiel, vervoer en meldingen in. Daarna staat je planning voor je klaar.</p><div className="ps-onboarding-note">Je login-e-mail is <strong>{email}</strong> en kan hier niet worden gewijzigd.</div><button type="button" className="ps-text-button" onClick={() => setShowPolicy(true)}>Lees privacy- en gebruiksinformatie</button></div>}
-    {step === 1 && <div><span className="ps-page-kicker">PROFIEL</span><h1 id="onboarding-title">Hoe kunnen we je bereiken?</h1><div className="ps-form-grid">
-      <label className="ps-field">Voornaam *<input autoComplete="given-name" value={firstName} onChange={(event) => setNamePart("first", event.target.value)}/></label>
-      <label className="ps-field">Achternaam *<input autoComplete="family-name" value={lastName} onChange={(event) => setNamePart("last", event.target.value)}/></label>
-      <label className="ps-field">Roepnaam<input value={draft.profile.preferredName} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, preferredName: event.target.value } })}/></label>
-      <label className="ps-field">Mobiel nummer *<input type="tel" autoComplete="tel" value={draft.profile.mobilePhone} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, mobilePhone: event.target.value } })}/></label>
-      <label className="ps-field">Tweede telefoonnummer<input type="tel" value={draft.profile.phone} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, phone: event.target.value } })}/></label>
-      <label className="ps-field">Geboortedatum (optioneel)<input type="date" value={draft.profile.birthDate} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, birthDate: event.target.value } })}/></label>
-      <label className="ps-field">Login-e-mail<input value={email} readOnly/></label>
-      <label className="ps-field">Straat en huisnummer<input value={draft.profile.homeAddress.street} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, homeAddress: { ...draft.profile.homeAddress, street: event.target.value } } })}/></label>
-      <label className="ps-field">Postcode<input value={draft.profile.homeAddress.postalCode} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, homeAddress: { ...draft.profile.homeAddress, postalCode: event.target.value } } })}/></label>
-      <label className="ps-field">Plaats<input value={draft.profile.homeAddress.city} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, homeAddress: { ...draft.profile.homeAddress, city: event.target.value } } })}/></label>
-      <label className="ps-field">Land<input value={draft.profile.homeAddress.country} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, homeAddress: { ...draft.profile.homeAddress, country: event.target.value } } })}/></label>
-      <label className="ps-field">Noodcontact naam<input value={draft.profile.emergencyContact.name} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, emergencyContact: { ...draft.profile.emergencyContact, name: event.target.value } } })}/></label>
-      <label className="ps-field">Noodcontact telefoon<input type="tel" value={draft.profile.emergencyContact.phone} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, emergencyContact: { ...draft.profile.emergencyContact, phone: event.target.value } } })}/></label>
-      <label className="ps-field">Relatie<input value={draft.profile.emergencyContact.relation} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, emergencyContact: { ...draft.profile.emergencyContact, relation: event.target.value } } })}/></label>
-    </div></div>}
-    {step === 2 && <div><span className="ps-page-kicker">VERVOER</span><h1 id="onboarding-title">Hoe vertrek je naar afspraken?</h1><div className="ps-form-grid">
-      <label className="ps-field">Standaard vervoer<select value={draft.transport.vehicle} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, vehicle: event.target.value as StaffOnboardingDraft["transport"]["vehicle"] } })}><option value="car">Auto</option><option value="van">Bedrijfsbus</option><option value="motorcycle">Motor</option><option value="scooter">Scooter</option><option value="bicycle">Fiets</option><option value="electric_bicycle">E-bike</option><option value="public_transport">Openbaar vervoer</option><option value="walking">Lopend</option><option value="other">Anders</option></select></label>
-      <label className="ps-field">Vertreklocatie<select value={draft.transport.departureKind} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, departureKind: event.target.value as StaffOnboardingDraft["transport"]["departureKind"], departureDepotId: event.target.value === "depot" ? draft.transport.departureDepotId ?? depots[0]?.id ?? null : draft.transport.departureDepotId, alternateDepartureAddress: event.target.value === "alternate" ? draft.transport.alternateDepartureAddress ?? { street: "", postalCode: "", city: "", country: "NL" } : draft.transport.alternateDepartureAddress } })}><option value="home">Woonadres</option>{depots.length > 0 && <option value="depot">Vestiging</option>}<option value="alternate">Andere locatie</option></select></label>
-      {draft.transport.departureKind === "depot" && <label className="ps-field">Vestiging<select value={draft.transport.departureDepotId ?? ""} required onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, departureDepotId: event.target.value || null } })}><option value="" disabled>Kies een vestiging</option>{depots.map((depot) => <option value={depot.id} key={depot.id}>{depot.name}</option>)}</select></label>}
-      {draft.transport.departureKind === "alternate" && <><label className="ps-field">Straat en huisnummer<input value={draft.transport.alternateDepartureAddress?.street ?? ""} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, alternateDepartureAddress: { ...(draft.transport.alternateDepartureAddress ?? { postalCode: "", city: "", country: "NL" }), street: event.target.value } } })}/></label><label className="ps-field">Postcode<input value={draft.transport.alternateDepartureAddress?.postalCode ?? ""} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, alternateDepartureAddress: { ...(draft.transport.alternateDepartureAddress ?? { street: "", city: "", country: "NL" }), postalCode: event.target.value } } })}/></label><label className="ps-field">Plaats<input value={draft.transport.alternateDepartureAddress?.city ?? ""} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, alternateDepartureAddress: { ...(draft.transport.alternateDepartureAddress ?? { street: "", postalCode: "", country: "NL" }), city: event.target.value } } })}/></label></>}
-      <label className="ps-check"><input type="checkbox" checked={draft.transport.ownTransport} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, ownTransport: event.target.checked } })}/>Ik beschik over eigen vervoer</label>
-      <label className="ps-check"><input type="checkbox" checked={draft.transport.returnToDeparture} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, returnToDeparture: event.target.checked } })}/>Na de laatste afspraak terug naar vertrekpunt</label>
-      <label className="ps-check"><input type="checkbox" checked={draft.transport.drivingLicense} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, drivingLicense: event.target.checked, drivingLicenseCategories: event.target.checked ? draft.transport.drivingLicenseCategories : [] } })}/>Ik heb een rijbewijs</label>
-      <label className="ps-check"><input type="checkbox" checked={draft.transport.carpoolAllowed} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, carpoolAllowed: event.target.checked } })}/>Carpoolen is mogelijk</label>
-      {draft.transport.drivingLicense && <fieldset className="ps-choice-group wide"><legend>Rijbewijscategorieën</legend>{["B", "BE", "C", "CE", "D"].map((category) => <label className="ps-check" key={category}><input type="checkbox" checked={draft.transport.drivingLicenseCategories.includes(category)} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, drivingLicenseCategories: event.target.checked ? [...new Set([...draft.transport.drivingLicenseCategories, category])] : draft.transport.drivingLicenseCategories.filter((item) => item !== category) } })}/>{category}</label>)}</fieldset>}
-      <label className="ps-field wide">Bijzonderheden voor onderweg<textarea rows={3} maxLength={1000} value={draft.transport.limitations} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, limitations: event.target.value } })}/></label>
-    </div></div>}
-    {availabilityEnabled && step === 3 && <div><span className="ps-page-kicker">BESCHIKBAARHEID</span><h1 id="onboarding-title">Wanneer ben je inzetbaar?</h1>
-      <div className="ps-card-list">{dayKeys.map((key) => <div className="ps-list-row" key={key}><label className="ps-check"><input type="checkbox" checked={draft.availability.week[key].enabled} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, week: { ...draft.availability.week, [key]: { ...draft.availability.week[key], enabled: event.target.checked } } } })}/>{dayLabels[key]}</label><input aria-label={`${dayLabels[key]} vanaf`} type="time" value={draft.availability.week[key].start} disabled={!draft.availability.week[key].enabled} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, week: { ...draft.availability.week, [key]: { ...draft.availability.week[key], start: event.target.value } } } })}/><input aria-label={`${dayLabels[key]} tot`} type="time" value={draft.availability.week[key].end} disabled={!draft.availability.week[key].enabled} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, week: { ...draft.availability.week, [key]: { ...draft.availability.week[key], end: event.target.value } } } })}/></div>)}</div>
-      <fieldset className="ps-choice-group"><legend>Dienstvoorkeur</legend>{shiftOptions.map((shift) => <label className="ps-check" key={shift}><input type="checkbox" checked={draft.availability.shifts.includes(shift)} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, shifts: event.target.checked ? [...new Set([...draft.availability.shifts, shift])] : draft.availability.shifts.filter((item) => item !== shift) } })}/>{shift === "day" ? "Dag" : shift === "evening" ? "Avond" : "Nacht"}</label>)}</fieldset>
-      <div className="ps-form-grid"><label className="ps-check"><input type="checkbox" checked={draft.availability.weekends} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, weekends: event.target.checked } })}/>Weekend inzetbaar</label><label className="ps-check"><input type="checkbox" checked={draft.availability.holidays} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, holidays: event.target.checked } })}/>Feestdagen inzetbaar</label></div>
-      <label className="ps-field">Planningsopmerking<textarea maxLength={1000} rows={3} value={draft.availability.planningNote} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, planningNote: event.target.value } })}/></label>
-    </div>}
-    {step === notificationStep && <div><span className="ps-page-kicker">MELDINGEN</span><h1 id="onboarding-title">Blijf op de hoogte</h1>
-      <div className="ps-card-list">
-        <label className="ps-list-row"><Megaphone/><span><strong>E-mail</strong><small>Ontvangen waar het meldingsbeleid dit toestaat</small></span><input type="checkbox" checked={draft.notifications.email} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, email: event.target.checked } })}/></label>
-      </div>
-      <section className="ps-panel"><div className="ps-panel-heading"><div><span>APPARAAT</span><h2>Wil je pushmeldingen gebruiken?</h2></div><Bell/></div><p>Kies expliciet of je push nu wilt instellen of later vanuit Instellingen. Je kunt de keuze altijd wijzigen.</p><div className="ps-onboarding-choice-row"><button type="button" className={pushDecision === "enable" ? "ps-primary" : "ps-secondary"} aria-pressed={pushDecision === "enable"} onClick={() => { setPushDecision("enable"); setDraft({ ...draft, notifications: { ...draft.notifications, push: true } }); }}>Push instellen</button><button type="button" className={pushDecision === "skip" ? "ps-primary" : "ps-secondary"} aria-pressed={pushDecision === "skip"} onClick={() => { setPushDecision("skip"); setDraft({ ...draft, notifications: { ...draft.notifications, push: false, types: draft.notifications.types.map((type) => ({ ...type, push: false })) } }); }}>Nu niet, later instellen</button></div>{pushDecision === "enable" && <div className="ps-push-setup"><NotificationPushControl workspace="staff"/></div>}{pushDecision === null && <p className="ps-onboarding-required" role="status">Maak een keuze om verder te gaan.</p>}</section>
-      <fieldset className="ps-choice-group"><legend>Rusttijden</legend><label className="ps-check"><input type="checkbox" checked={draft.notifications.quietEnabled} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, quietEnabled: event.target.checked } })}/>Meldingen uitstellen tijdens rusttijd</label><label className="ps-field">Van<input type="time" disabled={!draft.notifications.quietEnabled} value={draft.notifications.quietStart} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, quietStart: event.target.value } })}/></label><label className="ps-field">Tot<input type="time" disabled={!draft.notifications.quietEnabled} value={draft.notifications.quietEnd} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, quietEnd: event.target.value } })}/></label></fieldset>
-      {draft.notifications.types.length > 0 && <div className="ps-card-list"><h2>Per onderwerp</h2>{draft.notifications.types.map((type, index) => <article className="ps-list-row" key={type.code}><span><strong>{type.name}</strong><small>In-app blijft beschikbaar zolang je toegang hebt.</small></span><div className="ps-inline-checks">{type.channels.includes("email") && <label className="ps-check"><input type="checkbox" disabled={!draft.notifications.email} checked={type.email} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, types: draft.notifications.types.map((item, position) => position === index ? { ...item, email: event.target.checked } : item) } })}/>E-mail</label>}{type.channels.includes("push") && <label className="ps-check"><input type="checkbox" disabled={!draft.notifications.push} checked={type.push} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, types: draft.notifications.types.map((item, position) => position === index ? { ...item, push: event.target.checked } : item) } })}/>Push</label>}</div></article>)}</div>}
-      <div className="ps-onboarding-note">Urgente veiligheids- en accountmeldingen blijven binnen het actuele organisatiebeleid beschikbaar. Push weigeren blokkeert je onboarding niet.</div>
-    </div>}
-    {step === review && <div><span className="ps-page-kicker">CONTROLEREN</span><h1 id="onboarding-title">Klaar om te beginnen</h1><div className="ps-card-list"><article className="ps-panel"><strong>{draft.profile.fullName}</strong><p>{draft.profile.mobilePhone} · {draft.profile.homeAddress.city}</p><button type="button" className="ps-secondary" onClick={() => setStep(1)}>Wijzigen</button></article><article className="ps-panel"><strong>Vervoer</strong><p>{draft.transport.vehicle} · vertrek vanaf {draft.transport.departureKind}</p><button type="button" className="ps-secondary" onClick={() => setStep(2)}>Wijzigen</button></article>{availabilityEnabled && <article className="ps-panel"><strong>Beschikbaarheid</strong><p>{Object.values(draft.availability.week).filter((day) => day.enabled).length} beschikbare dagen · {draft.availability.shifts.length} dienstvoorkeuren</p><button type="button" className="ps-secondary" onClick={() => setStep(3)}>Wijzigen</button></article>}<article className="ps-panel"><strong>Meldingen</strong><p>{draft.notifications.types.filter((type) => type.email).length} onderwerpen per e-mail · {draft.notifications.types.filter((type) => type.push).length} via push</p><button type="button" className="ps-secondary" onClick={() => setStep(notificationStep)}>Wijzigen</button></article></div><label className="ps-check"><input type="checkbox" checked={draft.confirmations.details} onChange={(event) => setDraft({ ...draft, confirmations: { ...draft.confirmations, details: event.target.checked } })}/>Mijn profielgegevens zijn correct.</label>{availabilityEnabled && <label className="ps-check"><input type="checkbox" checked={draft.confirmations.availability} onChange={(event) => setDraft({ ...draft, confirmations: { ...draft.confirmations, availability: event.target.checked } })}/>Mijn beschikbaarheid is correct.</label>}<label className="ps-check"><input type="checkbox" checked={draft.confirmations.notifications} onChange={(event) => setDraft({ ...draft, confirmations: { ...draft.confirmations, notifications: event.target.checked } })}/>Ik heb mijn meldingsinstellingen gecontroleerd.</label><label className="ps-check"><input type="checkbox" checked={draft.confirmations.privacy} onChange={(event) => setDraft({ ...draft, confirmations: { ...draft.confirmations, privacy: event.target.checked } })}/>Ik heb de privacy-informatie van mijn organisatie gecontroleerd.</label><label className="ps-check"><input type="checkbox" checked={draft.confirmations.terms} onChange={(event) => setDraft({ ...draft, confirmations: { ...draft.confirmations, terms: event.target.checked } })}/>Ik heb de toepasselijke gebruiksvoorwaarden gecontroleerd.</label><button type="button" className="ps-text-button" onClick={() => setShowPolicy(true)}>Lees privacy- en gebruiksinformatie</button></div>}
-    </>}</main>{showPolicy ? <footer className="ps-onboarding-actions"><button type="button" className="ps-secondary" onClick={() => setShowPolicy(false)}>Terug naar onboarding</button></footer> : <footer className="ps-onboarding-actions"><button type="button" className="ps-secondary" disabled={pending} onClick={() => step ? setStep(step - 1) : save(false)}>{step ? "Vorige" : "Opslaan"}</button><button type="button" className="ps-primary" disabled={pending || !canNext} onClick={() => step === review ? save(true) : save(false, () => setStep(step + 1))}>{pending ? "Opslaan…" : step === review ? "Naar mijn planning" : "Opslaan en volgende"}<ChevronRight/></button></footer>}
-  </section></div></div>;
+  const togglePreference = (field: "email" | "push" | "quietEnabled", checked: boolean) => {
+    if (pending) return;
+    const next = { ...preferences, [field]: checked };
+    const payload = { version: next.version, email: next.email, push: next.push, quietEnabled: next.quietEnabled, quietStart: next.quietStart, quietEnd: next.quietEnd, timezone: next.timezone, types: next.types.map(({ code, email, push }) => ({ code, email, push })) };
+    const fingerprint = JSON.stringify(payload);
+    const requestId = notificationKeys.current.get(fingerprint) ?? crypto.randomUUID();
+    notificationKeys.current.set(fingerprint, requestId);
+    run(async () => {
+      const result = await runNotificationCommand("staff", "preferences_save", payload, requestId);
+      if (result.ok) { setPreferences({ ...next, version: result.version ?? next.version + 1 }); notificationKeys.current.delete(fingerprint); }
+      return result;
+    }, "Meldingsvoorkeuren opgeslagen");
+  };
+  return <div className="ps-settings-screen">
+    <header className="ps-page-heading"><div><h1>Instellingen</h1><p>Jouw gegevens en voorkeuren.</p></div></header>
+    <div className="ps-settings-layout">
+      <nav className="ps-settings-nav" aria-label="Instellingenonderdelen">
+        {([["profile", "Mijn profiel"], ["notifications", "Meldingen"], ["account", "Account & toegang"]] as const).map(([key, label]) => <button type="button" key={key} aria-current={section === key ? "page" : undefined} onClick={() => setSection(key)}>{label}</button>)}
+      </nav>
+      {section === "profile" && <section className="ps-panel ps-settings-profile" aria-label="Mijn profiel">
+        <div className="ps-settings-identity"><span>{initials(profile.full_name)}</span><div><h2>{profile.full_name}</h2><p>Medewerker · {tenantName}</p></div></div>
+        <form onSubmit={saveContact}>
+          <label className="ps-field">Naam<input autoComplete="name" required minLength={2} maxLength={160} disabled={pending} value={contact.fullName} onChange={(event) => setContact({ ...contact, fullName: event.target.value })}/></label>
+          <div className="ps-field"><label htmlFor="ps-settings-email">E-mailadres</label><input id="ps-settings-email" type="email" autoComplete="email" readOnly aria-readonly="true" aria-describedby="ps-settings-email-help" value={email}/><small id="ps-settings-email-help">Je e-mailadres wordt beheerd door personeelszaken.</small></div>
+          <label className="ps-field">Telefoonnummer<input type="tel" autoComplete="tel" maxLength={50} disabled={pending} value={contact.mobilePhone} onChange={(event) => setContact({ ...contact, mobilePhone: event.target.value })}/></label>
+          <button type="submit" className="ps-primary" disabled={pending}>Gegevens opslaan</button>
+        </form>
+      </section>}
+      {section === "notifications" && <section className="ps-panel ps-settings-notifications" aria-label="Meldingen">
+        <h2>Meldingen</h2>
+        {([["push", "Pushmeldingen", "Nieuwe werkbonnen en belangrijke updates"], ["email", "E-mail", "Nieuws en personeelszaken"], ["quietEnabled", "Stille uren", `Van ${preferences.quietStart} tot ${preferences.quietEnd}`]] as const).map(([field, label, description]) => <div className="ps-settings-row" key={field}><div><strong>{label}</strong><small>{description}</small></div><input className="ps-settings-switch" role="switch" type="checkbox" aria-label={label} checked={preferences[field]} disabled={pending} onChange={(event) => togglePreference(field, event.target.checked)}/></div>)}
+        <p className="ps-hours-info"><Info aria-hidden="true"/><span>Push werkt op apparaten waarvoor je toestemming hebt gegeven. Je ontvangt meldingen volgens je voorkeuren en het beleid van je organisatie.</span></p>
+        <div className="ps-settings-notification-actions"><button type="button" className="ps-secondary" onClick={() => toast("Testmelding", { description: "Dit is een testmelding in je personeelsapp." })}><Bell/>Testmelding tonen</button><button type="button" className="ps-text-button" onClick={() => setDialog("push")}>Apparaat instellen</button><Link className="ps-text-button" href="/staff/notificaties/instellingen">Per onderwerp</Link></div>
+      </section>}
+      {section === "account" && <section className="ps-panel ps-settings-account" aria-label="Account & toegang">
+        <h2>Account & toegang</h2>
+        <div className="ps-settings-row"><div><strong>Inloggen met e-mailcode</strong><small>Geen wachtwoord onthouden</small></div><span className="ps-status" data-status="approved">OTP</span></div>
+        <div className="ps-settings-row"><div><strong>Dit apparaat</strong><small>Browser · huidige sessie</small></div><span className="ps-status" data-status="approved">Actief</span></div>
+        <button type="button" className="ps-secondary" onClick={() => setDialog("login")}><LockKeyhole/>Loginflow bekijken</button>
+        <form action="/auth/signout" method="post"><button className="ps-danger"><LogOut/>Uitloggen</button></form>
+      </section>}
+    </div>
+    {dialog === "push" && <Dialog title="Pushmeldingen instellen" kicker="DIT APPARAAT" close={() => setDialog(null)}><NotificationPushControl workspace="staff"/></Dialog>}
+    {dialog === "login" && <Dialog title="Inloggen met e-mailcode" kicker="ACCOUNT & TOEGANG" close={() => setDialog(null)}><p className="ps-settings-login-intro">Je logt in met een eenmalige code op je e-mailadres: <strong>{email}</strong>.</p><ol className="ps-settings-login-steps"><li>Vul je e-mailadres in op het inlogscherm.</li><li>Vraag een inlogcode aan en open de e-mail.</li><li>Voer de code in om naar je werkplek te gaan.</li></ol></Dialog>}
+  </div>;
 }
 
 function Dialog({ title, kicker, close, children, footer }: { title: string; kicker: string; close: () => void; children: ReactNode; footer?: ReactNode }) {

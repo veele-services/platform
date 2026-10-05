@@ -156,6 +156,78 @@ Git-historie vallen buiten die specifieke controle.
 | Tickets/notificaties/mail | Scope-, lease-, providerpermit-, hook-, ontvanger-, bytes- en retrytests; upgrade behoudt historie. Bestaande grants ook na rowlock begrensd, globale concepttemplates niet naar tenant, actuele leesbevestigingen/herinneringen en minimale nieuwe klantaudit; routehelpers staan in de reviewledger | Werkelijke provideractivatie/levering en historische auditretentie |
 | Deployment | Standalone guards/TLS, geheimvrije argv/logs, runtime.env, backupretry, CI-gates; externe acties op volledige commit-SHA en stagingsecrets uitsluitend per noodzakelijke stap; workersecret niet in procesargumenten; root-only key/trust/runtimecontrole strikt gescheiden van runnercontrole; echte Linux-UID/GID- en directoryrechten getest. Het unit/preflightincident is opgelost; geïnstalleerde webunit, runnerchecker en broker matchen hun gepubliceerde hashes. Exact `d9084380` is actief en database-ready, maar health blijft HTTP 503 doordat clamd `VERSION` is uitgeschakeld; de timer blijft uit | De lokaal uitgebreide rootchecker/configremedie is nog niet op de host geïnstalleerd of bewezen. Daarna ontbreken nog gezonde exact-SHA web/scannerhealth, een verse workeruitvoering, geïsoleerde restore en provideracceptatie |
 
+## Instellingencontactactie-review — 5 oktober 2026
+
+`updateStaffContact` accepteert uitsluitend de verwachte personeelsversie,
+naam en mobiel. De action resolveert de tenant uit de bestaande actuele
+staffcontext, vereist de personeelsmodule en staffrol en roept met de gewone
+sessie `staff_update_profile` aan. Die RPC bepaalt de medewerker uit de actor;
+de browser kan geen tenant, medewerker, login-e-mail of overige profielvelden
+kiezen. De teruggegeven versie blijft bij het zichtbare formulier. Bestaande
+centrale meldingsvoorkeuren gebruiken `preferences_save` met hun eigen versie
+en request-ID; apparaatregistratie en uitloggen behouden hun bestaande routes.
+
+Gericht bewijs: negen gevallen in `lib/staff/contact-action.test.ts` toetsen
+de beperkte velden, rol/module/tenantgrens en conflictafhandeling.
+`tests/e2e/staff-settings.spec.ts` bewijst echte eigen-profielopslag zonder
+andere dossierwijzigingen, opeenvolgende saves, voorkeurenopslag, conflictbehoud,
+apparaatbediening en intrekking van de sessie bij uitloggen. De twee gewijzigde
+code-oppervlakken zijn handmatig vergeleken; databasegrants en RPC's zijn niet
+veranderd. Dit is een gerichte bronreview, geen brede eindcontrole of
+stagingacceptatie.
+
+## Planningstatus na uitgestelde indeling — 5 oktober 2026
+
+De forward migratie `20261005201500_work_order_planning_state.sql` wijzigt uitsluitend
+de bestaande planningtransactie en haar private snapshot. Eerste personeelsindeling
+zet `unassigned` om naar `tentative`; verwijderen en undo bewaren de status bij de
+uitvoering en haar historie. Publicatie, bestaande definitieve bonnen, arbeidsbudget,
+klantvenster en feitelijke uitvoering worden niet aangepast door deze overgang.
+
+De bronreview bevestigt behoud van de bestaande tenant-/planningsrolcontrole,
+actuele sessie-/modulecontrole via `private.planning_access`, tenantlock,
+versiecontrole, actor-/bongebonden herhaalsleutel, overlap-/beschikbaarheidsvalidatie
+en undo-controle. Beide functies behouden hun lege `search_path` en bestaande
+EXECUTE-grants. De private snapshot blijft ontoegankelijk voor Data API-rollen.
+
+Een schone lokale replay behoudt alle 110 bestaande statementhashes en voegt één
+forward hash toe. `scripts/test-planboard.mjs` slaagt met 10 controles, inclusief
+statusovergang, expliciete afwijkingsbevestiging, retry, verwijderen, undo en behoud
+van definitieve status. De gerichte werkbon-, RPC-, module- en releaseguardregressies
+slagen met 29 controles. Het manifest en uitsluitend de drie daardoor gewijzigde
+autorisatievingerafdrukken zijn na deze review bijgewerkt. De verplichte release-CI
+en stagingacceptatie blijven afzonderlijke controles vóór een deploymentclaim.
+
+## Portaalreeks bronreview vóór deployment — 5 oktober 2026
+
+De vier gewijzigde bronbestanden hieronder zijn opnieuw vergeleken met de
+laatste `main`-release. Hun exports, classificaties, waargenomen controles en
+gegevensbronnen blijven gelijk; de opgeslagen bronhash moest worden vernieuwd.
+
+- `app/app/operations-actions.ts`: `invitePersonnel` schrijft het ingevulde
+  nummer naar `mobile_phone`. Actuele tenant/rol/module, dubbele-accountcontrole,
+  bestaande lidmaatschappen en de overige uitnodigingsgrenzen blijven behouden.
+  Bewijs: `lib/personnel/invitation-action.test.ts` en de bestaande
+  uitnodigingsbrowsertests in de volledige release-CI.
+- `app/auth/invite/actions.ts`: alleen de fouttekst verwijst naar de gewone
+  e-mailcode-login. Geïsoleerde OTP-verificatie, actieve eigen staffbinding,
+  sessie-intrekking en de publieke loginredirect blijven gelijk. Bewijs:
+  `lib/auth/invite-form.test.ts` en de bestaande uitnodigings-/OTP-flows in CI.
+- `components/fieldgrid/staff/route-shell.tsx`: alleen de portaalstijl wijzigt.
+  De server bepaalt de actuele tenant, actorKey en ticketmodule; bestaande
+  ticket- en notificatieroutes blijven de toegangsgrens.
+- `components/fieldgrid/staff/route-shell-client.tsx`: navigatietekst/iconen en
+  de ticketingang veranderen. Zonder module opent de ingang alleen uitleg;
+  met module gebruikt zij de bestaande route. De sessiegebonden,
+  tenantgefilterde Realtime-revisieabonnementen, refresh en uitloggen blijven
+  gelijk. Bewijs: `lib/staff/route-boundaries.test.ts`,
+  `tests/e2e/staff-appearance.spec.ts` en de bestaande route-/modulebrowsertests.
+
+Alle 1.420 lokale unittests, lint en TypeScript zijn geslaagd vóór het bijwerken
+van deze vier fingerprintgebonden reviewregels. De verplichte volledige CI en
+deployed acceptatie blijven afzonderlijke releasecontroles; deze bronreview
+verklaart geen deployment geslaagd.
+
 ## Werkelijk gecontroleerde lokale catalogus
 
 De schone release-replaydatabase op `127.0.0.1:60322` heeft public **118/118**

@@ -429,12 +429,14 @@ test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, ur
   await expect(page.getByRole("button", { name: /Welkom in Fieldgrid/ })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  await mobileNavigation.getByRole("button", { name: "Uren", exact: true }).click();
+  await mobileNavigation.getByRole("button", { name: "Mijn uren", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Mijn uren", exact: true })).toBeVisible();
   const hoursWeek = app.locator(".ps-hours-week-panel");
   await expect(hoursWeek).toBeVisible();
-  await expect(hoursWeek.locator(".ps-hours-week-day")).toHaveCount(7);
-  await expect(hoursWeek.getByText("Geregistreerd weektotaal", { exact: true })).toBeVisible();
+  for (const weekday of ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag"]) {
+    await expect(hoursWeek.getByRole("button", { name: new RegExp(`^${weekday}`) })).toBeVisible();
+  }
+  await expect(hoursWeek.getByText("Totaal", { exact: true })).toBeVisible();
   const currentWeek = hoursWeek.getByRole("button", { name: "Terug naar huidige week", exact: true });
   await expect(currentWeek).toBeDisabled();
   await hoursWeek.getByRole("button", { name: "Vorige week", exact: true }).click();
@@ -465,47 +467,68 @@ test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, ur
   await expect(leaveTrigger).toBeFocused();
 });
 
-test("nieuwe medewerker hervat en voltooit de volledige personeels-onboarding", async ({ page }) => {
+test("nieuwe medewerker hervat en voltooit de volledige personeels-onboarding", async ({ page }, testInfo) => {
   test.setTimeout(60_000);
+  const screenshot = async (name: string) => {
+    const path = testInfo.outputPath(`${name}.png`);
+    await page.screenshot({ path });
+    await testInfo.attach(name, { path, contentType: "image/png" });
+  };
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page, "new-field-worker@fieldgrid.test", "/staff");
 
   const onboarding = page.locator(".ps-onboarding");
   await expect(onboarding).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Welkom bij Fieldgrid/ })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await screenshot("onboarding-welcome-mobile");
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await screenshot("onboarding-welcome-desktop");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole("heading", { name: /Welkom, Sam/ })).toBeVisible();
   await expect(onboarding.getByText("new-field-worker@fieldgrid.test", { exact: true })).toBeVisible();
   await onboarding.getByRole("button", { name: "Lees privacy- en gebruiksinformatie" }).click();
   await expect(page.getByRole("heading", { name: "Zo gaan we met je gegevens om" })).toBeVisible();
   await expect(onboarding.getByText(/formele privacy-informatie en gebruiksvoorwaarden/i)).toBeVisible();
   await onboarding.getByRole("button", { name: "Terug naar onboarding" }).click();
-  await expect(page.getByRole("heading", { name: /Welkom bij Fieldgrid/ })).toBeVisible();
-  await onboarding.getByRole("button", { name: "Opslaan en volgende" }).click();
-  await expect(page.getByRole("heading", { name: "Hoe kunnen we je bereiken?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Welkom, Sam/ })).toBeVisible();
+  await onboarding.getByRole("button", { name: "Beginnen" }).click();
+  await expect(page.getByRole("heading", { name: "Je profiel" })).toBeVisible();
 
   // Bewijs dat de server de tussenstap bewaart en de wizard na een reload hervat.
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Hoe kunnen we je bereiken?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Je profiel" })).toBeVisible();
   await onboarding.getByLabel("Mobiel nummer *", { exact: true }).fill("0612345678");
   await onboarding.getByLabel("Straat en huisnummer", { exact: true }).fill("Testlaan 12");
   await onboarding.getByLabel("Postcode", { exact: true }).fill("1234 AB");
   await onboarding.getByLabel("Plaats", { exact: true }).fill("Utrecht");
-  await onboarding.getByRole("button", { name: "Opslaan en volgende" }).click();
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await screenshot("onboarding-profile-desktop");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectNoHorizontalOverflow(page);
+  await onboarding.getByRole("button", { name: "Opslaan en later" }).click();
+  await expect(page).toHaveURL(/\/login/);
+  await login(page, "new-field-worker@fieldgrid.test", "/staff");
 
-  await expect(page.getByRole("heading", { name: "Hoe vertrek je naar afspraken?" })).toBeVisible();
-  await onboarding.getByRole("combobox", { name: "Standaard vervoer", exact: true }).selectOption("electric_bicycle");
-  await onboarding.getByRole("button", { name: "Opslaan en volgende" }).click();
+  await expect(page.getByRole("heading", { name: "Vervoer" })).toBeVisible();
+  await expect(onboarding.getByText("Na de laatste afspraak terug naar vertrekpunt", { exact: true })).toHaveCount(0);
+  await onboarding.getByRole("combobox", { name: "Meest gebruikte vervoermiddel *", exact: true }).selectOption("electric_bicycle");
+  await onboarding.getByRole("button", { name: "Opslaan en verder" }).click();
 
-  await expect(page.getByRole("heading", { name: "Wanneer ben je inzetbaar?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Wanneer ben je beschikbaar?" })).toBeVisible();
   await onboarding.getByLabel("Maandag", { exact: true }).check();
   await onboarding.getByLabel("Dag", { exact: true }).check();
-  await onboarding.getByRole("button", { name: "Opslaan en volgende" }).click();
+  await onboarding.getByRole("button", { name: "Opslaan en verder" }).click();
 
-  await expect(page.getByRole("heading", { name: "Blijf op de hoogte" })).toBeVisible();
-  await expect(onboarding.getByRole("button", { name: "Opslaan en volgende" })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: "Meldingen die bij je passen" })).toBeVisible();
+  await expect(onboarding.getByRole("button", { name: "Opslaan en verder" })).toBeDisabled();
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await screenshot("onboarding-notifications-desktop");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectNoHorizontalOverflow(page);
   await onboarding.getByRole("button", { name: "Nu niet, later instellen" }).click();
-  await onboarding.getByRole("button", { name: "Opslaan en volgende" }).click();
+  await onboarding.getByRole("button", { name: "Opslaan en verder" }).click();
 
-  await expect(page.getByRole("heading", { name: "Klaar om te beginnen" })).toBeVisible();
+  await expect(onboarding.getByText("Stap 6 van 6 · Controleren", { exact: true })).toBeVisible();
   await onboarding.getByRole("button", { name: "Lees privacy- en gebruiksinformatie" }).click();
   await expect(page.getByRole("heading", { name: "Zo gaan we met je gegevens om" })).toBeVisible();
   await onboarding.getByRole("button", { name: "Terug naar onboarding" }).click();
@@ -514,7 +537,12 @@ test("nieuwe medewerker hervat en voltooit de volledige personeels-onboarding", 
   await onboarding.getByLabel("Ik heb mijn meldingsinstellingen gecontroleerd.", { exact: true }).check();
   await onboarding.getByLabel("Ik heb de privacy-informatie van mijn organisatie gecontroleerd.", { exact: true }).check();
   await onboarding.getByLabel("Ik heb de toepasselijke gebruiksvoorwaarden gecontroleerd.", { exact: true }).check();
-  await onboarding.getByRole("button", { name: "Naar mijn planning" }).click();
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await screenshot("onboarding-review-desktop");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await screenshot("onboarding-review-mobile");
+  await expectNoHorizontalOverflow(page);
+  await onboarding.getByRole("button", { name: "Bevestigen en afronden" }).click();
 
   await expect(onboarding).toBeHidden();
   await expect(page.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
@@ -525,6 +553,7 @@ test("nieuwe medewerker hervat en voltooit de volledige personeels-onboarding", 
   await mobileNavigation.getByRole("button", { name: "Meer", exact: true }).click();
   await page.locator(".ps-more-grid").getByRole("button", { name: /Beschikbaarheid/ }).click();
   await expect(page.getByRole("heading", { name: "Beschikbaarheid", exact: true })).toBeVisible();
+  await page.getByText("Overige planningsvoorkeuren", { exact: true }).click();
   const availabilityNote = page.getByRole("textbox", { name: "Planningsopmerking", exact: true });
   const saveAvailability = page.getByRole("button", { name: "Beschikbaarheid opslaan", exact: true });
   const savedAvailability = page.getByText("Beschikbaarheid opgeslagen", { exact: true });

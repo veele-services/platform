@@ -62,6 +62,8 @@ const serviceByView: Partial<Record<BackofficeView, string>> = {
   controle: "rapportage", facturen: "finance",
 };
 
+const organisationViews: BackofficeView[] = ["nieuws", "opvolging", "instellingen"];
+
 const statusLabel: Record<string, string> = {
   planned: "Gepland", released: "Vrijgegeven", seen: "Gezien", travelling: "Onderweg",
   in_progress: "Bezig", completed: "Afgerond", returned: "Teruggestuurd", under_review: "Te controleren",
@@ -116,6 +118,14 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
   const q = search.trim().toLowerCase();
   const visibleOrders = q ? data.workOrders.filter((order) => [order.work_order_number, order.discipline, customerById.get(order.customer_id)?.name, objectById.get(order.object_id)?.name].some((value) => value?.toLowerCase().includes(q))) : data.workOrders;
   const attention = data.workOrders.filter((order) => ["returned", "correction_required", "under_review"].includes(order.status));
+  const navLink = (item: typeof nav[number]) => <Link
+    aria-label={item.label} title={item.label} aria-current={view === item.id ? "page" : undefined}
+    prefetch={view === "planning" ? false : undefined} key={item.id} href={item.href}
+    className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}
+  >
+    <item.icon size={18}/><span>{item.label}</span>
+    {item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}
+  </Link>;
   useEffect(()=>{
     if(!mobileNav)return;
     const previous=document.activeElement instanceof HTMLElement?document.activeElement:null,overflow=document.body.style.overflow;
@@ -180,8 +190,28 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
     <aside ref={sidebar} role={mobileNav?"dialog":undefined} aria-modal={mobileNav||undefined} aria-label="Hoofdnavigatie" className={`workspace-sidebar ${mobileNav ? "open" : ""}`} onKeyDown={event=>{
       if(!mobileNav)return;if(event.key==="Escape"){event.preventDefault();setMobileNav(false);return;}
       if(event.key==="Tab"){const targets=Array.from(sidebar.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],select:not(:disabled)')??[]).filter(element=>element.offsetParent!==null),first=targets[0],last=targets.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
-    }}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/><button className="backoffice-nav-close icon-button" type="button" aria-label="Menu sluiten" onClick={()=>setMobileNav(false)}><X size={20}/></button></div><nav>{visibleNav.map((item) => <Link aria-label={item.label} title={item.label} aria-current={view===item.id?"page":undefined} prefetch={view === "planning" ? false : undefined} key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}<TicketNavigation workspace="tenant" current={view} actorKey={`${tenant.id}:${context.user.id}`}/><NotificationNavigation workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/></nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small>{!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}</footer></aside>
-    <div className="workspace-main" inert={mobileNav||undefined}><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu" aria-expanded={mobileNav}><Menu size={20}/></button><span className="breadcrumb">Fieldgrid <ChevronRight size={13}/> <strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input aria-label="Zoek werkbon" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select aria-label="Tenant kiezen" name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
+    }}>
+      <div className="workspace-brand">
+        <FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/>
+        <span className="workspace-brand-label">Backoffice</span>
+        <button className="backoffice-nav-close icon-button" type="button" aria-label="Menu sluiten" onClick={() => setMobileNav(false)}><X size={20}/></button>
+      </div>
+      <nav aria-label="Backoffice">
+        <div className="workspace-nav-group">{visibleNav.filter(item => !organisationViews.includes(item.id)).map(navLink)}</div>
+        <div className="workspace-nav-group">
+          <span className="workspace-nav-label">Organisatie</span>
+          {visibleNav.filter(item => organisationViews.includes(item.id)).map(navLink)}
+          <TicketNavigation workspace="tenant" current={view} actorKey={`${tenant.id}:${context.user.id}`}/>
+          <NotificationNavigation workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/>
+        </div>
+      </nav>
+      <footer>
+        <span className="workspace-organisation-label">Jouw organisatie</span>
+        <div className="workspace-organisation"><span className="workspace-organisation-avatar" aria-hidden="true">{initials(tenant.name)}</span><div><strong>{tenant.name}</strong><small>Tenantomgeving</small></div></div>
+        {!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}
+      </footer>
+    </aside>
+    <div className="workspace-main" inert={mobileNav||undefined}><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu" aria-expanded={mobileNav}><Menu size={20}/></button><span className="breadcrumb"><span className="workspace-origin-dot" aria-hidden="true"/><span className="workspace-origin-label">Mijn omgeving</span><span aria-hidden="true">/</span><strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input aria-label="Zoek werkbon" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select aria-label="Tenant kiezen" name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
   </div></TenantThemeProvider>;
 }
 

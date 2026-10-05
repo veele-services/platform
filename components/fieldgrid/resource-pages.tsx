@@ -132,9 +132,10 @@ function ArchiveButton({ action, fields, label, success }: { action: ServerActio
 }
 
 function ResourceMore({ children }: { children: ReactNode }) {
+  const theme = useTenantTheme();
   return <Popover>
     <PopoverTrigger asChild><button type="button" className="resource-action"><MoreHorizontal size={13}/><span>Meer</span></button></PopoverTrigger>
-    <PopoverContent className="resource-more-content" aria-label="Meer informatie en acties" align="end" sideOffset={6} collisionPadding={12} hideWhenDetached>
+    <PopoverContent className="resource-more-content" style={theme} data-tenant-theme="" aria-label="Meer informatie en acties" align="end" sideOffset={6} collisionPadding={12} hideWhenDetached>
       {children}
     </PopoverContent>
   </Popover>;
@@ -368,7 +369,7 @@ function PersonnelWizard({ onClose, suggestedNumber }: { onClose: () => void; su
     <WizardProgress step={step} labels={["Persoon", "Dienstverband", "Uitnodiging"]}/>
     <form className="wizard-form" onSubmit={submit}>
       <input type="hidden" name="employeeNumberMode" value={automatic ? "automatic" : "manual"}/>
-      <fieldset hidden={step !== 1}><legend>Wie nodig je uit?</legend><label className="wide">Volledige naam<input name="name" required autoFocus/></label><label>E-mailadres<input name="email" type="email" required/></label><label>Telefoon<input name="phone" type="tel"/></label></fieldset>
+      <fieldset hidden={step !== 1}><legend>Wie nodig je uit?</legend><label className="wide">Volledige naam<input name="name" required autoFocus/></label><label>E-mailadres<input name="email" type="email" required/></label><label>Mobiel nummer<input name="phone" type="tel" autoComplete="tel"/></label></fieldset>
       <fieldset hidden={step !== 2}>
         <legend>Leg de basisgegevens vast</legend>
         <label>Personeelsnummer<input name="employeeNumber" value={employeeNumber} onChange={(event) => { setEmployeeNumber(event.target.value); setAutomatic(false); }} required maxLength={80} aria-describedby="personnel-number-hint"/></label>
@@ -378,7 +379,7 @@ function PersonnelWizard({ onClose, suggestedNumber }: { onClose: () => void; su
         </div>
         <WizardMobility/><div className="wizard-note wide"><UsersRound size={18}/><span>Functies, kwalificaties, beschikbaarheid en documenten voeg je daarna via ‘Meer’ toe.</span></div>
       </fieldset>
-      <fieldset hidden={step !== 3}><legend>Verstuur de uitnodiging</legend><div className="wizard-summary wide"><Send size={23}/><div><strong>Een uitnodiging voor het personeelsportaal</strong><p>De medewerker ontvangt een e-mail in de huisstijl van jouw organisatie. Via de knop in die e-mail activeert de medewerker het account en kiest een eigen wachtwoord. Wie al een account heeft, logt in met de bestaande gegevens.</p><p>In het personeelsportaal kan de medewerker de eigen planning en werkbonnen bekijken.</p><p>Personeelsnummer: <strong>{employeeNumber}</strong>{automatic && " (automatisch voorstel)"}</p></div></div></fieldset>
+      <fieldset hidden={step !== 3}><legend>Verstuur de uitnodiging</legend><div className="wizard-summary wide"><Send size={23}/><div><strong>Een uitnodiging voor het personeelsportaal</strong><p>De medewerker ontvangt een e-mail in de huisstijl van jouw organisatie. De medewerker logt in met een eenmalige e-mailcode op het uitgenodigde e-mailadres. Een wachtwoord is niet nodig.</p><p>In het personeelsportaal kan de medewerker de eigen planning en werkbonnen bekijken.</p><p>Personeelsnummer: <strong>{employeeNumber}</strong>{automatic && " (automatisch voorstel)"}</p></div></div></fieldset>
       <WizardFooter step={step} steps={3} onBack={() => step === 1 ? onClose() : setStep((value) => value - 1)} onNext={(event) => validateWizardStep(event, () => setStep((value) => Math.min(3, value + 1)))} pending={pending} submitLabel="Uitnodiging versturen"/>
     </form>
   </Modal>;

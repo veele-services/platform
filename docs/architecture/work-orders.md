@@ -84,6 +84,8 @@ De databaseclient vertrouwt daarnaast het publieke `scripts/certs/supabase-root-
 ## Gebruik en beheer
 
 - Open **Werkbonnen** voor de lijst en de zesstapswizard. Dezelfde bon opent vanuit Klant 360, Object 360 en het planbord. Filters en tabblad blijven in de URL behouden.
+- Leg in stap **Uitvoering** alleen de gewenste dag en het aankomstvenster vast. De wizard biedt blokken van twee uur; de taaknormtijden maal hoeveelheden bepalen afzonderlijk de begrote arbeidsduur. Een nieuwe bon blijft **In te delen**. Bezoekduur, bezetting en medewerkers worden later via het bestaande planbord ingedeeld.
+- Na de eerste personeelsindeling via het planbord wordt de bon **Voorlopig gepland**. Vrijgeven blijft een afzonderlijke actie. Planning verwijderen zet een voorlopige bon terug naar **In te delen**; ongedaan maken herstelt de vastgelegde planningsstatus. Bestaande definitieve bonnen behouden hun status bij een tijdswijziging.
 - Beheer werkbon- en checklisttemplates via **Taken & tarieven → Templates**. Publiceer een versie voordat deze op nieuwe bonnen wordt gebruikt. Een wijziging van een gepubliceerde template maakt een nieuw concept; bestaande bonnen houden hun eigen versie en antwoorden.
 - Stel de ondertekenstandaard bij de tenant in. Een object, template of expliciet bevoegde boninstelling kan daarvan afwijken; het rapport toont welke instelling geldt. Een wijziging na vrijgave vereist een reden. Vrijstellen is een afzonderlijke beheeractie, geen vervangende handtekening.
 - Wijs medewerkers met eigen intervallen toe. Bij meerdere medewerkers kiest de planner vóór verplaatsen tussen **Alleen deze inzet** en **Het hele bezoek**. De medewerker stopt alleen de eigen tijd; rapportindiening en ondertekening volgen los daarvan.
@@ -91,6 +93,12 @@ De databaseclient vertrouwt daarnaast het publieke `scripts/certs/supabase-root-
 - Genereer terugkerende bezoeken bewust voor maximaal zes weken. Overgeslagen en handmatig verplaatste bezoeken blijven bij herhalen behouden.
 - Vraag bij gewijzigde klantzichtbare uitvoering eerst een rapportcorrectie. Bestaande versies en bewijsbestanden blijven onveranderlijk. Nieuwe interne opmerkingen en private bijlagen blijven mogelijk zonder het aangeboden rapport te veranderen.
 - Controleer en keur de actuele rapportversie goed voordat prestaties worden vrijgegeven voor facturatie. Een rapporthandtekening vervangt geen ontbrekend meerwerkakkoord.
+
+## Gerichte wizardcontrole — 5 oktober 2026
+
+`customer-window.ts` zet de gewenste dag en het gekozen twee-uursblok om naar het bestaande klantvenster in de tenanttijdzone, met venstertype `arrival`. Dit maakt geen bezoekinterval of personeelsinzet. De wizard bewaart bij bewerken bestaande planner, deadline, bezetting, planningsstatus, bezoek- en individuele inzettijden. Een bestaande afwijkende klantafspraak blijft intact totdat de gebruiker zelf een nieuw blok kiest. De bestaande serveractie, autorisatie, versiecontrole, herhaalsleutel en planning-RPC blijven de schrijfgrens.
+
+Gericht bewijs: 15 unittests in `lib/work-orders/customer-window.test.ts` voor blokken, tijdzones, daggrenzen, klokwisseling en herkenning van bestaande afspraken. Twee lokale Chromium-tests in `tests/e2e/work-order-preferences.spec.ts` controleren echte opslag en bewerken zonder personeel/planning, 180 taakminuten naast een venster van 120 minuten, latere personeelsplanning met een bezoek van drie uur, behoud van een bestaande definitieve planning en afwijkende afspraak, en de wizard op 320/375/1440 pixels. Lint en TypeScript-diagnostiek zijn beperkt tot de gewijzigde bestanden. De brede eindcontrole en stagingpromotie volgen pas op verzoek.
 
 ## Lokaal opleverbewijs — 30 september 2026
 

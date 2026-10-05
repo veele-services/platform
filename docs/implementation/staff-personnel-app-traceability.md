@@ -155,17 +155,18 @@ een zichtbare parent maar slechts een deel van de bijlagemetadata.
 
 | Functie | Implementatie en servergedrag |
 | --- | --- |
-| Uren | Lokale weeknavigatie, zeven dagtotalen en uitgesplitste werk-, reis-, pauze- en overige geregistreerde tijd. |
+| Mijn uren | Prototype-indeling met drie dagtotalen, tijdlijn met locatie/duur, correctiekeuze, pauze/totaal, weekzijbalk en blijvende registratie-uitleg. Weekdagen zijn selecteerbaar; weekenddagen verschijnen bij geregistreerde uren of selectie. Weeknavigatie blijft beschikbaar. Lege dagen tonen dezelfde structuur met nulwaarden. Totalen tellen alleen geregistreerde tijd; lopende regels verversen elke minuut. |
 | Werkdag sluiten/bevestigen | staff_day_command; open tijdregels blokkeren sluiten, open correcties blokkeren bevestigen, exacte retries leveren hetzelfde resultaat. |
 | Correctieverzoek medewerker | Alleen voor een gesloten eigen tijdregel en verwachte versie; de medewerker geeft gecorrigeerde begin-/eindtijd of duur plus reden op. Het verzoek bewaart bron- en doelsnapshot, wordt niet dubbel pending aangemaakt en verandert de bronregel of dagstaat nog niet. |
 | Correctiebeoordeling management/HR | Het personeelsdossier toont oorspronkelijk en gevraagd interval, reden en status. Tenant admin, management of HR kan de exacte versie toepassen of met verplichte toelichting afwijzen via review_staff_time_correction. |
-| Verlof | Aanvragen, status en aangevraagde/goedgekeurde uren bekijken en een pending aanvraag intrekken; overlapguard, contractafgeleide minuten, lokale datumgrenzen en idempotentie staan in de database. Goedkeuring maakt atomair een availability-blok. |
+| Verlof | Prototype-kop met aanvraagknop rechts, drie saldokaarten, één aanvraaglijst en uitleg met 24px tussenruimte. Aanvragen, status en aangevraagde/goedgekeurde uren bekijken en een pending aanvraag intrekken; overlapguard, contractafgeleide minuten, lokale datumgrenzen en idempotentie staan in de database. Goedkeuring maakt atomair een availability-blok. |
 | Verlofsaldo | Jaarrecht en overdracht zijn management-owned en versioned; beschikbaar, goedgekeurd en in behandeling worden uit entitlement plus goedgekeurde/aangevraagde minuten berekend. |
-| Beschikbaarheid | Weekdagen/tijden, dag/avond/nacht, weekend, feestdagen en planningsnotitie; alleen bewerkbaar als management selfservice heeft vrijgegeven. UI én RPC controleren dit. |
+| Beschikbaarheid | Prototype-indeling met compacte weektabel, beheerstatus en twee informatiekaarten met een link naar verlof. Twee lege tijden betekenen niet beschikbaar; een beschikbaar tijdvak vereist beide tijden en een latere eindtijd. Dienstvoorkeuren, weekend, feestdagen en planningsnotitie blijven onder de tabel bereikbaar. Alleen bewerkbaar als management selfservice heeft vrijgegeven; UI én RPC controleren dit en bewaken de versie van de getoonde gegevens. |
 | Nieuws | Alleen gepubliceerde staff-aankondigingen, met eigen gelezenstatus. |
 | Tickets en notificaties | Bestaande beveiligde routes in dezelfde personeels-shell; inbox, voorkeuren en push-control blijven beschikbaar. |
 | Documenten | Alleen employee-visible en niet dossier-managed eigen documenten, via de bestaande private downloadgrens. |
 | Profiel | Naam, roepnaam, telefoon, mobiel, geboortedatum, woonadres, noodcontact, vervoer en reisbeperkingen met optimistic concurrency. Login-e-mail is readonly en ontbreekt uit iedere write-allowlist. |
+| Instellingen | Prototype-indeling met Mijn profiel, Meldingen en Account & toegang. Naam en mobiel worden via een smalle eigen-profielactie opgeslagen; overige dossiergegevens en login-e-mail worden niet aangeleverd. Push/e-mail/stille uren gebruiken de bestaande versiegebonden centrale voorkeuren en bewaren typekeuzes. Apparaatregistratie en voorkeuren per onderwerp blijven beschikbaar. De testmelding verschijnt lokaal in de app; accountuitleg en uitloggen gebruiken de bestaande OTP- en sessiegrenzen. |
 | Open diensten | Alleen eligible open diensten; eigen interesse kan worden aangemeld of ingetrokken. |
 
 Verlofrecht wordt niet uit een UI-standaard verzonnen. Management legt per jaar

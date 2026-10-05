@@ -7,6 +7,31 @@ import { requireLocalApiUrl } from "./local-target";
 
 const rgb = (hex: string) => `rgb(${[1, 3, 5].map(index => Number.parseInt(hex.slice(index, index + 2), 16)).join(", ")})`;
 
+test("tenantlogo toont de organisatienaam als het afbeeldingsbestand niet laadt", async ({ page }) => {
+  requireLocalApiUrl();
+  const logo = page.getByRole("img", { name: "Logo van Demo Organisatie" });
+  const fallback = page.locator(".brand-name-fallback");
+  let requested = false;
+  await page.route("**/api/branding/**/email-logo*", route => {
+    requested = true;
+    return route.fulfill({ status: 404, body: "" });
+  });
+  await page.goto("/auth/invite?tenant=fieldgrid-e2e");
+  await expect(fallback).toHaveText("Demo Organisatie");
+  await expect(logo).toHaveCount(0);
+  expect(requested).toBe(true);
+
+  await page.unroute("**/api/branding/**/email-logo*");
+  await page.route("**/api/branding/**/email-logo*", route => route.fulfill({
+    contentType: "image/png",
+    body: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+yVxoAAAAASUVORK5CYII=", "base64"),
+  }));
+  await page.reload();
+  await expect(logo).toBeVisible();
+  await expect.poll(() => logo.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBe(1);
+  await expect(fallback).toHaveCount(0);
+});
+
 test("centrale huisstijl bewaart concepten, publiceert kleuren en weigert gelijktijdig overschrijven", async ({ page, context }) => {
   test.setTimeout(120_000);
   const api = requireLocalApiUrl();

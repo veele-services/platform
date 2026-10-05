@@ -595,13 +595,14 @@
     },
     {
       "id": "code:app/app/operations-actions.ts",
-      "surfaceFingerprint": "020cad260e032f3caa264a97b3c5dc4d2b3b01402bb28f010c5c4919b3c49ff3",
+      "surfaceFingerprint": "91f754f79abc55b6c3e589341d8d6d98b03409087af834e75cdbea6f7921e583",
       "status": "corrected-and-rechecked",
       "evidence": [
         "manual-personnel-app-authz-review:2026-10-05",
         "tests/e2e/personnel-invitation.spec.ts#existing-accounts-keep-their-password-and-roles-when-invited-to-the-personnel-portal",
         "tests/e2e/personnel-invitation.spec.ts#failed-invitation-can-be-resent-without-duplicating-personnel-and-revoked-access-cannot-activate",
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026"
+        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
       ]
     },
     {
@@ -840,11 +841,12 @@
     },
     {
       "id": "code:app/auth/invite/actions.ts",
-      "surfaceFingerprint": "9a576c2cdcf566480625184c1e860790e2722390a507b4cb4f45d932f5f8c9ef",
-      "status": "controlled",
+      "surfaceFingerprint": "0d0648474e5133fba93bd4183071cf5464c9b9335a90ce21aef6868ed1abecd5",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/otp-activity-verification-2026-10-05.md"
+        "docs/security/otp-activity-verification-2026-10-05.md",
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
       ]
     },
     {
@@ -1219,7 +1221,7 @@
     },
     {
       "id": "code:app/staff/actions.ts",
-      "surfaceFingerprint": "66f99252ae578963fb495f6491d90983003b4edf34a3d986b5cee5908c50ce5b",
+      "surfaceFingerprint": "1a0e59bec63debc3a83e55e7d9ba4f198ece666ee9f37af5136e985e1083b7a4",
       "status": "corrected-and-rechecked",
       "evidence": [
         "manual-personnel-app-authz-review:2026-10-05",
@@ -1228,7 +1230,10 @@
         "supabase/tests/database/staff_report_upload_finalize.sql",
         "lib/staff/time-correction.test.ts",
         "lib/staff/report-upload-action.test.ts",
-        "scripts/test-release-security.mjs"
+        "scripts/test-release-security.mjs",
+        "docs/security/release-security-inventory.md#instellingencontactactie-review--5-oktober-2026",
+        "lib/staff/contact-action.test.ts",
+        "tests/e2e/staff-settings.spec.ts"
       ]
     },
     {
@@ -1435,7 +1440,7 @@
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "d3166201ffa6a2376532ace9ab1e8f3f6dcb25e523eb726eb2ef46803cbab1c4",
+      "surfaceFingerprint": "9719f9f9ffbeb40492d40770a51b714c93382df268c72371d3a364d9251057e3",
       "status": "corrected-and-rechecked",
       "evidence": [
         "manual-personnel-app-authz-review:2026-10-05",
@@ -1443,12 +1448,15 @@
         "lib/staff/time-correction.test.ts",
         "supabase/tests/database/staff_personnel_app.sql",
         "tests/e2e/fieldgrid.spec.ts",
-        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken"
+        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken",
+        "docs/security/release-security-inventory.md#instellingencontactactie-review--5-oktober-2026",
+        "lib/staff/contact-action.test.ts",
+        "tests/e2e/staff-settings.spec.ts"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
-      "surfaceFingerprint": "77777fecd4e9e744174f8e64681c080771b9a410c58a2687b54d788b4991ce6f",
+      "surfaceFingerprint": "e753f77f4d4d5d2eceadf1920e0827aa1dba028aa01fb8b0cf3fbb404d832c71",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
@@ -1456,20 +1464,22 @@
         "scripts/test-release-storage-http.mjs",
         "tests/e2e/fieldgrid.spec.ts",
         "scripts/test-planboard.mjs",
-        "docs/implementation/staff-realtime-and-release.md#realtimepad"
+        "docs/implementation/staff-realtime-and-release.md#realtimepad",
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell.tsx",
-      "surfaceFingerprint": "f86d03cd8cb45311ddb859f48b815a110ee94c78a250f0191b668b113fb0519b",
-      "status": "controlled",
+      "surfaceFingerprint": "b52a95ba735dbb91bf455c014a7c8a87b54a861346e5c493e89ce52f0999bcb4",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
         "lib/staff/route-boundaries.test.ts",
         "tests/e2e/notifications.spec.ts",
         "tests/e2e/tickets.spec.ts",
         "tests/e2e/module-boundaries.spec.ts",
-        "docs/implementation/staff-realtime-and-release.md#clientgedrag"
+        "docs/implementation/staff-realtime-and-release.md#clientgedrag",
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
       ]
     },
     {
@@ -4727,11 +4737,14 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "37e4311668071b815916508856163557a8a53d3527ff127ff1dac647733ae66c",
-      "status": "controlled",
+      "surfaceFingerprint": "7fddd8fecfa89cb9256e4131049c62f17024c8ba2332203da409b74ea8a3a7e8",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/auth-mail-verification-2026-10-05.md",
-        "scripts/verify-local-migration-manifest.ts"
+        "scripts/verify-local-migration-manifest.ts",
+        "docs/security/release-security-inventory.md#planningstatus-na-uitgestelde-indeling--5-oktober-2026",
+        "scripts/test-planboard.mjs",
+        "scripts/test-work-order-rpc-guards.mjs"
       ]
     },
     {
@@ -7096,13 +7109,16 @@
     },
     {
       "id": "rpc:private.planning_snapshot(w uuid)",
-      "surfaceFingerprint": "652a7915bbf6c91d23eb2426e91def9e3fbf211cb389c59c194072744fe64539",
-      "status": "controlled",
+      "surfaceFingerprint": "c6942c0ea698b57d4321a6d8d90bccc7546647a288625405489127e3413ec18d",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "manual-completion-audit:2026-10-01",
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "pnpm test:db",
+        "docs/security/release-security-inventory.md#planningstatus-na-uitgestelde-indeling--5-oktober-2026",
+        "scripts/test-planboard.mjs",
+        "scripts/test-work-order-rpc-guards.mjs"
       ]
     },
     {
@@ -8532,13 +8548,16 @@
     },
     {
       "id": "rpc:public.change_work_order_planning(target_tenant uuid, target_work_order uuid, expected_version bigint, mutation_id uuid, target_start timestamp with time zone, target_end timestamp with time zone, target_assignments jsonb, confirmed_warnings text[], undo_change uuid, appointment_data jsonb)",
-      "surfaceFingerprint": "f36288db1a3bca4b9993f2da9abaad93ac612f5c5d8c5437647119ca60f634d2",
-      "status": "controlled",
+      "surfaceFingerprint": "494e6dee5387e3b1c07ea7945c988879e561e42ed8559b0e016994a65e9081ef",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "manual-completion-audit:2026-10-01",
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "pnpm test:db",
+        "docs/security/release-security-inventory.md#planningstatus-na-uitgestelde-indeling--5-oktober-2026",
+        "scripts/test-planboard.mjs",
+        "scripts/test-work-order-rpc-guards.mjs"
       ]
     },
     {
