@@ -2396,11 +2396,13 @@
 /* First-visit onboarding */
 
 .personnel-app .ps-onboarding {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  --ps-surface: #fff;
+  --ps-ink: #1e2b36;
+  --ps-muted: #748191;
+  --ps-line: #e0e6eb;
+  display: flex;
   width: min(860px, calc(100vw - 32px));
-  height: 90dvh;
-  max-height: 90dvh;
+  height: min(860px, 94dvh);
   min-height: 0;
   overflow: hidden;
   border-radius: 20px;
@@ -2409,102 +2411,64 @@
   animation: ps-dialog-in 190ms ease both;
 }
 
-.personnel-app .ps-onboarding-aside {
-  display: flex;
-  min-height: 0;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 28px 22px;
-  background: linear-gradient(165deg, var(--ps-sidebar), var(--ps-sidebar-end));
-  color: var(--ps-sidebar-text);
-}
-
-.personnel-app .ps-onboarding-aside h2 {
-  margin-top: 8px;
-  font-size: 1.2rem;
-}
-
-.personnel-app .ps-onboarding-aside > strong {
-  font-family: Poppins, Inter, sans-serif;
-  font-size: 1.35rem;
-}
-
-.personnel-app .ps-onboarding-aside > small {
-  color: var(--ps-sidebar-muted);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.personnel-app .ps-onboarding-aside p {
-  margin-top: 8px;
-  color: var(--ps-sidebar-muted);
-  font-size: 0.8125rem;
-}
-
 .personnel-app .ps-onboarding-main {
   display: flex;
+  width: 100%;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
-  background: var(--ps-surface);
 }
 
-.personnel-app .ps-onboarding-main > header {
+.personnel-app .ps-onboarding-header {
+  display: flex;
   flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
   border-bottom: 1px solid var(--ps-line);
   padding: 24px 28px 20px;
 }
 
-.personnel-app .ps-onboarding-main > header p {
-  margin-top: 5px;
+.personnel-app .ps-onboarding-kicker {
+  display: block;
+  color: var(--ps-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.personnel-app .ps-onboarding-header h1 {
+  margin-top: 6px;
+  font-size: 1.35rem;
+  letter-spacing: -0.03em;
+}
+
+.personnel-app .ps-onboarding-header p {
+  margin-top: 4px;
   color: var(--ps-muted);
   font-size: 0.875rem;
 }
 
-.personnel-app .ps-onboarding-stepbar {
-  display: grid;
-  gap: 8px;
+.personnel-app .ps-onboarding-header button {
+  min-height: 36px;
+  padding: 7px 12px;
+  font-size: 0.8125rem;
 }
 
-.personnel-app .ps-onboarding-stepbar > span {
-  color: var(--ps-muted);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.personnel-app .ps-onboarding-stepbar > i {
-  display: block;
-  height: 5px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--ps-line);
-}
-
-.personnel-app .ps-onboarding-stepbar > i > b {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--ps-brand);
-  transition: width 180ms ease;
-}
-
-.personnel-app .ps-onboarding-main > main,
-.personnel-app .ps-onboarding-main > form {
-  flex: 1 1 0;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 24px 28px;
-  scrollbar-gutter: stable;
+.personnel-app .ps-onboarding-stepper {
+  flex: 0 0 auto;
+  padding: 18px 28px 0;
+  background: #fbfcfd;
 }
 
 .personnel-app .ps-onboarding-progress {
   display: grid;
-  gap: 7px;
-  margin: 26px 0 0;
-  padding: 0;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0 0 18px;
   list-style: none;
 }
 
@@ -2512,57 +2476,278 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 10px;
-  border: 0;
-  border-radius: 9px;
-  padding: 9px;
-  background: transparent;
-  color: var(--ps-sidebar-muted);
-  font-size: 0.78rem;
-  text-align: left;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--ps-muted);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.personnel-app .ps-onboarding-progress strong {
+  font-weight: 500;
 }
 
 .personnel-app .ps-onboarding-progress > li > span {
   display: grid;
-  width: 25px;
-  height: 25px;
-  flex: 0 0 25px;
+  width: 30px;
+  height: 30px;
   place-items: center;
-  border: 1px solid rgb(255 255 255 / 22%);
+  border: 1px solid var(--ps-line);
   border-radius: 50%;
-  color: inherit;
-  font-size: 0.75rem;
-  font-weight: 700;
+  background: white;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
-.personnel-app .ps-onboarding-progress > li > span svg {
-  width: 14px;
-  height: 14px;
+.personnel-app .ps-onboarding-progress svg {
+  width: 15px;
+  height: 15px;
 }
 
-.personnel-app .ps-onboarding-progress > .active,
-.personnel-app .ps-onboarding-progress > [aria-current="step"] {
-  background: rgb(255 255 255 / 7%);
-  color: white;
+.personnel-app .ps-onboarding-progress > .active {
+  color: var(--ps-action);
 }
 
-.personnel-app .ps-onboarding-progress > .active > span,
-.personnel-app .ps-onboarding-progress > [aria-current="step"] > span {
-  border-color: var(--ps-brand);
-  background: var(--ps-brand);
-  box-shadow: 0 0 0 4px rgb(65 172 66 / 13%);
+.personnel-app .ps-onboarding-progress > .active > span {
+  border-color: var(--ps-action);
+  background: var(--ps-action);
+  box-shadow: 0 0 0 4px var(--ps-soft);
   color: white;
 }
 
 .personnel-app .ps-onboarding-progress > .done > span {
-  border-color: #78b87b;
-  background: #315c38;
-  color: white;
+  border-color: transparent;
+  background: var(--ps-soft);
+  color: var(--ps-action);
 }
 
-.personnel-app .ps-onboarding-aside > form {
-  margin-top: auto;
-  padding-top: 20px;
+.personnel-app .ps-onboarding-stepbar > i {
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  background: var(--ps-line);
+}
+
+.personnel-app .ps-onboarding-stepbar b {
+  display: block;
+  height: 100%;
+  background: var(--ps-brand);
+  transition: width 180ms ease;
+}
+
+.personnel-app .ps-onboarding-main > main {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 26px 28px 30px;
+  scrollbar-gutter: stable;
+}
+
+.personnel-app .ps-onboarding-step {
+  display: grid;
+  gap: 24px;
+}
+
+.personnel-app .ps-onboarding :where(h2) {
+  font-size: 1.2rem;
+  letter-spacing: -0.025em;
+}
+
+.personnel-app .ps-onboarding :where(h3) {
+  font-family: Inter, Arial, sans-serif;
+  font-size: 0.9375rem;
+}
+
+.personnel-app .ps-onboarding-step > div > p {
+  margin-top: 7px;
+  color: var(--ps-muted);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.personnel-app .ps-onboarding-welcome h2 {
+  margin: 12px 0;
+  font-size: 1.8rem;
+}
+
+.personnel-app .ps-onboarding-welcome > div > p {
+  max-width: 650px;
+  font-size: 1rem;
+}
+
+.personnel-app .ps-onboarding-feature-grid,
+.personnel-app .ps-onboarding-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.personnel-app .ps-onboarding-feature-grid article {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  border: 1px solid var(--ps-line);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.personnel-app .ps-onboarding-feature-grid svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--ps-action);
+}
+
+.personnel-app .ps-onboarding-feature-grid strong {
+  font-size: 0.9375rem;
+}
+
+.personnel-app .ps-onboarding-feature-grid p {
+  margin-top: 4px;
+  color: var(--ps-muted);
+  font-size: 0.875rem;
+}
+
+.personnel-app .ps-onboarding-group {
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--ps-line);
+  border-radius: 12px;
+  padding: 16px 18px 18px;
+}
+
+.personnel-app .ps-onboarding-group legend {
+  padding: 0 7px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.personnel-app .ps-onboarding-group legend span {
+  color: var(--ps-muted);
+  font-weight: 400;
+}
+
+.personnel-app .ps-onboarding :where(.ps-check) {
+  align-items: center;
+  min-height: 47px;
+  background: white;
+}
+
+.personnel-app .ps-onboarding .ps-check:has(input:checked) {
+  background: var(--ps-soft);
+}
+
+.personnel-app .ps-onboarding .ps-check input {
+  margin-top: 0;
+}
+
+.personnel-app .ps-onboarding-license-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.personnel-app .ps-onboarding-push {
+  border: 1px solid #d5e5d5;
+  border-radius: 14px;
+  padding: 20px;
+  background: var(--ps-soft);
+}
+
+.personnel-app .ps-onboarding-push-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.personnel-app .ps-onboarding-push-heading svg {
+  width: 20px;
+  flex: 0 0 auto;
+  color: var(--ps-action);
+}
+
+.personnel-app .ps-onboarding-push p {
+  margin-top: 5px;
+  color: var(--ps-muted);
+  font-size: 0.875rem;
+}
+
+.personnel-app .ps-onboarding-choice-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.personnel-app .ps-onboarding-choice-row [aria-pressed="true"] {
+  outline: 2px solid var(--ps-action);
+  outline-offset: 3px;
+}
+
+.personnel-app .ps-onboarding-push .ps-onboarding-required {
+  margin-top: 12px;
+  font-size: 0.8125rem;
+}
+
+.personnel-app .ps-onboarding-topic-list,
+.personnel-app .ps-onboarding-confirmations {
+  display: grid;
+  gap: 14px;
+}
+
+.personnel-app .ps-onboarding-channels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.personnel-app .ps-onboarding-quiet {
+  border: 1px solid var(--ps-line);
+  border-radius: 12px;
+  padding: 14px 18px;
+}
+
+.personnel-app .ps-onboarding-quiet summary {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.personnel-app .ps-onboarding-quiet[open] > div {
+  margin-top: 18px;
+}
+
+.personnel-app .ps-onboarding-muted {
+  color: var(--ps-muted);
+  font-size: 0.8125rem;
+}
+
+.personnel-app .ps-onboarding-review-card {
+  min-width: 0;
+  border: 1px solid var(--ps-line);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.personnel-app .ps-onboarding-review-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.personnel-app .ps-onboarding-review-card p {
+  overflow-wrap: anywhere;
+  color: var(--ps-muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.personnel-app .ps-onboarding .ps-text-button {
+  justify-self: start;
+  text-align: left;
 }
 
 .personnel-app .ps-onboarding-actions {
@@ -2570,35 +2755,26 @@
   flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 14px;
   border-top: 1px solid var(--ps-line);
   padding: 17px 28px;
   background: #fcfdfd;
 }
 
+.personnel-app .ps-onboarding-back-actions {
+  display: flex;
+  gap: 12px;
+}
+
 .personnel-app .ps-onboarding-note {
-  margin-top: 16px;
-  border: 1px solid #dce9dd;
-  border-radius: 12px;
-  padding: 13px 15px;
-  background: #f4faf4;
-  color: #35513b;
+  border: 1px solid #dce7f5;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #eff5ff;
+  color: #5375a2;
   font-size: 0.875rem;
   line-height: 1.55;
-}
-
-.personnel-app .ps-onboarding-choice-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.personnel-app .ps-onboarding-required {
-  margin: 12px 0 0;
-  color: var(--ps-muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .personnel-app .ps-push-setup {
@@ -2621,7 +2797,7 @@
   gap: 6px;
 }
 
-.personnel-app .ps-policy-information h2 {
+.personnel-app .ps-policy-information h3 {
   margin: 0;
   font-size: 1rem;
 }
@@ -2810,9 +2986,6 @@
     align-items: flex-start;
   }
 
-  .personnel-app .ps-onboarding {
-    grid-template-columns: 190px minmax(0, 1fr);
-  }
 }
 
 /* Mobile application */
@@ -3143,68 +3316,70 @@
     flex: 1;
   }
 
-  .personnel-app .ps-onboarding {
-    display: flex;
-    flex-direction: column;
+  .personnel-app .ps-onboarding-header {
+    padding: calc(18px + env(safe-area-inset-top)) 20px 16px;
   }
 
-  .personnel-app .ps-onboarding-aside {
-    flex: 0 0 auto;
-    overflow: visible;
-    padding: calc(15px + env(safe-area-inset-top)) 20px 13px;
-  }
-
-  .personnel-app .ps-onboarding-aside > p {
-    display: none;
-  }
-
-  .personnel-app .ps-onboarding-aside h2 {
-    margin-top: 0;
-    font-size: 1.05rem;
+  .personnel-app .ps-onboarding-stepper {
+    padding: 16px 12px 0;
   }
 
   .personnel-app .ps-onboarding-progress {
-    grid-auto-columns: minmax(0, 1fr);
-    grid-auto-flow: column;
-    gap: 4px;
-    margin-top: 12px;
+    gap: 3px;
+    padding-bottom: 15px;
   }
 
-  .personnel-app .ps-onboarding-progress > li {
-    justify-content: center;
-    padding: 2px;
-    font-size: 0;
+  .personnel-app .ps-onboarding-progress strong {
+    font-size: 0.625rem;
+    overflow-wrap: anywhere;
   }
 
-  .personnel-app .ps-onboarding-progress > li > span {
-    width: 24px;
-    height: 24px;
-    flex-basis: 24px;
+  .personnel-app .ps-onboarding-main > main {
+    padding: 22px 20px;
   }
 
-  .personnel-app .ps-onboarding-main {
-    flex: 1 1 auto;
+  .personnel-app .ps-onboarding-feature-grid,
+  .personnel-app .ps-onboarding-review-grid {
+    grid-template-columns: 1fr;
   }
 
-  .personnel-app .ps-onboarding-main > header {
-    padding: 18px 20px 15px;
+  .personnel-app .ps-onboarding-welcome h2 {
+    font-size: 1.5rem;
   }
 
-  .personnel-app .ps-onboarding-main > main,
-  .personnel-app .ps-onboarding-main > form {
-    padding: 20px;
+  .personnel-app .ps-onboarding-group {
+    padding-inline: 12px;
+  }
+
+  .personnel-app .ps-onboarding-channels {
+    gap: 6px;
+  }
+
+  .personnel-app .ps-onboarding-channels .ps-check {
+    gap: 6px;
+    padding: 10px 8px;
+    font-size: 0.8125rem;
   }
 
   .personnel-app .ps-onboarding-actions {
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 10px;
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
   }
 
-  .personnel-app .ps-onboarding-actions > :where(.ps-primary, .ps-secondary) {
+  .personnel-app .ps-onboarding-back-actions {
     flex: 1;
-    min-width: 0;
+    gap: 8px;
+  }
+
+  .personnel-app .ps-onboarding-back-actions > button {
+    flex: 1;
     padding-inline: 10px;
     font-size: 0.8125rem;
+  }
+
+  .personnel-app .ps-onboarding-actions > .ps-primary {
+    flex-basis: 100%;
   }
 
   .personnel-app .ps-toast-note {
@@ -3247,14 +3422,6 @@
     justify-self: start;
   }
 
-  .personnel-app .ps-onboarding-actions {
-    flex-wrap: wrap;
-  }
-
-  .personnel-app .ps-onboarding-actions > .ps-primary {
-    flex-basis: 100%;
-    order: -1;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3338,4 +3505,13 @@
   .personnel-app .ps-topbar-leading .ps-sync > span {
     display: none;
   }
+}
+
+.personnel-app .ps-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

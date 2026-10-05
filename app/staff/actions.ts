@@ -256,6 +256,9 @@ export async function saveStaffOnboarding(input: SaveStaffOnboardingInput): Prom
     const context = await staffContext();
     const parsed = onboardingSchema.parse(input);
     const { complete, ...payload } = parsed;
+    // Empty address objects from the management form are placeholders. Only
+    // send an alternate address when the employee actually departs from it.
+    if (payload.draft.transport.departureKind !== "alternate") payload.draft.transport.alternateDepartureAddress = null;
     await reportRpc(await createClient(), "staff_save_onboarding", {
       target_tenant: context.tenant.id,
       input: payload,

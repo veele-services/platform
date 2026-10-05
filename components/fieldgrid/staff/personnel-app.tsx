@@ -24,7 +24,6 @@ import { Toaster, toast } from "sonner";
 import type { AuthContext } from "@/lib/auth/context";
 import type { Json } from "@/lib/database.types";
 import type { NotificationPreferences } from "@/lib/notifications/model";
-import type { StaffAvailabilityPreferences, StaffOnboardingDraft } from "@/lib/staff/model";
 import type { StaffPersonnel, StaffWorkspaceData } from "@/lib/staff/workspace";
 import { addStaffDays, assignmentInterval, staffClock, staffDate, staffDayLabel, staffDuration, staffWeek, summarizeEntries } from "@/lib/staff/time";
 import { localDateTime } from "@/lib/planning/time";
@@ -34,10 +33,12 @@ import { NotificationBell } from "@/components/fieldgrid/notifications/inbox";
 import { NotificationPushControl } from "@/components/fieldgrid/notifications/push";
 import {
   markAnnouncementRead, requestTimeCorrection, runStaffDayCommand,
-  runStaffLeaveCommand, saveStaffOnboarding, toggleShiftInterest, transitionWorkOrder,
+  runStaffLeaveCommand, toggleShiftInterest, transitionWorkOrder,
   updateStaffAvailability, updateStaffProfile,
 } from "@/app/staff/actions";
 import { StaffOrderSheet, type StaffOrder } from "@/components/fieldgrid/staff-app";
+import { defaultAvailability, defaultTransport } from "@/lib/staff/onboarding";
+import { Onboarding } from "@/components/fieldgrid/staff/onboarding";
 import { StaffProfileRecovery } from "@/components/fieldgrid/staff/profile-recovery";
 
 type Assignment = StaffWorkspaceData["assignments"][number];
@@ -55,9 +56,6 @@ const statusLabels: Record<string, string> = {
 const leaveLabels: Record<string, string> = { vacation: "Vakantie", short: "Kort verlof", care: "Zorgverlof", unpaid: "Onbetaald verlof", other: "Anders" };
 const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 const dayLabels: Record<(typeof dayKeys)[number], string> = { monday: "Maandag", tuesday: "Dinsdag", wednesday: "Woensdag", thursday: "Donderdag", friday: "Vrijdag", saturday: "Zaterdag", sunday: "Zondag" };
-const shiftOptions = ["day", "evening", "night"] as const;
-const vehicleOptions = ["car", "van", "motorcycle", "scooter", "electric_bicycle", "bicycle", "public_transport", "walking", "other"] as const;
-const departureOptions = ["home", "depot", "alternate"] as const;
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 const objectAddress = (value: unknown) => {
@@ -66,76 +64,6 @@ const objectAddress = (value: unknown) => {
 };
 const jsonObject = (value: Json | undefined | null) => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, Json> : {};
 const asText = (value: Json | undefined) => typeof value === "string" ? value : "";
-
-function defaultAvailability(value: Json | undefined): StaffAvailabilityPreferences {
-  const input = jsonObject(value);
-  const sourceWeek = jsonObject(input.week);
-  return {
-    week: Object.fromEntries(dayKeys.map((key) => {
-      const day = jsonObject(sourceWeek[key]);
-      return [key, { enabled: day.enabled === true, start: asText(day.start) || "08:00", end: asText(day.end) || "17:00" }];
-    })),
-    shifts: Array.isArray(input.shifts) ? input.shifts.filter((item): item is (typeof shiftOptions)[number] => typeof item === "string" && shiftOptions.includes(item as (typeof shiftOptions)[number])) : [],
-    planningNote: asText(input.planningNote),
-    weekends: input.weekends === true,
-    holidays: input.holidays === true,
-  };
-}
-
-function defaultTransport(profile: StaffPersonnel): StaffOnboardingDraft["transport"] {
-  const alternate = jsonObject(profile.alternate_departure_address);
-  return {
-    vehicle: profile.standard_vehicle === "ebike" ? "electric_bicycle" : vehicleOptions.includes(profile.standard_vehicle as (typeof vehicleOptions)[number]) ? profile.standard_vehicle as (typeof vehicleOptions)[number] : "other",
-    departureKind: profile.departure_kind === "custom" ? "alternate" : departureOptions.includes(profile.departure_kind as (typeof departureOptions)[number]) ? profile.departure_kind as (typeof departureOptions)[number] : "home",
-    departureDepotId: profile.departure_depot_id ?? null,
-    alternateDepartureAddress: Object.keys(alternate).length ? { street: asText(alternate.street), postalCode: asText(alternate.postal_code), city: asText(alternate.city), country: asText(alternate.country) || "NL" } : null,
-    returnToDeparture: Boolean(profile.return_to_departure),
-    ownTransport: Boolean(profile.own_transport),
-    drivingLicense: Boolean(profile.driving_license),
-    drivingLicenseCategories: profile.driving_license_categories ?? [],
-    carpoolAllowed: Boolean(profile.carpool_allowed),
-    limitations: profile.travel_limitations ?? "",
-  };
-}
-
-function defaultOnboarding(profile: StaffPersonnel, notificationPreferences: NotificationPreferences): StaffOnboardingDraft {
-  const saved = jsonObject(profile.onboarding_draft);
-  const home = jsonObject(profile.home_address);
-  const emergency = jsonObject(profile.emergency_contact);
-  const base: StaffOnboardingDraft = {
-    profile: {
-      fullName: profile.full_name ?? "", preferredName: profile.preferred_name ?? "", phone: profile.phone ?? "",
-      mobilePhone: profile.mobile_phone ?? "", birthDate: profile.birth_date ?? "",
-      homeAddress: { street: asText(home.street), postalCode: asText(home.postal_code), city: asText(home.city), country: asText(home.country) || "NL" },
-      emergencyContact: { name: asText(emergency.name), phone: asText(emergency.phone), relation: asText(emergency.relation) },
-    },
-    transport: defaultTransport(profile),
-    notifications: notificationPreferences,
-    availability: defaultAvailability(profile.availability_preferences),
-    confirmations: { details: false, availability: false, notifications: false, privacy: false, terms: false },
-  };
-  if (!Object.keys(saved).length) return base;
-  const candidate = saved as unknown as Partial<StaffOnboardingDraft>;
-  const savedNotifications = candidate.notifications;
-  return {
-    ...base,
-    ...candidate,
-    profile: { ...base.profile, ...candidate.profile },
-    transport: { ...base.transport, ...candidate.transport },
-    availability: candidate.availability ?? base.availability,
-    notifications: {
-      ...notificationPreferences,
-      ...savedNotifications,
-      version: notificationPreferences.version,
-      timezone: notificationPreferences.timezone,
-      types: notificationPreferences.types.map((type) => {
-        const previous = savedNotifications?.types?.find((item) => item.code === type.code);
-        return previous ? { ...type, email: previous.email, push: previous.push } : type;
-      }),
-    },
-    confirmations: { ...base.confirmations, ...candidate.confirmations },
-  };
-}
 
 function useProfileMenu(wrap: RefObject<HTMLDivElement | null>) {
   const [open, setOpen] = useState(false);
@@ -591,7 +519,7 @@ function LeaveScreen({ requests, entitlements, timezone, pending, run }: { reque
 function AvailabilityScreen({ profile, pending, run }: { profile: StaffPersonnel; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
   const [value, setValue] = useState(() => ({ ...defaultAvailability(profile.availability_preferences), version: profile.version ?? 1 }));
   const enabled = Boolean(profile.availability_self_service_enabled);
-  const toggleShift = (shift: (typeof shiftOptions)[number], checked: boolean) => setValue((current) => ({
+  const toggleShift = (shift: "day" | "evening" | "night", checked: boolean) => setValue((current) => ({
     ...current,
     shifts: checked ? [...new Set([...current.shifts, shift])] : current.shifts.filter((item) => item !== shift),
   }));
@@ -671,124 +599,6 @@ function ProfileScreen({ profile, depots, email, pending, run }: { profile: Staf
 
 function SettingsScreen({ profile }: { profile: StaffPersonnel }) {
   return <div className="ps-card-list"><section className="ps-panel"><div className="ps-panel-heading"><div><span>MELDINGEN</span><h2>Pushmeldingen</h2></div><Bell/></div><NotificationPushControl workspace="staff"/></section><section className="ps-panel"><div className="ps-panel-heading"><div><span>ACCOUNT</span><h2>{profile.full_name}</h2></div><UserRound/></div><p>Je gebruikt de beveiligde Fieldgrid-login van je organisatie.</p><Link className="ps-secondary" href="/staff/notificaties/instellingen"><SlidersHorizontal/>Meldingsvoorkeuren</Link></section><form action="/auth/signout" method="post"><button className="ps-danger"><LogOut/>Uitloggen op dit apparaat</button></form></div>;
-}
-
-function Onboarding({ profile, depots, email, notificationPreferences, pending, run }: { profile: StaffPersonnel; depots: StaffWorkspaceData["staffDepots"]; email: string; notificationPreferences: NotificationPreferences; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
-  const panel = useRef<HTMLDivElement>(null);
-  const availabilityEnabled = Boolean(profile.availability_self_service_enabled);
-  const labels = availabilityEnabled ? ["Welkom", "Profiel", "Vervoer", "Beschikbaarheid", "Meldingen", "Controleren"] : ["Welkom", "Profiel", "Vervoer", "Meldingen", "Controleren"];
-  const [stepKey, setStepKey] = useState(() => labels[Math.min(profile.onboarding_step ?? 0, labels.length - 1)] ?? "Welkom");
-  const [draft, setDraft] = useState(() => defaultOnboarding(profile, notificationPreferences));
-  const [version, setVersion] = useState(profile.onboarding_version ?? 1);
-  const [personnelVersion, setPersonnelVersion] = useState(profile.version ?? 1);
-  const [pushDecision, setPushDecision] = useState<"enable" | "skip" | null>(null);
-  const [showPolicy, setShowPolicy] = useState(false);
-  const effectiveStepKey = labels.includes(stepKey) ? stepKey : "Meldingen";
-  const step = Math.max(0, labels.indexOf(effectiveStepKey));
-  const setStep = (next: number) => setStepKey(labels[Math.max(0, Math.min(next, labels.length - 1))] ?? "Welkom");
-  const review = labels.length - 1;
-  const notificationStep = availabilityEnabled ? 4 : 3;
-  const [firstName, ...lastNameParts] = draft.profile.fullName.trim().split(/\s+/);
-  const lastName = lastNameParts.join(" ");
-  const setNamePart = (part: "first" | "last", value: string) => setDraft((current) => {
-    const [currentFirst, ...currentLastParts] = current.profile.fullName.trim().split(/\s+/);
-    const fullName = part === "first" ? `${value} ${currentLastParts.join(" ")}`.trim() : `${currentFirst ?? ""} ${value}`.trim();
-    return { ...current, profile: { ...current.profile, fullName } };
-  });
-  const save = (complete: boolean, after?: () => void) => run(
-    () => saveStaffOnboarding({
-      // Never adopt a newer server version for an older in-memory draft. If
-      // another session or management changed the record, the RPC must reject
-      // this draft so the employee can reload and review the current values.
-      onboardingVersion: version,
-      personnelVersion,
-      draft,
-      step,
-      complete,
-    }),
-    complete ? "Je profiel is klaar" : "Voortgang opgeslagen",
-    () => {
-      setVersion((current) => current + 1);
-      setPersonnelVersion((current) => current + 1);
-      after?.();
-    },
-  );
-  const onboardingCountry = draft.profile.homeAddress.country.trim().toLocaleUpperCase("nl-NL");
-  const onboardingPostalCodeValid = !["NL", "NEDERLAND", "NETHERLANDS"].includes(onboardingCountry) || /^\d{4}\s?[A-Z]{2}$/i.test(draft.profile.homeAddress.postalCode.trim());
-  const profileReady = firstName.length >= 1 && lastName.length >= 1
-    && draft.profile.mobilePhone.trim().length >= 7
-    && Boolean(draft.profile.homeAddress.street.trim() && draft.profile.homeAddress.postalCode.trim() && draft.profile.homeAddress.city.trim() && draft.profile.homeAddress.country.trim())
-    && onboardingPostalCodeValid;
-  const transportReady = (draft.transport.departureKind !== "depot" || Boolean(draft.transport.departureDepotId))
-    && (draft.transport.departureKind !== "alternate" || Boolean(draft.transport.alternateDepartureAddress?.street.trim() && draft.transport.alternateDepartureAddress.postalCode.trim() && draft.transport.alternateDepartureAddress.city.trim()))
-    && (!draft.transport.drivingLicense || draft.transport.drivingLicenseCategories.length > 0);
-  const availabilityReady = Object.values(draft.availability.week).some((day) => day.enabled && day.start < day.end) && draft.availability.shifts.length > 0;
-  const canNext = step === 0 ? true : step === 1 ? profileReady : step === 2 ? transportReady : availabilityEnabled && step === 3 ? availabilityReady : step === notificationStep ? pushDecision !== null : step === review ? draft.confirmations.details && (!availabilityEnabled || draft.confirmations.availability) && draft.confirmations.notifications && draft.confirmations.privacy && draft.confirmations.terms : true;
-  useEffect(() => {
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    panel.current?.querySelector<HTMLElement>("main")?.focus();
-    return () => { document.body.style.overflow = previousOverflow; previous?.focus(); };
-  }, []);
-  const trapFocus = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Tab") return;
-    const focusable = [...(panel.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [])]
-      .filter((element) => element.getClientRects().length > 0);
-    if (!focusable.length) return;
-    const first = focusable[0]; const last = focusable.at(-1)!;
-    if (event.shiftKey && (document.activeElement === first || !focusable.includes(document.activeElement as HTMLElement))) { event.preventDefault(); last.focus(); }
-    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-  };
-  return <div className="ps-onboarding-backdrop" role="presentation"><div ref={panel} className="ps-onboarding" role="dialog" aria-modal="true" aria-labelledby="onboarding-title" onKeyDown={trapFocus}><aside className="ps-onboarding-aside"><strong>Fieldgrid</strong><small>Eerste instelling</small><ol className="ps-onboarding-progress">{labels.map((label, index) => <li className={index === step ? "active" : index < step ? "done" : ""} aria-current={index === step ? "step" : undefined} key={label}><span>{index < step ? <Check/> : index + 1}</span><strong>{label}</strong></li>)}</ol><p>Je gegevens zijn alleen zichtbaar voor bevoegde collega’s binnen je organisatie.</p><form action="/auth/signout" method="post"><button className="ps-secondary">Uitloggen en later verder</button></form></aside><section className="ps-onboarding-main"><header>{showPolicy ? <div className="ps-onboarding-stepbar"><span>Privacy en gebruik</span><i><b style={{ width: "100%" }}/></i></div> : <div className="ps-onboarding-stepbar"><span>Stap {step + 1} van {labels.length}</span><i><b style={{ width: `${(step + 1) / labels.length * 100}%` }}/></i></div>}</header><main tabIndex={-1}>
-    {showPolicy ? <div className="ps-policy-information"><span className="ps-page-kicker">PRIVACY EN GEBRUIK</span><h1 id="onboarding-title">Zo gaan we met je gegevens om</h1><p>Deze korte uitleg helpt je om de instellingen te controleren. De formele privacy-informatie en gebruiksvoorwaarden van jouw organisatie blijven leidend.</p><section><h2>Welke gegevens gebruikt Fieldgrid?</h2><p>Je profiel- en contactgegevens, vervoer, eventuele beschikbaarheid en meldingskeuzes worden gebruikt om je werk te plannen, uit te voeren en je daarover te informeren. In werkbonnen kunnen ook notities, bestanden en ondertekeningen staan.</p></section><section><h2>Wie kan de gegevens zien?</h2><p>Alleen bevoegde gebruikers binnen je huidige organisatie krijgen toegang voor hun werkzaamheden. Wat je zelf mag bekijken of aanpassen hangt af van de rechten die je organisatie heeft ingesteld.</p></section><section><h2>Jouw keuzes en verzoeken</h2><p>Je kunt je gegevens en meldingskeuzes in Fieldgrid controleren en, waar toegestaan, wijzigen. Vraag je organisatiebeheerder om de volledige privacy-informatie of om een verzoek voor inzage, correctie, bewaartermijnen of verwijdering te behandelen.</p></section><section><h2>Veilig en zorgvuldig gebruik</h2><p>Gebruik je account persoonlijk, deel geen inloggegevens en voeg alleen informatie toe die nodig is voor je werk. Meld verlies van een apparaat of vermoed misbruik direct bij je organisatie.</p></section></div> : <>
-    {step === 0 && <div><span className="ps-page-kicker">WELKOM</span><h1 id="onboarding-title">Welkom bij Fieldgrid, {profile.preferred_name || profile.full_name.split(" ")[0]}</h1><p>Stel eenmalig je profiel, vervoer en meldingen in. Daarna staat je planning voor je klaar.</p><div className="ps-onboarding-note">Je login-e-mail is <strong>{email}</strong> en kan hier niet worden gewijzigd.</div><button type="button" className="ps-text-button" onClick={() => setShowPolicy(true)}>Lees privacy- en gebruiksinformatie</button></div>}
-    {step === 1 && <div><span className="ps-page-kicker">PROFIEL</span><h1 id="onboarding-title">Hoe kunnen we je bereiken?</h1><div className="ps-form-grid">
-      <label className="ps-field">Voornaam *<input autoComplete="given-name" value={firstName} onChange={(event) => setNamePart("first", event.target.value)}/></label>
-      <label className="ps-field">Achternaam *<input autoComplete="family-name" value={lastName} onChange={(event) => setNamePart("last", event.target.value)}/></label>
-      <label className="ps-field">Roepnaam<input value={draft.profile.preferredName} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, preferredName: event.target.value } })}/></label>
-      <label className="ps-field">Mobiel nummer *<input type="tel" autoComplete="tel" value={draft.profile.mobilePhone} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, mobilePhone: event.target.value } })}/></label>
-      <label className="ps-field">Tweede telefoonnummer<input type="tel" value={draft.profile.phone} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, phone: event.target.value } })}/></label>
-      <label className="ps-field">Geboortedatum (optioneel)<input type="date" value={draft.profile.birthDate} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, birthDate: event.target.value } })}/></label>
-      <label className="ps-field">Login-e-mail<input value={email} readOnly/></label>
-      <label className="ps-field">Straat en huisnummer<input value={draft.profile.homeAddress.street} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, homeAddress: { ...draft.profile.homeAddress, street: event.target.value } } })}/></label>
-      <label className="ps-field">Postcode<input value={draft.profile.homeAddress.postalCode} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, homeAddress: { ...draft.profile.homeAddress, postalCode: event.target.value } } })}/></label>
-      <label className="ps-field">Plaats<input value={draft.profile.homeAddress.city} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, homeAddress: { ...draft.profile.homeAddress, city: event.target.value } } })}/></label>
-      <label className="ps-field">Land<input value={draft.profile.homeAddress.country} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, homeAddress: { ...draft.profile.homeAddress, country: event.target.value } } })}/></label>
-      <label className="ps-field">Noodcontact naam<input value={draft.profile.emergencyContact.name} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, emergencyContact: { ...draft.profile.emergencyContact, name: event.target.value } } })}/></label>
-      <label className="ps-field">Noodcontact telefoon<input type="tel" value={draft.profile.emergencyContact.phone} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, emergencyContact: { ...draft.profile.emergencyContact, phone: event.target.value } } })}/></label>
-      <label className="ps-field">Relatie<input value={draft.profile.emergencyContact.relation} onChange={(event) => setDraft({ ...draft, profile: { ...draft.profile, emergencyContact: { ...draft.profile.emergencyContact, relation: event.target.value } } })}/></label>
-    </div></div>}
-    {step === 2 && <div><span className="ps-page-kicker">VERVOER</span><h1 id="onboarding-title">Hoe vertrek je naar afspraken?</h1><div className="ps-form-grid">
-      <label className="ps-field">Standaard vervoer<select value={draft.transport.vehicle} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, vehicle: event.target.value as StaffOnboardingDraft["transport"]["vehicle"] } })}><option value="car">Auto</option><option value="van">Bedrijfsbus</option><option value="motorcycle">Motor</option><option value="scooter">Scooter</option><option value="bicycle">Fiets</option><option value="electric_bicycle">E-bike</option><option value="public_transport">Openbaar vervoer</option><option value="walking">Lopend</option><option value="other">Anders</option></select></label>
-      <label className="ps-field">Vertreklocatie<select value={draft.transport.departureKind} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, departureKind: event.target.value as StaffOnboardingDraft["transport"]["departureKind"], departureDepotId: event.target.value === "depot" ? draft.transport.departureDepotId ?? depots[0]?.id ?? null : draft.transport.departureDepotId, alternateDepartureAddress: event.target.value === "alternate" ? draft.transport.alternateDepartureAddress ?? { street: "", postalCode: "", city: "", country: "NL" } : draft.transport.alternateDepartureAddress } })}><option value="home">Woonadres</option>{depots.length > 0 && <option value="depot">Vestiging</option>}<option value="alternate">Andere locatie</option></select></label>
-      {draft.transport.departureKind === "depot" && <label className="ps-field">Vestiging<select value={draft.transport.departureDepotId ?? ""} required onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, departureDepotId: event.target.value || null } })}><option value="" disabled>Kies een vestiging</option>{depots.map((depot) => <option value={depot.id} key={depot.id}>{depot.name}</option>)}</select></label>}
-      {draft.transport.departureKind === "alternate" && <><label className="ps-field">Straat en huisnummer<input value={draft.transport.alternateDepartureAddress?.street ?? ""} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, alternateDepartureAddress: { ...(draft.transport.alternateDepartureAddress ?? { postalCode: "", city: "", country: "NL" }), street: event.target.value } } })}/></label><label className="ps-field">Postcode<input value={draft.transport.alternateDepartureAddress?.postalCode ?? ""} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, alternateDepartureAddress: { ...(draft.transport.alternateDepartureAddress ?? { street: "", city: "", country: "NL" }), postalCode: event.target.value } } })}/></label><label className="ps-field">Plaats<input value={draft.transport.alternateDepartureAddress?.city ?? ""} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, alternateDepartureAddress: { ...(draft.transport.alternateDepartureAddress ?? { street: "", postalCode: "", country: "NL" }), city: event.target.value } } })}/></label></>}
-      <label className="ps-check"><input type="checkbox" checked={draft.transport.ownTransport} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, ownTransport: event.target.checked } })}/>Ik beschik over eigen vervoer</label>
-      <label className="ps-check"><input type="checkbox" checked={draft.transport.returnToDeparture} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, returnToDeparture: event.target.checked } })}/>Na de laatste afspraak terug naar vertrekpunt</label>
-      <label className="ps-check"><input type="checkbox" checked={draft.transport.drivingLicense} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, drivingLicense: event.target.checked, drivingLicenseCategories: event.target.checked ? draft.transport.drivingLicenseCategories : [] } })}/>Ik heb een rijbewijs</label>
-      <label className="ps-check"><input type="checkbox" checked={draft.transport.carpoolAllowed} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, carpoolAllowed: event.target.checked } })}/>Carpoolen is mogelijk</label>
-      {draft.transport.drivingLicense && <fieldset className="ps-choice-group wide"><legend>Rijbewijscategorieën</legend>{["B", "BE", "C", "CE", "D"].map((category) => <label className="ps-check" key={category}><input type="checkbox" checked={draft.transport.drivingLicenseCategories.includes(category)} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, drivingLicenseCategories: event.target.checked ? [...new Set([...draft.transport.drivingLicenseCategories, category])] : draft.transport.drivingLicenseCategories.filter((item) => item !== category) } })}/>{category}</label>)}</fieldset>}
-      <label className="ps-field wide">Bijzonderheden voor onderweg<textarea rows={3} maxLength={1000} value={draft.transport.limitations} onChange={(event) => setDraft({ ...draft, transport: { ...draft.transport, limitations: event.target.value } })}/></label>
-    </div></div>}
-    {availabilityEnabled && step === 3 && <div><span className="ps-page-kicker">BESCHIKBAARHEID</span><h1 id="onboarding-title">Wanneer ben je inzetbaar?</h1>
-      <div className="ps-card-list">{dayKeys.map((key) => <div className="ps-list-row" key={key}><label className="ps-check"><input type="checkbox" checked={draft.availability.week[key].enabled} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, week: { ...draft.availability.week, [key]: { ...draft.availability.week[key], enabled: event.target.checked } } } })}/>{dayLabels[key]}</label><input aria-label={`${dayLabels[key]} vanaf`} type="time" value={draft.availability.week[key].start} disabled={!draft.availability.week[key].enabled} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, week: { ...draft.availability.week, [key]: { ...draft.availability.week[key], start: event.target.value } } } })}/><input aria-label={`${dayLabels[key]} tot`} type="time" value={draft.availability.week[key].end} disabled={!draft.availability.week[key].enabled} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, week: { ...draft.availability.week, [key]: { ...draft.availability.week[key], end: event.target.value } } } })}/></div>)}</div>
-      <fieldset className="ps-choice-group"><legend>Dienstvoorkeur</legend>{shiftOptions.map((shift) => <label className="ps-check" key={shift}><input type="checkbox" checked={draft.availability.shifts.includes(shift)} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, shifts: event.target.checked ? [...new Set([...draft.availability.shifts, shift])] : draft.availability.shifts.filter((item) => item !== shift) } })}/>{shift === "day" ? "Dag" : shift === "evening" ? "Avond" : "Nacht"}</label>)}</fieldset>
-      <div className="ps-form-grid"><label className="ps-check"><input type="checkbox" checked={draft.availability.weekends} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, weekends: event.target.checked } })}/>Weekend inzetbaar</label><label className="ps-check"><input type="checkbox" checked={draft.availability.holidays} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, holidays: event.target.checked } })}/>Feestdagen inzetbaar</label></div>
-      <label className="ps-field">Planningsopmerking<textarea maxLength={1000} rows={3} value={draft.availability.planningNote} onChange={(event) => setDraft({ ...draft, availability: { ...draft.availability, planningNote: event.target.value } })}/></label>
-    </div>}
-    {step === notificationStep && <div><span className="ps-page-kicker">MELDINGEN</span><h1 id="onboarding-title">Blijf op de hoogte</h1>
-      <div className="ps-card-list">
-        <label className="ps-list-row"><Megaphone/><span><strong>E-mail</strong><small>Ontvangen waar het meldingsbeleid dit toestaat</small></span><input type="checkbox" checked={draft.notifications.email} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, email: event.target.checked } })}/></label>
-      </div>
-      <section className="ps-panel"><div className="ps-panel-heading"><div><span>APPARAAT</span><h2>Wil je pushmeldingen gebruiken?</h2></div><Bell/></div><p>Kies expliciet of je push nu wilt instellen of later vanuit Instellingen. Je kunt de keuze altijd wijzigen.</p><div className="ps-onboarding-choice-row"><button type="button" className={pushDecision === "enable" ? "ps-primary" : "ps-secondary"} aria-pressed={pushDecision === "enable"} onClick={() => { setPushDecision("enable"); setDraft({ ...draft, notifications: { ...draft.notifications, push: true } }); }}>Push instellen</button><button type="button" className={pushDecision === "skip" ? "ps-primary" : "ps-secondary"} aria-pressed={pushDecision === "skip"} onClick={() => { setPushDecision("skip"); setDraft({ ...draft, notifications: { ...draft.notifications, push: false, types: draft.notifications.types.map((type) => ({ ...type, push: false })) } }); }}>Nu niet, later instellen</button></div>{pushDecision === "enable" && <div className="ps-push-setup"><NotificationPushControl workspace="staff"/></div>}{pushDecision === null && <p className="ps-onboarding-required" role="status">Maak een keuze om verder te gaan.</p>}</section>
-      <fieldset className="ps-choice-group"><legend>Rusttijden</legend><label className="ps-check"><input type="checkbox" checked={draft.notifications.quietEnabled} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, quietEnabled: event.target.checked } })}/>Meldingen uitstellen tijdens rusttijd</label><label className="ps-field">Van<input type="time" disabled={!draft.notifications.quietEnabled} value={draft.notifications.quietStart} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, quietStart: event.target.value } })}/></label><label className="ps-field">Tot<input type="time" disabled={!draft.notifications.quietEnabled} value={draft.notifications.quietEnd} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, quietEnd: event.target.value } })}/></label></fieldset>
-      {draft.notifications.types.length > 0 && <div className="ps-card-list"><h2>Per onderwerp</h2>{draft.notifications.types.map((type, index) => <article className="ps-list-row" key={type.code}><span><strong>{type.name}</strong><small>In-app blijft beschikbaar zolang je toegang hebt.</small></span><div className="ps-inline-checks">{type.channels.includes("email") && <label className="ps-check"><input type="checkbox" disabled={!draft.notifications.email} checked={type.email} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, types: draft.notifications.types.map((item, position) => position === index ? { ...item, email: event.target.checked } : item) } })}/>E-mail</label>}{type.channels.includes("push") && <label className="ps-check"><input type="checkbox" disabled={!draft.notifications.push} checked={type.push} onChange={(event) => setDraft({ ...draft, notifications: { ...draft.notifications, types: draft.notifications.types.map((item, position) => position === index ? { ...item, push: event.target.checked } : item) } })}/>Push</label>}</div></article>)}</div>}
-      <div className="ps-onboarding-note">Urgente veiligheids- en accountmeldingen blijven binnen het actuele organisatiebeleid beschikbaar. Push weigeren blokkeert je onboarding niet.</div>
-    </div>}
-    {step === review && <div><span className="ps-page-kicker">CONTROLEREN</span><h1 id="onboarding-title">Klaar om te beginnen</h1><div className="ps-card-list"><article className="ps-panel"><strong>{draft.profile.fullName}</strong><p>{draft.profile.mobilePhone} · {draft.profile.homeAddress.city}</p><button type="button" className="ps-secondary" onClick={() => setStep(1)}>Wijzigen</button></article><article className="ps-panel"><strong>Vervoer</strong><p>{draft.transport.vehicle} · vertrek vanaf {draft.transport.departureKind}</p><button type="button" className="ps-secondary" onClick={() => setStep(2)}>Wijzigen</button></article>{availabilityEnabled && <article className="ps-panel"><strong>Beschikbaarheid</strong><p>{Object.values(draft.availability.week).filter((day) => day.enabled).length} beschikbare dagen · {draft.availability.shifts.length} dienstvoorkeuren</p><button type="button" className="ps-secondary" onClick={() => setStep(3)}>Wijzigen</button></article>}<article className="ps-panel"><strong>Meldingen</strong><p>{draft.notifications.types.filter((type) => type.email).length} onderwerpen per e-mail · {draft.notifications.types.filter((type) => type.push).length} via push</p><button type="button" className="ps-secondary" onClick={() => setStep(notificationStep)}>Wijzigen</button></article></div><label className="ps-check"><input type="checkbox" checked={draft.confirmations.details} onChange={(event) => setDraft({ ...draft, confirmations: { ...draft.confirmations, details: event.target.checked } })}/>Mijn profielgegevens zijn correct.</label>{availabilityEnabled && <label className="ps-check"><input type="checkbox" checked={draft.confirmations.availability} onChange={(event) => setDraft({ ...draft, confirmations: { ...draft.confirmations, availability: event.target.checked } })}/>Mijn beschikbaarheid is correct.</label>}<label className="ps-check"><input type="checkbox" checked={draft.confirmations.notifications} onChange={(event) => setDraft({ ...draft, confirmations: { ...draft.confirmations, notifications: event.target.checked } })}/>Ik heb mijn meldingsinstellingen gecontroleerd.</label><label className="ps-check"><input type="checkbox" checked={draft.confirmations.privacy} onChange={(event) => setDraft({ ...draft, confirmations: { ...draft.confirmations, privacy: event.target.checked } })}/>Ik heb de privacy-informatie van mijn organisatie gecontroleerd.</label><label className="ps-check"><input type="checkbox" checked={draft.confirmations.terms} onChange={(event) => setDraft({ ...draft, confirmations: { ...draft.confirmations, terms: event.target.checked } })}/>Ik heb de toepasselijke gebruiksvoorwaarden gecontroleerd.</label><button type="button" className="ps-text-button" onClick={() => setShowPolicy(true)}>Lees privacy- en gebruiksinformatie</button></div>}
-    </>}</main>{showPolicy ? <footer className="ps-onboarding-actions"><button type="button" className="ps-secondary" onClick={() => setShowPolicy(false)}>Terug naar onboarding</button></footer> : <footer className="ps-onboarding-actions"><button type="button" className="ps-secondary" disabled={pending} onClick={() => step ? setStep(step - 1) : save(false)}>{step ? "Vorige" : "Opslaan"}</button><button type="button" className="ps-primary" disabled={pending || !canNext} onClick={() => step === review ? save(true) : save(false, () => setStep(step + 1))}>{pending ? "Opslaan…" : step === review ? "Naar mijn planning" : "Opslaan en volgende"}<ChevronRight/></button></footer>}
-  </section></div></div>;
 }
 
 function Dialog({ title, kicker, close, children, footer }: { title: string; kicker: string; close: () => void; children: ReactNode; footer?: ReactNode }) {
