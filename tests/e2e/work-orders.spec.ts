@@ -40,7 +40,9 @@ test.afterAll(async () => {
       }
       await db.query("delete from public.planning_changes where work_order_id=any($1)", [createdOrders]);
       await db.query("delete from public.audit_events where entity_id=any($1)", [createdOrders]);
+      const slots = (await db.query("select appointment_slot_id id from public.work_orders where id=any($1) and appointment_slot_id is not null", [createdOrders])).rows.map(row => row.id);
       await db.query("delete from public.work_orders where id=any($1)", [createdOrders]);
+      await db.query("delete from public.appointment_slots where tenant_id=$1 and id=any($2)", [tenant, slots]);
     }
     const templates = (await db.query("select id from public.work_order_templates where tenant_id=$1 and name=$2", [tenant, templateName])).rows.map(r => r.id);
     if (templates.length) {
@@ -71,7 +73,7 @@ async function login(page: Page) {
   await expect(page.getByRole("heading", { name: "Werkbonnen", exact: true })).toBeVisible();
 }
 
-test("werkbonwizard bewaart twee individuele inzetten en opent hetzelfde dossier vanuit lijst en planbord", async ({ page, request }) => {
+test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzetten later via het planbord", async ({ page, request }) => {
   test.setTimeout(120000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page);
@@ -93,12 +95,8 @@ test("werkbonwizard bewaart twee individuele inzetten en opent hetzelfde dossier
   await wizard.getByRole("button", { name: "Volgende" }).click();
   await wizard.getByLabel("Instructies voor deze werkbon", { exact: true }).fill("Vandaag extra aandacht voor de entree.");
   await wizard.getByRole("button", { name: "Volgende" }).click();
-  await wizard.getByLabel("Begin bezoek", { exact: true }).fill(`${day}T08:00`);
-  await wizard.getByLabel("Einde bezoek", { exact: true }).fill(`${day}T10:00`);
-  await wizard.getByLabel("Benodigde bezetting", { exact: true }).fill("2");
-  await wizard.getByLabel("Medewerker toevoegen", { exact: true }).selectOption("e1000000-0000-4000-8000-000000000001");
-  await wizard.getByLabel("Medewerker toevoegen", { exact: true }).selectOption(personId);
-  await wizard.getByLabel("Begin eigen inzet", { exact: true }).nth(1).fill(`${day}T09:00`);
+  await wizard.getByLabel("Gewenste dag", { exact: true }).fill(day);
+  await wizard.getByLabel("Gewenst tijdsvenster", { exact: true }).selectOption("08:00");
   await wizard.getByRole("button", { name: "Volgende" }).click();
   await wizard.getByLabel("Klantondertekening", { exact: true }).selectOption("required");
   await expect(wizard.getByRole("button", { name: /Ondertekenen|Handtekening vastleggen/ })).toHaveCount(0);
@@ -114,6 +112,28 @@ test("werkbonwizard bewaart twee individuele inzetten en opent hetzelfde dossier
   orderId = new URL(page.url()).pathname.split("/").at(-1)!;
   createdOrders.push(orderId);
   await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+  expect((await db.query("select planning_state,projected_start_at,projected_end_at,budget_labor_minutes from public.work_orders where id=$1", [orderId])).rows[0]).toMatchObject({ planning_state: "unassigned", projected_start_at: null, projected_end_at: null, budget_labor_minutes: 180 });
+  expect((await db.query("select count(*)::int total from public.work_order_assignments where work_order_id=$1", [orderId])).rows[0].total).toBe(0);
+  const number = (await db.query("select work_order_number from public.work_orders where id=$1", [orderId])).rows[0].work_order_number;
+  await page.goto(`/app/planning?day=${day}`);
+  await page.getByLabel("Bonnenweergave").selectOption("unassigned");
+  await page.getByRole("row").filter({ hasText: number }).getByRole("button", { name: "Plan", exact: true }).click();
+  let planning = page.getByRole("dialog");
+  await planning.getByLabel("Begin", { exact: true }).fill(`${day}T08:00`);
+  await planning.getByLabel("Einde", { exact: true }).fill(`${day}T10:00`);
+  await planning.getByLabel("Benodigde medewerkers", { exact: true }).fill("2");
+  await planning.getByLabel("Robin de Vries", { exact: false }).check();
+  await planning.getByLabel("Milan Werkbontest", { exact: false }).check();
+  await planning.getByRole("button", { name: "Planning opslaan", exact: true }).click();
+  await expect(planning).toHaveCount(0);
+  await page.locator(`[data-order-id="${orderId}"]`).first().click();
+  planning = page.getByRole("dialog");
+  await planning.getByLabel("Omvang wijziging", { exact: true }).selectOption("single");
+  await planning.getByLabel("Medewerker voor deze wijziging", { exact: true }).selectOption({ label: "Milan Werkbontest" });
+  await planning.getByLabel("Begin", { exact: true }).fill(`${day}T09:00`);
+  await planning.getByRole("button", { name: "Planning opslaan", exact: true }).click();
+  await expect(planning).toHaveCount(0);
+  await page.goto(`/app/werkbonnen/${orderId}`);
   const stored = await db.query("select (select count(*) from public.work_orders where tenant_id=$1 and title=$2)::int orders,(select count(*) from public.work_order_assignments where work_order_id=$3 and status<>'cancelled')::int crew,(select sum(extract(epoch from(projected_end_at-projected_start_at))/60) from public.work_order_assignments where work_order_id=$3 and status<>'cancelled')::int minutes,(select sum(quantity) from public.work_order_tasks where work_order_id=$3)::numeric quantity", [tenant, title, orderId]);
   expect(stored.rows[0]).toMatchObject({ orders: 1, crew: 2, minutes: 180 });
   expect(Number(stored.rows[0].quantity)).toBe(6);
