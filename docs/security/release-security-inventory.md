@@ -176,6 +176,36 @@ code-oppervlakken zijn handmatig vergeleken; databasegrants en RPC's zijn niet
 veranderd. Dit is een gerichte bronreview, geen brede eindcontrole of
 stagingacceptatie.
 
+## Portaalreeks bronreview vóór deployment — 5 oktober 2026
+
+De vier gewijzigde bronbestanden hieronder zijn opnieuw vergeleken met de
+laatste `main`-release. Hun exports, classificaties, waargenomen controles en
+gegevensbronnen blijven gelijk; de opgeslagen bronhash moest worden vernieuwd.
+
+- `app/app/operations-actions.ts`: `invitePersonnel` schrijft het ingevulde
+  nummer naar `mobile_phone`. Actuele tenant/rol/module, dubbele-accountcontrole,
+  bestaande lidmaatschappen en de overige uitnodigingsgrenzen blijven behouden.
+  Bewijs: `lib/personnel/invitation-action.test.ts` en de bestaande
+  uitnodigingsbrowsertests in de volledige release-CI.
+- `app/auth/invite/actions.ts`: alleen de fouttekst verwijst naar de gewone
+  e-mailcode-login. Geïsoleerde OTP-verificatie, actieve eigen staffbinding,
+  sessie-intrekking en de publieke loginredirect blijven gelijk. Bewijs:
+  `lib/auth/invite-form.test.ts` en de bestaande uitnodigings-/OTP-flows in CI.
+- `components/fieldgrid/staff/route-shell.tsx`: alleen de portaalstijl wijzigt.
+  De server bepaalt de actuele tenant, actorKey en ticketmodule; bestaande
+  ticket- en notificatieroutes blijven de toegangsgrens.
+- `components/fieldgrid/staff/route-shell-client.tsx`: navigatietekst/iconen en
+  de ticketingang veranderen. Zonder module opent de ingang alleen uitleg;
+  met module gebruikt zij de bestaande route. De sessiegebonden,
+  tenantgefilterde Realtime-revisieabonnementen, refresh en uitloggen blijven
+  gelijk. Bewijs: `lib/staff/route-boundaries.test.ts`,
+  `tests/e2e/staff-appearance.spec.ts` en de bestaande route-/modulebrowsertests.
+
+Alle 1.420 lokale unittests, lint en TypeScript zijn geslaagd vóór het bijwerken
+van deze vier fingerprintgebonden reviewregels. De verplichte volledige CI en
+deployed acceptatie blijven afzonderlijke releasecontroles; deze bronreview
+verklaart geen deployment geslaagd.
+
 ## Werkelijk gecontroleerde lokale catalogus
 
 De schone release-replaydatabase op `127.0.0.1:60322` heeft public **118/118**
