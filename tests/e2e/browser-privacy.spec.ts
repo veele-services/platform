@@ -38,10 +38,20 @@ test("logout removes legacy searches, fences another tab before logout completes
     await expect(other.getByRole("heading",{name:"Klanten",exact:true})).not.toBeVisible();
     await other.goBack();
     // A still-live response during a pending logout must not uncover old data.
-    const checked=other.waitForResponse(response=>new URL(response.url()).pathname==="/api/auth/session");
-    await other.evaluate(()=>window.dispatchEvent(new Event("fieldgrid-session-retry")));
-    await checked;
-    await expect(other.locator("html")).toHaveAttribute("data-account-blocked","true");
+    const liveSignal=await (await other.request.get("/api/auth/session")).json();
+    expect(Boolean(liveSignal.sessionKey)).toBe(true);
+    let checked=false;
+    const observeCheck=(response:{url:()=>string})=>{if(new URL(response.url()).pathname==="/api/auth/session")checked=true;};
+    other.on("response",observeCheck);
+    try{
+      // The fence may already have left the restored protected document.
+      // A safe login document has no retry listener and must not be awaited
+      // forever for a fetch that only the protected document can issue.
+      await other.evaluate(()=>window.dispatchEvent(new Event("fieldgrid-session-retry")));
+      await expect.poll(()=>checked||new URL(other.url()).pathname==="/login").toBe(true);
+      if(new URL(other.url()).pathname!=="/login")await expect(other.locator("html")).toHaveAttribute("data-account-blocked","true");
+      await expect(other.getByRole("heading",{name:"Klanten",exact:true})).not.toBeVisible();
+    }finally{other.off("response",observeCheck);}
     await test.step("Both tabs finish logout",async()=>{
       release();await logout;
       await expect.poll(()=>new URL(page.url()).pathname).toBe("/login");
