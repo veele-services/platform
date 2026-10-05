@@ -368,7 +368,7 @@ function PersonnelWizard({ onClose, suggestedNumber }: { onClose: () => void; su
     <WizardProgress step={step} labels={["Persoon", "Dienstverband", "Uitnodiging"]}/>
     <form className="wizard-form" onSubmit={submit}>
       <input type="hidden" name="employeeNumberMode" value={automatic ? "automatic" : "manual"}/>
-      <fieldset hidden={step !== 1}><legend>Wie nodig je uit?</legend><label className="wide">Volledige naam<input name="name" required autoFocus/></label><label>E-mailadres<input name="email" type="email" required/></label><label>Telefoon<input name="phone" type="tel"/></label></fieldset>
+      <fieldset hidden={step !== 1}><legend>Wie nodig je uit?</legend><label className="wide">Volledige naam<input name="name" required autoFocus/></label><label>E-mailadres<input name="email" type="email" required/></label><label>Mobiel nummer<input name="phone" type="tel" autoComplete="tel"/></label></fieldset>
       <fieldset hidden={step !== 2}>
         <legend>Leg de basisgegevens vast</legend>
         <label>Personeelsnummer<input name="employeeNumber" value={employeeNumber} onChange={(event) => { setEmployeeNumber(event.target.value); setAutomatic(false); }} required maxLength={80} aria-describedby="personnel-number-hint"/></label>

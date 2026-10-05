@@ -268,7 +268,7 @@ export async function invitePersonnel(formData: FormData): Promise<ActionResult<
     if (membership && membership.status !== "active") throw new Error("Dit account is niet actief binnen jouw organisatie. Laat de beheerder dit eerst controleren.");
     const { error: membershipError } = await supabase.from("tenant_memberships").upsert({ tenant_id: context.tenant.id, user_id: account.userId, roles: [...new Set<AppRole>([...(membership?.roles ?? []), "staff"])], status: "active", activated_at: new Date().toISOString() }, { onConflict: "tenant_id,user_id" });
     if (membershipError) throw membershipError;
-    const { data: person, error: personnelError } = await supabase.from("personnel").insert({ tenant_id: context.tenant.id, user_id: account.userId, employee_number: numbering.employeeNumberMode === "automatic" ? "" : numbering.employeeNumber, full_name: input.name, email: input.email, phone: input.phone || null, start_date: input.startDate || null, ...mobility }).select("id,employee_number").single();
+    const { data: person, error: personnelError } = await supabase.from("personnel").insert({ tenant_id: context.tenant.id, user_id: account.userId, employee_number: numbering.employeeNumberMode === "automatic" ? "" : numbering.employeeNumber, full_name: input.name, email: input.email, mobile_phone: input.phone || null, start_date: input.startDate || null, ...mobility }).select("id,employee_number").single();
     if (personnelError) throw new Error(personnelError.code === "23505" ? "Deze medewerker of dit personeelsnummer bestaat al. Controleer de personeelslijst." : personnelError.message);
     revalidatePath("/app", "layout");
     try {
