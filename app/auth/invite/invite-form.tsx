@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { acceptPersonnelInvitation } from "./actions";
 import type { AuthState } from "@/app/login/actions";
 
@@ -18,6 +19,7 @@ export function InviteForm({ tenantSlug }: { tenantSlug: string }) {
     <input type="hidden" name="tenantSlug" value={tenantSlug}/><input ref={tokenInput} type="hidden" name="tokenHash"/>
     {state.error && <p className="auth-message error" role="alert">{state.error}</p>}
     <button className="primary-button full" disabled={pending}>{pending ? "Activeren…" : "Uitnodiging accepteren"}</button>
-    <p className="form-note">Is de link verlopen of al gebruikt? Vraag je beheerder om de uitnodiging opnieuw te versturen.</p>
+    <p className="form-note">Is de link verlopen of al gebruikt? Log in met een eenmalige e-mailcode op het e-mailadres uit je uitnodiging.</p>
+    <Link className="secondary-button full" href="/login?next=%2Fstaff">Inloggen met e-mailcode</Link>
   </form>;
 }

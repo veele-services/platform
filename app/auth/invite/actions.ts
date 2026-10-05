@@ -11,7 +11,7 @@ import { getInvitationTenant } from "@/lib/personnel/invite-tenant";
 
 export async function acceptPersonnelInvitation(_: AuthState, formData: FormData): Promise<AuthState> {
   const input = z.object({ tenantSlug: z.string().max(100), tokenHash: z.string().min(32).max(512).regex(/^[A-Za-z0-9_-]+$/) }).safeParse(Object.fromEntries(formData));
-  const invalid = { error: "Deze uitnodiging is ongeldig, verlopen of al gebruikt. Vraag je beheerder om een nieuwe uitnodiging." };
+  const invalid = { error: "Deze uitnodiging is ongeldig, verlopen of al gebruikt. Je kunt inloggen met een eenmalige e-mailcode op het e-mailadres uit je uitnodiging." };
   if (!input.success) return invalid;
   const tenant = await getInvitationTenant(input.data.tenantSlug);
   if (!tenant) return invalid;
