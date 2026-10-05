@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
   List, LogOut, Megaphone, Menu,
-  Info, Navigation, Newspaper, Pencil, Phone, RotateCcw, Settings, Settings2, SlidersHorizontal, Square, TicketCheck, Umbrella, UserRound,
+  Info, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Settings2, SlidersHorizontal, Square, TicketCheck, Umbrella, UserRound,
   UsersRound, X,
 } from "lucide-react";
 import {
@@ -231,7 +231,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         </div>
       </header>
       <main className="ps-content">
-        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && <header className="ps-page-heading"><div><span className="ps-page-kicker">FIELDGRID / PERSONEEL</span><h1>{title}</h1></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
+        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && moreView === "verlof") && <header className="ps-page-heading"><div><span className="ps-page-kicker">FIELDGRID / PERSONEEL</span><h1>{title}</h1></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
         {view === "planning" && (tenant.enabledServices.includes("planning") ? <PlanningScreen orders={assigned} assignments={assignments} data={data} timezone={tenant.timezone} onOpen={openOrder} onHours={() => navigate("uren")} onNews={() => navigate("nieuws")}/> : <Empty icon={CalendarDays} title="Planning niet ingeschakeld">Vraag je beheerder om de module Planning te activeren.</Empty>)}
         {view === "nieuws" && <NewsScreen data={data} onRead={(id) => run(() => markAnnouncementRead(id), "Gemarkeerd als gelezen")}/>}
         {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run}/>}
@@ -525,18 +525,26 @@ function LeaveScreen({ requests, entitlements, timezone, pending, run }: { reque
   const pendingCount = requests.filter((item) => item.status === "pending").length;
   const approvedMinutes = requests.filter((item) => item.status === "approved" && item.leave_type === "vacation").reduce((total, item) => total + (item.approved_minutes_by_year[String(year)] ?? 0), 0);
   const availableMinutes = entitlement ? entitlement.allowance_minutes + entitlement.carryover_minutes - approvedMinutes : null;
-  return <>
-    <div className="ps-stat-grid"><div><small>Beschikbaar saldo</small><strong>{availableMinutes === null ? "Nog niet ingesteld" : staffDuration(Math.max(0, availableMinutes))}</strong><small>{year}</small></div><div><small>Goedgekeurd</small><strong>{staffDuration(approvedMinutes)}</strong><small>Dit kalenderjaar</small></div><div><small>In afwachting</small><strong>{pendingCount}</strong><small>{pendingCount === 1 ? "Aanvraag" : "Aanvragen"}</small></div></div>
-    <button className="ps-primary" onClick={() => setOpen(true)}>Verlof aanvragen</button>
-    <div className="ps-card-list">{requests.map((request) => <article className="ps-panel" key={request.id}>
-      <div className="ps-panel-heading"><div><span>{leaveLabels[request.leave_type] ?? request.leave_type}</span><h2>{request.starts_on} – {request.ends_on}</h2></div><span className="ps-status" data-status={request.status}>{request.status === "pending" ? "In behandeling" : request.status === "approved" ? "Goedgekeurd" : request.status === "rejected" ? "Afgewezen" : "Ingetrokken"}</span></div>
-      {(request.approved_minutes ?? request.requested_minutes) && <p>{request.status === "approved" ? "Goedgekeurd" : "Aangevraagd"}: {staffDuration(request.approved_minutes ?? request.requested_minutes ?? 0)}</p>}
-      {request.note && <p>{request.note}</p>}
-      {request.status === "pending" && <button className="ps-danger" disabled={pending} onClick={() => withdraw(request)}>Aanvraag intrekken</button>}
-    </article>)}</div>
-    {!requests.length && <Empty icon={CalendarDays} title="Nog geen verlofaanvragen">Je aanvragen en besluiten verschijnen hier.</Empty>}
+  const leaveDuration = (minutes: number) => minutes % 60 === 0 ? `${minutes / 60} uur` : staffDuration(minutes);
+  const dateLabel = (day: string) => new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`));
+  const requestYears = new Set(requests.flatMap(request => [request.starts_on.slice(0, 4), request.ends_on.slice(0, 4)]));
+  return <div className="ps-leave-screen">
+    <header className="ps-page-heading"><div><h1>Verlof</h1><p>Even tijd voor jezelf. Regel je aanvraag hier.</p></div><button className="ps-primary" onClick={() => setOpen(true)}><Plus/>Verlof aanvragen</button></header>
+    <div className="ps-stat-grid" aria-label="Verlofoverzicht"><div><small>Beschikbaar saldo</small><strong>{availableMinutes === null ? "Nog niet ingesteld" : leaveDuration(Math.max(0, availableMinutes))}</strong><small>{year}</small></div><div><small>Goedgekeurd</small><strong>{leaveDuration(approvedMinutes)}</strong><small>Dit kalenderjaar</small></div><div><small>In afwachting</small><strong>{pendingCount}</strong><small>{pendingCount === 1 ? "Aanvraag" : "Aanvragen"}</small></div></div>
+    <section className="ps-panel ps-leave-list" aria-labelledby="ps-leave-list-title">
+      <div className="ps-panel-heading"><h2 id="ps-leave-list-title">Mijn aanvragen</h2><span className="ps-leave-year">{requestYears.size > 1 ? "Alle jaren" : [...requestYears][0] ?? year}</span></div>
+      {requests.map(request => <article className="ps-leave-request" key={request.id}>
+        <div className="ps-leave-request-heading"><h3>{leaveLabels[request.leave_type] ?? request.leave_type}</h3><span className="ps-status" data-status={request.status}>{request.status === "pending" ? "In afwachting" : request.status === "approved" ? "Goedgekeurd" : request.status === "rejected" ? "Afgewezen" : "Ingetrokken"}</span></div>
+        <p className="ps-leave-dates">{dateLabel(request.starts_on)} – {dateLabel(request.ends_on)}</p>
+        {(request.approved_minutes ?? request.requested_minutes) != null && <p>{request.status === "approved" ? "Goedgekeurd" : "Aangevraagd"}: {leaveDuration(request.approved_minutes ?? request.requested_minutes ?? 0)}</p>}
+        {request.note && <p>{request.note}</p>}
+        {request.status === "pending" && <button className="ps-secondary" disabled={pending} onClick={() => withdraw(request)}>Aanvraag intrekken</button>}
+      </article>)}
+      {!requests.length && <div className="ps-leave-empty"><CalendarDays/><h3>Nog geen verlofaanvragen</h3><p>Je aanvragen en besluiten verschijnen hier.</p></div>}
+    </section>
+    <p className="ps-hours-info"><Info/><span>Een aanvraag reserveert nog geen verlof. Je ontvangt een melding zodra je manager een besluit heeft genomen.</span></p>
     {open && <Dialog title="Verlof aanvragen" kicker="PERSONEELSZAKEN" close={close} footer={<><button type="button" className="ps-secondary" onClick={close}>Annuleren</button><button type="submit" form="staff-leave-request" className="ps-primary" disabled={pending}>Aanvraag indienen</button></>}><form id="staff-leave-request" className="ps-form" onChange={() => { createKey.current = null; }} onSubmit={submit}><label className="ps-field">Type<select name="leaveType" required><option value="vacation">Vakantie</option><option value="short">Kort verlof</option><option value="care">Zorgverlof</option><option value="unpaid">Onbetaald verlof</option><option value="other">Anders</option></select></label><div className="ps-form-grid"><label className="ps-field">Vanaf<input type="date" name="startsOn" required/></label><label className="ps-field">Tot en met<input type="date" name="endsOn" required/></label></div><label className="ps-field">Toelichting<textarea name="note" rows={4} maxLength={1000}/></label></form></Dialog>}
-  </>;
+  </div>;
 }
 
 function AvailabilityScreen({ profile, pending, run }: { profile: StaffPersonnel; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {

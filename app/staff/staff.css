@@ -1498,6 +1498,24 @@
 .personnel-app .ps-hours-correction-options button {justify-content: space-between;text-align: left;}
 .personnel-app .ps-hours-correction-options button span {min-width: 0;white-space: normal;}
 
+.personnel-app .ps-leave-screen {display: grid;gap: 24px;}
+.personnel-app .ps-leave-screen .ps-page-heading {margin-bottom: 0;}
+.personnel-app .ps-leave-screen .ps-stat-grid > div {display: grid;min-height: 142px;align-content: center;gap: 9px;box-shadow: 0 3px 8px rgb(39 60 80 / 2%);}
+.personnel-app .ps-leave-screen .ps-stat-grid strong {margin: 0;font-family: Inter, Arial, sans-serif;font-size: 1.8rem;line-height: 1.3;}
+.personnel-app .ps-leave-list .ps-panel-heading {margin-bottom: 20px;}
+.personnel-app .ps-leave-year {color: var(--ps-muted);font-size: .875rem;}
+.personnel-app .ps-leave-request {border-bottom: 1px solid var(--ps-line);padding: 16px 0 18px;}
+.personnel-app .ps-leave-request-heading {display: flex;align-items: center;justify-content: space-between;gap: 14px;}
+.personnel-app .ps-leave-request-heading h3 {font-family: Inter, Arial, sans-serif;font-size: 1rem;}
+.personnel-app .ps-leave-request p {margin: 8px 0 0;color: var(--ps-muted);font-size: .8125rem;line-height: 1.5;overflow-wrap: anywhere;}
+.personnel-app .ps-leave-request .ps-leave-dates {font-size: .875rem;}
+.personnel-app .ps-leave-request .ps-secondary {min-height: 36px;padding: 7px 12px;font-size: .8125rem;}
+.personnel-app .ps-leave-request .ps-status[data-status="pending"] {background: #fff4d9;color: #a97713;}
+.personnel-app .ps-leave-empty {display: grid;min-height: 144px;place-items: center;align-content: center;gap: 10px;color: var(--ps-muted);text-align: center;}
+.personnel-app .ps-leave-empty svg {width: 28px;height: 28px;}
+.personnel-app .ps-leave-empty h3 {margin: 0;color: var(--ps-ink);font-size: 1rem;}
+.personnel-app .ps-leave-empty p {margin: 0;font-size: .875rem;}
+
 .personnel-app .ps-more-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3422,6 +3440,11 @@
   .personnel-app .ps-hour-row > :first-child {grid-column: 1 / -1;color: var(--ps-muted);font-size: .8125rem;}
   .personnel-app .ps-hours-day-actions {flex-direction: column;}
   .personnel-app .ps-hours-day-actions button {width: 100%;}
+  .personnel-app .ps-leave-screen .ps-page-heading {flex-wrap: wrap;gap: 16px;}
+  .personnel-app .ps-leave-screen .ps-stat-grid {grid-template-columns: minmax(0, 1fr);gap: 12px;}
+  .personnel-app .ps-leave-screen .ps-stat-grid > div {min-height: 112px;padding: 18px;}
+  .personnel-app .ps-leave-screen .ps-stat-grid strong {font-size: 1.6rem;}
+  .personnel-app .ps-leave-request-heading {align-items: flex-start;}
 }
 
 @media (max-width: 370px) {
