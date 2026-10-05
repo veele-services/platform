@@ -50,10 +50,12 @@ bijwerken kan een inhoudswijziging daardoor niet als eerder beoordeeld laten gel
 
 Ten opzichte van de gedeployde baseline `1f47c7b8` zijn 162 oppervlakken
 inhoudelijk beoordeeld: 97 nieuw en 65 gewijzigd, zonder verwijderingen.
-De finale ledger kent deze delta 144 keer `controlled` en 18 keer
+De finale ledger kent deze delta 143 keer `controlled` en 19 keer
 `corrected-and-rechecked` toe. De bronreviews en concrete regressies staan in
 [de integratiecontrole](portal-release-verification-2026-10-05.md) en de daar
 gekoppelde afzonderlijke reviews voor klantprojecties, OTP en huisstijl.
+De publieke standalone-redirect is daarna afzonderlijk gecorrigeerd en
+opnieuw beoordeeld; zie [het regressiebewijs](staging-redirect-verification-2026-10-05.md).
 
 De review omvat exacte account-/object-/bezoekgrenzen, intrekking tijdens
 asynchrone verwerking en lockwachten, klantkopieën van rapporten, expliciete

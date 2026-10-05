@@ -820,11 +820,13 @@
     },
     {
       "id": "code:app/auth/confirm/route.ts",
-      "surfaceFingerprint": "ebdd977d7b94d20f9c03330b07d635b77b9768b9f9da396ca3dcbfe0777670aa",
-      "status": "controlled",
+      "surfaceFingerprint": "8e6638ca671e8e178170564124fea003d046df3b3e127c88509bb984ed6560fb",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/otp-activity-verification-2026-10-05.md"
+        "docs/security/otp-activity-verification-2026-10-05.md",
+        "docs/security/staging-redirect-verification-2026-10-05.md",
+        "lib/auth/auth-destinations.test.ts"
       ]
     },
     {

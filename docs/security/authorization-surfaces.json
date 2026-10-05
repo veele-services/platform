@@ -1181,7 +1181,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "ad8e721be8d688e03b20cb171a99bb76817141cbccd8a9e98b96fc166641ec69"
+      "source_sha256": "792bb506028b8e4a1743d5167a4a816c5180fc2a137cc915fc5214c43eaac2cc"
     },
     {
       "id": "code:app/auth/forgot/page.tsx",
