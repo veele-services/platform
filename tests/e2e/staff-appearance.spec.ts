@@ -85,3 +85,60 @@ test("actieve Tickets opent de bestaande engine in dezelfde personeelsopmaak", a
     await capture("tickets-390");
   } finally { await restore(); }
 });
+
+test("Meer houdt alle personeelsacties bereikbaar op mobiel en desktop", async ({ page }, info) => {
+  test.setTimeout(90_000);
+  const restore = await ticketModule(true);
+  try {
+    await authenticateStaff(page, "field-worker@fieldgrid.test", "/staff?tab=meer");
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expect(page.getByRole("heading", { name: "Meer", exact: true })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Mijn profiel", exact: true })).toContainText("Robin de Vries");
+      for (const title of ["Verlof", "Beschikbaarheid", "Documenten", "Instellingen", "Profiel", "Notificaties", "Tickets"]) {
+        const tile = page.locator(".ps-more-card").filter({ has: page.getByText(title, { exact: true }) });
+        await expect(tile).toHaveCount(1);
+        await tile.scrollIntoViewIfNeeded();
+        const bounds = await tile.boundingBox();
+        expect(bounds).not.toBeNull();
+        expect(bounds!.x).toBeGreaterThanOrEqual(0);
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+        expect(bounds!.height).toBeGreaterThanOrEqual(44);
+      }
+      await expect(page.getByRole("region", { name: "Open diensten", exact: true })).toBeVisible();
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.evaluate(() => document.fonts.ready);
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: info.outputPath(`more-${width}.png`), fullPage: true, animations: "disabled", style: "nextjs-portal,[data-sonner-toaster]{visibility:hidden}" });
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const nav = page.getByRole("navigation", { name: "Mobiele navigatie" });
+    await expect(nav.locator("button, a")).toHaveText(["Planning", "Nieuws", "Mijn uren", "Tickets", "Meer"]);
+    await page.getByRole("button", { name: /^Profielmenu van/ }).click();
+    const menu = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem", { name: "Uitloggen" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Profielmenu van/ })).toBeFocused();
+    for (const [tile, heading] of [["Verlof", "Verlof"], ["Beschikbaarheid", "Beschikbaarheid"], ["Documenten", "Documenten"], ["Profiel", "Profiel"], ["Instellingen", "Instellingen"]]) {
+      await page.locator(".ps-more-card").filter({ has: page.getByText(tile, { exact: true }) }).click();
+      await expect(page.getByRole("heading", { name: heading, exact: true, level: 1 })).toBeVisible();
+      await nav.getByRole("button", { name: "Meer", exact: true }).click();
+    }
+    await page.locator(".ps-more-card").filter({ has: page.getByText("Notificaties", { exact: true }) }).click();
+    await expect(page).toHaveURL(/\/staff\/notificaties$/);
+    await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("link", { name: "Meer", exact: true }).click();
+    await page.locator(".ps-more-card").filter({ has: page.getByText("Tickets", { exact: true }) }).click();
+    await expect(page).toHaveURL(/\/staff\/meldingen$/);
+    await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("link", { name: "Meer", exact: true }).click();
+    const signout = page.locator(".ps-more-signout");
+    await expect(signout).toHaveAttribute("action", "/auth/signout");
+    await expect(signout).toHaveAttribute("method", "post");
+    const logout = signout.getByRole("button", { name: "Uitloggen", exact: true });
+    await logout.scrollIntoViewIfNeeded();
+    const bottom = await nav.boundingBox();
+    const button = await logout.boundingBox();
+    expect(button!.y + button!.height).toBeLessThanOrEqual(bottom!.y);
+  } finally { await restore(); }
+});

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
-  List, LockKeyhole, LogOut, Megaphone, Menu,
+  List, LockKeyhole, LogOut, Megaphone, MoreHorizontal,
   Info, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Settings2, Square, TicketCheck, Umbrella, UserRound,
-  UsersRound, X,
+  X,
 } from "lucide-react";
 import {
   useEffect,
@@ -233,7 +233,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         </div>
       </header>
       <main className="ps-content">
-        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid", "instellingen"].includes(moreView)) && <header className="ps-page-heading"><div><span className="ps-page-kicker">FIELDGRID / PERSONEEL</span><h1>{title}</h1></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
+        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid", "instellingen"].includes(moreView)) && <header className="ps-page-heading"><div><h1>{title}</h1><p>{view === "nieuws" ? "Het laatste van jouw organisatie." : moreView === "menu" ? "Personeelszaken en jouw instellingen." : moreView === "documenten" ? "Alles wat je nodig hebt voor je werk." : "Jouw contactgegevens en vervoer."}</p></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
         {view === "planning" && (tenant.enabledServices.includes("planning") ? <PlanningScreen orders={assigned} assignments={assignments} data={data} timezone={tenant.timezone} onOpen={openOrder} onHours={() => navigate("uren")} onNews={() => navigate("nieuws")}/> : <Empty icon={CalendarDays} title="Planning niet ingeschakeld">Vraag je beheerder om de module Planning te activeren.</Empty>)}
         {view === "nieuws" && <NewsScreen data={data} onRead={(id) => run(() => markAnnouncementRead(id), "Gemarkeerd als gelezen")}/>}
         {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run}/>}
@@ -241,10 +241,10 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
       </main>
       <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">
         <button className={view === "planning" ? "active" : ""} onClick={() => navigate("planning")}><CalendarDays/><span>Planning</span></button>
-        <button className={view === "nieuws" ? "active" : ""} onClick={() => navigate("nieuws")}><Megaphone/><span>Nieuws</span></button>
+        <button className={view === "nieuws" ? "active" : ""} onClick={() => navigate("nieuws")}><Newspaper/><span>Nieuws</span></button>
         <button className={view === "uren" ? "active" : ""} onClick={() => navigate("uren")}><Clock3/><span>Mijn uren</span></button>
         <StaffTicketsEntry className="ps-bottom-tickets" enabled={ticketsEnabled}/>
-        <button className={view === "meer" ? "active" : ""} onClick={() => navigate("meer")}><Menu/><span>Meer</span></button>
+        <button className={view === "meer" ? "active" : ""} onClick={() => navigate("meer")}><MoreHorizontal/><span>Meer</span></button>
       </nav>
     </div>
     {selected && <StaffOrderSheet reportingEnabled={tenant.enabledServices.includes("rapportage")} order={selected} data={data} timezone={tenant.timezone} pending={pending} close={() => setSelectedId(null)} run={run}/>}
@@ -467,21 +467,23 @@ function MoreScreen({ view, setView, data, profile, timezone, email, tenantName,
   if (view === "profiel") return <ProfileScreen key={profile.id} profile={profile} depots={data.staffDepots} email={email} pending={pending} run={run}/>;
   if (view === "instellingen") return <SettingsScreen key={profile.id} profile={profile} email={email} tenantName={tenantName} notificationPreferences={notificationPreferences} pending={pending} run={run}/>;
   const actions: Array<[MoreView, string, string, ComponentType<{ size?: number }>]> = [
-    ["verlof", "Verlof", "Bekijk en dien een aanvraag in", CalendarDays], ["beschikbaarheid", "Beschikbaarheid", "Je weekpatroon en dienstvoorkeuren", UsersRound],
-    ["documenten", "Documenten", "Persoonlijk met jou gedeeld", FileText], ["profiel", "Profiel", "Contact- en vervoersgegevens", UserRound], ["instellingen", "Instellingen", "Meldingen en account", Settings2],
+    ["verlof", "Verlof", "Aanvragen en saldo", Umbrella], ["beschikbaarheid", "Beschikbaarheid", "Jouw vaste week", CalendarCheck],
+    ["documenten", "Documenten", "Handboeken en instructies", FileText], ["instellingen", "Instellingen", "Profiel en meldingen", Settings], ["profiel", "Profiel", "Contact- en vervoersgegevens", UserRound],
   ];
   const shifts = data.openShifts.filter((shift) => shift.status === "open");
-  return <div className="ps-more-grid">
-    <section className="ps-profile-summary"><span>{initials(profile.preferred_name || profile.full_name)}</span><div><small>MIJN PROFIEL</small><h2>{profile.preferred_name || profile.full_name}</h2><p>{profile.employee_number}</p></div></section>
-    {actions.map(([key, title, text, Icon]) => <button className="ps-list-row" key={key} onClick={() => setView(key)}><Icon/><span><strong>{title}</strong><small>{text}</small></span><ChevronRight/></button>)}
-    <Link className="ps-list-row" href="/staff/notificaties"><Bell/><span><strong>Notificaties</strong><small>Inbox en persoonlijke voorkeuren</small></span><ChevronRight/></Link>
-    <StaffTicketsEntry className="ps-list-row" enabled={ticketsEnabled}><TicketCheck/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span><ChevronRight/></StaffTicketsEntry>
-    <section className="ps-panel"><div className="ps-panel-heading"><div><span>OPEN DIENSTEN</span><h2>Interesse doorgeven</h2></div><CalendarDays/></div>{shifts.map((shift) => {
+  return <div className="ps-more-screen">
+    <section className="ps-profile-summary" aria-label="Mijn profiel"><span>{initials(profile.preferred_name || profile.full_name)}</span><div><small>MIJN PROFIEL</small><h2>{profile.preferred_name || profile.full_name}</h2><p>{profile.employee_number}</p></div></section>
+    <div className="ps-more-grid" aria-label="Personeelszaken">
+      {actions.map(([key, title, text, Icon]) => <button className="ps-more-card" key={key} onClick={() => setView(key)}><Icon aria-hidden="true"/><span><strong>{title}</strong><small>{text}</small></span></button>)}
+      <Link className="ps-more-card" href="/staff/notificaties"><Bell aria-hidden="true"/><span><strong>Notificaties</strong><small>Inbox en persoonlijke voorkeuren</small></span></Link>
+      <StaffTicketsEntry className="ps-more-card" enabled={ticketsEnabled}><TicketCheck aria-hidden="true"/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span></StaffTicketsEntry>
+    </div>
+    <section className="ps-panel ps-open-shifts" aria-label="Open diensten"><div className="ps-panel-heading"><div><span>OPEN DIENSTEN</span><h2>Interesse doorgeven</h2></div><CalendarDays/></div>{shifts.map((shift) => {
       const interest = data.shiftInterests.find((item) => item.open_shift_id === shift.id && item.personnel_id === profile.id);
       const interested = interest?.status === "interested";
       return <div className="ps-list-row" key={shift.id}><span><strong>{staffDayLabel(staffDate(shift.starts_at, timezone), timezone)}</strong><small>{staffClock(shift.starts_at, timezone)}–{staffClock(shift.ends_at, timezone)}</small></span><button className={interested ? "ps-secondary" : "ps-primary"} disabled={pending} onClick={() => run(() => toggleShiftInterest({ shiftId: shift.id, interested: !interested }), interested ? "Interesse ingetrokken" : "Interesse doorgegeven")}>{interested ? "Intrekken" : "Interesse"}</button></div>;
     })}{!shifts.length && <p>Er zijn geen open diensten.</p>}</section>
-    <form action="/auth/signout" method="post"><button className="ps-secondary"><LogOut/>Uitloggen</button></form>
+    <form className="ps-more-signout" action="/auth/signout" method="post"><button className="ps-text-button"><LogOut/>Uitloggen</button></form>
   </div>;
 }
 

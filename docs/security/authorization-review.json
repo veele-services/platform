@@ -1440,7 +1440,7 @@
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "9719f9f9ffbeb40492d40770a51b714c93382df268c72371d3a364d9251057e3",
+      "surfaceFingerprint": "9bfd8ffc275122906e8c2f6bbbe5b3dc08ed5856e54d6766da64572d3db6c741",
       "status": "corrected-and-rechecked",
       "evidence": [
         "manual-personnel-app-authz-review:2026-10-05",
@@ -1451,12 +1451,13 @@
         "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken",
         "docs/security/release-security-inventory.md#instellingencontactactie-review--5-oktober-2026",
         "lib/staff/contact-action.test.ts",
-        "tests/e2e/staff-settings.spec.ts"
+        "tests/e2e/staff-settings.spec.ts",
+        "docs/security/release-security-inventory.md#personeelsapp-prototypevormgeving--6-oktober-2026"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
-      "surfaceFingerprint": "e753f77f4d4d5d2eceadf1920e0827aa1dba028aa01fb8b0cf3fbb404d832c71",
+      "surfaceFingerprint": "75950dd341b700489bcb9a30a6f270f79da7d76296b2209fb94578fceaec308e",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
@@ -1465,7 +1466,8 @@
         "tests/e2e/fieldgrid.spec.ts",
         "scripts/test-planboard.mjs",
         "docs/implementation/staff-realtime-and-release.md#realtimepad",
-        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026",
+        "docs/security/release-security-inventory.md#personeelsapp-prototypevormgeving--6-oktober-2026"
       ]
     },
     {

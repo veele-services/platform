@@ -256,3 +256,17 @@ niet-geactiveerde query-first rollenprototype. Dat is verklaarde lokale drift,
 geen onderdeel van het release-artifact. De metadata-snapshot en replayproeven
 gebruiken daarom de geïsoleerde migratiedatabase. Staging is niet onderzocht
 met databasecredentials; productie is niet benaderd.
+# Personeelsapp prototypevormgeving — 6 oktober 2026
+
+De wijzigingen in `components/fieldgrid/staff/personnel-app.tsx` en
+`components/fieldgrid/staff/route-shell-client.tsx` zijn opnieuw op bronniveau
+gecontroleerd. De nieuwe Meer-kaarten gebruiken dezelfde views, ticketmodule,
+notificatieroute en `toggleShiftInterest`-actie. Uitloggen blijft een POST naar
+`/auth/signout`. Alleen presentatie en iconen veranderen; geen query,
+workspaceprojectie, realtimefilter, versiecontrole, servercommando of
+autorisatievoorwaarde is verruimd. De mobiele navigatie en het profielmenu
+behouden hun bestaande routes en toetsenbordbediening.
+
+Gerichte controle: `tests/e2e/staff-appearance.spec.ts` controleert de
+bereikbaarheid van alle Meer-acties, modulegrenzen, focusreturn, zichtbare
+offlinestatus, tap targets en overflow op 320, 390, 768 en 1440 px.

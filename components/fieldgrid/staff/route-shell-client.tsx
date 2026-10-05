@@ -5,8 +5,8 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  CalendarCheck, CalendarDays, ChevronRight, Clock3, FileText, LogOut, Megaphone,
-  Menu, Newspaper, Settings, Settings2, Umbrella, UserRound,
+  CalendarCheck, CalendarDays, ChevronRight, Clock3, FileText, LogOut,
+  MoreHorizontal, Newspaper, Settings, Settings2, Umbrella, UserRound,
 } from "lucide-react";
 import { NotificationBell } from "@/components/fieldgrid/notifications/inbox";
 import { createClient } from "@/lib/supabase/client";
@@ -195,10 +195,10 @@ export function StaffRouteShellClient({
       <main className="ps-content ps-route-content">{children}</main>
       <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">
         <Link href="/staff?tab=planning"><CalendarDays/><span>Planning</span></Link>
-        <Link href="/staff?tab=nieuws"><Megaphone/><span>Nieuws</span></Link>
+        <Link href="/staff?tab=nieuws"><Newspaper/><span>Nieuws</span></Link>
         <Link href="/staff?tab=uren"><Clock3/><span>Mijn uren</span></Link>
         <StaffTicketsEntry className={active === "tickets" ? "active" : ""} active={active === "tickets"} enabled={ticketsEnabled}/>
-        <Link href="/staff?tab=meer"><Menu/><span>Meer</span></Link>
+        <Link href="/staff?tab=meer"><MoreHorizontal/><span>Meer</span></Link>
       </nav>
     </div>
   </div>;
