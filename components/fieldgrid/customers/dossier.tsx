@@ -56,6 +56,7 @@ import { ObjectForm } from "../objects/forms";
 import { uploadCustomerDocument } from "@/app/app/operations-actions";
 import { customerCommand, updateCustomerDocumentMetadata } from "@/app/app/klanten/actions";
 import { CUSTOMER_DOCUMENT_ACCEPT } from "@/lib/customers/documents";
+import { CustomerPortalAccess } from "./portal-access";
 import { CompactFilterMenu } from "../compact-filter-menu";
 
 function Empty({ children }: { children: ReactNode }) {
@@ -581,6 +582,7 @@ export function CustomerDossier({
           </p>
         </section>
       )}
+      {tab === "contactpersonen" && tenant.roles.some(role=>["tenant_admin","management"].includes(role)) && <CustomerPortalAccess key={c.id} customerId={c.id} contacts={data.contacts}/> }
       {tab === "contactpersonen" && (
         <section className="dossier-card">
           {heading(

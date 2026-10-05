@@ -77,6 +77,37 @@ Dit beschrijft aanwezige code, niet een afgeronde release. Alleen het
 [verificatiebestand](../support/tickets-verification.md) geeft de actuele
 testresultaten en het GO/NO-GO-besluit weer.
 
+## Klantportaaluitbreiding — opdracht 4 oktober 2026
+
+De nieuwe gebruikersopdracht voegt de vijfde werkruimte `customer` toe aan
+dezelfde ticketengine. De eerdere uitsluiting van klantcontacten in de matrix
+blijft gelden voor personeels-, HR-, beheer- en interne ticketinhoud. Een actief
+expliciet klantaccount mag uitsluitend zijn **eigen klantmeldergesprek** openen,
+via een expliciet voor klantintake toegestane niet-vertrouwelijke categorie.
+Categorieën zijn standaard niet voor klanten beschikbaar. Klanttoegang verleent
+geen tenant-support-, behandel-, delegatie- of configuratierecht.
+
+- Beide bestaande routes blijven bestaan: dienstverlening naar de bevoegde
+  tenantbehandelaar, technische support naar de Fieldgrid-supportdesk. Een
+  klantbroncontext wordt apart van personeels-/tenantbronnen gevalideerd.
+- Optionele object- en afspraakcontext vereisen de actuele exacte binding en
+  bestaande concrete-bezoektoegang. Een accountbinding alleen is geen
+  objectdossier- of factuurrecht. Gemengde klantcontext wordt geweigerd.
+- De customer-projectie bevat uitsluitend eigen melderberichten en toegestane
+  reporter-audience reacties/bijlagen. Interne auteurs verschijnen als tenant
+  of Fieldgrid; assignees, interne IDs, interne notities/auditmetadata en hun
+  activiteit/tellingen worden niet aan de klant geleverd.
+- Raw ticket-table RLS wordt niet verbreed. De begrensde query-/commandgrens,
+  huidige sessiecontrole, optimistic version, idempotente receipts, onveranderlijke
+  audiences en bestaande statusmachine blijven gezaghebbend.
+- Uploadintents, scanner, worker, vrijgave en herautoriseerde downloadproxy zijn
+  dezelfde engine. Geen klantbijlage wordt vóór scanvrijgave zichtbaar.
+- Klantmeldingsvoorkeuren worden door de echte deliverypolicy toegepast;
+  accountbeveiligingsmail blijft buiten die voorkeuren. Realtime is een minimale
+  eigen klantinvalidatie, nooit een subscription op rijke ticketbronrows.
+
+Uitwerking en actuele vrijgave-evidence: [customer-portal.md](customer-portal.md).
+
 ## Bekende afhankelijkheden bij aanvang
 
 Bij aanvang bevatte GitHub Environment staging de bestaande providercredentials,

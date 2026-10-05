@@ -286,6 +286,266 @@
       "version": "20261004220000",
       "name": "staff_personnel_app",
       "sha256": "efa48045eb2c7987a7d0126ef2b563c0c67a5df0330b1aa1b88fce513dc38fc5"
+    },
+    {
+      "version": "20261005033500",
+      "name": "customer_portal_identity",
+      "sha256": "f4d16101aba2f5001564db1e3242dd411a27ac4ced215cef4fcb6d6397c6706e"
+    },
+    {
+      "version": "20261005035000",
+      "name": "customer_portal_workspace",
+      "sha256": "f87ee2d4ad4f9b186f6a384df3f2e7f18a761c8df5ec4ae4ab1b740ee2842e68"
+    },
+    {
+      "version": "20261005043500",
+      "name": "customer_profile_self_service",
+      "sha256": "5375e0037d0b9c940ca16c6edacb8b5dca214b717fe707ae9e5adfa93e52e26e"
+    },
+    {
+      "version": "20261005044500",
+      "name": "customer_object_self_service",
+      "sha256": "563b9a9a0f315243301a6ced388a5b5525de7753e71860dc02a120221676c4f6"
+    },
+    {
+      "version": "20261005052000",
+      "name": "customer_visit_list_revocation",
+      "sha256": "f7f3a3ac289dedeac75037876ce9bbcd283093e5863f31270f2a2e259825152e"
+    },
+    {
+      "version": "20261005052100",
+      "name": "customer_concrete_visit_revocation",
+      "sha256": "e76a27a132b0e950c73981c20df7319154745006029f6fb02d46038ccdcb37c5"
+    },
+    {
+      "version": "20261005052200",
+      "name": "customer_vault_link_revocation",
+      "sha256": "d2c12d5018d40311b092485c25694bebc03371b457468e57ddd18d50bbe35a57"
+    },
+    {
+      "version": "20261005052300",
+      "name": "customer_commercial_scope_revocation",
+      "sha256": "f10ca9b4350e0ecd9e52b9bc34267788fa6a5b2c2eeddca2e6a5668a0c71da1c"
+    },
+    {
+      "version": "20261005053000",
+      "name": "customer_notification_groups",
+      "sha256": "136844b9e12b6c4d8da4d9d9c1b3364ef564d81a2e91b52c60b438d4a596963c"
+    },
+    {
+      "version": "20261005053100",
+      "name": "customer_preferences_self_service",
+      "sha256": "d48f709bcf6cf7897170cb7ae9566cf3950f71865d06533276b298942a066e83"
+    },
+    {
+      "version": "20261005054000",
+      "name": "customer_onboarding_draft_projection",
+      "sha256": "47eea0a64c53782ae4f19a91ebca9a7f155f7446f9c545b70b96e6ae5dfa639b"
+    },
+    {
+      "version": "20261005054100",
+      "name": "customer_onboarding_self_service",
+      "sha256": "b1e73e16728769ac317b45366f2fe11d569239f5bdcb928d636bb7dd31d113bb"
+    },
+    {
+      "version": "20261005055000",
+      "name": "customer_invoice_scope_revocation",
+      "sha256": "cf11195b7d38953ed4082eacd9fbe06151587ab9a512398249ce4f5f03849691"
+    },
+    {
+      "version": "20261005055100",
+      "name": "customer_shared_document_revocation",
+      "sha256": "c62a73de0f509e9eaed16a37a3588c15d88112ed0d9dcd2920076a39f9d64d33"
+    },
+    {
+      "version": "20261005055200",
+      "name": "customer_report_file_revocation",
+      "sha256": "ae3282e3d8598a8b4de2471751fc64d1996c4b471229a139703527ad6702c63f"
+    },
+    {
+      "version": "20261005055500",
+      "name": "customer_report_projection",
+      "sha256": "36523566f3c7e5f662ff4c4a8c93e775c31ec4c1868d26d3df172dba5cde126b"
+    },
+    {
+      "version": "20261005056000",
+      "name": "customer_invoice_projection",
+      "sha256": "353dacb9c20445cefe0efcba843cca420e95113330d553f69f366d429c431cfc"
+    },
+    {
+      "version": "20261005057000",
+      "name": "customer_fixed_instruction_self_service",
+      "sha256": "42d6be6244d003479bb4585b40361cf0324b9ee182fa5f59e53fa698d51a8605"
+    },
+    {
+      "version": "20261005058000",
+      "name": "customer_request_projection",
+      "sha256": "74aa3e87f18344ef028cfb3d4e7f3ffceb090b17cffb748f083079c56713e5cb"
+    },
+    {
+      "version": "20261005058100",
+      "name": "customer_service_projection",
+      "sha256": "7be9bf7a090dc9e041737e86150fc136878a627e958db8becc52f2036338e1d2"
+    },
+    {
+      "version": "20261005058200",
+      "name": "customer_grouped_request_self_service",
+      "sha256": "1b6ad32ae5f35afb4a486b707cceb565df97596f7d3ea6df0cd89a11be3b0c46"
+    },
+    {
+      "version": "20261005059000",
+      "name": "customer_verified_login_identity",
+      "sha256": "a546063065872c2b046429ea295371acf84fec54b205d90b349fcce933a177bc"
+    },
+    {
+      "version": "20261005059100",
+      "name": "customer_notification_verified_identity",
+      "sha256": "ac0fcf047b8a2282be2e07cf80501d294924f33b19afddc883301166b87cecc4"
+    },
+    {
+      "version": "20261005060000",
+      "name": "customer_coarse_revision_boundary",
+      "sha256": "48f18a325eaeb177e6ddc7b149b6a5b872679755c319dd7072efc711c2a3dd5a"
+    },
+    {
+      "version": "20261005061000",
+      "name": "customer_object_revision_sources",
+      "sha256": "0b3997a127b54028c2e728d2285cf8895c0e9aa3ec16cbe862be21c99e8238ce"
+    },
+    {
+      "version": "20261005062000",
+      "name": "customer_concrete_visit_projection",
+      "sha256": "0919808021d311dd32299d7bd9984ad97f738e37ffc217ab5d054d3c3d572c1f"
+    },
+    {
+      "version": "20261005062500",
+      "name": "customer_visit_revision_sources",
+      "sha256": "cdd72179b51fa8a825809f15f6a1a432c0a921458a9b7e7c642c87a2d12320f7"
+    },
+    {
+      "version": "20261005063000",
+      "name": "customer_visit_note_self_service",
+      "sha256": "c888c71100abb5699ae5d140bb30b87e8165f025f5daced6e7cbdf4c51ee5fd9"
+    },
+    {
+      "version": "20261005064000",
+      "name": "customer_news_projection",
+      "sha256": "fd8494f04be1244b39477e18c240993874506f4dc77764b560fc2d854e7ee378"
+    },
+    {
+      "version": "20261005064100",
+      "name": "customer_news_read_state",
+      "sha256": "c89ab11b3ed1ec13bdb46e253926f6f4f5ee4dd50defec26996f03e56b06bf71"
+    },
+    {
+      "version": "20261005065000",
+      "name": "customer_commercial_detail",
+      "sha256": "157418d6c38c41bab6d93f4883616a6c999a265ebad4af25d6311c05e82f0d16"
+    },
+    {
+      "version": "20261005065100",
+      "name": "customer_commercial_command",
+      "sha256": "1122917d6781981dc709cbf9dd7cba3b85ca6478f2287ccea554ec33fb8f686b"
+    },
+    {
+      "version": "20261005065200",
+      "name": "tenant_house_style_consistency",
+      "sha256": "c2085a424634312df68a3c9607b80fb01eed19d8dd67aac807bcfb8b1068d3f9"
+    },
+    {
+      "version": "20261005066000",
+      "name": "customer_payment_preparation",
+      "sha256": "4b14aa52a82b66b37dc4d0d6aa694b0051a2a0c2df7966fc393be4cf61be0f62"
+    },
+    {
+      "version": "20261005066100",
+      "name": "payment_bundle_reservations",
+      "sha256": "62ac0be2efaf03e7282c7a620120990a43f4e2bd00d7a406e294d3c9ec353cb6"
+    },
+    {
+      "version": "20261005066200",
+      "name": "customer_payment_merchant_guards",
+      "sha256": "43afb18242f0c8bcd62889fa56c7ee81ad695046d0335707127114c32dc89a00"
+    },
+    {
+      "version": "20261005066300",
+      "name": "customer_payment_resume_projection",
+      "sha256": "ff757daddb75680d11d4df9131e710d0f43425ad912454c0dbba41ce57c1ca33"
+    },
+    {
+      "version": "20261005066400",
+      "name": "manual_payment_reservation_guard",
+      "sha256": "5f2602e1af1f18341c1e52fa4b912377d9103aa739eeebd8e6e962330332deb9"
+    },
+    {
+      "version": "20261005070000",
+      "name": "customer_report_list_revocation",
+      "sha256": "5b67538563ccca40a4b154c7082624d1528328827958a2406737dc87d9ba7fc7"
+    },
+    {
+      "version": "20261005070100",
+      "name": "customer_file_scope",
+      "sha256": "ec2d0287f1e117e0957667471d33ee1dfe2dd470dd1cb13d64320aa06c1065d2"
+    },
+    {
+      "version": "20261005071000",
+      "name": "customer_ticket_workspace",
+      "sha256": "ac721a7c46f767a3418827c354b91462533c46b30c4acca5c47dc5e4bb8a841a"
+    },
+    {
+      "version": "20261005071100",
+      "name": "customer_ticket_commands",
+      "sha256": "ef591b53e52e4b14fc22f02832053759a16e065495bf4bf370efe85f56c6dc3a"
+    },
+    {
+      "version": "20261005071200",
+      "name": "customer_ticket_dispatch",
+      "sha256": "747113b7e2e82b15117d712f92bb27970b823f4ad232059d54d1cc7214602d77"
+    },
+    {
+      "version": "20261005071300",
+      "name": "customer_shared_documents",
+      "sha256": "86738e3216c6904776545f7b81c9aa0780b683dc8ae81b4d06cc0fe497ef65a1"
+    },
+    {
+      "version": "20261005071400",
+      "name": "customer_report_delivery",
+      "sha256": "e2ddfd6f475d815f729e7623776b8401fd057470a8e4ddcccf439d0b0e63a960"
+    },
+    {
+      "version": "20261005072000",
+      "name": "customer_visit_commands",
+      "sha256": "a63cc7fa7b0d3f6148bacf3dc1d0eff0caeb12d1fd49a14f959dea5cde4ea203"
+    },
+    {
+      "version": "20261005072100",
+      "name": "customer_account_version_guard",
+      "sha256": "4b9497486ffa6745715217385c63815f765347dea1999f6f5a1fc6c43ff3a12d"
+    },
+    {
+      "version": "20261005075000",
+      "name": "customer_ticket_notifications",
+      "sha256": "e1d9810a5b5b4f32bc02d6b935859985bdd4e569ffcbf80c40f13cf85f08583f"
+    },
+    {
+      "version": "20261005075100",
+      "name": "customer_activity",
+      "sha256": "183e7393b578f784a5e097bdb77868caddcf6a7c5571b5e8b96b8377b968f566"
+    },
+    {
+      "version": "20261005075200",
+      "name": "otp_personnel_invitation",
+      "sha256": "639cf6b9fc79d715cea0d8ecb5911183350f4ca9767c948003ea89c56bc159fb"
+    },
+    {
+      "version": "20261005075300",
+      "name": "customer_report_payment_notifications",
+      "sha256": "143b8017d86f7ab6270460cbbd5d5bb68261f489a3beff62860ba3fa45a23d0d"
+    },
+    {
+      "version": "20261005075400",
+      "name": "customer_payment_availability",
+      "sha256": "0978c694bd2edcc0435028e61434a37692052a2b1fb7d71c243c0fa6c6b1af98"
     }
   ]
 }

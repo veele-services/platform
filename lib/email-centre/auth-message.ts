@@ -24,7 +24,8 @@ export function authMailDestination(redirectTo: string, appUrl: string, deployTa
 }
 
 type AuthMessage = { recipient: string; subject: string; body: string; targetUrl: string; label: string; otp: boolean };
-export function authMailMessages(payload: AuthMailPayload, origin: string, company: string, staffOtp = false): AuthMessage[] {
+export function authMailMessages(payload: AuthMailPayload, origin: string, company: string, _staffOtp = false): AuthMessage[] {
+  void _staffOtp;
   const d = payload.email_data, u = payload.user;
   const link = (recipient: string, hash: string, type: z.infer<typeof verificationType>, subject: string, body: string, label: string): AuthMessage => {
     if (!/^[A-Za-z0-9_-]{32,512}$/.test(hash)) throw new Error("Invalid Auth verification");
@@ -34,12 +35,11 @@ export function authMailMessages(payload: AuthMailPayload, origin: string, compa
   };
   switch (d.email_action_type) {
     case "signup": return [link(u.email, d.token_hash, "signup", `Bevestig je account bij ${company}`, "Bevestig je e-mailadres om je account te activeren.", "E-mailadres bevestigen")];
-    case "invite": return [link(u.email, d.token_hash, "invite", `Uitnodiging voor ${company}`, `Je bent uitgenodigd voor de beveiligde omgeving van ${company}. Accepteer de uitnodiging en kies daarna je eigen wachtwoord.`, "Uitnodiging accepteren")];
-    case "recovery": return [link(u.email, d.token_hash, "recovery", `Nieuw wachtwoord voor ${company}`, "Je hebt gevraagd om je wachtwoord opnieuw in te stellen. Open de beveiligde pagina en kies een nieuw wachtwoord.", "Wachtwoord opnieuw instellen")];
+    case "invite": return [link(u.email, d.token_hash, "invite", `Uitnodiging voor ${company}`, `Je bent uitgenodigd voor de beveiligde omgeving van ${company}. Accepteer de uitnodiging. Daarna log je in met een eenmalige e-mailcode; een wachtwoord is niet nodig.`, "Uitnodiging accepteren")];
+    case "recovery": return [{ recipient: u.email, subject: `Inloggen bij ${company}`, body: `Je hebt gevraagd om je wachtwoord opnieuw in te stellen. Bij ${company} log je in met een eenmalige e-mailcode. Open het inlogscherm en vraag daar een nieuwe code aan. Een wachtwoord is niet nodig.\n\nHeb je dit niet aangevraagd? Dan hoef je niets te doen.`, targetUrl: new URL("/login", origin).href, label: "Inlogcode aanvragen", otp: false }];
     case "magiclink": case "email": {
-      if (!staffOtp) return [link(u.email, d.token_hash, d.email_action_type, `Inloggen bij ${company}`, "Gebruik deze persoonlijke link om veilig in te loggen.", "Veilig inloggen")];
-      if (!/^\d{6}$/.test(d.token)) throw new Error("Invalid staff Auth code");
-      return [{ recipient: u.email, subject: `Je inlogcode voor ${company}`, body: `Je eenmalige inlogcode is ${d.token}.\n\nVul deze code alleen in de personeelsapp in. De code verloopt en kan maar één keer worden gebruikt. Heb je dit niet aangevraagd? Deel de code niet en neem contact op met je beheerder.`, targetUrl: new URL("/staff", origin).href, label: "", otp: true }];
+      if (!/^\d{6}$/.test(d.token)) throw new Error("Invalid Auth login code");
+      return [{ recipient: u.email, subject: `Je inlogcode voor ${company}`, body: `Je eenmalige inlogcode is ${d.token}.\n\nVul deze code alleen in het geopende inlogscherm van ${company} in. De code verloopt en kan maar één keer worden gebruikt. Heb je dit niet aangevraagd? Deel de code niet en neem contact op met je beheerder.`, targetUrl: new URL("/login", origin).href, label: "", otp: true }];
     }
     case "email_change": {
       const recipient = z.email().parse(u.new_email);

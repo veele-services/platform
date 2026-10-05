@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { readScannedFile } from "@/lib/files/scanned-storage";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { brandingLogoVersion } from "@/lib/branding/logo-url";
 
 export async function GET(request: Request, { params }: { params: Promise<{ tenantId: string }> }) {
   try {
@@ -16,6 +17,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ tena
   const { data: branding } = asset ? { data: null } : await admin.from("tenant_branding").select("logo_path").eq("tenant_id", tenantId).maybeSingle();
   const path = asset ? `${tenantId}/notification-assets/${asset}` : branding?.logo_path;
   if (!path || !path.startsWith(`${tenantId}/`)) return new NextResponse("Niet gevonden", { status: 404 });
+  const version = new URL(request.url).searchParams.get("v");
+  if (version !== null && (asset || !/^[a-f0-9]{64}$/.test(version) || version !== brandingLogoVersion(path))) return new NextResponse("Niet gevonden", { status: 404, headers: { "cache-control": "no-store" } });
   const logo = await readScannedFile("branding", path, asset?.split(".")[0], admin);
   if (!logo || logo.bytes.length > 2 * 1024 * 1024 || !["image/png","image/jpeg","image/webp"].includes(logo.mime)) return new NextResponse("Niet gevonden", { status: 404 });
   const stillActive = await admin.from("tenants").select("id").eq("id", tenantId).eq("status", "active").maybeSingle();
@@ -27,7 +30,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ tena
   return new NextResponse(new Uint8Array(logo.bytes), {
     headers: {
       "content-type": logo.mime,
-      "cache-control": asset ? "public, max-age=31536000, immutable" : "public, max-age=3600, stale-while-revalidate=86400",
+      "cache-control": asset ? "public, max-age=31536000, immutable" : "private, no-store",
       "x-content-type-options": "nosniff",
       "content-security-policy": "default-src 'none'",
     },

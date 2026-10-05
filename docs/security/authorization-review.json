@@ -48,13 +48,12 @@
     },
     {
       "id": "code:app/api/branding/[tenantId]/email-logo/route.ts",
-      "surfaceFingerprint": "9754f952c6ef39b8f8ea7c4e9023cc5a20281f9c9c31665027c9758c8142b55c",
+      "surfaceFingerprint": "f07cfd56e6070d81f4161417f06e71301fc818caf293f6e210b57d77a1f64ebc",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md"
       ]
     },
     {
@@ -69,16 +68,76 @@
       ]
     },
     {
-      "id": "code:app/api/email/auth/route.ts",
-      "surfaceFingerprint": "8d38114c4d3854e032944d1303e937b7e78c882a8ac744c661413cde688bdfda",
-      "status": "corrected-and-rechecked",
+      "id": "code:app/api/customer-portal/files/[kind]/[id]/route.ts",
+      "surfaceFingerprint": "62ebdd71e488d14ede587b7c9679c2411639731dbc79e8a904de63d89bff4eda",
+      "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "lib/email-centre/auth-message.test.ts",
-        "lib/email-centre/webhook-security.test.ts",
-        "tests/e2e/staff-login.spec.ts",
-        "tests/e2e/auth-mail-hook.spec.ts",
-        "docs/deployment/mail-hooks.md#personeelslogin-exacte-staging-auth-instelling"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:app/api/customer-portal/request/route.ts",
+      "surfaceFingerprint": "8f47333af0cc1c6781ee4c9f18de9d244e22b29bcd723699192bf4433b477e18",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:app/api/customer-portal/snapshot/route.ts",
+      "surfaceFingerprint": "29b5431bb01d9d680a65f1d1cccc34ac3688931de50259f7ce0d2cd1574e6f40",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:app/api/customer-portal/state/route.ts",
+      "surfaceFingerprint": "60ca39d2e81c1424bc73d7911ff0911f9ee0abb634e16b84afb35e55fc969d68",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:app/api/customer-portal/tickets/route.ts",
+      "surfaceFingerprint": "276033208caf30b7c629c03c34f562f26f8ceed08eb24344ef5d396264cd6c13",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:app/api/customer-portal/visit-files/[id]/route.ts",
+      "surfaceFingerprint": "bd7d73730a4f1ab8b6509f622ab375032421cb96fb1dc91175e88da7c582d0fa",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:app/api/customer-portal/visit/route.ts",
+      "surfaceFingerprint": "271d3be142a4e87cccc2ab53caabebf3f2d9664e95e721726a20b1e8b111a75e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:app/api/email/auth/route.ts",
+      "surfaceFingerprint": "b09ef23675185e99fb1a75d39beac53f7854290dc7c0c4afaeed6514211fcc9d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
@@ -761,57 +820,47 @@
     },
     {
       "id": "code:app/auth/confirm/route.ts",
-      "surfaceFingerprint": "f7ed1a17ef8d0a380d71329015c4e66d490955d6d157601dfac4a7c5182531db",
+      "surfaceFingerprint": "ebdd977d7b94d20f9c03330b07d635b77b9768b9f9da396ca3dcbfe0777670aa",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/auth/forgot/page.tsx",
-      "surfaceFingerprint": "4919cfcd10ec35d78e7ba7a5dbd2258a63c374cf8c5df63e1e19fab10b41537f",
+      "surfaceFingerprint": "e7c4a36c6cba012718854dee4ecaa2027b98b6b65c865eacb7cca1c205e38939",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/auth/invite/actions.ts",
-      "surfaceFingerprint": "5e73a1aaacb5571f747657eeac65dd7fc3c77ddbbb1fb5ea5ab9742af2bddaf6",
+      "surfaceFingerprint": "9a576c2cdcf566480625184c1e860790e2722390a507b4cb4f45d932f5f8c9ef",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/auth/invite/page.tsx",
-      "surfaceFingerprint": "c8937f1b2d8f6ea00631e7f95ca094389b366890ffab980bbcd043277f3a5abe",
+      "surfaceFingerprint": "e1de137e9481790099fdccbe9321fee3b849bb61e64617f333cf45305e37cff1",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/auth/reset/page.tsx",
-      "surfaceFingerprint": "f7e6e1abb1e152256e1a92d0bacb1289bd69d4c6a856f916cd031596f7bae414",
+      "surfaceFingerprint": "179e06b3772b8eab0d5c3d71e7637bb8769de5ba4e974536a7149755f7005136",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
@@ -827,24 +876,20 @@
     },
     {
       "id": "code:app/auth/verify/actions.ts",
-      "surfaceFingerprint": "5e7ea399c54b92e54740a4d8fb26bfd9d97c0b3688313d7167a413b19978fae5",
+      "surfaceFingerprint": "6a01c1d73bf063dcce9f0fc4672236ca30a01a9d9d535c34ed0c9733757526ec",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/auth/verify/page.tsx",
-      "surfaceFingerprint": "03eedc902861464b977aecaea7aa216061f50bf3fa9b62b54a9e38b1fb0b3f35",
+      "surfaceFingerprint": "e23bfa8a6c38d2bfaff20badedb907bdc7b9f91cb8057925d24c548dd55de017",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
@@ -882,13 +927,11 @@
     },
     {
       "id": "code:app/klant/aanvragen/page.tsx",
-      "surfaceFingerprint": "68889533e6a622079fad8ef18c17be4881233aef49aff0e2367ca0be2d0d50c3",
+      "surfaceFingerprint": "f7f9c71db696f7024a69d730f0e1612aa3780a640c816c701897225699fbac9f",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -904,79 +947,65 @@
     },
     {
       "id": "code:app/klant/documenten/page.tsx",
-      "surfaceFingerprint": "a86ad2ff4146258e016153f1740aa5f707b3ee36c04bcbbcced2a7e65ae98951",
+      "surfaceFingerprint": "3f25b8007db9e2510e0766fd5b2af4e4c08727669a8b53066a37f1214686d09d",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/klant/notificaties/[id]/page.tsx",
-      "surfaceFingerprint": "5d0cd65dc5a96f50aa03c29f90d43e495ac9e99bcbd3ff73e11f5b14aecc0308",
+      "surfaceFingerprint": "2c1a64e0480d20b8d545eb2008bcb01fb3461863c579056a22a72feec17251d5",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/klant/notificaties/campagnes/[id]/page.tsx",
-      "surfaceFingerprint": "8c38b8ccb81019de9ee1d1039236109668ca0b62c29b6ea1c52213fa43d728e0",
+      "surfaceFingerprint": "df1cf3e2ad27d3073aec7f7fabdd01b1e922ac4b05ceac7728e1475d9e446f41",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/klant/notificaties/instellingen/page.tsx",
-      "surfaceFingerprint": "0630a0f53df87c7e7a1d1bdd965dcf5c78c4bf5360c4e3c8bd70a39436bad77c",
+      "surfaceFingerprint": "9280006f6dda5ef54cc0679c1a14734d54f87b89c83ca869626be4bd22a642a3",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/klant/notificaties/layout.tsx",
-      "surfaceFingerprint": "feefb131764f5b16610d9d492b3281590e235396b62554b30e1e9dae0f280bf6",
+      "surfaceFingerprint": "8485393bdbdcb2a66ca90bc2989cb660af37629c9dc1527701d8055d2f46d322",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/klant/notificaties/page.tsx",
-      "surfaceFingerprint": "7d03b0b2bd6fa3a6bebbce9dbf679dccd015f12349306415296b824028f1346e",
+      "surfaceFingerprint": "55c73bee2cf0678c64c9fe3bcb10f16ff535194dd4c086ccd08c9c91e72e4769",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/klant/page.tsx",
-      "surfaceFingerprint": "7894b8898bc67a7ebd508beda466e5e8dcff973704eaab22ff9afa8c99a9a1e5",
+      "surfaceFingerprint": "2b0d2058f8d718da8258f4e97d9777f442f101220279dd9c0bf57e15594af575",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -992,28 +1021,20 @@
     },
     {
       "id": "code:app/login/actions.ts",
-      "surfaceFingerprint": "fc681fcf576139435bfee6337dc56c5be87ec07fbfcf59c292cff1f398c179fb",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "6126602e5092f16b5fc072e6ede3579b11c6e276698cd8e39d40791ac51c846f",
+      "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "lib/auth/staff-login-actions.test.ts",
-        "lib/auth/staff-login.test.ts",
-        "lib/auth/auth-destinations.test.ts",
-        "lib/tenancy/proxy-boundary.test.ts",
-        "tests/e2e/staff-login.spec.ts"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
       "id": "code:app/login/page.tsx",
-      "surfaceFingerprint": "c9995f060618b6c5de4d15efa404e732cb11f807585b9c1e24f7f3d718a0d3e7",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "bd59d06af5c2a7e17743c095dcd6c5b12740b065fb5df9335878901ef35fb6c3",
+      "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "lib/auth/staff-login-actions.test.ts",
-        "lib/auth/staff-login.test.ts",
-        "lib/auth/auth-destinations.test.ts",
-        "lib/tenancy/proxy-boundary.test.ts",
-        "tests/e2e/staff-login.spec.ts"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
@@ -1051,13 +1072,11 @@
     },
     {
       "id": "code:app/platform/actions.ts",
-      "surfaceFingerprint": "0bb4c80dcedc96c71e58178a0903398ad7efce243fbd44033de7d63e4db07a76",
+      "surfaceFingerprint": "e7b426f7a6846dca16a9ebec3278d86058730691f2781b8ec72a003b73cb3093",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
@@ -1354,6 +1373,24 @@
       ]
     },
     {
+      "id": "code:components/fieldgrid/backoffice-live.tsx",
+      "surfaceFingerprint": "36ba68cda2280478c2d19a807b46e27938202a284bb621197932fadf5642583e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:components/fieldgrid/customer-portal/use-customer-refresh.ts",
+      "surfaceFingerprint": "f3084813904d81612a7174b36c93d04dab5aff63161cb31725d60c36dfe3ac10",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
       "id": "code:components/fieldgrid/notifications/routes.tsx",
       "surfaceFingerprint": "3f29cbedaaca4b794fbef8f43630a8f0aac5307074085c1fb3f6d403ddaf0a3b",
       "status": "controlled",
@@ -1464,14 +1501,40 @@
       ]
     },
     {
-      "id": "code:lib/branding/logo.ts",
-      "surfaceFingerprint": "c443e7a5272066363ba9d6101519bbaa3e4323a2ef164300189789220ea9b4c2",
+      "id": "code:lib/auth/login-access.ts",
+      "surfaceFingerprint": "dccef80a6db5a1de931c0954c615999d6366694cf2bba9f94ab161837147ea13",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/auth/login-brand.ts",
+      "surfaceFingerprint": "2f6153bbd7bbc1c2385e761f106ccf4f1bd91f6219478b9e134a17c172e4c137",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/branding/house-style-actions.ts",
+      "surfaceFingerprint": "cccfcf56865ba89bdc38a7943d701b6933a1a14cc3b969c2e2600e471fa62fdc",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/branding/logo.ts",
+      "surfaceFingerprint": "84c7eb4d07c4b203b44f10a8fc530ce7b5e3e33cd4dab5a2bda97737ab070421",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md"
       ]
     },
     {
@@ -1494,6 +1557,152 @@
         "manual-completion-audit:2026-10-01",
         "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
         "scripts/check-security-surface.mjs"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/activity-action.ts",
+      "surfaceFingerprint": "552f4e28e7c7bfa8466ec5e49cf475282c171feb0d6861e03fab4a2b82d63c23",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/commercial-action.ts",
+      "surfaceFingerprint": "c18172511736f9ed1367b18563e6f545985b47209f6aa30c3a4f7465f7e949ec",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/data.ts",
+      "surfaceFingerprint": "24b85ab3f6efa2ca4280ac0d4a6675d1c05718dc0b5964705d0c73c76c03f350",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/instruction-action.ts",
+      "surfaceFingerprint": "fc4c5bccee2f5bf401f9d22875fd1369152b71137ba30b301c0e08b373623fb3",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/management-action.ts",
+      "surfaceFingerprint": "fdad8157dc3f519e0fe80cd779d500b188efaa957427ec8b7adc5d6dc4cb5df2",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/news-action.ts",
+      "surfaceFingerprint": "37780dbd8931d55da4e6274c92fb111ec429ae1f038f0cb7750e0ebe728bc563",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/object-action.ts",
+      "surfaceFingerprint": "da5cc01536c150f609dec2d8bd2be6d3c5ea5a7f6472d517fc060cbc6ceae8b1",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/onboarding-action.ts",
+      "surfaceFingerprint": "4188a378c4866c743612a87912d2f6af6f4d65d21165018b1f0967c956093864",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/payment-action.ts",
+      "surfaceFingerprint": "9e3e8c3533d00a2e5f482abf7b3358e6de32a4dda8ec3c0ced36b3e071d7a032",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/preferences-action.ts",
+      "surfaceFingerprint": "1b3fc16028e2ebba3df25dd17e6cc147913e55e6e64871d29c2666cada4d85c9",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/profile-action.ts",
+      "surfaceFingerprint": "265c545355223365d73a536b3e250193a48c9fcd1cefd77caaf747144ee06f78",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/report-download.ts",
+      "surfaceFingerprint": "d20bc5bd3b47c752cc19a986713548f8d62ad597a90dcbb7dd41f6beb48b2158",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/request-action.ts",
+      "surfaceFingerprint": "78cda304675ec40fae8f591393bda27c09edec2da07b8fd8a1798ef434096eb5",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/ticket-action.ts",
+      "surfaceFingerprint": "3d29aa4d9123d30b2e2e5f589455c7e1332e57b10697c64b5e716e32b059cf6a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/visit-command-action.ts",
+      "surfaceFingerprint": "314e6f8778607a6a8e74b472dfb89bf118f9b0ff6b6a146e8399b97be3f65ac0",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/customer-portal/visit-note-action.ts",
+      "surfaceFingerprint": "9e3251fabecd50cc9cf5a02c76bf3575d6e30647c43dd50b819cb2732abe645b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -1532,15 +1741,11 @@
     },
     {
       "id": "code:lib/email-centre/auth-message.ts",
-      "surfaceFingerprint": "f56ae280531477adfcb1a723a04406f6ed42b3fb1df0f2425682954f86f15c2d",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "03f8c6241ce79f1b26f1f8f24b12f7bb71a19ff1ca21936ddff219ec7a1a8d00",
+      "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "lib/email-centre/auth-message.test.ts",
-        "lib/email-centre/webhook-security.test.ts",
-        "tests/e2e/staff-login.spec.ts",
-        "tests/e2e/auth-mail-hook.spec.ts",
-        "docs/deployment/mail-hooks.md#personeelslogin-exacte-staging-auth-instelling"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
@@ -1687,6 +1892,15 @@
       ]
     },
     {
+      "id": "code:lib/payments/merchant.ts",
+      "surfaceFingerprint": "ef1293f68ab9bade404cd58eccafa52781ae308a4d1178cd832a3151f5b3dfff",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
       "id": "code:lib/personnel/dossier-data.ts",
       "surfaceFingerprint": "80e37c00598c68a5eb78b60f4d225df5e53ec39a52490e0f86da2482d9d511b7",
       "status": "corrected-and-rechecked",
@@ -1745,13 +1959,11 @@
     },
     {
       "id": "code:lib/providers/mollie.ts",
-      "surfaceFingerprint": "48a1b88f8df0e6543459b2b40ffdaa81ab6263f04bd5058a44e240cd8db6f6cf",
+      "surfaceFingerprint": "f77042a0271e88f62267291bde198d6f2c6bde45ef4d519f5bba1496f1774127",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -1899,15 +2111,11 @@
     },
     {
       "id": "code:proxy.ts",
-      "surfaceFingerprint": "f5944ec56205f3dde944f0850ba135b3264e818d483b16cc9bd4636b66783497",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "eba0e51f16a9805587df1344afe30594dbecfccf12e48391d39eb6b630b88690",
+      "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "lib/auth/staff-login-actions.test.ts",
-        "lib/auth/staff-login.test.ts",
-        "lib/auth/auth-destinations.test.ts",
-        "lib/tenancy/proxy-boundary.test.ts",
-        "tests/e2e/staff-login.spec.ts"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -1941,6 +2149,24 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "db:private.customer_portal_commands",
+      "surfaceFingerprint": "8fc6b67a4894bac645c07159b0e98a7c01d43c6c8ce6d7d804718ab63f8d2c7d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "db:private.customer_ticket_bindings",
+      "surfaceFingerprint": "a1b0f948f59e3e8c91c0bd12e9d324c2b704f519f1fa6d86daff8aea8f2aef66",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -2821,6 +3047,24 @@
       ]
     },
     {
+      "id": "db:public.customer_portal_accounts",
+      "surfaceFingerprint": "49e944fb54920122737e2677d8996b3fccdc46c6ac1461969d5b09bf5e550896",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "db:public.customer_portal_revisions",
+      "surfaceFingerprint": "f8c75a61d9fd4a1b2e46c675f51c441006d6ee07b9197351b7e74c7e2da61d6a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
       "id": "db:public.customers",
       "surfaceFingerprint": "b972809ded767aba84c301b1d680f080e4203bbb025560d110cd4f4a38dc5b87",
       "status": "controlled",
@@ -2982,13 +3226,11 @@
     },
     {
       "id": "db:public.object_customer_bindings",
-      "surfaceFingerprint": "5b849ac23039dd0471b72262f233be8fec9996268ff3d25e6422774a6b00189a",
+      "surfaceFingerprint": "705b1c0e76177c095c27ef4365609ab54a4ee399f94561cd1febda70b40c719c",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -3037,13 +3279,11 @@
     },
     {
       "id": "db:public.object_records",
-      "surfaceFingerprint": "65e2e5ebfb03cd0ee924d005662828a59f1a42167af4ce753a6fd7c9c2fb1af4",
+      "surfaceFingerprint": "c123cbbabfec1449c118188fe492af123f52d27e5babb3ffac0e17592a8012e9",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -3081,26 +3321,20 @@
     },
     {
       "id": "db:public.object_visit_requests",
-      "surfaceFingerprint": "0cfa81fd505e9a13b1ecea060732c4c4bf8b9a382ab737280ae2ed594a20bb93",
+      "surfaceFingerprint": "fd2bed0036d3a949898bd7d2511f68b35a357ec731349204510dc18e17e3eb3d",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
       "id": "db:public.objects",
-      "surfaceFingerprint": "0894ae86dfb9de38a4eedfbee4bd7196a3936f937cf2aca596e90361632edf38",
+      "surfaceFingerprint": "901b30df44f7ce182d8340d062683d91a0a92d16d3f3adea23d5b8a650490130",
       "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-security-catalog.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-planboard.mjs",
-        "docs/implementation/staff-realtime-and-release.md#brondekking"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -3140,13 +3374,15 @@
     },
     {
       "id": "db:public.payment_attempts",
-      "surfaceFingerprint": "6aa127d0c9c5680d27762cde2ac63fd1613df612a8e12022648ce0fc553510f1",
+      "surfaceFingerprint": "1e30e6a7c0c2cf534b8119e4fa28b77cd974586bf37dc13e7091555b598595c9",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
       ]
     },
     {
@@ -3403,13 +3639,11 @@
     },
     {
       "id": "db:public.requests",
-      "surfaceFingerprint": "ee74b250c710175e0113b6e1e7a8dcc8164c41304d7f7f9572c9e975b7387fe8",
+      "surfaceFingerprint": "b6e685986c0f480d8e957a456ed2d0d8f621c1b4559745b8f147aac5b0e2dc01",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -3496,14 +3730,11 @@
     },
     {
       "id": "db:public.staff_workspace_revisions",
-      "surfaceFingerprint": "4cfc575f39c2f006d37f1e8b033bb4f39aeb11b08a23f894d9c3d11a4221fc6f",
+      "surfaceFingerprint": "b601ad9cf088848cb43259eab55dd0baa31dd925d7f321e61350197ce8978be9",
       "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-planboard.mjs",
-        "docs/implementation/staff-realtime-and-release.md#revisierij-en-rls"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md"
       ]
     },
     {
@@ -3558,13 +3789,11 @@
     },
     {
       "id": "db:public.tenant_branding",
-      "surfaceFingerprint": "34e0cd30541372385dbf46cfe9425ec4f96a4ed2cefb220608ef50cecfbc410a",
+      "surfaceFingerprint": "41f2b41dc54ca916dd2465edeb29f04684523a5f6143f5f075c5cd4397644a03",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md"
       ]
     },
     {
@@ -3615,13 +3844,11 @@
     },
     {
       "id": "db:public.tenant_provider_connections",
-      "surfaceFingerprint": "dc9b0b3129bc7bcade6c1387475c448fd9dc93bbfeecc347f2c224423dc29238",
+      "surfaceFingerprint": "41edd740126653e0a4491b9f0a349fd4995396b02a51c6aded1a449ef0dc4254",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -3639,15 +3866,11 @@
     },
     {
       "id": "db:public.tenants",
-      "surfaceFingerprint": "07cbe457929f34d0432e97dabebc4478fa553c2ee9f9179dcb91a83d397ef219",
+      "surfaceFingerprint": "81ad164fd0b86990ada8518d75d8a32952e75902d091b095365e4ed13c26a082",
       "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-security-catalog.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-planboard.mjs",
-        "docs/implementation/staff-realtime-and-release.md#brondekking"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md"
       ]
     },
     {
@@ -3663,13 +3886,11 @@
     },
     {
       "id": "db:public.ticket_events",
-      "surfaceFingerprint": "e9cbdce9bb53b928b5fa2b4f5c574b7c3cd7693bb3dc08c373426b0d44f000ec",
+      "surfaceFingerprint": "54bec7fdb76b6bdb28b3d442a52e609022fea3ce4c2b675ca56ba120922fce21",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -3893,13 +4114,15 @@
     },
     {
       "id": "db:public.work_order_report_versions",
-      "surfaceFingerprint": "acf11a01cb0dad6cf11f1ac7737186b6efab19f837636855c611a32fc9556cb0",
+      "surfaceFingerprint": "8263715e56e88100eb695d6b6bb3296424f90148f51bf6f7f03247e4b28c417b",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
       ]
     },
     {
@@ -3985,15 +4208,11 @@
     },
     {
       "id": "db:public.work_orders",
-      "surfaceFingerprint": "aac7663d9716aa1ef737d82fc0e06dcc29aee28f1733659b94b9c2b752c33f61",
+      "surfaceFingerprint": "6e33091c12e6a3b11f36ccc75212ff014e54912e86d7990b9c9fd16e012784d3",
       "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-security-catalog.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-planboard.mjs",
-        "docs/implementation/staff-realtime-and-release.md#brondekking"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -4019,13 +4238,11 @@
     },
     {
       "id": "operation:.github/workflows/bootstrap-staging-admin.yml",
-      "surfaceFingerprint": "62c3bf433bb8589ea6914cd47522cfbdfd8c1b0ef86a71339918b86067878712",
+      "surfaceFingerprint": "2677396cb0a20e6fabf42f53c23889b20be96f387acfb72ab1bfd984dc1996ef",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
@@ -4214,14 +4431,10 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "11139e1976d6bc3acbe47ee5772ab380ff079650a87fd1bcab1dcee980d5d3a7",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "7ff96cb042113942c3541da291ff00802df73557e14881cb8c7b7c927ee48c5e",
+      "status": "controlled",
       "evidence": [
-        "manual-staging-migration-client-review:2026-10-02",
-        "The normal CLI remains 2.117.0 while the migration-only alias is pinned to the final pre-TypeScript db-push client 2.109.1.",
-        "Supabase CLI 2.109.1 applied the exact isolated 35-to-55 forward plan and preserved all 55 statement-history hashes.",
-        "lib/env/staging-migration-command.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/security/portal-release-verification-2026-10-05.md"
       ]
     },
     {
@@ -4299,13 +4512,11 @@
     },
     {
       "id": "operation:scripts/bootstrap-platform-admin.ts",
-      "surfaceFingerprint": "da32ff6e2ceb8edb66bfdcc07ed4bb906fbe843f98bb1f4c4bdf03011bba939c",
+      "surfaceFingerprint": "c5244aae295005dc4604a51b6ae40a1e34798aadd7677bd03ab8c43846b1d579",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
@@ -4455,13 +4666,13 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "add5cf2781d67af48a88c9fbae2dacae2c388d7791e0ce4e8d8a9ed70c23cf10",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "56b7069c8cbb8b517711a91159b9551f0edfdba24712089d1c96bd0e61504672",
+      "status": "controlled",
       "evidence": [
-        "manual-clean-replay:2026-10-05:398/398-pgtap+320/320-node-db",
-        "scripts/verify-local-migration-manifest.ts",
-        "package.json#db:verify-manifest",
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/verify-local-migration-manifest.ts: clean replay of 109 migrations, 57 deployed hashes preserved"
       ]
     },
     {
@@ -4576,24 +4787,19 @@
     },
     {
       "id": "operation:supabase/config.toml",
-      "surfaceFingerprint": "cc4c6b252385be595a2778933431bb9e08b52d31202bc8fcf588d868daa8d319",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "4c6ca954326034eb4b9fea99ad2b023a1a2c25f7ca1d851ba26f323359e4198a",
+      "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "tests/e2e/staff-login.spec.ts",
-        "supabase/templates/magic_link.html",
-        "docs/deployment/mail-hooks.md#personeelslogin-exacte-staging-auth-instelling"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
       "id": "operation:vitest.config.mts",
-      "surfaceFingerprint": "c3647a8f807991233c9e808c6ba4ccd85cfd4196e023ac669df9004fa99d94a2",
+      "surfaceFingerprint": "c332dd4e21c278294eae9367ac33aedf52778094b03ea8127d6ad9ac77d85f51",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/security/portal-release-verification-2026-10-05.md"
       ]
     },
     {
@@ -4865,13 +5071,11 @@
     },
     {
       "id": "rpc:private.commercial_customer_scope(t uuid, c uuid, o uuid, creator uuid)",
-      "surfaceFingerprint": "6a57f5789c4332f6df261a71481caf9527a3637b7e7530162073e3e6c7371469",
+      "surfaceFingerprint": "e10cce3fb295bd8f8bfde261315d4b712c29a5cdaf74cd235a8689d0d1bd56f3",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -4985,6 +5189,50 @@
       ]
     },
     {
+      "id": "rpc:private.customer_account_access(t uuid, a uuid)",
+      "surfaceFingerprint": "e3e6ff5244484318e11557d0ca7ef1ca5828db44a4198eab49be79a8a18ff217",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_account_revision_trigger()",
+      "surfaceFingerprint": "e193e1adc87753351b2ef76eec44976505cd35bc9981a61fe987db33ce48c776",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_activity_path_before_customer_delivery(t uuid, a uuid, nid uuid)",
+      "surfaceFingerprint": "aefe27b22f2959d03a158f2b0cbfaf1ddd45a633db300e180da39e31fb994da5",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_activity_path(t uuid, a uuid, nid uuid)",
+      "surfaceFingerprint": "61b5254ce0198fd521e17b53b8599d89484e040ca3ba99cdbf3470176d8b96e5",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
+      ]
+    },
+    {
       "id": "rpc:private.customer_audit()",
       "surfaceFingerprint": "8a6cf7874f41c038c425b6de9e87a51a2916ae81c9ce841e09d11746c0ed5e31",
       "status": "controlled",
@@ -4993,6 +5241,24 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_binding_identity()",
+      "surfaceFingerprint": "9b1d76ac00d030c8c1654ddfd38f348f64719a1c4039f073326f8273a0c317f1",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_binding_revision_trigger()",
+      "surfaceFingerprint": "fc87df839e3a0f52165f4ecd34ba9f8bc9ae29e74a28a65c51f300c04fb2bff8",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -5008,13 +5274,11 @@
     },
     {
       "id": "rpc:private.customer_document_access(t uuid, d uuid)",
-      "surfaceFingerprint": "8781f413f22a031a1b700ca6971946ca3aceb245c732e7d38e8dc16c5adb388e",
+      "surfaceFingerprint": "cd227cc2cdd8918cc1ad4cef192cefce5f33ee062102d59cb0bb0ded7dd0b754",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -5073,14 +5337,164 @@
       ]
     },
     {
-      "id": "rpc:private.customer_portal_bound(t uuid, c uuid)",
-      "surfaceFingerprint": "a792a450cfeb5b46506db56c7172758e0645fabc3cb5ece28fd4b417b088ec48",
+      "id": "rpc:private.customer_merchant_guard()",
+      "surfaceFingerprint": "8c1331df08c0f43f8156a33b8b69178a88fedccc6cd97bada95c554721e3c963",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_news_access(t uuid, a uuid, n uuid)",
+      "surfaceFingerprint": "b47820749b790650c25dd1850f506a85f0d7ff4255a65b0e4249ceaa872197f2",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_notification_account(t uuid, a uuid, actor uuid)",
+      "surfaceFingerprint": "e2cafd9932c55f9e5bf4972c4aa5b0b6e9e68973b88935420c122ef35b286c3d",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_notification_group(code text)",
+      "surfaceFingerprint": "52d0147fe20aaadacf8a9ce689084fd716722b462149851b482e35292d404429",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_notification_policy_revision(t uuid, code text, actor uuid)",
+      "surfaceFingerprint": "a462165196a02490393bc32ed378f8969fb5b74ba1c7c63315fed013f8ca5574",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_notification_resource(t uuid, a uuid, kind text, entity uuid, actor uuid)",
+      "surfaceFingerprint": "7c78de800b49f28e555581550cea0daddd1943053f50470a1e46db627bd20bbe",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_notification_transition()",
+      "surfaceFingerprint": "75d95795f54f587a77ca6cc2f92f65e4c069badf8f8676c681208d23266b8e0f",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_object_revision_trigger()",
+      "surfaceFingerprint": "e2a05ff1c3797700916eb2564b408b7a2d6370ba63ee557fee36694348bd326d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_own_visit_request_revision_trigger()",
+      "surfaceFingerprint": "2ff5e8e1371602c4680414e47f8cd04b89793914b6c0a584a68a4ddf59ef510a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_payment_profile_guard()",
+      "surfaceFingerprint": "b91a9401d84a89b09ec843fb0ddb804e0b2d0c4fb33b5788e6debdff47272c8b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_portal_bound(t uuid, c uuid)",
+      "surfaceFingerprint": "d5724c156eebfde3e1533366f5532011ee5d40144238fda6d2ec315d3ae97951",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_portal_manage(t uuid)",
+      "surfaceFingerprint": "b082c4ccdb56d5fed208139439fc1350deae82f187ee2ef181275fbb9a975782",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_portal_profile(t uuid, a uuid)",
+      "surfaceFingerprint": "215f7d5d2d2a3d40ad88f18f1ea5871727b4c881f372d21a9cf533d55a4f01ab",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_revision_bump(t uuid, a uuid)",
+      "surfaceFingerprint": "ab76b7f2b93551884020810456fa7c4951a5913d1e8591cbe8a014e89f6ac158",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_revision_for_object(t uuid, c uuid, o uuid)",
+      "surfaceFingerprint": "67d29b75d1c767005cd5a96aed3a7d90d8a89556b1186f4fb35ccc62f90a2425",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_revision_for_own_visit_request(t uuid, o uuid, w uuid, u uuid)",
+      "surfaceFingerprint": "1bde7c503405cfb3ba1ea71b7c46d812f3e77373164d559c3390872bb1ff403a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -5096,14 +5510,94 @@
       ]
     },
     {
-      "id": "rpc:private.customer_visit_access(t uuid, o uuid, w uuid)",
-      "surfaceFingerprint": "059a10ed068356b47f97f9df5fdfc5cd371580d2962d6fb7b8ba907fb3e9f9e8",
+      "id": "rpc:private.customer_ticket_access(tid uuid, actor uuid)",
+      "surfaceFingerprint": "4cea79ca871448c31af8a671ebe48f3d4a9a827cf0ce64c4cd9b9251270bad93",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_ticket_command(target_tenant uuid, cmd text, p jsonb, request_id uuid)",
+      "surfaceFingerprint": "c1f9fc4b1bc491b1949eb77ef434b567bb65affd61de87b16aefb987e80b606c",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_ticket_dto(tid uuid, a uuid)",
+      "surfaceFingerprint": "a633c1e67de292f13a2cf6be6f358741a5646387774240af95a5c6dbc4bbc528",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_ticket_identity(t uuid, a uuid, actor uuid)",
+      "surfaceFingerprint": "42ca88b3e2e5d69a81f2749b1d6a392202ccef646f0edea2f0ba3c1de4f37f13",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_ticket_notification()",
+      "surfaceFingerprint": "285a09fa78ba2fb387ce749673d9bd620bf3e62aa3be6d5102d6e02a5ab7f484",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_ticket_query(t uuid, op text, p jsonb)",
+      "surfaceFingerprint": "414c3d8d25bd1612895d8c806fb6013ba1e00028a8025f9723b9860bde73b15c",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_ticket_seed_trigger()",
+      "surfaceFingerprint": "4940f9424b0a0424f15585a13f44d78c58c2f28c22a992438b902c17517feeb1",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_ticket_seed(t uuid)",
+      "surfaceFingerprint": "2038566ade9ccd0b6419605cb365132b33edec4a19953fa0a3804af8b3e09fb2",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_visit_access(t uuid, o uuid, w uuid)",
+      "surfaceFingerprint": "67e22ae186a02e7eee43222e56bd103c155b9a692fd237b15cc58bca86a2514a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.customer_visit_revision_trigger()",
+      "surfaceFingerprint": "59b2b554a7ede0c4a058eaad59653fc5a57d990cb5b913def63df554fdcad1f0",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -5384,13 +5878,11 @@
     },
     {
       "id": "rpc:private.notification_actor_active(t uuid, ctx text, actor uuid)",
-      "surfaceFingerprint": "6bb51f248346ba8cea9fde0678283c35764938b26acd38b772665d279b922b5f",
+      "surfaceFingerprint": "10b15a9f2992faa17153497a6f5a0853bf3ec0ed017420a158e53c8399f8801d",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
@@ -5504,14 +5996,29 @@
       ]
     },
     {
-      "id": "rpc:private.notification_capture_outbox(target_event uuid, prepare boolean)",
-      "surfaceFingerprint": "245650617116922a7f19d7dbb4bb030a9bb4e3f845567b3e5f7b9503fe274d8b",
+      "id": "rpc:private.notification_capture_outbox_before_customer_delivery(target_event uuid, prepare boolean)",
+      "surfaceFingerprint": "2d93061bcaecd4b83cecc2bc785f1fd4642ea3fe925d8e80a04ba496f67b8ec4",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.notification_capture_outbox(target_event uuid, prepare boolean)",
+      "surfaceFingerprint": "374ecb69bd9dafa111d251429eb8f1fbf527083513a4deba8b52474e90066f2c",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
       ]
     },
     {
@@ -5747,13 +6254,28 @@
     },
     {
       "id": "rpc:private.notification_domain_source_allowed(t uuid, code text, source uuid, revision text, recipient uuid, ctx text)",
-      "surfaceFingerprint": "e0050635dbd3a1c06b6ef5c7ab76193915c01d3dc3715a335262f68923a09972",
+      "surfaceFingerprint": "12e1f0bd70166edf6da70171d18ea512363bb619bc95ccbb83bbaa9304974a41",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.notification_domain_source_before_customer_delivery(t uuid, code text, source uuid, revision text, recipient uuid, ctx text)",
+      "surfaceFingerprint": "d188bc448826f9b9e7c3017b2c5e87f7b9fb3945be28aefc3dad58d75b1f173e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
       ]
     },
     {
@@ -5923,14 +6445,22 @@
       ]
     },
     {
-      "id": "rpc:private.notification_operational_source_allowed(t uuid, code text, kind text, source uuid, revision text, recipient uuid, ctx text)",
-      "surfaceFingerprint": "8914981594045105f79c0c061897462814868761aeb5b353f0c79ff201906d85",
+      "id": "rpc:private.notification_operational_source_allowed_before_customer_tickets(t uuid, code text, kind text, source uuid, revision text, recipient uuid, ctx text)",
+      "surfaceFingerprint": "8f6985e34c7f9b58b0aec25ffd2f585e64aabcb3f35aad9e5105af648090d67c",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.notification_operational_source_allowed(t uuid, code text, kind text, source uuid, revision text, recipient uuid, ctx text)",
+      "surfaceFingerprint": "b9a84f35042edd9a83a5f809ccd20afdc6db5f7d0d1b72c9659dfb53a1d75c97",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md"
       ]
     },
     {
@@ -6342,13 +6872,11 @@
     },
     {
       "id": "rpc:private.object_visit_access(t uuid, o uuid, w uuid)",
-      "surfaceFingerprint": "782e161ce34b7d74cab56104cd0ba840a7fb844ce39e1dc431dcf382dd5bdeae",
+      "surfaceFingerprint": "b13948e0e6ff69b6a2d8ee99d3340aeeacdfb69dedbb528605f7a62b5ccce1a7",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -6948,25 +7476,39 @@
       ]
     },
     {
-      "id": "rpc:private.ticket_actor_active(t uuid, ctx text, actor uuid)",
-      "surfaceFingerprint": "631ca164540f370ea783a28a488b22de6a2ad50b9a2e2a8e565ee917c7e8b2f9",
+      "id": "rpc:private.tenant_branding_touch()",
+      "surfaceFingerprint": "970645da2820a064f844444fc1bb96834c005de021e0733cd3fa254547ddd28a",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.tenant_house_style_revision()",
+      "surfaceFingerprint": "edf30a6e9013383fc4d157918d9110456885dbea67e4514d232c313e59f40c8f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.ticket_actor_active(t uuid, ctx text, actor uuid)",
+      "surfaceFingerprint": "412999bb74bd6903ec55c1eb74abdb67eb466542021ed3e9e67b3587e5f0fc03",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
       "id": "rpc:private.ticket_allowed(tid uuid, ctx text, action text, actor uuid)",
-      "surfaceFingerprint": "f985baf2a99853f1bddc8c8b301b8bf678c505b6da3a0f9f120a8eedd5e4a723",
+      "surfaceFingerprint": "5c876b321d9d618d2b3ca2f558c0da2812630a47db80c7d99f999a5e04de704c",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -7070,13 +7612,11 @@
     },
     {
       "id": "rpc:private.ticket_create_allowed(t uuid, category uuid, ctx text, actor uuid)",
-      "surfaceFingerprint": "b52886e683467ac2245fbd5b90cf8ed6d6da5f1093b8d5ec959d79723d02bb2a",
+      "surfaceFingerprint": "5366491b917287ebeb87fbc26c9e1b20c8ece34eb4835123c67819815317db3f",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -7953,13 +8493,15 @@
     },
     {
       "id": "rpc:public.claim_outbox(batch_size integer, lock_seconds integer, include_tickets boolean, target_tenant uuid, include_notifications boolean)",
-      "surfaceFingerprint": "74dba28d9874b18484267b491e02c10332a0ac2960cb73ce0471c711000d927c",
+      "surfaceFingerprint": "4a910f061e8d2cddf741f652663a2f5b1340be413f5617766b40eb883fa5ad62",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
       ]
     },
     {
@@ -8294,13 +8836,11 @@
     },
     {
       "id": "rpc:public.customer_file_access(target_tenant uuid, target_id uuid, kind text)",
-      "surfaceFingerprint": "c4037310deceb92e70e2905e06fcdeb81e16638b93b72b53f54f03d632e7c72e",
-      "status": "controlled",
+      "surfaceFingerprint": "f1ed49c8820f892e99fe873ff52389072795ba329d23eba1c5175d4ddf224b12",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -8327,13 +8867,11 @@
     },
     {
       "id": "rpc:public.customer_object_visits(target_tenant uuid)",
-      "surfaceFingerprint": "2be3b4ce974e1021422db98b03b08497052f358a7a89b32cc3f4aa513cb19989",
-      "status": "controlled",
+      "surfaceFingerprint": "c3cba8e708e682bfb82c4d2a4b0bcd399e474060b90081ea1df9eec19e2850ff",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -8348,14 +8886,281 @@
       ]
     },
     {
-      "id": "rpc:public.customer_portal_documents(target_tenant uuid)",
-      "surfaceFingerprint": "5bfc9e30bd76538cae96964a25339761b9f2fda3453f466446396e1842d61cef",
+      "id": "rpc:public.customer_portal_accounts(target_tenant uuid)",
+      "surfaceFingerprint": "ce10e124c56b7189106bff985e464baa6bf8d2e4620afe1b8630e965a98a0133",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_activity_mark(target_tenant uuid, target_account uuid, operation text, request_id uuid, target_notification uuid, expected_version bigint)",
+      "surfaceFingerprint": "d5438cea2a9106c9f3edababfb09661fd4cb736edd28a6c7f52f3614f4f3057a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_activity(target_tenant uuid, target_account uuid)",
+      "surfaceFingerprint": "b73ae3f4e7932faf9be5a1fc0597eaaf43afd935e18559ff307e74bae9428656",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_bind(target_tenant uuid, target_customer uuid, target_user uuid, target_contact uuid, expected_version bigint, can_create boolean, can_edit_objects boolean, can_edit_profile boolean, enabled boolean)",
+      "surfaceFingerprint": "0530707b1f61b16da5590e87ec5d7fa819735655c431b4a4958aab26bf850e5d",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_commercial_command(target_tenant uuid, target_account uuid, command_id uuid, command text, input jsonb)",
+      "surfaceFingerprint": "845c7fee444c5f8531f389769e4e394267659d88a309be8ae7628b81abf51353",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_documents(target_tenant uuid)",
+      "surfaceFingerprint": "0d44ab3fe5fe7d5fecaa24c5ee507aedda04308d636b559910452dd50601dae4",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_draft(target_tenant uuid, target_account uuid)",
+      "surfaceFingerprint": "a792a2acdfb57daf92c1815d27cf43817f86896522bf7636c4009a16e1dc0d4b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_file_authorize(target_tenant uuid, target_account uuid, kind text, target_id uuid)",
+      "surfaceFingerprint": "7be61f1d39abc39d2f98fd07cc2e03cf2c29a7772443b30eac5f3d6bda65d63f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/otp-activity-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_instruction_add(target_tenant uuid, target_account uuid, target_object uuid, expected_version bigint, input_body text, request_id uuid)",
+      "surfaceFingerprint": "a1f1ac184546e70082a20283cc45799a9aa49e4e5d2d76bc74ab419ee87974f9",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_invoices(target_tenant uuid, target_account uuid)",
+      "surfaceFingerprint": "ba36ee04593c4a24d8c40f8a03a5114bbcac428d9e7be935ba115033849bac91",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_management(target_tenant uuid, target_customer uuid)",
+      "surfaceFingerprint": "039a76393535030d8e36c8d469f39a01d2fdaacf479b19ea9bc765df9377f663",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_news_mark(target_tenant uuid, target_account uuid, target_notification uuid, expected_version bigint, operation text, request_id uuid)",
+      "surfaceFingerprint": "0b1a5e016cbd97cfb15fb4857faa3a9d9d5c1088f928d782603900e6d8e55ba5",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_news(target_tenant uuid, target_account uuid)",
+      "surfaceFingerprint": "4219dfb218c3a6ba9c0da0c4864b6df923f422dd109fa003fc7fb98ee10c1591",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_object_save(target_tenant uuid, target_account uuid, expected_account_version bigint, input jsonb, request_id uuid)",
+      "surfaceFingerprint": "77fbe64302084b0fea475850ea8572bb00f81885b471333bd314944b9a372323",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_onboarding_save(target_tenant uuid, target_account uuid, input jsonb, request_id uuid)",
+      "surfaceFingerprint": "68c00aaa7f1eda982e278785e650b89b33cd6a7a108c92f51c9286ad6ffbb728",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_payment_prepare(target_tenant uuid, target_account uuid, invoice_ids uuid[], request_id uuid, expected_mode text, expected_profile text)",
+      "surfaceFingerprint": "18a4846b82e11eb241bcdd12f77e20de801de97ef659b29279f6746ded9c9f8b",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_preferences_save(target_tenant uuid, target_account uuid, expected_version bigint, input jsonb, request_id uuid)",
+      "surfaceFingerprint": "0c38e6109b0a1019d389c66d96a2328ec37eac0d088af189fb570e6b26704218",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_preferences(target_tenant uuid, target_account uuid)",
+      "surfaceFingerprint": "e4559b5b620f9a9b5ab340a2acff37621382cdacf15ed4bea719e95fd70d7dec",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_profile_save(target_tenant uuid, target_account uuid, expected_account_version bigint, expected_customer_version bigint, expected_contact_version bigint, input jsonb, request_id uuid)",
+      "surfaceFingerprint": "f48a2179ad7ab6edfe5b571c275b1bb8b1eccdffe67358c6432ab269e0d8d448",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_report_file(target_tenant uuid, target_account uuid, target_report uuid, asset_id uuid)",
+      "surfaceFingerprint": "df30e978ad3d4b4d910e190d81eda2ffd00e8a33c0691d365f9f8b347c3b1ae5",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_reports(target_tenant uuid, target_account uuid)",
+      "surfaceFingerprint": "6320ec1948fa31559204440e6e87a02fe3785cf2bf49d1f21a75927d3f4e3b70",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_request_create(target_tenant uuid, target_account uuid, input jsonb, request_id uuid)",
+      "surfaceFingerprint": "c9303ef1d72027230bb32ad0cbfb69d0c769ca881d26037a0c8ec85568d0699c",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_request_detail(target_tenant uuid, target_account uuid, target_request uuid)",
+      "surfaceFingerprint": "a56ddaa8141e065fa3210defdaa658876f47bc77c84ac29ad9a9dbe253e72c4a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_requests(target_tenant uuid, target_account uuid)",
+      "surfaceFingerprint": "4000827723bc2a78f750eaa34f5547238cac2b191a61a0b96b8487b246bdc27f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_services(target_tenant uuid, target_account uuid)",
+      "surfaceFingerprint": "ef04ae54f7e1ae6ca1ab7518bd9a60c7a453cfdddb5abc67fa976b38db040d05",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_shared_documents(target_tenant uuid, target_account uuid)",
+      "surfaceFingerprint": "5a0ed6f0461745d2a339a9075047ad1a3a89a3b399788e33a13f582526ff61e9",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_visit_command(target_tenant uuid, target_account uuid, target_visit uuid, request_id uuid, operation text, input jsonb)",
+      "surfaceFingerprint": "78250bd14e326af2b222447cf0e4ef75867a856092a6f3bca2874885e80a7823",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_visit_note_add(target_tenant uuid, target_account uuid, target_visit uuid, expected_version bigint, input_body text, request_id uuid)",
+      "surfaceFingerprint": "e2d3d0d03f7ac5a613c0a3db77621a16c115dd6570f2431189bc2ec01bb8852f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_visit(target_tenant uuid, target_account uuid, target_visit uuid)",
+      "surfaceFingerprint": "fc1f4761e01fc456cc80995051df0a4fe1db254f933e6a32d9dd65f538a294a9",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:public.customer_portal_workspace(target_tenant uuid, target_account uuid)",
+      "surfaceFingerprint": "5870003834a3695c76136ac532e0dc37532cc77c0624ef2c7a106bfcec8c8cd4",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-customer-activity.mjs"
       ]
     },
     {
@@ -8911,13 +9716,11 @@
     },
     {
       "id": "rpc:public.prepare_provider_payment(payment_token_hash text, expected_mode text)",
-      "surfaceFingerprint": "73e866bfe0d633665ce4742c4b6e0c0761ca8428e59f1ed4642cd9652f71ef66",
-      "status": "controlled",
+      "surfaceFingerprint": "b2b5f699f55f77b13b3eeb2be60a276c8cf95597a9ebfa7a4588d54449b3660e",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -9024,13 +9827,11 @@
     },
     {
       "id": "rpc:public.register_manual_payment(target_tenant_id uuid, payment_date timestamp with time zone, reference text, allocations jsonb, idempotency_key text)",
-      "surfaceFingerprint": "84ac8d3c64c7e2796cd566b1c4a83bc6dc7abcabbf51eb0f673629636fd43278",
-      "status": "controlled",
+      "surfaceFingerprint": "12258c4db7a8036e14a2124d82196254826e4a8eea9e395995c7920d4fc3f799",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -9477,13 +10278,11 @@
     },
     {
       "id": "rpc:public.ticket_command(target_tenant uuid, actor_context text, command text, payload jsonb, request_id uuid)",
-      "surfaceFingerprint": "a3cdda6170cda9bc607fbe1fc8ef0cc867b8ae0e004f928fa0719fd0814d69e8",
-      "status": "controlled",
+      "surfaceFingerprint": "56b5d0ecf14392f65f540caf4350e39477d4736f126f7ad901094ce734f0e8dd",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -9554,13 +10353,11 @@
     },
     {
       "id": "rpc:public.ticket_file_command(target_tenant uuid, actor_context text, command text, input jsonb, request_id uuid)",
-      "surfaceFingerprint": "f90e6b7f0c2e90c651ad0fd55e0b0f1e2abf0e56f8538df60d593a05d700693c",
+      "surfaceFingerprint": "f20a5452e1d97370ae73b676541f73beb1b8c73f3a09ed1304d0013b06dc3dbe",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -9598,13 +10395,11 @@
     },
     {
       "id": "rpc:public.ticket_query(target_tenant uuid, actor_context text, operation text, payload jsonb)",
-      "surfaceFingerprint": "42504ff8e1c29b5dce694feabd4eb18a6ae5ffba961f2076d1b9e18d44d41869",
-      "status": "controlled",
+      "surfaceFingerprint": "a36d7e8ff3c545613bb08edcc65363047c451a5eb3f8f3f324c925c7d158a7a5",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {
@@ -9829,13 +10624,11 @@
     },
     {
       "id": "rpc:public.work_order_report_file(target_report_id uuid, asset_id uuid)",
-      "surfaceFingerprint": "7c26da1acb051f75c88a23752a15532d17c2450c263e6c38d6f6b01f5d86f6c4",
+      "surfaceFingerprint": "260f52a33a4c268007673dbb17e90d1030fc15b90e41c7e1e39ec5e75772431e",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/portal-release-verification-2026-10-05.md",
+        "docs/security/customer-portal-verification-2026-10-05.md"
       ]
     },
     {

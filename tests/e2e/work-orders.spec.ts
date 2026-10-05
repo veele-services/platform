@@ -5,6 +5,7 @@ import { PDFDocument } from "pdf-lib";
 import pg from "pg";
 import { requireLocalDatabaseUrl } from "./local-target";
 import sharp from "sharp";
+import { authenticateWorkspace } from "./login-auth";
 
 const title = `Werkbon dossier ${randomUUID().slice(0, 8)}`;
 const templateName = `Checklist browser ${randomUUID().slice(0, 8)}`;
@@ -66,10 +67,7 @@ test.afterAll(async () => {
 
 async function login(page: Page) {
   page.setDefaultTimeout(15000);
-  await page.goto("/login?next=%2Fapp%2Fwerkbonnen");
-  await page.getByLabel("E-mailadres").fill("platform-admin@fieldgrid.test");
-  await page.getByLabel("Wachtwoord").fill("Fieldgrid-E2E-2026");
-  await page.getByRole("button", { name: /Inloggen/ }).click();
+  await authenticateWorkspace(page, "platform-admin@fieldgrid.test", "/app/werkbonnen");
   await expect(page.getByRole("heading", { name: "Werkbonnen", exact: true })).toBeVisible();
 }
 

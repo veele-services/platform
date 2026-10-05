@@ -6,6 +6,7 @@ import pg from "pg";
 import type { Database } from "../../lib/database.types";
 import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
 import { authenticateStaff, E2E_APP_ORIGIN } from "./staff-auth";
+import { authenticateWorkspace } from "./login-auth";
 
 test.use({actionTimeout:15000});
 
@@ -23,7 +24,7 @@ async function fixture(){
  };
  return {admin,tenant,id,cleanup};
 }
-async function login(page:Page){await page.goto("/login?next=%2Fapp%2Fpersoneel");await page.getByLabel("E-mailadres").fill("platform-admin@fieldgrid.test");await page.getByLabel("Wachtwoord",{exact:true}).fill("Fieldgrid-E2E-2026");await page.getByRole("button",{name:/Inloggen/}).click();await page.waitForURL("**/app/personeel");}
+async function login(page:Page){await authenticateWorkspace(page,"platform-admin@fieldgrid.test","/app/personeel");await page.waitForURL("**/app/personeel");}
 async function next(dialog:Locator){await dialog.getByRole("button",{name:"Volgende",exact:true}).click();}
 async function save(dialog:Locator,name="Opslaan"){await dialog.getByRole("button",{name,exact:true}).click();await expect(dialog).toBeHidden();}
 

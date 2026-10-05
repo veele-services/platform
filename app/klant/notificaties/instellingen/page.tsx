@@ -1,2 +1,2 @@
-import { NotificationPreferencesRoute } from "@/components/fieldgrid/notifications/routes";
-export default function Page() { return <NotificationPreferencesRoute workspace="customer"/>; }
+import { redirect } from "next/navigation";
+export default function CustomerNotificationSettings(){redirect("/klant?view=profile");}

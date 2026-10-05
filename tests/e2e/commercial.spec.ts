@@ -4,6 +4,7 @@ import pg from "pg";
 import {createClient} from "@supabase/supabase-js";
 import type {Database} from "../../lib/database.types";
 import {requireLocalDatabaseUrl} from "./local-target";
+import {authenticateWorkspace} from "./login-auth";
 
 test("commerciële lijst, aanvraag, bevroren PDF-mail, expliciet akkoord en één operationele opdracht",async({page,browser,request})=>{
  test.setTimeout(240000);
@@ -13,7 +14,7 @@ test("commerciële lijst, aanvraag, bevroren PDF-mail, expliciet akkoord en éé
  const admin=createClient<Database>(process.env.SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}});
  const tenant=randomUUID(),customer=randomUUID(),object=randomUUID(),slug=`commercial-${tenant}`;const email=`commercial-${tenant}@fieldgrid.test`;
  const owner=(await db.query("select id from auth.users where email='platform-admin@fieldgrid.test'")).rows[0].id;
- const signIn=async(p:Page)=>{await p.context().addCookies([{name:"fieldgrid_tenant_id",value:tenant,url:"http://127.0.0.1:3000"}]);await p.goto("/login?next=/app/aanvragen");await p.getByLabel("E-mailadres").fill("platform-admin@fieldgrid.test");await p.getByLabel("Wachtwoord").fill("Fieldgrid-E2E-2026");await p.getByRole("button",{name:"Inloggen"}).click();await expect(p).toHaveURL(url=>url.pathname==="/app/aanvragen",{timeout:30000});};
+ const signIn=async(p:Page)=>{await p.context().addCookies([{name:"fieldgrid_tenant_id",value:tenant,url:"http://127.0.0.1:3000"}]);await authenticateWorkspace(p,"platform-admin@fieldgrid.test","/app/aanvragen");await expect(p).toHaveURL(url=>url.pathname==="/app/aanvragen",{timeout:30000});};
  try{
   await db.query("insert into public.tenants(id,slug,name) values($1,$2,'Fictieve commerciële testorganisatie')",[tenant,slug]);
   await db.query("insert into public.tenant_settings(tenant_id,enabled_services) values($1,array['planning','finance','rapportage'])",[tenant]);await db.query("insert into public.tenant_branding(tenant_id) values($1)",[tenant]);

@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import pg from "pg";
 import type { Database } from "../../lib/database.types";
 import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
+import { authenticateWorkspace } from "./login-auth";
 
 test.use({ trace: "off", screenshot: "off", video: "off" });
 
@@ -34,9 +35,8 @@ test("config-only platform user selects an authorized tenant, saves, reloads and
     expect((await db.query("select count(*)::int n from public.tenant_memberships where user_id=$1", [userId])).rows[0].n).toBe(0);
 
     const path = "/platform/notificaties?tab=tenants";
-    await page.goto(`/login?next=${encodeURIComponent(path)}`);
-    await page.getByLabel("E-mailadres").fill(email); await page.getByLabel("Wachtwoord", { exact: true }).fill(password);
-    await page.getByRole("button", { name: /Inloggen/ }).click(); await expect(page).toHaveURL(new RegExp("/platform/notificaties\\?tab=tenants$"));
+    await authenticateWorkspace(page, email, path, password);
+    await expect(page).toHaveURL(new RegExp("/platform/notificaties\\?tab=tenants$"));
     await expect(page.getByRole("heading", { name: "Tenantbeleid openen" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Nieuwe notificatie", exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Aflevering", exact: true })).toHaveCount(0);

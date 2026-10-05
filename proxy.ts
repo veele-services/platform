@@ -5,6 +5,7 @@ import { HOST_KIND_HEADER, resolveHostContext, TENANT_SLUG_HEADER } from "@/lib/
 import { isAuthenticatedWorkerRequest } from "@/lib/operations/worker-request";
 import { isProtectedPage, PROTECTED_PAGE_HEADER } from "@/lib/auth/session-signal";
 import { createContentSecurityPolicy } from "@/lib/auth/content-security-policy";
+import { signedInLoginDestination } from "@/lib/auth/workspace-destination";
 
 export async function proxy(request: NextRequest) {
   if (isAuthenticatedWorkerRequest({ method: request.method, pathname: request.nextUrl.pathname, search: request.nextUrl.search, host: request.headers.get("host"), authorization: request.headers.get("authorization") }, { DEPLOY_TARGET: process.env.DEPLOY_TARGET, PORT: process.env.PORT, ADMIN_API_SECRET: process.env.ADMIN_API_SECRET })) {
@@ -81,9 +82,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
   if (request.nextUrl.pathname === "/login" && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/app";
-    url.search = "";
+    const url = new URL(signedInLoginDestination(request.nextUrl.searchParams.get("next")),request.nextUrl.origin);
     return NextResponse.redirect(url);
   }
   return response;

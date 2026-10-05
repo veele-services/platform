@@ -3,7 +3,8 @@ import {createClient} from "@supabase/supabase-js";
 import {randomUUID} from "node:crypto";
 import pg from "pg";
 import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
-import { authenticateStaff, E2E_APP_ORIGIN } from "./staff-auth";
+import { E2E_APP_ORIGIN } from "./staff-auth";
+import { authenticateWorkspace } from "./login-auth";
 
 test.use({trace:"off",screenshot:"off",video:"off"});
 test("module switches preserve own personnel access and label unavailable report views",async({page,browser})=>{
@@ -19,12 +20,7 @@ test("module switches preserve own personnel access and label unavailable report
  const checked=async(result:{error:unknown})=>{if(result.error)throw new Error("Synthetic module fixture failed");};
  const enter=async(target:Page,index:number,next:string)=>{
   await target.context().addCookies([{name:"fieldgrid_tenant_id",value:tenant,url:"http://127.0.0.1:3000"}]);
-  if(next==="/staff"||next.startsWith("/staff/")||next.startsWith("/staff?")){
-   await authenticateStaff(target,emails[index],next,password);await expect(target.locator("html")).not.toHaveAttribute("data-account-blocked");return;
-  }
-  await target.goto(`http://127.0.0.1:3000/login?next=${encodeURIComponent(next)}`);
-  await target.getByLabel("E-mailadres").fill(emails[index]);await target.getByLabel("Wachtwoord",{exact:true}).fill(password);
-  await target.getByRole("button",{name:"Inloggen",exact:true}).click();await target.waitForURL(url=>url.pathname===next.split("?")[0]);
+  await authenticateWorkspace(target,emails[index],next,password);
   await expect(target.locator("html")).not.toHaveAttribute("data-account-blocked");
  };
  try{

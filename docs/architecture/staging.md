@@ -91,6 +91,7 @@ must bind to `127.0.0.1`, not to all interfaces.
 | `https://{slug}.staging.fieldgrid.nl` | Public page for exactly one tenant |
 | `https://{slug}.staging.fieldgrid.nl/app` | Backoffice for that tenant |
 | `https://{slug}.staging.fieldgrid.nl/staff` | Personnel portal for that tenant |
+| `https://{slug}.staging.fieldgrid.nl/klant` | Explicitly bound customer self-service for that tenant |
 
 All workspaces are paths on the same tenant origin. The Object 360 request of
 30 September 2026 adds `/klant` solely for explicitly bound customer users:
@@ -106,6 +107,33 @@ and `/klant/documenten` for explicitly shared customer documents, approved
 reports and scoped invoices. Current object bindings remain authoritative.
 See [Dossier 360](dossier-360.md#klant-360-customer-workspace).
 Separate backoffice or personnel subdomains must not be introduced.
+
+The customer's prototype request of 4 October 2026 deliberately extends this
+workspace with a cockpit, scoped object self-service, resumable onboarding,
+multi-object commercial intake, scoped payments, customer tickets, news and
+profile/preferences. This is **not** a global customer role or a general CRM
+administration. A new explicit tenant/customer/account binding can establish
+identity before the first object exists. It does not grant access to all of a
+customer's objects: existing exact object bindings remain authoritative for
+objects, visits, commercial records, reports and invoices. Creation, object
+editing and customer billing/contact editing are separately granted capabilities.
+Legacy object bindings do not silently acquire those capabilities. See
+[Customer portal](customer-portal.md) for the extension and release evidence.
+
+The extension uses this same runtime, hostname boundary, private Storage,
+notification/ticket engines and worker. Customer Realtime carries only an
+own-account invalidation revision; no employee identities or rich source rows
+are published. Tenant payment recipients require an explicit verified merchant
+binding. A shared environment API key is not an implicit tenant merchant.
+Additional provider configuration remains an operator action; missing
+configuration fails closed without a demo checkout or a live-money test.
+
+De eigenaarsopdracht van 5 oktober 2026 geeft de bestaande tenantmanagement-
+backoffice dezelfde gedeelde portaalstijl als personeel en klanten, met één
+centrale huisstijl uit de bestaande `tenant_branding`-velden. Dit verandert
+geen runtime, tenantresolver, rechten of domeinactie. Beheerderswijzigingen
+zijn versiegecontroleerd; historische documenten/mailassets blijven intact.
+Zie [Centrale tenant-huisstijl](tenant-huisstijl.md) voor mapping en acceptatie.
 
 Tenant context is determined exclusively from the validated request hostname:
 
@@ -232,7 +260,8 @@ exact names and fail closed when required configuration is absent.
 - `BACKUP_DATABASE_URL`
 - `DATABASE_URL`
 - `FIELDGRID_ADMIN_EMAIL`
-- `FIELDGRID_ADMIN_PASSWORD`
+- `FIELDGRID_ADMIN_PASSWORD` — historical configured name; no longer consumed
+  by the OTP-only bootstrap or application.
 - `MIGRATION_DATABASE_URL`
 - `MOLLIE_API_KEY`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -262,6 +291,30 @@ Fixed non-secret values and unmistakable placeholders are recorded in
 SendGrid, VAPID, Supabase and all other providers use staging-specific
 credentials. Secret values belong in the future GitHub Environment or the
 provider itself, never in source, examples, logs or committed service files.
+
+### Uniforme OTP-login — eigenaarsopdracht 2026-10-05
+
+Alle Fieldgrid-gebruikers melden zich aan met een eenmalige zescijferige
+e-mailcode: personeel, management, klanten en platformbeheerders. `/login`
+heeft geen wachtwoord- of magic-link-inlog. Een codeaanvraag maakt geen account
+aan en onthult niet of een adres bestaat. Na verificatie worden de actuele
+sessie, hostname en werkruimterechten opnieuw gecontroleerd; een geslaagde Auth
+verificatie is op zichzelf geen tenant- of klanttoegang. De platformhost kiest
+nooit automatisch een tenant. Tenantbranding wordt uitsluitend afgeleid van
+de geverifieerde hostname en bestaande server-side configuratie.
+
+De ondertekende Send Email Hook verstuurt alle login-OTP's via de bestaande
+centrale security-mailtransport met Fieldgrid- of tenantbranding. Loginmails
+bevatten de code, geen credentialdragende link. Uitnodigingsacceptatie en
+e-mailadresbevestiging blijven afzonderlijke eenmalige accountacties; zij
+vervangen de daaropvolgende OTP-login niet en vragen geen wachtwoordkeuze.
+Hosted Auth-template/hookinstellingen veranderen niet door een applicatiedeploy:
+bewuste operatoractivatie en echte codemail-/replayacceptatie voor alle rollen
+blijven nodig. De onderstaande historische hookstatus is geen bevestiging van
+die nieuwe activatie. Op 5 oktober 2026 bevestigde de eigenaar opnieuw dat
+de hook uit staat. De toen actieve release `1f47c7b8621c18cd2a70b570a2ea0cda275154ad`
+was publiek gezond (database en scanner gereed); dit vervangt de historische
+ongezonde runtimestatus hieronder, maar bewijst geen OTP-provideracceptatie.
 
 ### Auth/mail integration status — 2026-10-01
 

@@ -3,14 +3,14 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { tenantAppUrl, TENANT_SLUG_HEADER } from "@/lib/tenancy/hostname";
-import { safeNext } from "@/lib/auth/safe-next";
-import { getAuthContext } from "@/lib/auth/context";
 import { safeStaffNext } from "@/lib/auth/staff-login";
+import { getLoginAccess } from "@/lib/auth/login-access";
+import { otpNext, verifiedLoginDestination } from "@/lib/auth/login-destination";
 
 export type AuthState = { error?: string; success?: string };
-export type StaffOtpState = {
+export type OtpState = {
   step: "email" | "code";
   email?: string;
   next?: string;
@@ -18,12 +18,7 @@ export type StaffOtpState = {
   notice?: string;
   error?: string;
 };
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-  next: z.string().optional(),
-});
+export type StaffOtpState = OtpState;
 
 const staffOtpRequestSchema = z.object({
   intent: z.literal("request"),
@@ -38,32 +33,30 @@ const staffOtpVerifySchema = z.object({
   next: z.string().max(2048).optional(),
 });
 
-export async function signIn(_: AuthState, formData: FormData): Promise<AuthState> {
-  const parsed = loginSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { error: "Vul een geldig e-mailadres en wachtwoord in." };
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
-    password: parsed.data.password,
-  });
-  if (error) return { error: "Inloggen is niet gelukt. Controleer je gegevens." };
-  redirect(safeNext(parsed.data.next));
+export async function signIn(_?: AuthState, _formData?: FormData): Promise<AuthState> {
+  void _; void _formData;
+  // Keep old action IDs harmless during a rolling release. Password requests
+  // never reach Auth and cannot reinstall a password-authenticated session.
+  return { error: "Log in met een eenmalige e-mailcode. Vraag een nieuwe code aan op het inlogscherm." };
 }
 
-/** Passwordless sign-in is intentionally restricted to the personnel workspace.
- * Unknown accounts and provider failures receive the same request response. */
-export async function staffOtp(_: StaffOtpState, formData: FormData): Promise<StaffOtpState> {
+/** Every workspace uses this same OTP flow. A role is never accepted from the
+ * browser; unknown accounts and delivery failures remain indistinguishable. */
+export async function loginOtp(_: OtpState, formData: FormData): Promise<OtpState> {
   const intent = formData.get("intent");
   if (intent === "request") {
     const input = staffOtpRequestSchema.safeParse(Object.fromEntries(formData));
     if (!input.success) return { step: "email", error: "Vul een geldig e-mailadres in." };
-    const next = safeStaffNext(input.data.next);
+    const next = otpNext(input.data.next);
     try {
       const supabase = await createClient();
       const tenantSlug = (await headers()).get(TENANT_SLUG_HEADER);
+      // Branding context only: the mail contains a code, not this login URL.
+      // Required APP_URL is the configured platform origin, never a local or
+      // legacy fallback. The trusted slug is overwritten by the proxy.
       const emailRedirectTo = tenantSlug
-        ? tenantAppUrl(tenantSlug, "/staff")
-        : new URL("/staff", process.env.APP_URL ?? "http://127.0.0.1:3000").toString();
+        ? tenantAppUrl(tenantSlug, "/login")
+        : new URL("/login", z.url().parse(process.env.APP_URL)).toString();
       await supabase.auth.signInWithOtp({
         email: input.data.email,
         options: { emailRedirectTo, shouldCreateUser: false },
@@ -82,10 +75,10 @@ export async function staffOtp(_: StaffOtpState, formData: FormData): Promise<St
   }
 
   const input = staffOtpVerifySchema.safeParse(Object.fromEntries(formData));
-  const invalid = (email?: string, next?: string): StaffOtpState => ({
+  const invalid = (email?: string, next?: string): OtpState => ({
     step: "code",
     email,
-    next: safeStaffNext(next),
+    next: otpNext(next),
     error: "De code is ongeldig of verlopen. Vraag zo nodig een nieuwe code aan.",
   });
   if (!input.success) {
@@ -95,45 +88,50 @@ export async function staffOtp(_: StaffOtpState, formData: FormData): Promise<St
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.verifyOtp({
-    email: input.data.email,
-    token: input.data.code,
-    type: "email",
-  });
+  const verified = await supabase.auth.verifyOtp({ email: input.data.email, token: input.data.code, type: "email" }).catch(() => null);
+  if (!verified) return invalid(input.data.email, input.data.next);
+  const { data, error } = verified;
   if (error || !data.user || !data.session) return invalid(input.data.email, input.data.next);
 
+  const discardSession = async () => {
+    try { await supabase.auth.signOut({ scope: "local" }); } catch { /* No transport details. */ }
+    // An Auth outage must not leave the newly created unauthorized session
+    // installed. Only this origin's Supabase Auth cookies are removed.
+    try {
+      const jar = await cookies();
+      for (const item of jar.getAll()) if (/^sb-.*-auth-token(?:\.\d+)?$/.test(item.name)) jar.delete(item.name);
+    } catch { /* Live workspace guards still fail closed. */ }
+  };
+  let destination: string | null = null;
   try {
-    const access = await getAuthContext();
-    if (!access.tenant?.roles.includes("staff")) {
-      await supabase.auth.signOut({ scope: "local" });
+    const access = await getLoginAccess();
+    destination = verifiedLoginDestination(input.data.next, access.workspaces);
+    if (!destination) {
+      await discardSession();
       return invalid(input.data.email, input.data.next);
     }
   } catch {
-    await supabase.auth.signOut({ scope: "local" });
+    await discardSession();
     return invalid(input.data.email, input.data.next);
   }
-  redirect(safeStaffNext(input.data.next));
+  redirect(destination);
+}
+
+/** Compatibility for already-open personnel forms; still exactly the same
+ * authenticated code path and live role guard as every other workspace. */
+export async function staffOtp(state: StaffOtpState, formData: FormData): Promise<StaffOtpState> {
+  const bounded = new FormData();
+  for (const [key, value] of formData) bounded.append(key, value);
+  bounded.set("next", safeStaffNext(typeof formData.get("next") === "string" ? String(formData.get("next")) : undefined));
+  return loginOtp(state, bounded);
 }
 
 export async function requestPasswordReset(_: AuthState, formData: FormData): Promise<AuthState> {
-  const email = z.string().email().safeParse(formData.get("email"));
-  if (!email.success) return { error: "Vul een geldig e-mailadres in." };
-  const supabase = await createClient();
-  const tenantSlug = (await headers()).get(TENANT_SLUG_HEADER);
-  const confirmUrl = new URL(tenantSlug ? tenantAppUrl(tenantSlug, "/auth/confirm") : `${process.env.APP_URL ?? "http://127.0.0.1:3000"}/auth/confirm`);
-  confirmUrl.searchParams.set("next", "/auth/reset");
-  const { error } = await supabase.auth.resetPasswordForEmail(email.data, {
-    redirectTo: confirmUrl.toString(),
-  });
-  if (error) return { error: "De herstelmail kon niet worden aangevraagd." };
-  return { success: "Als dit account bestaat, ontvang je een herstelmail." };
+  void formData;
+  return { error: "Een wachtwoord is niet nodig. Vraag op het inlogscherm een eenmalige e-mailcode aan." };
 }
 
 export async function updatePassword(_: AuthState, formData: FormData): Promise<AuthState> {
-  const password = z.string().min(10).safeParse(formData.get("password"));
-  if (!password.success) return { error: "Gebruik minimaal 10 tekens." };
-  const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ password: password.data });
-  if (error) return { error: "Het wachtwoord kon niet worden gewijzigd." };
-  redirect(formData.get("next") === "/staff" ? "/staff" : "/app");
+  void formData;
+  return { error: "Fieldgrid gebruikt eenmalige e-mailcodes. Je hoeft geen wachtwoord in te stellen." };
 }

@@ -6,6 +6,12 @@ import type { MolliePayment } from "@/lib/providers/mollie";
 const attempt:PaymentIdentity={id:"attempt",tenant_id:"tenant",invoice_group_id:"group",provider:"mollie",provider_payment_id:"tr_fictional",provider_mode:"test",amount_cents:12100,currency:"EUR"};
 const payment=():MolliePayment=>({id:"tr_fictional",mode:"test",status:"paid",amount:{value:"121.00",currency:"EUR"},metadata:{tenant_id:"tenant",invoice_group_id:"group",payment_attempt_id:"attempt"}});
 describe("provider evidence identity",()=>{
+  it("binds customer settlement to the frozen merchant profile",()=>{
+    const bound={...attempt,merchant_profile_id:"pfl_Fictional"};
+    expect(verifiedPayment({...payment(),profileId:"pfl_Fictional"},bound)).toBe(12100);
+    expect(()=>verifiedPayment(payment(),bound)).toThrow();
+    expect(()=>verifiedPayment({...payment(),profileId:"pfl_Other"},bound)).toThrow();
+  });
   it("accepts an exact current provider response and a new unbound provider id",()=>{
     expect(verifiedPayment(payment(),attempt)).toBe(12100);
     expect(verifiedPayment(payment(),{...attempt,provider_payment_id:null})).toBe(12100);

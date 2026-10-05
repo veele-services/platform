@@ -5,7 +5,8 @@ import { execFileSync } from "node:child_process";
 import pg from "pg";
 import sharp from "sharp";
 import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
-import { authenticateStaff, E2E_APP_ORIGIN } from "./staff-auth";
+import { E2E_APP_ORIGIN } from "./staff-auth";
+import { authenticateWorkspace } from "./login-auth";
 
 const fixture = randomUUID(), tenantId = randomUUID(), orderId = randomUUID(), objectId = randomUUID(), customerId = randomUUID();
 const tenantName = `Meldingen browser ${fixture.slice(0, 8)}`, tenantSlug = `tickets-e2e-${fixture.slice(0, 8)}`;
@@ -91,14 +92,7 @@ test.afterAll(async () => {
 
 async function login(page: Page, role: string, path: string) {
   page.setDefaultTimeout(20000);
-  if (path === "/staff" || path.startsWith("/staff/") || path.startsWith("/staff?")) {
-    await authenticateStaff(page, users[role].email, path, password);
-    return;
-  }
-  await page.goto(`/login?next=${encodeURIComponent(path)}`);
-  await page.getByLabel("E-mailadres").fill(users[role].email);
-  await page.getByLabel("Wachtwoord").fill(password);
-  await page.getByRole("button", { name: /Inloggen/ }).click();
+  await authenticateWorkspace(page, users[role].email, path, password);
   await expect(page).toHaveURL(new RegExp(path.replace(/[?]/g, "\\?")));
 }
 async function expectTicketListReady(page: Page, workspace: "staff" | "tenant", subject: string) {

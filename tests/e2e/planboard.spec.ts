@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { requireLocalDatabaseUrl } from "./local-target";
+import { authenticateWorkspace } from "./login-auth";
 
 // Only disposable fixtures in the isolated local Supabase project, never staging.
 const day = "2031-03-04",
@@ -94,12 +95,7 @@ async function expectPlanboardReady(page: Page) {
   await expect(page.locator(".pb-alert")).toHaveCount(0);
 }
 async function open(page: Page) {
-  await page.goto(
-    `/login?next=${encodeURIComponent(`/app/planning?day=${day}`)}`,
-  );
-  await page.getByLabel("E-mailadres").fill("platform-admin@fieldgrid.test");
-  await page.getByLabel("Wachtwoord").fill("Fieldgrid-E2E-2026");
-  await page.getByRole("button", { name: /Inloggen/ }).click();
+  await authenticateWorkspace(page, "platform-admin@fieldgrid.test", `/app/planning?day=${day}`);
   await expect(
     page.getByRole("heading", { name: "Planbord", exact: true }),
   ).toBeVisible();

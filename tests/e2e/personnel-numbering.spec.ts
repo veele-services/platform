@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../lib/database.types";
 import { requireLocalApiUrl } from "./local-target";
+import { authenticateWorkspace } from "./login-auth";
 
 test("personeelsnummering is instelbaar, automatisch en per medewerker aanpasbaar", async ({ page }) => {
   test.setTimeout(60_000);
@@ -15,10 +16,7 @@ test("personeelsnummering is instelbaar, automatisch en per medewerker aanpasbaa
   const emails = [`auto-${prefix}@fieldgrid.test`, `manual-${prefix}@fieldgrid.test`];
   try {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/login?next=%2Fapp%2Finstellingen");
-    await page.getByLabel("E-mailadres").fill("platform-admin@fieldgrid.test");
-    await page.getByLabel("Wachtwoord").fill("Fieldgrid-E2E-2026");
-    await page.getByRole("button", { name: /Inloggen/ }).click();
+    await authenticateWorkspace(page, "platform-admin@fieldgrid.test", "/app/instellingen");
     await page.waitForURL("**/app/instellingen");
     const settings = page.getByRole("region", { name: "Personeelsnummering" });
     await settings.getByLabel("Voorvoegsel (prefix)").fill("MW-");
