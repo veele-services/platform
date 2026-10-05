@@ -58,7 +58,7 @@ async function inviteTenantAdministrator(tenantId: string, actor: { id: string; 
     let userId: string | null = actor.email?.toLowerCase() === invitation.email ? actor.id : null;
     if (!userId) {
       const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(invitation.email, {
-        redirectTo: tenantAppUrl(tenant.slug, "/auth/confirm"),
+        redirectTo: tenantAppUrl(tenant.slug, "/auth/verify"),
         data: { full_name: invitation.full_name },
       });
       userId = invited.user?.id ?? await existingUserIdByEmail(invitation.email);

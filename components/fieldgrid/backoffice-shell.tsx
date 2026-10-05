@@ -5,30 +5,32 @@ import { NotificationBell } from "./notifications/inbox";
 import { NotificationNavigation } from "./notifications/navigation";
 import { WorkOrderSignatureSettings } from "./work-orders/settings";
 
-import { useMemo, useState, useTransition, type FormEvent, type ReactNode } from "react";
+import { useEffect,useMemo,useRef,useState,useTransition,type FormEvent,type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bell, BriefcaseBusiness, Building2, CalendarDays, ChevronRight, ClipboardCheck,
   Clock3, CreditCard, FileText, LayoutDashboard, LogOut, Megaphone,
   Menu, PackageCheck, Search, Settings,
-  UsersRound, Wrench,
+  UsersRound, Wrench,X,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import type { AuthContext } from "@/lib/auth/context";
 import type { WorkspaceData } from "@/lib/data/workspace";
 import type { ActionResult } from "@/lib/actions/result";
 import { FieldgridBrand } from "@/components/fieldgrid/brand";
-import { BrandPalettePreview } from "@/components/fieldgrid/brand-palette-preview";
+import { TenantBrandingSettings } from "@/components/fieldgrid/tenant-branding-settings";
+import { TenantThemeProvider } from "@/components/fieldgrid/tenant-theme";
+import { BackofficeLive } from "@/components/fieldgrid/backoffice-live";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { formatPersonnelNumber, PERSONNEL_NUMBER_MAX } from "@/lib/personnel/numbering";
+import "./backoffice-portal.css";
 import { CustomersPage, InvoicesPage, ObjectsPage, PersonnelPage, ReportsPage } from "@/components/fieldgrid/resource-pages";
 import { switchTenant } from "@/app/app/actions";
 import {
   createAnnouncement,
   createTask, dispatchWorkOrder,
-  updateTenantBranding, withdrawAnnouncement,
-  uploadTenantLogo, updatePersonnelNumberSettings,
+  withdrawAnnouncement, updatePersonnelNumberSettings,
 
   createExtraWorkRule, allowExtraWork,
 } from "@/app/app/operations-actions";
@@ -104,6 +106,7 @@ function Empty({ children }: { children: ReactNode }) { return <div className="w
 export function BackofficeShell({ context, data, initialView = "overzicht", children }: { context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> }; data: WorkspaceData; initialView?: BackofficeView; children?: ReactNode }) {
   const view = initialView;
   const [mobileNav, setMobileNav] = useState(false);
+  const sidebar=useRef<HTMLElement>(null);
   const [search, setSearch] = useState("");
   const tenant = context.tenant;
   const visibleNav = nav.filter((item) => !["meldingen", "support", "notificaties"].includes(item.id) && (!serviceByView[item.id] || tenant.enabledServices.includes(serviceByView[item.id]!)));
@@ -113,6 +116,13 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
   const q = search.trim().toLowerCase();
   const visibleOrders = q ? data.workOrders.filter((order) => [order.work_order_number, order.discipline, customerById.get(order.customer_id)?.name, objectById.get(order.object_id)?.name].some((value) => value?.toLowerCase().includes(q))) : data.workOrders;
   const attention = data.workOrders.filter((order) => ["returned", "correction_required", "under_review"].includes(order.status));
+  useEffect(()=>{
+    if(!mobileNav)return;
+    const previous=document.activeElement instanceof HTMLElement?document.activeElement:null,overflow=document.body.style.overflow;
+    document.body.style.overflow="hidden";sidebar.current?.querySelector<HTMLElement>("button,a")?.focus();
+    const closeOnWide=()=>{if(window.innerWidth>600)setMobileNav(false);};window.addEventListener("resize",closeOnWide);
+    return()=>{document.body.style.overflow=overflow;window.removeEventListener("resize",closeOnWide);if(previous?.isConnected)previous.focus();};
+  },[mobileNav]);
 
   const content = (() => {
     if (children) return children;
@@ -157,17 +167,22 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
 
     return <>
       <PageIntro eyebrow="BEHEER" title="Instellingen" description="Huisstijl, afzendergegevens en nummering voor jouw organisatie." />
-      <TenantBrandingSettings key={tenant.id} tenant={tenant} data={data}/>
+      <TenantBrandingSettings key={tenant.id} tenant={tenant} branding={data.branding} logoUrl={data.brandingLogoUrl}/>
       {tenant.roles.some(r=>["tenant_admin","management"].includes(r))&&<TravelSettings/>}
       {tenant.enabledServices.includes("personeel") && (context.isPlatformAdmin || tenant.roles.some((role) => ["tenant_admin", "management"].includes(role))) && <PersonnelNumberSettings key={`${tenant.id}:${data.settings?.personnel_number_prefix}:${data.settings?.personnel_number_start}`} settings={data.settings}/>}
       {tenant.enabledServices.includes("planning") && tenant.roles.some(role => ["tenant_admin", "management"].includes(role)) && <WorkOrderSignatureSettings/>}
     </>;
   })();
 
-  return <div className="workspace-shell" style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
-    <aside className={`workspace-sidebar ${mobileNav ? "open" : ""}`}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><nav>{visibleNav.map((item) => <Link prefetch={view === "planning" ? false : undefined} key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}<TicketNavigation workspace="tenant" current={view} actorKey={`${tenant.id}:${context.user.id}`}/><NotificationNavigation workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/></nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small>{!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}</footer></aside>
-    <div className="workspace-main"><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu"><Menu size={20}/></button><span className="breadcrumb">Fieldgrid <ChevronRight size={13}/> <strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
-  </div>;
+  return <TenantThemeProvider primary={tenant.primaryColor} accent={tenant.accentColor}><div className="workspace-shell" style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
+    <BackofficeLive tenantId={tenant.id}/>
+    {mobileNav&&<button type="button" className="backoffice-nav-backdrop" aria-label="Menu sluiten" onClick={()=>setMobileNav(false)}/>}
+    <aside ref={sidebar} role={mobileNav?"dialog":undefined} aria-modal={mobileNav||undefined} aria-label="Hoofdnavigatie" className={`workspace-sidebar ${mobileNav ? "open" : ""}`} onKeyDown={event=>{
+      if(!mobileNav)return;if(event.key==="Escape"){event.preventDefault();setMobileNav(false);return;}
+      if(event.key==="Tab"){const targets=Array.from(sidebar.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],select:not(:disabled)')??[]).filter(element=>element.offsetParent!==null),first=targets[0],last=targets.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
+    }}><div className="workspace-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/><button className="backoffice-nav-close icon-button" type="button" aria-label="Menu sluiten" onClick={()=>setMobileNav(false)}><X size={20}/></button></div><nav>{visibleNav.map((item) => <Link aria-label={item.label} title={item.label} aria-current={view===item.id?"page":undefined} prefetch={view === "planning" ? false : undefined} key={item.id} href={item.href} className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}><item.icon size={18}/><span>{item.label}</span>{item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}</Link>)}<TicketNavigation workspace="tenant" current={view} actorKey={`${tenant.id}:${context.user.id}`}/><NotificationNavigation workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/></nav><footer><span className="live-dot"/> Beveiligde tenantomgeving<small>{tenant.roles.join(" · ")}</small>{!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}</footer></aside>
+    <div className="workspace-main" inert={mobileNav||undefined}><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu" aria-expanded={mobileNav}><Menu size={20}/></button><span className="breadcrumb">Fieldgrid <ChevronRight size={13}/> <strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input aria-label="Zoek werkbon" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select aria-label="Tenant kiezen" name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
+  </div></TenantThemeProvider>;
 }
 
 function PersonnelNumberSettings({ settings }: { settings: WorkspaceData["settings"] }) {
@@ -182,23 +197,6 @@ function PersonnelNumberSettings({ settings }: { settings: WorkspaceData["settin
       <label>Startnummer<input name="startNumber" type="number" min={1} max={PERSONNEL_NUMBER_MAX} step={1} value={start} onChange={(event) => setStart(event.target.value)} required/><small>We tellen vanaf dit nummer verder; al gebruikte nummers slaan we over.</small></label>
       <div className="wizard-note wide" aria-live="polite"><UsersRound size={18}/><span>Voorbeeld bij dit startnummer: <strong>{validStart ? formatPersonnelNumber(prefix.trim(), Number(start)) : "—"}</strong>. De reeks gebruikt minimaal vier cijfers en loopt verder na het hoogste gebruikte nummer.</span></div>
     </ActionForm>
-  </section>;
-}
-
-function TenantBrandingSettings({ tenant, data }: { tenant: NonNullable<AuthContext["tenant"]>; data: WorkspaceData }) {
-  const [primary, setPrimary] = useState(tenant.primaryColor);
-  const [accent, setAccent] = useState(tenant.accentColor);
-  return <section className="panel settings-panel">
-    <div className="brand-settings-preview" style={brandThemeStyle(primary, accent)}><div className="brand-preview"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><div className="brand-settings-hero"><span>JOUW WERKOMGEVING</span><strong>Rust, overzicht en eigenheid.</strong><p>Een subtiel palet, herkenbaar voor jouw organisatie.</p></div></div>
-    <div className="settings-forms">
-      <ActionForm action={uploadTenantLogo} className="workspace-form logo-upload-form" success="Logo uploaden"><label className="wide">Tenantlogo<input name="logo" type="file" accept="image/png,image/jpeg,image/webp" required/><small>PNG, JPG of WebP · maximaal 2 MB</small></label></ActionForm>
-      <ActionForm action={updateTenantBranding} className="workspace-form" success="Instellingen opslaan">
-        <label>Primaire kleur<input name="primaryColor" type="color" value={primary} onChange={(event) => setPrimary(event.target.value)}/></label>
-        <label>Secundaire kleur<input name="accentColor" type="color" value={accent} onChange={(event) => setAccent(event.target.value)}/></label>
-        <div className="wide"><BrandPalettePreview primary={primary} accent={accent}/></div>
-        <label>Afzendernaam<input name="senderName" defaultValue={data.branding?.sender_name ?? tenant.name} required/></label><label>Afzendermail<input name="senderEmail" type="email" defaultValue={data.branding?.sender_email ?? ""}/></label>
-      </ActionForm>
-    </div>
   </section>;
 }
 

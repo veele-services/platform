@@ -71,7 +71,7 @@
         "from:tenant_branding",
         "from:tenants"
       ],
-      "source_sha256": "23a83f8ef28c7a26e2aa316feee786c1a7e38d354e3b594fada63cfd2ebeac81"
+      "source_sha256": "ae7461fcc8bd17e4eddc43a25cbf96f98f9acbe5b80f10f74b36c6e4c1509557"
     },
     {
       "id": "code:app/api/customer-files/[kind]/[id]/route.ts",
@@ -86,6 +86,85 @@
       "source_sha256": "b950c51cf04793967e72e8973d01629c07dcc05f6cb2534bd65e65db1b3fed27"
     },
     {
+      "id": "code:app/api/customer-portal/files/[kind]/[id]/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_file_authorize"
+      ],
+      "source_sha256": "6d75b9d147967662b66f78df2ec74a32b3a71274125f816b70c631a215d0e37b"
+    },
+    {
+      "id": "code:app/api/customer-portal/request/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_request_detail"
+      ],
+      "source_sha256": "bd193dd270b26d61a301f703359b31506e1029bb93991854e6864ba10c909479"
+    },
+    {
+      "id": "code:app/api/customer-portal/snapshot/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "497bc0000d263b9d6507b4dc7d69858e08c262d5ef633b07ec0f60eaf552671b"
+    },
+    {
+      "id": "code:app/api/customer-portal/state/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "afc4a63278d94b42fffadc64a3c59b1ab24a62c9fc431e4283cfcea339c0fcb4"
+    },
+    {
+      "id": "code:app/api/customer-portal/tickets/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [
+        "rpc:ticket_query"
+      ],
+      "source_sha256": "0d2f9c4a31dd936719ef87df729550f60bbf0f2fd6badc27c94cb43765ba8be4"
+    },
+    {
+      "id": "code:app/api/customer-portal/visit-files/[id]/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_visit",
+        "rpc:get_object_document"
+      ],
+      "source_sha256": "7fa647981c2416bd202f040b58fed1a62cf7307311bac598c6ee3df550b93f8a"
+    },
+    {
+      "id": "code:app/api/customer-portal/visit/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "2216cef04ea8fe638bf4f3b5ca696fedc5155524d4ae4bbe21dc47068694b711"
+    },
+    {
       "id": "code:app/api/email/auth/route.ts",
       "exports": [
         "POST"
@@ -96,7 +175,7 @@
         "verifyAuthMailHook"
       ],
       "resources": [],
-      "source_sha256": "c1cea4f62a98e1e29f8c393e91fd0165ba05fd0686b2586344c9b72b4001a873"
+      "source_sha256": "fe8e7e641f784994627a63693d86a7da7a31ac778c2e54ac7f2fb974658fe3d6"
     },
     {
       "id": "code:app/api/email/events/route.ts",
@@ -1100,11 +1179,9 @@
         "GET"
       ],
       "classification": "route-or-rsc",
-      "observedControls": [
-        "createClient"
-      ],
+      "observedControls": [],
       "resources": [],
-      "source_sha256": "a879b4454b03e2d11f7461883cff82165f1c2a7b4c69f1d9e2cfb4e55c50b6df"
+      "source_sha256": "ad8e721be8d688e03b20cb171a99bb76817141cbccd8a9e98b96fc166641ec69"
     },
     {
       "id": "code:app/auth/forgot/page.tsx",
@@ -1114,7 +1191,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "eefa6b26cac71aeda1bd229afdcedd2f3431d2915939cbb6aa80b47ce4be3ba1"
+      "source_sha256": "74a884626e45ad53127b98bc27f3c839a2440dfdaefc631d2fdb499bb6af197f"
     },
     {
       "id": "code:app/auth/invite/actions.ts",
@@ -1123,14 +1200,13 @@
       ],
       "classification": "server-action",
       "observedControls": [
-        "auth.verifyOtp",
-        "createClient"
+        "auth.verifyOtp"
       ],
       "resources": [
         "from:personnel",
         "from:tenant_memberships"
       ],
-      "source_sha256": "98bd04e76e09d5eeb39a07452ebcc4e2036a1d4abafd476d1b685e463c1e29d7"
+      "source_sha256": "b3e8381ca991a29cb3a51450fcddf88c030a7c9efa736576cbf4eedc0a5509d4"
     },
     {
       "id": "code:app/auth/invite/page.tsx",
@@ -1145,7 +1221,7 @@
       "resources": [
         "from:tenant_branding"
       ],
-      "source_sha256": "251887f5d0826bb21e614ad50a3816d5ec0745ae713ab85ad8d20ee4aabdf36b"
+      "source_sha256": "1fe7a4bbbbbf83b6691c2bcdfcf0636e49c62b23e5f666200c70c2b6454bf6d2"
     },
     {
       "id": "code:app/auth/reset/page.tsx",
@@ -1155,7 +1231,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "e867e181b866b9fa172efe8c6b8de1c4f52d477f861a3228332b1b9421f35f33"
+      "source_sha256": "9aab224226136b1eead434df5f3ecc2034d4656a8d0b196ed7d1bcda0530cad1"
     },
     {
       "id": "code:app/auth/signout/route.ts",
@@ -1180,11 +1256,10 @@
       "classification": "server-action",
       "observedControls": [
         "auth.verifyOtp",
-        "createAdminClient",
-        "createClient"
+        "createAdminClient"
       ],
       "resources": [],
-      "source_sha256": "793c57b145323c18dd9a651311f1aaa6e38fb31f6eff18dc4fbccb47369d2221"
+      "source_sha256": "ac9a0b92d6c6f0e29a631695da1293f2bfd68bb8205bffe0b995b277d26a41ac"
     },
     {
       "id": "code:app/auth/verify/page.tsx",
@@ -1193,14 +1268,9 @@
         "metadata"
       ],
       "classification": "route-or-rsc",
-      "observedControls": [
-        "createAdminClient"
-      ],
-      "resources": [
-        "from:tenant_branding",
-        "from:tenants"
-      ],
-      "source_sha256": "b07e7372bbf4dae23da193df125a1952bcf8895d082a0a8e1b9116923c3e46d1"
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "69563d1b4621cb94804f48e59d8efdf258b176a4011f61ca8e511c27b232ef47"
     },
     {
       "id": "code:app/booking/[token]/actions.ts",
@@ -1256,11 +1326,8 @@
       ],
       "classification": "route-or-rsc",
       "observedControls": [],
-      "resources": [
-        "from:tenant_branding",
-        "rpc:commercial_customer_list"
-      ],
-      "source_sha256": "114d686417c3ead3717399957a38f0ee7344221e8f62b1c9161fac880a3dc710"
+      "resources": [],
+      "source_sha256": "62ba5436853c43224770394c14b3799d5fb339d494d9efb85d0881b174348c6d"
     },
     {
       "id": "code:app/klant/actions.ts",
@@ -1299,11 +1366,8 @@
       ],
       "classification": "route-or-rsc",
       "observedControls": [],
-      "resources": [
-        "from:tenant_branding",
-        "rpc:customer_portal_documents"
-      ],
-      "source_sha256": "2e505f88893731fd6e7c9bb0a02032cc0221f67dce466033dc2389d5aadc0365"
+      "resources": [],
+      "source_sha256": "def036d999aff1c6e5f8a04d16cc11278015bc91fb73ed1667a48ccfef9660bc"
     },
     {
       "id": "code:app/klant/notificaties/[id]/page.tsx",
@@ -1313,7 +1377,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "9442f4ea69bc84a8246aee9318013bfc337ece2cece9f4febf94d95c73785331"
+      "source_sha256": "c1e29b6a93fcf6c0a2f48e3f7d3cd011ec14309d5ba78a2686d0aede84145bf2"
     },
     {
       "id": "code:app/klant/notificaties/campagnes/[id]/page.tsx",
@@ -1323,7 +1387,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "450af5403b59f7c7177689c649f2ce912ef3158005a46e7f8e986560f2839250"
+      "source_sha256": "e37d3eddbd3da92f9f59c0f992ad29a1e1908fef83e22b3bccbdf8d4e09933fe"
     },
     {
       "id": "code:app/klant/notificaties/instellingen/page.tsx",
@@ -1333,7 +1397,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "6b4873575230d660b1ff1809d109b022a1bebac4d8efdd0dfff474d4b9e5b398"
+      "source_sha256": "c2f6c69e95ec69ef3e1f13457dd84e9fad8a0da51ac441a8484662c660a1ccae"
     },
     {
       "id": "code:app/klant/notificaties/layout.tsx",
@@ -1343,7 +1407,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "dd66584f7f52f5548b564f5925d062a335aae6e7fc02ebd591a3291f581ad3d5"
+      "source_sha256": "5be4fb64e2e8b234a33c3435da71b639b2cf6a758e98dba82344f554f6def0db"
     },
     {
       "id": "code:app/klant/notificaties/page.tsx",
@@ -1353,21 +1417,18 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "67e3417e83e6ed07e983901f3264595403a94296db9dc736f74b6fc4cf706c45"
+      "source_sha256": "ecff628d3396d0e14fcde73d953bad80cb171bef6b6e173a9794381577955fb9"
     },
     {
       "id": "code:app/klant/page.tsx",
       "exports": [
-        "default"
+        "default",
+        "metadata"
       ],
       "classification": "route-or-rsc",
       "observedControls": [],
-      "resources": [
-        "from:tenant_branding",
-        "rpc:customer_object_visits",
-        "rpc:object_visit_context"
-      ],
-      "source_sha256": "e98c89ede2f0c3895df40a0498be4182f4e7eb277c179ed339856e0ccb96c2cb"
+      "resources": [],
+      "source_sha256": "9d921acb1a54d039bde4c38ee04a70745df8c979def3ff498b27c019ad0bc74b"
     },
     {
       "id": "code:app/layout.tsx",
@@ -1384,6 +1445,7 @@
     {
       "id": "code:app/login/actions.ts",
       "exports": [
+        "loginOtp",
         "requestPasswordReset",
         "signIn",
         "staffOtp",
@@ -1392,11 +1454,10 @@
       "classification": "server-action",
       "observedControls": [
         "auth.verifyOtp",
-        "createClient",
-        "getAuthContext"
+        "createClient"
       ],
       "resources": [],
-      "source_sha256": "84c18c462a0be393b08fdafd0098cf088046074cbf982a40740537289505bcc0"
+      "source_sha256": "771756489519327929867f96c43259dee08ddbebc641a04461137537472d150d"
     },
     {
       "id": "code:app/login/page.tsx",
@@ -1407,7 +1468,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "3a363b028a0fb901675de398148198345e3c8b7de0a7c5feb158f98abb159ed5"
+      "source_sha256": "db8eaecac8dbbf89f36c3fc15ee60f8bbb292d4e4beebc3feee5a462fa9dd1ce"
     },
     {
       "id": "code:app/notifications/actions.ts",
@@ -1489,7 +1550,7 @@
         "rpc:provision_platform_tenant",
         "rpc:save_tenant_message_template"
       ],
-      "source_sha256": "cab5dda07fafee3d7ef4189381ecb6ea43a1a7887052fa3759ebd381b4aab061"
+      "source_sha256": "4a3ec6c23a768054274206e45979ab081deadd5cf9688f52f502334c9f32bbf9"
     },
     {
       "id": "code:app/platform/notificaties/[id]/page.tsx",
@@ -1807,6 +1868,30 @@
       "source_sha256": "77b5315dbab77b2fa2d34ff865a4e73e801dd82d574c40c87a0fe5ea41323e8a"
     },
     {
+      "id": "code:components/fieldgrid/backoffice-live.tsx",
+      "exports": [
+        "BackofficeLive"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createClient"
+      ],
+      "resources": [],
+      "source_sha256": "40cec4ee48882e126cd097a88e38334cc2e567330c9b3bc8f339168ce740f086"
+    },
+    {
+      "id": "code:components/fieldgrid/customer-portal/use-customer-refresh.ts",
+      "exports": [
+        "useCustomerRefresh"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createClient"
+      ],
+      "resources": [],
+      "source_sha256": "2c764f86141dd7e7a36b638548eed5d07fb60e0489fbab4f62f306c451618bc0"
+    },
+    {
       "id": "code:components/fieldgrid/notifications/routes.tsx",
       "exports": [
         "NotificationCampaignRoute",
@@ -1933,6 +2018,51 @@
       "source_sha256": "21721f2ba1eadbb668b7daec4436ab54f9dcf3232cb3609f516ffaaaebe16697"
     },
     {
+      "id": "code:lib/auth/login-access.ts",
+      "exports": [
+        "getLoginAccess"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "getAuthContext"
+      ],
+      "resources": [
+        "rpc:customer_portal_accounts"
+      ],
+      "source_sha256": "5d4606933be330ee148efbd7ec18a4a1c0b3c397fdf3cb4918637613dcbc2438"
+    },
+    {
+      "id": "code:lib/auth/login-brand.ts",
+      "exports": [
+        "getLoginBrand"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createAdminClient"
+      ],
+      "resources": [
+        "from:tenant_branding",
+        "from:tenants"
+      ],
+      "source_sha256": "ee3fe5cb00058c8ff72865c94a9e05f677f7ac94ef3aa006d26384e22135703d"
+    },
+    {
+      "id": "code:lib/branding/house-style-actions.ts",
+      "exports": [
+        "saveTenantHouseStyle"
+      ],
+      "classification": "server-action",
+      "observedControls": [
+        "createClient",
+        "getAuthContext",
+        "uploadScannedFile"
+      ],
+      "resources": [
+        "from:tenant_branding"
+      ],
+      "source_sha256": "2236eb653f93db9efffccb5f5683d32b3a222487a8327fc3523b0f41028869ac"
+    },
+    {
       "id": "code:lib/branding/logo.ts",
       "exports": [
         "getBrandingLogoUrl"
@@ -1942,7 +2072,7 @@
         "readScannedFile"
       ],
       "resources": [],
-      "source_sha256": "91dd1f9a1b20a74e104792a6a2b098c87d8bde5c060859097f3b7ad742f0fe2c"
+      "source_sha256": "bf76079359b9032eaa2ced09c15bcfb81a5906d4b8c6db12df238c820bc241ef"
     },
     {
       "id": "code:lib/commercial/access.ts",
@@ -1978,6 +2108,228 @@
         "rpc:commercial_mail_claim"
       ],
       "source_sha256": "d6b86b1efc811e325d620cf1c05ceccb29ea05a30f4935f4d5842d5181fb6145"
+    },
+    {
+      "id": "code:lib/customer-portal/activity-action.ts",
+      "exports": [
+        "readCustomerPortalActivity"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_activity_mark"
+      ],
+      "source_sha256": "89c6793dd24e5b9054fa08205a931adc008ba97811afcc1904e07579bf841227"
+    },
+    {
+      "id": "code:lib/customer-portal/commercial-action.ts",
+      "exports": [
+        "saveCustomerCommercial"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_commercial_command"
+      ],
+      "source_sha256": "4f27c26390608fa1f121951a54a8dbb6984289832f5f871dd610435293b95969"
+    },
+    {
+      "id": "code:lib/customer-portal/data.ts",
+      "exports": [
+        "getCustomerPortal",
+        "getCustomerPortalBaseSnapshot",
+        "getCustomerPortalCoreSnapshot",
+        "getCustomerPortalVisit"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_accounts",
+        "rpc:customer_portal_activity",
+        "rpc:customer_portal_draft",
+        "rpc:customer_portal_invoices",
+        "rpc:customer_portal_news",
+        "rpc:customer_portal_preferences",
+        "rpc:customer_portal_reports",
+        "rpc:customer_portal_requests",
+        "rpc:customer_portal_services",
+        "rpc:customer_portal_shared_documents",
+        "rpc:customer_portal_visit",
+        "rpc:customer_portal_workspace",
+        "rpc:ticket_query"
+      ],
+      "source_sha256": "272c4e761567862254bdbb499795ed80e66ea33adcc80c854f7370ee354643e5"
+    },
+    {
+      "id": "code:lib/customer-portal/instruction-action.ts",
+      "exports": [
+        "addCustomerPortalInstruction"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_instruction_add"
+      ],
+      "source_sha256": "2d2df7f2a47efaf3bb83923505578ceca71b0396fbdb01de2e6ac5a0118d238b"
+    },
+    {
+      "id": "code:lib/customer-portal/management-action.ts",
+      "exports": [
+        "readCustomerAccounts",
+        "saveCustomerAccount"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "from:customer_contacts",
+        "rpc:customer_portal_bind",
+        "rpc:customer_portal_management"
+      ],
+      "source_sha256": "706c66454eb455349ce129326b61355c4e746690a396907f442176c8f3ebf62f"
+    },
+    {
+      "id": "code:lib/customer-portal/news-action.ts",
+      "exports": [
+        "markCustomerPortalNews"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_news_mark"
+      ],
+      "source_sha256": "7b66978b22d3a9cab3ab450b1053b3822c00aa087c240624c5b395be55990e59"
+    },
+    {
+      "id": "code:lib/customer-portal/object-action.ts",
+      "exports": [
+        "saveCustomerPortalObject"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_object_save"
+      ],
+      "source_sha256": "d40f8d799476e3096d54f84f2f3216e1dce965b0af49b8289a978c4f8b6fe7a4"
+    },
+    {
+      "id": "code:lib/customer-portal/onboarding-action.ts",
+      "exports": [
+        "saveCustomerPortalOnboarding"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_onboarding_save"
+      ],
+      "source_sha256": "5a44f0810fb7fc75796994925b3cd37a12803f0e2d7add7f3887bfbc1eedb003"
+    },
+    {
+      "id": "code:lib/customer-portal/payment-action.ts",
+      "exports": [
+        "startCustomerPayment"
+      ],
+      "classification": "server-action",
+      "observedControls": [
+        "createAdminClient",
+        "requireTenantMerchant"
+      ],
+      "resources": [
+        "from:payment_attempts",
+        "rpc:apply_confirmed_provider_payment",
+        "rpc:claim_provider_payment_check",
+        "rpc:customer_portal_invoices",
+        "rpc:customer_portal_payment_prepare",
+        "rpc:release_provider_payment_check"
+      ],
+      "source_sha256": "af40c35fc1eac0c629fbd10e286a2291098fa73e9450375642026de34b3dc059"
+    },
+    {
+      "id": "code:lib/customer-portal/preferences-action.ts",
+      "exports": [
+        "saveCustomerPortalPreferences"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_preferences_save"
+      ],
+      "source_sha256": "479ea38a3cba907ddfd2e3d8a0560ba64d083bd9a7f5fcf480097f2fc0bf0972"
+    },
+    {
+      "id": "code:lib/customer-portal/profile-action.ts",
+      "exports": [
+        "saveCustomerPortalProfile"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_profile_save"
+      ],
+      "source_sha256": "7a5a8b5d940c85ece56dd160f8727c2f4f555d000105f059cc598c150eb72580"
+    },
+    {
+      "id": "code:lib/customer-portal/report-download.ts",
+      "exports": [
+        "customerReportResponse"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_report_file"
+      ],
+      "source_sha256": "0010bedac1ee132108d6b6afb81e3ffdff53d88537cd256724d14087f0c1ce3f"
+    },
+    {
+      "id": "code:lib/customer-portal/request-action.ts",
+      "exports": [
+        "createCustomerPortalRequest"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_request_create"
+      ],
+      "source_sha256": "238b950a6ab8988f6ca01cf684c055e65b8f68b67e6bfd6b9b62d97707b52cf4"
+    },
+    {
+      "id": "code:lib/customer-portal/ticket-action.ts",
+      "exports": [
+        "saveCustomerTicket"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "rpc:ticket_command"
+      ],
+      "source_sha256": "a1c65b4772b6673609ee13140af3e2689842be3f25e285e6f4c0e8b3afee9571"
+    },
+    {
+      "id": "code:lib/customer-portal/visit-command-action.ts",
+      "exports": [
+        "saveCustomerVisitRequest",
+        "uploadCustomerVisitAttachment"
+      ],
+      "classification": "server-action",
+      "observedControls": [
+        "publishScannedFile"
+      ],
+      "resources": [
+        "rpc:customer_portal_visit",
+        "rpc:customer_portal_visit_command"
+      ],
+      "source_sha256": "b5bc657cefd93f461341143b9b20d2b136f6bec2c61921cb2e8a77b08614f215"
+    },
+    {
+      "id": "code:lib/customer-portal/visit-note-action.ts",
+      "exports": [
+        "addCustomerPortalVisitNote"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [
+        "rpc:customer_portal_visit_note_add"
+      ],
+      "source_sha256": "ecdf26b1663a75eaeb6af1e044d407fd492e51df45b81fef8a8706c98c30e567"
     },
     {
       "id": "code:lib/customers/data.ts",
@@ -2090,7 +2442,7 @@
         "resolveHostContext"
       ],
       "resources": [],
-      "source_sha256": "8e168112cd8d0c48af095bc220f1beb7f7b6d9cdc85ca3840c1833e932269beb"
+      "source_sha256": "46bfa9763044af7bed2e8cb98729eaf642d224a00133103bba8d7a71a110006a"
     },
     {
       "id": "code:lib/email-centre/transport.ts",
@@ -2316,6 +2668,20 @@
       "source_sha256": "164b8a9bb9133af2c2e91d3393a7bf6380cf38fd869b0bc49cf694623297b279"
     },
     {
+      "id": "code:lib/payments/merchant.ts",
+      "exports": [
+        "requireTenantMerchant"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createAdminClient"
+      ],
+      "resources": [
+        "from:tenant_provider_connections"
+      ],
+      "source_sha256": "c44798aac1968c17581dc82eb3edffb692cb6bea4260f02da226f8e2b018f758"
+    },
+    {
       "id": "code:lib/personnel/dossier-data.ts",
       "exports": [
         "dossierTables",
@@ -2418,14 +2784,15 @@
       "id": "code:lib/providers/mollie.ts",
       "exports": [
         "createMolliePayment",
-        "getMolliePayment"
+        "getMolliePayment",
+        "getMollieProfile"
       ],
       "classification": "data-access-module",
       "observedControls": [
         "requireProvider"
       ],
       "resources": [],
-      "source_sha256": "a63f4380ee47c36d9aaaa697b111fd57b7177ecf4f4e190d3b85a0eeb410969a"
+      "source_sha256": "638a953be0362fbfd25fda6a16ed8013ead58105c8cd1d554ed80f0df3210ce4"
     },
     {
       "id": "code:lib/providers/sendgrid.ts",
@@ -2640,7 +3007,7 @@
         "resolveHostContext"
       ],
       "resources": [],
-      "source_sha256": "dee9e48ba2d1ea63dca7f8e0823e366130a8eaa4bfe16e7ce7ab32dd913e5eea"
+      "source_sha256": "569e5f1c01319301d6b96c5d6dfdb0038f3a63ebff97c052e66696904494e1eb"
     },
     {
       "id": "db:private.commercial_commands",
@@ -2681,6 +3048,40 @@
       "classification": "table",
       "rls": true,
       "force_rls": false,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.customer_portal_commands",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.customer_ticket_bindings",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
       "anonymous": false,
       "authenticated": false,
       "anonymous_select": false,
@@ -4037,6 +4438,40 @@
       "authorization_sha256": "af7bd70ab0ec1f47221ec0e5b7ffcdad3eabdb9fe1eedcbe530fa3270470cf2e"
     },
     {
+      "id": "db:public.customer_portal_accounts",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "1bea7cce4d31db705afec582512126fa150431b3319552804f4ca1a90e25a0d6"
+    },
+    {
+      "id": "db:public.customer_portal_revisions",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": true,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": true,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "134091298086d53e2e1c040de41e5c2a20f5c755ef3fd3041331a56bf8a1af36"
+    },
+    {
       "id": "db:public.customers",
       "classification": "table",
       "rls": true,
@@ -4289,7 +4724,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "8997f768a162794c6711884c5ab74d180532af889c035ccba3a56eec99b45fa1"
+      "authorization_sha256": "242fd14175fa5b497bb27a5cfc4f66a8236eff1b463b1fc5b5d97a480423b6a0"
     },
     {
       "id": "db:public.object_documents",
@@ -4374,7 +4809,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "c9667f8d63532f4146d4ea6a127f55005c7a782993087107cf5d11fc36596d4c"
+      "authorization_sha256": "5f02fa36f8cbc0708d03c4d5bf4096be36a39657a8d22418cae42362599872ff"
     },
     {
       "id": "db:public.object_reminder_recipients",
@@ -4442,7 +4877,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "54a7adcfd4fa839ed6209f8c39bc39d09ffe7fe2f065f797232da58d4800e897"
+      "authorization_sha256": "195d3afb44bd58afc86be9367a4373dccac3dedbc17db1241b7b48d9b578e99b"
     },
     {
       "id": "db:public.objects",
@@ -4459,7 +4894,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "c11860690f0cac739de2cc16f22e2746899cacb3b1718a89bc9a810b55278a27"
+      "authorization_sha256": "eb406b866186b8fd70b2a8ac00fc4c6280076557bf0ca8b02c778ef72d031b39"
     },
     {
       "id": "db:public.open_shifts",
@@ -4527,7 +4962,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "fdd493b79fcf3d26fd3480e9f1f49dc82bc9e79e718e115412cfcf48c2bcceaa"
+      "authorization_sha256": "7e08dd0120403a716365a36fb3842e3c2cd7b6b63efce7f9d5e05dc7b8568cac"
     },
     {
       "id": "db:public.permission_catalog",
@@ -4918,7 +5353,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "c67755f141196f0cd6c1c7958a3d53332bc0cd4a1d61d9cb33cdeb90d4245717"
+      "authorization_sha256": "8160ca6f1ac73f4eb95580c076b2ba938e5e53abe89d4d656320a8350661088d"
     },
     {
       "id": "db:public.review_decisions",
@@ -5054,7 +5489,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "dbadbd3a444a34f32b1d74cc0ae9b6253eb59af0f8c310c854f153302a29318e"
+      "authorization_sha256": "0e61c549965ab2ca7d6ec63bed754c8826d3ddce03b9ef9e7ebb7d83b8a56dc4"
     },
     {
       "id": "db:public.status_events",
@@ -5139,7 +5574,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "99d38224e460f7bb8e47df3ed55125473a527ec7deec9f5783ea4c6fdee12ddf"
+      "authorization_sha256": "431f5817cd88e64b6421f957a2593f82f4163c1425267f085b8827ab06f931fa"
     },
     {
       "id": "db:public.tenant_domains",
@@ -5224,7 +5659,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "b2076e60e29fb996c03c69f3973e9517d80e6392d045ffffe97154359d8c2613"
+      "authorization_sha256": "b07e5843588ef9086b9d35ea05da62fe7f373f676ddedad109c03418fa8eea53"
     },
     {
       "id": "db:public.tenant_settings",
@@ -5258,7 +5693,7 @@
       "authenticated_insert": false,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "7257f41b514960de384905d43b1e55cce34afac8a11ec3d3834472ac6100abd0"
+      "authorization_sha256": "52079ce950ea4d961a20270fc4f7c9131de6b804562468ba805cd2d0b3dd3481"
     },
     {
       "id": "db:public.ticket_categories",
@@ -5292,7 +5727,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "f6b9643a3eaa8af1ff3d90dd461272fc89f46cc8f4ab82021a991f1633f7d991"
+      "authorization_sha256": "926af59c80c10a14ba17191e2e1b9a4108fc25feef0e2ac5f22d63959101e01a"
     },
     {
       "id": "db:public.ticket_files",
@@ -5632,7 +6067,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "98b11eb8ae681722ccb3ad1a0db8f9f0654e559c8c46ca2f3e11eec6dfe83852"
+      "authorization_sha256": "9ddc95a5dd3e67e25ad8b65401a52575add558b6e4cf6ab52e2f081036e397f8"
     },
     {
       "id": "db:public.work_order_scope_transfers",
@@ -5768,7 +6203,7 @@
       "authenticated_insert": true,
       "authenticated_update": false,
       "authenticated_delete": true,
-      "authorization_sha256": "e6ebf2e0a7dcb67d1cb345bbd1deb4866694e3b64794083a80355fe28a54c6dd"
+      "authorization_sha256": "53f6deda2f480bc92a3614679779df515c21d6318e51f0a129792487c8798f37"
     },
     {
       "id": "operation:.env.example",
@@ -5783,7 +6218,7 @@
     {
       "id": "operation:.github/workflows/bootstrap-staging-admin.yml",
       "classification": "operation",
-      "source_sha256": "fa75cd39784b1ce9f32317d5b335f32b120662a09bf0e8f600a69ee15a89c957"
+      "source_sha256": "f718020070eac827dbcbe6776c69e20bb01711ccd7ce57da31b369d92d212d97"
     },
     {
       "id": "operation:.github/workflows/ci.yml",
@@ -5873,7 +6308,7 @@
     {
       "id": "operation:package.json",
       "classification": "operation",
-      "source_sha256": "353932340bdb29922b4e598795730afea5cc1ac7a93aa06d6b834e692dd9c1ae"
+      "source_sha256": "ab45dbff8044465929a2701582a7e19926257869da49f7d9547ca41e7a17adf0"
     },
     {
       "id": "operation:patches/braces@3.0.3.patch",
@@ -5913,7 +6348,7 @@
     {
       "id": "operation:scripts/bootstrap-platform-admin.ts",
       "classification": "operation",
-      "source_sha256": "b67677bebe9f2d08c35359415856daba87106f32084e67bcf04412960855c590"
+      "source_sha256": "1ee97a08c267d0e9bbffaba86cd7db41df10fa66300937adf0d9ec2406be8426"
     },
     {
       "id": "operation:scripts/check-authorization-review.mjs",
@@ -5983,7 +6418,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "cb27e0091a5062440d3ebae78b75d73666574010819038c3ac7b8f41a6ab4a78"
+      "source_sha256": "c3784714f3ea50f4a3c82808d5587724222c85c0913e0dee0cfa87fddf17d9ed"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -6038,12 +6473,12 @@
     {
       "id": "operation:supabase/config.toml",
       "classification": "operation",
-      "source_sha256": "7f7e81c1701904fe9d1e87a5b1fb2bc60d5c78eaafadb90fc8696235eae9417f"
+      "source_sha256": "7268f524166b419f91445c8593990bf6162f518415575f36316be7368d4c1e0d"
     },
     {
       "id": "operation:vitest.config.mts",
       "classification": "operation",
-      "source_sha256": "3809d14b7e8dde8d348785f6488ffa1dace7051fda334f2d0f4a086869200116"
+      "source_sha256": "f896ca056f1aa22abc51304ace12f51e8f0c295ecf621972430fe1fa962463b0"
     },
     {
       "id": "rpc:private.actor_session_active()",
@@ -6268,7 +6703,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "277a07b24bea1e0f43e3ddf9bfca7e80d1ecad6ac4bb6b06e4c73d224ed363ed"
+      "definition_sha256": "286cb1fca80d6dccdd8c6fc1714460b2bc9bb9e11e240f585ebc0471bd2f76d1"
     },
     {
       "id": "rpc:private.commercial_decide(q_id uuid, t uuid, input jsonb, actor uuid, channel text)",
@@ -6361,6 +6796,42 @@
       "definition_sha256": "a143870160b7ddd000eb1a77a7d8596686ba2497c3a7656c169f885d1dabea97"
     },
     {
+      "id": "rpc:private.customer_account_access(t uuid, a uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "9050cb0eeedcd8e0fbfe18922b44a3a246d6c69454455255b736009b5cba59d4"
+    },
+    {
+      "id": "rpc:private.customer_account_revision_trigger()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "9be9ec8d5951bb36af41a491c195802a7215fb0df30f60b3c5ed97b0c2ffb37e"
+    },
+    {
+      "id": "rpc:private.customer_activity_path_before_customer_delivery(t uuid, a uuid, nid uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "8936be459063471941bce61a799a0614ba8091176b93c33c47574eb264d21041"
+    },
+    {
+      "id": "rpc:private.customer_activity_path(t uuid, a uuid, nid uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "0f20854b3a0269d50f57852984dcdee9ccb0462b7a9bdc13afaf914175809bf3"
+    },
+    {
       "id": "rpc:private.customer_audit()",
       "classification": "trigger-function",
       "security_definer": true,
@@ -6368,6 +6839,24 @@
       "authenticated": false,
       "service": false,
       "definition_sha256": "2ed05f6be92653a62e84fd8789619b8c1dd2358e8fc7bd99574994f31c25d555"
+    },
+    {
+      "id": "rpc:private.customer_binding_identity()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "1a8d7ca35a4dfbf87ce1d91da3faad038520d911e12f1fcaf1b25031be84574d"
+    },
+    {
+      "id": "rpc:private.customer_binding_revision_trigger()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "e2d965a41fca89f3fabdcb4d51db1a3e49f9f569f0e21e4ad86f831cf5458f4e"
     },
     {
       "id": "rpc:private.customer_command(target_tenant uuid, request_id uuid, command text, input jsonb)",
@@ -6385,7 +6874,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "469f10aeb4f87e393cba962db42a10cbb95257f6780acea2f6c3a31f491fa0a3"
+      "definition_sha256": "dcbbd141d367f0b2c0ce2ede44dca5d103cafc6185b46d79e937898dccd47b71"
     },
     {
       "id": "rpc:private.customer_document_scope_guard()",
@@ -6433,13 +6922,148 @@
       "definition_sha256": "cbb643c4a562396355d04ff3d54188f757ca7a0807aab09f30e82c98ad16a120"
     },
     {
+      "id": "rpc:private.customer_merchant_guard()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "7ef0f3c054e6bbb5b7155dd86c3f1d444ef979f6980b905f7bfc253a3fda1f91"
+    },
+    {
+      "id": "rpc:private.customer_news_access(t uuid, a uuid, n uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "3b8c9a9195ec534420b84830d233920ff7b7ecbab07738bc05aa8623f2adc9b0"
+    },
+    {
+      "id": "rpc:private.customer_notification_account(t uuid, a uuid, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ddeb3fd2ce67117d79ce4677ab5fdf363e17dbd0b404f41b29d08ba3d7dddc3c"
+    },
+    {
+      "id": "rpc:private.customer_notification_group(code text)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "0f601dc229e0b56569144e351da0541d50014784d925a006b4611e84f3e4a5e8"
+    },
+    {
+      "id": "rpc:private.customer_notification_policy_revision(t uuid, code text, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "0d32ad84c715c0beb4805f300f6eec93124f5593fc37af8df6820185d49d7589"
+    },
+    {
+      "id": "rpc:private.customer_notification_resource(t uuid, a uuid, kind text, entity uuid, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "65fb44079de03e25b5d92e4d053e23388f935e0a588e31642802a143a1ceb8e0"
+    },
+    {
+      "id": "rpc:private.customer_notification_transition()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "a6eced06a9a9be2b7cd471e63a256f4b02589ad71cfe5693b4cc200f85fba95b"
+    },
+    {
+      "id": "rpc:private.customer_object_revision_trigger()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ffd41e54bc05ca2f3b93eb428f1c695ad6a4eb191bfd1bbd677accf04050c0c7"
+    },
+    {
+      "id": "rpc:private.customer_own_visit_request_revision_trigger()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c7a6604805b12a68ba8a12da44a388abba91b22d64fb64c6796a2d7ace5ad0d4"
+    },
+    {
+      "id": "rpc:private.customer_payment_profile_guard()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "6fffbf392e7fcca7a3a7f28e8f3f0a62e645adc24a86952f0c6cd9a56b998bec"
+    },
+    {
       "id": "rpc:private.customer_portal_bound(t uuid, c uuid)",
       "classification": "private-function",
       "security_definer": true,
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "5f9214c38550ca80d1cff18fc932b1086771bd64624595a386a9b8d553c06443"
+      "definition_sha256": "33c34f32cb2b3f6fa1e92af605587f162e563dc3dd70ff7c31abd14afa2ec8a2"
+    },
+    {
+      "id": "rpc:private.customer_portal_manage(t uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "503288438193b516f4604af26881ced5c12f42360284a182fd00a9b087900932"
+    },
+    {
+      "id": "rpc:private.customer_portal_profile(t uuid, a uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ecf69176427702e0bf74e61ec0878230e77ba541cd213797a3891fdf47eabc23"
+    },
+    {
+      "id": "rpc:private.customer_revision_bump(t uuid, a uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "17777fde8a5abdf147cc31eb7730f1fcf7e6637d53066da8c214ebb1f8b7b6cb"
+    },
+    {
+      "id": "rpc:private.customer_revision_for_object(t uuid, c uuid, o uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "06e8d4c98041d7bf5a73a446560fa848de5cc7916eb59c98eaa1bbab815c7705"
+    },
+    {
+      "id": "rpc:private.customer_revision_for_own_visit_request(t uuid, o uuid, w uuid, u uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "4a7587c225f399544974bca0e305a5307b11831d18d038e066287932ae54da26"
     },
     {
       "id": "rpc:private.customer_signature_snapshot(snapshot jsonb)",
@@ -6451,13 +7075,94 @@
       "definition_sha256": "c567d78621a20a8aeecd009f957e95b080e5cd18061c021aae4586639aaeef30"
     },
     {
+      "id": "rpc:private.customer_ticket_access(tid uuid, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "6cd5bd2467496dfb1dccbedb177268c139e4a5af749f2c091406dce3bafd738a"
+    },
+    {
+      "id": "rpc:private.customer_ticket_command(target_tenant uuid, cmd text, p jsonb, request_id uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "58156c456d6ab8ad4236618a299102da0c5ddf5a6dae45c020c78a3f286bdb98"
+    },
+    {
+      "id": "rpc:private.customer_ticket_dto(tid uuid, a uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "fbdb5adfe3f8bf1de36d117b3e8140208cf068dd59a98562f3d6fb33781a8368"
+    },
+    {
+      "id": "rpc:private.customer_ticket_identity(t uuid, a uuid, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "d2814ae6c71cac5fb0656b2050668572d842f6c644aa8f7112744be7d98e853e"
+    },
+    {
+      "id": "rpc:private.customer_ticket_notification()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "008f2dba42ab377d7d4b2bf7824485d9696d79d0c07a355086810b7e8fd51ab4"
+    },
+    {
+      "id": "rpc:private.customer_ticket_query(t uuid, op text, p jsonb)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "4dcab7ffe5d96cefe534a00f5f0f044d7a158ac0367cf42b9cc0227fb142c91e"
+    },
+    {
+      "id": "rpc:private.customer_ticket_seed_trigger()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "e6df775c8e4a50c5a231636c62439b043b6e664e27b400f07dca2687ae892407"
+    },
+    {
+      "id": "rpc:private.customer_ticket_seed(t uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "8d108cff1bae5ad29e4559431716b94bce475b9917ad63e07bd3ec787b2eff68"
+    },
+    {
       "id": "rpc:private.customer_visit_access(t uuid, o uuid, w uuid)",
       "classification": "private-function",
       "security_definer": true,
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "d4f25d932c120854ae4fb15558017b2906e891caa733061ae96d14d11c1e1ed0"
+      "definition_sha256": "1582e1242db44a752d1f87ea278807f1e00e363965d032a5c09856afab3827f5"
+    },
+    {
+      "id": "rpc:private.customer_visit_revision_trigger()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "245abb18e606a2730b0909a1ecc3f57a2001b3547d2cd9c3f52fdcb171672c63"
     },
     {
       "id": "rpc:private.document_path_matches(path text, scope text[])",
@@ -6691,7 +7396,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "211f0c7279ec778919f06b16157023d21d1a9f6a630e3581df92858b670dd826"
+      "definition_sha256": "9372f345bbdb75e5b5a183fdd08a50e8eb9e4ae8620b9ebec98528672ccdf1df"
     },
     {
       "id": "rpc:private.notification_bundle_seconds(t uuid, code text, ctx text)",
@@ -6784,13 +7489,22 @@
       "definition_sha256": "5d7f8cf998cbbcdd22fbcdf305e22c0c471e3f2ec0a045c20000a97161e29152"
     },
     {
+      "id": "rpc:private.notification_capture_outbox_before_customer_delivery(target_event uuid, prepare boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "5d09cde70129e5ff51c55b6a070e92cefca8dc4bc14571f2c5a7709e02fb3aa2"
+    },
+    {
       "id": "rpc:private.notification_capture_outbox(target_event uuid, prepare boolean)",
       "classification": "private-function",
       "security_definer": true,
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "cce462c5e2992c1eed83a184bfb3869600c530d456eec9052a5aca9d8f97b90c"
+      "definition_sha256": "80bfdbebd572542086b48ec53749b2d078508ea0688624f3c326b21448c63add"
     },
     {
       "id": "rpc:private.notification_capture_planning_event()",
@@ -6988,7 +7702,16 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "94e36b2566dae50b04d77770c6e12af5b99e115e267d09eb1c912060334aa9c4"
+      "definition_sha256": "96ddd3b7b41b7f67bfeddca86b2abbcb578185f07f3f345c0479e5618b6ed190"
+    },
+    {
+      "id": "rpc:private.notification_domain_source_before_customer_delivery(t uuid, code text, source uuid, revision text, recipient uuid, ctx text)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "458f531b4d1a847257fd386596f36a8e88d9d05a208692aa5969dbd04803dff8"
     },
     {
       "id": "rpc:private.notification_domain_staff_time_correction()",
@@ -7126,13 +7849,22 @@
       "definition_sha256": "c1cff784daf497b2e3dc72028bd9d4a6602ec8039e121e296c99a5c78c4182b5"
     },
     {
+      "id": "rpc:private.notification_operational_source_allowed_before_customer_tickets(t uuid, code text, kind text, source uuid, revision text, recipient uuid, ctx text)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "eaae635d98445449d83a3a77e9f88b65d9804da9ee67db8b81f1b6990af682e4"
+    },
+    {
       "id": "rpc:private.notification_operational_source_allowed(t uuid, code text, kind text, source uuid, revision text, recipient uuid, ctx text)",
       "classification": "private-function",
       "security_definer": true,
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "18acc2b7bb995109f7f6df0d511a587b71590d8172ce2a276c624414b2a6c277"
+      "definition_sha256": "f94307c2ab8157384b92b00d12ff7c37a5665672097740bc7151e9e7c4d5eabc"
     },
     {
       "id": "rpc:private.notification_outbox_created()",
@@ -7474,7 +8206,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "1e984fbdc1e033941109e921ea8b0841a49b80020736e04897b8ec50cddfa51d"
+      "definition_sha256": "279f448595e27ca94c282790156188fc350e39b05edc1a9455dd0088d88e2926"
     },
     {
       "id": "rpc:private.object_visit_projection(target_tenant uuid, target_object uuid, target_order uuid)",
@@ -7954,13 +8686,31 @@
       "definition_sha256": "59cef37e0b627057dae13457cbecfc0e4166bb1405392837f4347a2178e0fc47"
     },
     {
+      "id": "rpc:private.tenant_branding_touch()",
+      "classification": "trigger-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "09df25f283db19ab8189062c91f684fd2237cb9ab386d81e80a52578748bf710"
+    },
+    {
+      "id": "rpc:private.tenant_house_style_revision()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ce060eb9fb1704160ec1e3cce78559599c28095767b1b73daf002bfee72c5701"
+    },
+    {
       "id": "rpc:private.ticket_actor_active(t uuid, ctx text, actor uuid)",
       "classification": "private-function",
       "security_definer": true,
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "c7e6841950297d09d360d4b4f07ae65bb06a321c30b68a5cdb498bf9107a9b65"
+      "definition_sha256": "9e34d4ee1a04c91a50f37a66437d4f1022f1670458c993fee8f90c0b07f8da2f"
     },
     {
       "id": "rpc:private.ticket_allowed(tid uuid, ctx text, action text, actor uuid)",
@@ -7969,7 +8719,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "19ccb218e8af85d347d5a1f9af5b2af090dc3e4c39f0701efa6d03155a6f1a79"
+      "definition_sha256": "4624601b3efc02f462884741161287d2fe1407672f61eb4aad05c7c5856d8979"
     },
     {
       "id": "rpc:private.ticket_attach_to_message(tid uuid, mid uuid, ids uuid[], actor uuid, ctx text)",
@@ -8059,7 +8809,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "940953bda7a2ce76199a2313e52365c36eeb176c0659f92638305f3a34f1c17b"
+      "definition_sha256": "7a940c704762fce6aebb06bc810c4c9c6cdb383ddafa4e697d03e2132114d8eb"
     },
     {
       "id": "rpc:private.ticket_delivery_allowed(d private.ticket_deliveries)",
@@ -8770,7 +9520,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": true,
-      "definition_sha256": "60ebcdb7e8b90774346fdddcb5c9759d2d547dfa7fe6a650d7f12d5ea0060fe9"
+      "definition_sha256": "19842993331a6c9687d530f4b150be0e64b0b7ab4468a237b4bd704d92a0f52c"
     },
     {
       "id": "rpc:public.claim_personnel_dossier_deliveries(batch_size integer)",
@@ -9049,7 +9799,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "d7c7aca327afb252d8c3d5cfa39feca3504055d5c688bc53bc7517058830a62b"
+      "definition_sha256": "1d6aa3ccf06beb42c9a02d34f594b64f7f7b3a6d0049b8001860cbc43a2e715a"
     },
     {
       "id": "rpc:public.customer_history(target_tenant uuid, target_customer uuid)",
@@ -9076,7 +9826,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "b02d8ce075919f950f2ea737442bac1c9a5a309d972357ea15adbcf0c03b4cc9"
+      "definition_sha256": "e3666a0ea85ff96c293e58b44d7d9e0184e19b978d873afc3b528a8ba2dc43e9"
     },
     {
       "id": "rpc:public.customer_owners(target_tenant uuid)",
@@ -9088,13 +9838,274 @@
       "definition_sha256": "ddd8196b105ec2bdc263958245834464d6370c67ca64fc5c83fd41e48a3ea24f"
     },
     {
+      "id": "rpc:public.customer_portal_accounts(target_tenant uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "6fc89ade0262352eec06d25e647b3edb930a835ac9b3f4740b52690471e9c10b"
+    },
+    {
+      "id": "rpc:public.customer_portal_activity_mark(target_tenant uuid, target_account uuid, operation text, request_id uuid, target_notification uuid, expected_version bigint)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "c015aff50d30272608c99bda730c55d2019bb66cc548e700471dc958395cf3e8"
+    },
+    {
+      "id": "rpc:public.customer_portal_activity(target_tenant uuid, target_account uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "4fd9cc068970b9b58e189b3b0b8a6d4b7d82acb6ccfcdcb0de590bdec7afcd80"
+    },
+    {
+      "id": "rpc:public.customer_portal_bind(target_tenant uuid, target_customer uuid, target_user uuid, target_contact uuid, expected_version bigint, can_create boolean, can_edit_objects boolean, can_edit_profile boolean, enabled boolean)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "b45a5426caa156840c5d7e4effd03a7f7942cfa1bb55880abcf50844f68cf34c"
+    },
+    {
+      "id": "rpc:public.customer_portal_commercial_command(target_tenant uuid, target_account uuid, command_id uuid, command text, input jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "f3911f1686ee910a99cc62861e6638aa89e47b823ac1fa333fed82571f9fe3ab"
+    },
+    {
       "id": "rpc:public.customer_portal_documents(target_tenant uuid)",
       "classification": "public-rpc",
       "security_definer": true,
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "11689aa80079988bca8377db21411d74491b7ad30e5ea4402ba4eb5f097578d6"
+      "definition_sha256": "d602d86cd0b698509af06ce68e65aa84a6b9e461d91430c08be1494eb388a94f"
+    },
+    {
+      "id": "rpc:public.customer_portal_draft(target_tenant uuid, target_account uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "c4f66651f53da7ef63d45cee4366df1b1b80188de83a8acee9a15c1375be22c5"
+    },
+    {
+      "id": "rpc:public.customer_portal_file_authorize(target_tenant uuid, target_account uuid, kind text, target_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "5d3c7281c805fab30d94b089e3c963628b38d93514cfa93f720dc3965e54e426"
+    },
+    {
+      "id": "rpc:public.customer_portal_instruction_add(target_tenant uuid, target_account uuid, target_object uuid, expected_version bigint, input_body text, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "548fa0721002e346c2524d0ce61833482c7ece9a8720a32bdbdf86c0e34eaf65"
+    },
+    {
+      "id": "rpc:public.customer_portal_invoices(target_tenant uuid, target_account uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "8e48ce4e4b85345fd01317c2140e459a56c6a5127de6435c59e1a9292510e4a7"
+    },
+    {
+      "id": "rpc:public.customer_portal_management(target_tenant uuid, target_customer uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "eb9d4b1cb35db937b3ae3e6ee8d77c28a5ee06fe59f0a1ad28b762546afb5eb2"
+    },
+    {
+      "id": "rpc:public.customer_portal_news_mark(target_tenant uuid, target_account uuid, target_notification uuid, expected_version bigint, operation text, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "3ef41346c92bfa3a56535be901ae40095b26e516034bab7984ee9c6de2be7915"
+    },
+    {
+      "id": "rpc:public.customer_portal_news(target_tenant uuid, target_account uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "c27233c7990d440d9f8601ccbdfbc3602d999895b70b3e196f08c67da5a7f740"
+    },
+    {
+      "id": "rpc:public.customer_portal_object_save(target_tenant uuid, target_account uuid, expected_account_version bigint, input jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "73ed8a72ee79d2fcf040f167f6c87ab6189c6875c043c46fb8b4d7c89a2104ef"
+    },
+    {
+      "id": "rpc:public.customer_portal_onboarding_save(target_tenant uuid, target_account uuid, input jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "4576456cc02ad58c60a28fe7ea6881a6bae15e15a06bb3b07bf4309a19b54d24"
+    },
+    {
+      "id": "rpc:public.customer_portal_payment_prepare(target_tenant uuid, target_account uuid, invoice_ids uuid[], request_id uuid, expected_mode text, expected_profile text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "75a5f2142514b8dbfffb0aed5994eb91700ce4997f02482c04dc635c5373392a"
+    },
+    {
+      "id": "rpc:public.customer_portal_preferences_save(target_tenant uuid, target_account uuid, expected_version bigint, input jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "47f64e245b1a240b8d973b4818d22d18fe68780e34815a1f9ac162c361a2b3d3"
+    },
+    {
+      "id": "rpc:public.customer_portal_preferences(target_tenant uuid, target_account uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "ab262bef207f271728572974383eb3a658bcf37e7800c0085dab04ac3f310112"
+    },
+    {
+      "id": "rpc:public.customer_portal_profile_save(target_tenant uuid, target_account uuid, expected_account_version bigint, expected_customer_version bigint, expected_contact_version bigint, input jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "fc093d7e6c790a6ecc7d86f5edf4ae327f377b146956760aa46474fa76b72f78"
+    },
+    {
+      "id": "rpc:public.customer_portal_report_file(target_tenant uuid, target_account uuid, target_report uuid, asset_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "ba71618601cc78ad6733bf62df06a4e211c4a479bcf1d0c2cd35d0492a171d12"
+    },
+    {
+      "id": "rpc:public.customer_portal_reports(target_tenant uuid, target_account uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "ba3c9fbc16e0869b6c9f4e38558a3f214d6de08794addcbe484203eede3bf54d"
+    },
+    {
+      "id": "rpc:public.customer_portal_request_create(target_tenant uuid, target_account uuid, input jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "5cdcace2ac62621c6f0ff3252be533ef394d2382efff92dae53d88f5bb40c267"
+    },
+    {
+      "id": "rpc:public.customer_portal_request_detail(target_tenant uuid, target_account uuid, target_request uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "d3e4b3b341a2602459696215bb95e011eaf240e3beaaa300f064d76a7456e87a"
+    },
+    {
+      "id": "rpc:public.customer_portal_requests(target_tenant uuid, target_account uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "cff1bbf09df07e526ad59d1a232a100c7e930a2cd1094fefdaa1b89c96994ea6"
+    },
+    {
+      "id": "rpc:public.customer_portal_services(target_tenant uuid, target_account uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "903997f1855dd48bf15ecd549ebd6e99b65b595f904b3cdc5445e68ae9d8ffa6"
+    },
+    {
+      "id": "rpc:public.customer_portal_shared_documents(target_tenant uuid, target_account uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "b7b68431250b01237a4c9b3c4193933f9d309d9689ce4ba2cf1f717a1125b62a"
+    },
+    {
+      "id": "rpc:public.customer_portal_visit_command(target_tenant uuid, target_account uuid, target_visit uuid, request_id uuid, operation text, input jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "74a97fc42bb97cfbaaff13e631beaeef6faec61ca469395d557f72f04eb62439"
+    },
+    {
+      "id": "rpc:public.customer_portal_visit_note_add(target_tenant uuid, target_account uuid, target_visit uuid, expected_version bigint, input_body text, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "dd9636334a4773fa1df9cbdd8635204f8d4decf68a6ca90543b9c86f56522461"
+    },
+    {
+      "id": "rpc:public.customer_portal_visit(target_tenant uuid, target_account uuid, target_visit uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "46fd60375f48b5c8c54124020760bca9372762a06ca1ef2dd01e927ee32fa3ca"
+    },
+    {
+      "id": "rpc:public.customer_portal_workspace(target_tenant uuid, target_account uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "ef25145c12ff66783cecdfaea0757d869f67f9347d8e6fd1046fb47b5ef7b3c8"
     },
     {
       "id": "rpc:public.dispatch_work_order(target_work_order_id uuid, target_personnel_id uuid, expected_version bigint, idempotency_key text)",
@@ -9553,7 +10564,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": true,
-      "definition_sha256": "438e489247d6018ca77202a1d7215f094ee69d85d3d5e889c61d5265112ebf34"
+      "definition_sha256": "3a7530ab542d9b3dc81060fcbad083fd19c6e93a384ada206c2b111bddadcafc"
     },
     {
       "id": "rpc:public.prepare_work_order_signature(target_work_order_id uuid, target_report_id uuid, expected_hash text, signer_name text, signer_capacity text, signature_kind text, idempotency_key uuid)",
@@ -9643,7 +10654,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "f7749dda60f0009f5329d6d847c60be1602b32b084d6e51778e39d97b104f131"
+      "definition_sha256": "d90930ac2ae1d53641b848e469e09514788778468202c357b59923c93860e13c"
     },
     {
       "id": "rpc:public.register_visit_attachment(target_tenant uuid, target_request uuid, input jsonb)",
@@ -9994,7 +11005,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "75ba869f50f8db5ee0d7f55faa90aaae7a1b8d03805d1c7ed0f43b5357cafe4e"
+      "definition_sha256": "5927c9d94e75075ec1d5fc5c6f98a1ee985662c780b0bac52ad97212f25bf801"
     },
     {
       "id": "rpc:public.ticket_delivery_begin(delivery_id uuid, lease_id uuid)",
@@ -10057,7 +11068,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "5c28a65d17697980ab43c63cb82f099e0794698a296c97d0ed9cbc3ea71f27b2"
+      "definition_sha256": "8b4191ae4d531c245d96237205e65a2964852e642b773b16405d65d8e2799225"
     },
     {
       "id": "rpc:public.ticket_file_server_finalize(file_id uuid, actor_id uuid, session_id uuid, content_hash text)",
@@ -10093,7 +11104,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "28732ddf298bd42537f94702236bc9bf49052ea1ad4b88c8f44b0bdfbf138305"
+      "definition_sha256": "0eef9b65f3fa4a3e7a731a3e83aa68036f6665fdac043dc20992e3568a5b21bd"
     },
     {
       "id": "rpc:public.ticket_scan_claim(batch_size integer, target_file uuid)",
@@ -10282,7 +11293,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "0642f1a068f7d5f16dbd265be70c8dad28a1135fb637f2a88b54b5c689e513db"
+      "definition_sha256": "f3fb9fed9ba0410cfffb75247a37aa850ce6f3f9dede240d215b86849d1a98e7"
     },
     {
       "id": "rpc:public.work_order_report(target_work_order_id uuid)",

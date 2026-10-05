@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import pg from "pg";
 import { requireLocalDatabaseUrl } from "./local-target";
-import { authenticateStaff } from "./staff-auth";
+import { authenticateWorkspace } from "./login-auth";
 import { randomUUID } from "node:crypto";
 const day = "2032-05-10",
   person = "e1000000-0000-4000-8000-000000000001",
@@ -132,14 +132,7 @@ async function login(
   path: string,
   email = "platform-admin@fieldgrid.test",
 ) {
-  if (path === "/staff" || path.startsWith("/staff/")) {
-    await authenticateStaff(page, email, path);
-    return;
-  }
-  await page.goto(`/login?next=${encodeURIComponent(path)}`);
-  await page.getByLabel("E-mailadres").fill(email);
-  await page.getByLabel("Wachtwoord").fill("Fieldgrid-E2E-2026");
-  await page.getByRole("button", { name: /Inloggen/ }).click();
+  await authenticateWorkspace(page, email, path);
   await expect(page).not.toHaveURL(/\/login/);
 }
 test("PDOK address selection, exact suffixes, stale response protection and mobile persistence", async ({

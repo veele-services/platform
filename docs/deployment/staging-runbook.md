@@ -5,6 +5,15 @@ The first-host transition and scanner remediation history are recorded in
 The later successful activation, paused-worker failure and recovery procedure
 are recorded in [staging-worker-recovery-2026-10-03.md](staging-worker-recovery-2026-10-03.md).
 
+Current baseline on 5 October 2026: release
+`1f47c7b8621c18cd2a70b570a2ea0cda275154ad` passed the complete staging workflow
+`37263267730`, including fresh-worker and hosted acceptance checks. Public
+health matched that SHA with database and scanner ready. Failure descriptions
+below are historical recovery evidence, not instructions to repeat the host
+handoff. The owner confirmed that the Supabase Send Email Hook is still off;
+activate it only after the universal-OTP release is healthy, following
+[the mail-hook runbook](mail-hooks.md).
+
 This runbook prepares the existing staging VPS for the new Fieldgrid V1
 runtime. It does not reuse, stop or remove a legacy application. Inspect live
 paths and services before every operator command and keep production out of
@@ -115,8 +124,8 @@ Historically, commit `d9084380f8278e634cb6ee372d2cc4ebe5e9b11e` passed complete 
 staging verify, host-preflight and hosted prepare jobs also passed; the broker
 then installed and activated that exact release with database readiness. The
 public health endpoint then returned HTTP 503 with
-`scanner=unavailable`, so acceptance was skipped, the worker timer remains off,
-and staging remains NO-GO. Current runtime evidence now establishes the cause:
+`scanner=unavailable`, so acceptance was skipped, the worker timer remained off,
+and staging was NO-GO. Runtime evidence established the cause:
 `PING`, runtime UID/groups, the `clamav:clamav` `0660` socket, active services
 with current definitions, EICAR rejection and PNG/PDF acceptance all pass, but
 clamd `VERSION` returns `COMMAND UNAVAILABLE`. Fieldgrid therefore cannot
@@ -478,7 +487,7 @@ select modules and review the four message templates before visual acceptance.
 A remaining `LOGO` placeholder means branding acceptance is incomplete.
 
 Before accepting personnel access, apply and verify the provider-only Auth
-settings in [Staging mail hooks](mail-hooks.md#personeelslogin-exacte-staging-auth-instelling).
+settings in [Staging mail hooks](mail-hooks.md#universele-otp-login-exacte-staging-auth-instelling).
 The application deploy does not copy `supabase/templates/magic_link.html` into a
 hosted Supabase project. Acceptance therefore requires a real tenant `/staff`
 code mail, one successful verification and one rejected replay; a green deploy

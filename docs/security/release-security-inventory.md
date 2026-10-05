@@ -5,26 +5,27 @@ bestandsinventaris. De Codex Security Standard-scan van de eerdere
 releasekandidaat inventariseerde 781 bestanden en vond toen nul rapporteerbare
 bevindingen binnen de onderzochte gewijzigde/ongetrackte implementatie en de
 beveiligingskritieke grenzen. Dat is historisch bewijs en wordt niet als een
-nieuwe scan van de personeelsapp gepresenteerd. De actuele personeelswijzigingen
-zijn hieronder afzonderlijk op bron, actor/resourcegrens, grants en regressies
-beoordeeld. Alle daadwerkelijk ontdekte autorisatie- en dataoppervlakken hebben
+nieuwe scan van de huidige release gepresenteerd. De actuele klantportaal-,
+OTP- en huisstijlwijzigingen en de eerdere personeelswijzigingen zijn hieronder
+afzonderlijk op bron, actor/resourcegrens, grants en regressies beoordeeld.
+Alle daadwerkelijk ontdekte autorisatie- en dataoppervlakken hebben
 een expliciete voltooide status en bewijsverwijzing. Operationele
 stagingvoorwaarden blijven NO-GO totdat de uiteindelijke SHA is uitgerold en
 geaccepteerd.
 
-De structurele CI-inventaris `authorization-surfaces.json` beschrijft **885**
-ingangen/resources uit de huidige bron en een schone database met 57 migraties:
+De structurele CI-inventaris `authorization-surfaces.json` beschrijft **982**
+ingangen/resources uit de huidige bron en een schone database met 109 migraties:
 
 | Soort | Aantal | Wat de registratie bewijst |
 | --- | ---: | --- |
-| Server-actionmodules | 27 | Exportnamen, waargenomen helpers en letterlijke tabel/RPC-afhankelijkheden |
-| Routes en RSC-pagina's/layouts | 95 | Bestaande ingangen, inclusief publieke schermen zonder datahelper |
-| Overige data-accessmodules | 48 | Gevonden queries/RPC's, indirecte autorisatiehelpers, servercomponenten, browser-/Realtimeclients en privileged-clientaanmaak |
+| Server-actionmodules | 42 | Exportnamen, waargenomen helpers en letterlijke tabel/RPC-afhankelijkheden |
+| Routes en RSC-pagina's/layouts | 102 | Bestaande ingangen, inclusief publieke schermen zonder datahelper |
+| Overige data-accessmodules | 55 | Gevonden queries/RPC's, indirecte autorisatiehelpers, servercomponenten, browser-/Realtimeclients en privileged-clientaanmaak |
 | Operationele releasepaden | 55 | Inhoudshashes van alle ontdekte workflows/deploybestanden plus package/lock/config, serviceworker, migratiemanifest en runtime-/backup-/migratiescripts, inclusief de vier stagingmigratie-trust-boundaries en de releasegebonden ClamAV-preflight |
-| Public/private tabellen | 184 | RLS/FORCE en effectieve basisgrants |
-| Public RPC's | 187 | Signatuur, definerstatus en executegrants |
-| Private functies | 191 | Signatuur, definerstatus en executegrants |
-| Triggerfuncties | 98 | Apart van rechtstreeks aanroepbare RPC's geclassificeerd |
+| Public/private tabellen | 188 | RLS/FORCE en effectieve basisgrants |
+| Public RPC's | 216 | Signatuur, definerstatus en executegrants |
+| Private functies | 213 | Signatuur, definerstatus en executegrants |
+| Triggerfuncties | 111 | Apart van rechtstreeks aanroepbare RPC's geclassificeerd |
 
 `scripts/check-security-surface.mjs` laat CI falen bij toegevoegde/verwijderde
 ingangen, gewijzigde resources of grants. Een reviewer moet de wijziging,
@@ -36,7 +37,7 @@ inhoudelijke dekking of de verplichte actor/resource-tests.
 De inventaris omvat nu ook `components` met serverdata, browserclients en
 helpermodules die alleen een indirecte auth/provider-/bestandscontrole uitvoeren;
 deze paden konden eerder buiten de structurele diffgate blijven.
-`authorization-review.json` koppelt ieder van de 885 IDs aan een expliciete
+`authorization-review.json` koppelt ieder van de 982 IDs aan een expliciete
 status en bewijsset. `scripts/check-authorization-review.mjs` faalt bij een
 ontbrekend, dubbel, verouderd, onbewezen, `pending` of `blocked` item. De
 `--capture`-stand neemt bestaande beoordelingen over maar zet iedere nieuw
@@ -45,7 +46,28 @@ automatisch goedkeuren. Iedere code-, SQL-functie-, policyset- en operationele
 review is aan de actuele SHA-256-vingerafdruk gebonden; alleen een snapshot
 bijwerken kan een inhoudswijziging daardoor niet als eerder beoordeeld laten gelden.
 
+### Klantportaal, universele OTP en huisstijl — 5 oktober 2026
+
+Ten opzichte van de gedeployde baseline `1f47c7b8` zijn 162 oppervlakken
+inhoudelijk beoordeeld: 97 nieuw en 65 gewijzigd, zonder verwijderingen.
+De finale ledger kent deze delta 144 keer `controlled` en 18 keer
+`corrected-and-rechecked` toe. De bronreviews en concrete regressies staan in
+[de integratiecontrole](portal-release-verification-2026-10-05.md) en de daar
+gekoppelde afzonderlijke reviews voor klantprojecties, OTP en huisstijl.
+
+De review omvat exacte account-/object-/bezoekgrenzen, intrekking tijdens
+asynchrone verwerking en lockwachten, klantkopieën van rapporten, expliciete
+merchantbinding en reserveringen, deferred notificaties met bronmomentbeleid,
+accountprovisioning zonder uitgegeven wachtwoord of sessie en centrale
+huisstijl met versiecontrole. Alle 57 reeds gedeployde migratiehashes blijven
+exact behouden. Structurele classificatie, inhoudelijke review en lokale
+regressies vervangen de finale CI-, browser- en staginggates niet. Hosted
+mailhookactivatie blijft een afzonderlijke operatorhandeling.
+
 ### Personeelsapp-review — 5 oktober 2026
+
+Deze eerdere review beschrijft de personeelsapp-baseline vóór de hierboven
+beoordeelde uitbreiding van OTP naar alle werkruimtes.
 
 De personeelsapp en de gedeelde compacte-filterwijzigingen veranderden 117
 geregistreerde oppervlakken: 26 code-ingangen, 40 tabel-/policyoppervlakken,

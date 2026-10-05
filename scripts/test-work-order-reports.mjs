@@ -6,7 +6,7 @@ import { workOrderTestDatabase } from "./work-order-test-target.mjs";
 test("Work-order reports: individual time, immutable versions, signing and direct API isolation",async t=>{
  const db=await workOrderTestDatabase();await db.query("begin");
  const tenant=randomUUID(),manager=randomUUID(),staff=randomUUID(),coworker=randomUUID(),outsider=randomUUID(),planner=randomUUID(),customer=randomUUID(),object=randomUUID(),order=randomUUID(),task=randomUUID(),proof=randomUUID(),invoice=randomUUID();
- const people=[randomUUID(),randomUUID()],assignments=[randomUUID(),randomUUID()],users=[manager,staff,coworker,outsider,planner],sessions=Object.fromEntries(users.map(u=>[u,randomUUID()]));
+ const reportCustomer=randomUUID(),people=[randomUUID(),randomUUID()],assignments=[randomUUID(),randomUUID()],users=[manager,staff,coworker,outsider,planner,reportCustomer],sessions=Object.fromEntries(users.map(u=>[u,randomUUID()]));
  const call=async(sql,args=[],actor=staff,role="authenticated")=>{
   await db.query("savepoint operation");try{await db.query(`set local role ${role}`);await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:actor,session_id:sessions[actor],role})]);const result=await db.query(sql,args);await db.query("reset role");await db.query("select set_config('request.jwt.claims','{}',true)");await db.query("release savepoint operation");return result.rows;}catch(e){await db.query("rollback to savepoint operation");await db.query("release savepoint operation");throw e;}
  };
@@ -41,6 +41,7 @@ test("Work-order reports: individual time, immutable versions, signing and direc
   for(const [question,value] of [["shared","Public result"],["private","PRIVATE ANSWER CANARY"],["hidden","INACTIVE ANSWER CANARY"],["gate",false],["proof",proof]])await db.query("insert into public.work_order_checklist_answers(tenant_id,checklist_id,question_id,value,attachment_id,updated_by) values($1,$2,$3,$4,$5,$6)",[tenant,checklist,question,JSON.stringify(value),question==="proof"?proof:null,staff]);
   await db.query("insert into public.work_order_material_usage(tenant_id,work_order_id,description,quantity,unit,customer_visible,created_by) values($1,$2,'Public material',2,'piece',true,$3),($1,$2,'PRIVATE MATERIAL CANARY',1,'piece',false,$3)",[tenant,order,staff]);
   await db.query("insert into public.invoices(id,tenant_id,customer_id,created_by) values($1,$2,$3,$4)",[invoice,tenant,customer,manager]);
+  await db.query("insert into public.report_entries(tenant_id,work_order_id,author_user_id,body,customer_visible) values($1,$2,$3,'FICTITIOUS customer-visible historical note',true)",[tenant,order,staff]);
   await t.test("published signature policy changes require explicit authority, reason and current version",async()=>{
    const change=(mode,key,actor=manager,expected)=>call("select public.change_work_order_signature_policy($1,$2,$3,false,'Explicit fictitious policy correction',$4)",[order,expected,mode,key],actor);
    await assert.rejects(change("optional",randomUUID(),staff,await version()),e=>e.code==="42501");
@@ -154,7 +155,28 @@ test("Work-order reports: individual time, immutable versions, signing and direc
    assert.equal((await db.query("select count(*) from public.signatures where id=$1",[oldSignature])).rows[0].count,"1");
    await assert.rejects(call("select public.prepare_work_order_signature($1,$2,$3,'Late signer','Contact','customer',$4)",[order,old.id,old.contentHash,randomUUID()]),e=>e.code==="40001");
    await assert.rejects(call("select public.waive_work_order_signature($1,'Customer absent today')",[current.id],manager),e=>e.code==="42501");
+   await db.query("insert into public.object_customer_bindings(tenant_id,object_id,user_id,active,created_by)values($1,$2,$3,true,$4)",[tenant,object,reportCustomer,manager]);
    await sign(current);await call("select public.review_work_order($1,'approved',null)",[order],manager);assert.equal((await panel()).versions[0].state,"approved");
+  });
+  await t.test("approved report notifies its frozen customer audience once through the central worker",async()=>{
+   const current=(await panel()).versions[0],account=(await db.query("select id from public.customer_portal_accounts where tenant_id=$1 and user_id=$2",[tenant,reportCustomer])).rows[0].id;
+   const events=(await db.query("select * from private.notification_domain_events where tenant_id=$1 and type_code='customer.report_available'",[tenant])).rows;
+   assert.equal(events.length,1);const event=events[0];assert.equal(event.entity_id,current.id);
+   assert.deepEqual(event.recipients.map(r=>[r.user_id,r.account_id]),[[reportCustomer,account]]);
+   assert.equal(JSON.stringify(event).includes('CANARY'),false);assert.equal(JSON.stringify(event).includes('Fictitious employee'),false);
+   const outbox=(await db.query("select id from public.outbox_events where tenant_id=$1 and event_type='customer.portal_notification' and aggregate_id=$2",[tenant,event.id])).rows[0].id;
+   assert.equal((await db.query("select count(*) from private.notification_requests where source_id=$1",[event.id])).rows[0].count,'0','Approval defers enqueue outside resource locks');
+   const legacy=(await call("select id from public.claim_outbox(100,60,true,$1,false)",[tenant],reportCustomer,'service_role')).map(row=>row.id);assert.equal(legacy.includes(outbox),false);
+   await call("select public.notification_outbox_prepare($1)",[outbox],reportCustomer,'service_role');await call("select public.notification_outbox_prepare($1)",[outbox],reportCustomer,'service_role');
+   const requests=(await db.query("select id,payload from private.notification_requests where source_id=$1",[event.id])).rows;assert.equal(requests.length,1);assert.equal(requests[0].payload.path,`/klant?account=${account}&view=reports&report=${current.id}`);
+   const delivery=(await db.query("update private.notification_deliveries set state='claimed',lease=gen_random_uuid(),locked_until=now()+interval '1 minute' where request_id=$1 and channel='in_app' returning id,lease",[requests[0].id])).rows[0];
+   await call("select public.notification_delivery_begin($1,$2)",[delivery.id,delivery.lease],reportCustomer,'service_role');
+   const activity=(await call("select public.customer_portal_activity($1,$2) data",[tenant,account],reportCustomer))[0].data;assert.equal(activity.items.length,1);assert.equal(activity.items[0].targetPath,requests[0].payload.path);
+   await db.query("update public.object_customer_bindings set active=false where tenant_id=$1 and object_id=$2 and user_id=$3",[tenant,object,reportCustomer]);
+   try{
+    assert.equal((await call("select public.customer_portal_activity($1,$2) data",[tenant,account],reportCustomer))[0].data.items.length,0);
+    assert.equal((await db.query("select private.notification_delivery_live(d) live from private.notification_deliveries d where request_id=$1 and channel='email'",[requests[0].id])).rows[0].live,false);
+   }finally{await db.query("update public.object_customer_bindings set active=true where tenant_id=$1 and object_id=$2 and user_id=$3",[tenant,object,reportCustomer]);}
   });
   await t.test("approval still permits private follow-up files without changing immutable report evidence",async()=>{
    await assertAttachmentGuard("approved");
@@ -170,6 +192,85 @@ test("Work-order reports: individual time, immutable versions, signing and direc
    await db.query("update public.object_customer_bindings set active=false where tenant_id=$1 and object_id=$2 and user_id=$3",[tenant,object,outsider]);
    await assert.rejects(call("select public.work_order_report_file($1,null)",[current.id],outsider),e=>e.code==="42501");
    assert.equal((await call("select public.customer_portal_documents($1) data",[tenant],outsider))[0].data.workReports.length,0);
+  });
+  await t.test("approved report file rechecks live account and contact without changing staff evidence access",async()=>{
+   const current=(await panel()).versions[0],contact=randomUUID();
+   await db.query("update public.object_customer_bindings set active=true where tenant_id=$1 and object_id=$2 and user_id=$3",[tenant,object,outsider]);
+   await db.query("insert into public.customer_contacts(id,tenant_id,customer_id,full_name) values($1,$2,$3,'FICTITIOUS report portal contact')",[contact,tenant,customer]);
+   await db.query("update public.customer_portal_accounts set contact_id=$1 where tenant_id=$2 and customer_id=$3 and user_id=$4",[contact,tenant,customer,outsider]);
+   const account=(await db.query("select id from public.customer_portal_accounts where tenant_id=$1 and customer_id=$2 and user_id=$3",[tenant,customer,outsider])).rows[0].id;
+   assert.equal((await call("select public.work_order_report_file($1,null) data",[current.id],outsider))[0].data.projection,"customer_copy");
+   for(const [table,id] of [["customer_contacts",contact],["customer_portal_accounts",account]]){
+    await db.query(`update public.${table} set active=false where id=$1`,[id]);
+    try{
+     await assert.rejects(call("select public.work_order_report_file($1,null)",[current.id],outsider),e=>e.code==="42501");
+     assert.equal((await call("select public.work_order_report_file($1,null) data",[current.id],staff))[0].data.id,current.id);
+    }finally{await db.query(`update public.${table} set active=true where id=$1`,[id]);}
+   }
+  });
+  await t.test("legacy report lists close after customer identity revocation",async()=>{
+   const current=(await panel()).versions[0],account=(await db.query("select id from public.customer_portal_accounts where tenant_id=$1 and customer_id=$2 and user_id=$3",[tenant,customer,outsider])).rows[0].id;
+   const list=()=>call("select public.customer_portal_documents($1) data",[tenant],outsider).then(rows=>rows[0].data);
+   const visible=await list();assert.deepEqual(visible.workReports.map(r=>r.id),[current.id]);assert.equal(visible.reports.length,1);
+   await db.query("update public.customer_portal_accounts set active=false where id=$1",[account]);
+   try{const revoked=await list();assert.deepEqual(revoked.workReports,[]);assert.deepEqual(revoked.reports,[]);}
+   finally{await db.query("update public.customer_portal_accounts set active=true where id=$1",[account]);}
+  });
+  await t.test("new customer report summary exposes approved exact-bound results only",async()=>{
+   const current=(await panel()).versions[0],account=(await db.query("select id from public.customer_portal_accounts where tenant_id=$1 and customer_id=$2 and user_id=$3",[tenant,customer,outsider])).rows[0].id;
+   const list=()=>call("select public.customer_portal_reports($1,$2) data",[tenant,account],outsider).then(rows=>rows[0].data);
+   const reports=await list();assert.deepEqual(reports.map(r=>r.id),[current.id]);
+   assert.deepEqual(Object.keys(reports[0]).sort(),["approvedAt","id","number","objectId","summary","tasks","title","version","visitId"]);
+   assert.equal(reports[0].summary,current.snapshot.summary);assert.equal(reports[0].tasks[0].quantity,1);
+   for(const forbidden of ["CANARY","signatures","capturedBy","employee","created_by",staff,coworker,manager,"storage_path","checklists","ownership"])
+    assert.equal(JSON.stringify(reports).includes(forbidden),false,`Summary excludes ${forbidden}`);
+   await assert.rejects(call("select public.customer_portal_reports($1,$2)",[tenant,account],staff),e=>e.code==="42501");
+   await db.query("update public.customer_portal_accounts set active=false where id=$1",[account]);
+   try{await assert.rejects(list(),e=>e.code==="42501");}finally{await db.query("update public.customer_portal_accounts set active=true where id=$1",[account]);}
+   await db.query("update public.object_customer_bindings set active=false where tenant_id=$1 and object_id=$2 and user_id=$3",[tenant,object,outsider]);
+   try{assert.deepEqual(await list(),[]);}finally{await db.query("update public.object_customer_bindings set active=true where tenant_id=$1 and object_id=$2 and user_id=$3",[tenant,object,outsider]);}
+  });
+  await t.test("customer report download forces a customer copy even for a hybrid manager",async()=>{
+   const current=(await panel()).versions[0];
+   await db.query("insert into public.object_customer_bindings(tenant_id,object_id,user_id,active,created_by)values($1,$2,$3,true,$3)",[tenant,object,manager]);
+   const account=(await db.query("select id from public.customer_portal_accounts where tenant_id=$1 and customer_id=$2 and user_id=$3",[tenant,customer,manager])).rows[0].id;
+   const original=(await call("select public.work_order_report_file($1,null) data",[current.id],manager))[0].data;
+   assert.equal(original.projection,"original");assert.ok(original.signatures.some(s=>s.capturedBy));
+   const copy=(await call("select public.customer_portal_report_file($1,$2,$3,null) data",[tenant,account,current.id],manager))[0].data;
+   assert.equal(copy.projection,"customer_copy");assert.ok(copy.signatures.every(s=>s.kind==="customer"&&s.capturedBy===null));
+   for(const hidden of [staff,coworker,manager,"Fictitious employee","PRIVATE", "ownership"])assert.equal(JSON.stringify(copy).includes(hidden),false,hidden);
+   assert.equal(copy.contentHash,current.contentHash);assert.equal(copy.snapshot.summary,current.snapshot.summary);
+   await db.query("update public.customer_portal_accounts set active=false where id=$1",[account]);
+   try{await assert.rejects(call("select public.customer_portal_report_file($1,$2,$3,null)",[tenant,account,current.id],manager),e=>e.code==="42501");assert.equal((await call("select public.work_order_report_file($1,null) data",[current.id],manager))[0].data.projection,"original");}
+   finally{await db.query("update public.customer_portal_accounts set active=true where id=$1",[account]);}
+  });
+  await t.test("customer invoices project real remaining cents and separate pending provider evidence",async()=>{
+   const account=(await db.query("select id from public.customer_portal_accounts where tenant_id=$1 and customer_id=$2 and user_id=$3",[tenant,customer,outsider])).rows[0].id;
+   const list=()=>call("select public.customer_portal_invoices($1,$2) data",[tenant,account],outsider).then(rows=>rows[0].data);
+   assert.deepEqual(await list(),[]);
+   await db.query("insert into public.tenant_branding(tenant_id) values($1) on conflict do nothing",[tenant]);
+   await db.query("update public.work_orders set status='invoice_ready' where id=$1",[order]);
+   const inv=(await call("select (public.create_execution_invoice($1,$2,$3)).*",[tenant,randomUUID(),JSON.stringify([{taskId:task,quantity:1}])],manager))[0];
+   const path=`${tenant}/${inv.id}/fictitious.pdf`,hash="a".repeat(64);
+   await call("select public.attach_invoice_pdf($1,$2,$3)",[inv.id,path,hash],manager);
+   await call("update public.invoices set status='sent',sent_at=now() where id=$1",[inv.id],manager);
+   const visible=await list();assert.equal(visible.length,1);assert.equal(visible[0].total,Number(inv.total_cents));assert.equal(visible[0].balance,Number(inv.total_cents));assert.equal(visible[0].paymentPending,false);assert.deepEqual(visible[0].objectIds,[object]);
+   for(const forbidden of ["CANARY","source_snapshot","provider_payment_id","provider_payload","storage_path",path,staff,manager])assert.equal(JSON.stringify(visible).includes(forbidden),false);
+   const descriptor=(await call("select public.customer_file_access($1,$2,'invoice') data",[tenant,inv.id],outsider))[0].data;assert.deepEqual(descriptor.scope,[tenant,inv.id]);assert.equal(descriptor.sha256,hash);
+   const group=randomUUID(),attempt=randomUUID();
+   await db.query("insert into public.invoice_groups(id,tenant_id,customer_id,purpose,created_by,expires_at) values($1,$2,$3,'payment_bundle',$4,now()+interval '1 day')",[group,tenant,customer,manager]);
+   await db.query("insert into public.invoice_group_items(tenant_id,invoice_group_id,invoice_id) values($1,$2,$3)",[tenant,group,inv.id]);
+   await db.query("insert into public.payment_attempts(id,tenant_id,invoice_group_id,provider,provider_mode,status,amount_cents,idempotency_key) values($1,$2,$3,'mollie','test','pending',$4,$5)",[attempt,tenant,group,inv.total_cents,`FICTITIOUS-${attempt}`]);
+   const pending=(await list())[0];assert.equal(pending.paymentPending,true);assert.equal(pending.paid,0);assert.equal(pending.balance,Number(inv.total_cents),"A pending checkout is not payment confirmation");
+   await db.query("update public.payment_attempts set status='failed' where id=$1",[attempt]);
+   await db.query("update public.invoices set paid_cents=1000,status='partially_paid' where id=$1",[inv.id]);
+   const partial=(await list())[0];assert.equal(partial.paymentPending,false);assert.equal(partial.balance,Number(inv.total_cents)-1000);assert.equal(partial.paid,1000);
+   await db.query("update public.customer_portal_accounts set active=false where id=$1",[account]);
+   try{await assert.rejects(list(),e=>e.code==="42501");await assert.rejects(call("select public.customer_file_access($1,$2,'invoice')",[tenant,inv.id],outsider),e=>e.code==="42501");}
+   finally{await db.query("update public.customer_portal_accounts set active=true where id=$1",[account]);}
+   await db.query("update public.object_customer_bindings set active=false where tenant_id=$1 and object_id=$2 and user_id=$3",[tenant,object,outsider]);
+   try{assert.deepEqual(await list(),[]);}finally{await db.query("update public.object_customer_bindings set active=true where tenant_id=$1 and object_id=$2 and user_id=$3",[tenant,object,outsider]);}
+   await db.query("update public.invoices set status='credited' where id=$1",[inv.id]);const credited=(await list())[0];assert.equal(credited.balance,0);assert.equal(credited.credited,Number(inv.total_cents));assert.equal(credited.status,"credited");
   });
  }finally{await db.query("rollback");await db.end();}
 });

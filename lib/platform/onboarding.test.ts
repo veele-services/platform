@@ -33,7 +33,7 @@ it("both create and explicit retry return without sending or binding a completed
 });
 it("uses the stored recipient and tenant hostname, then one atomic binding",async()=>{
  expect((await createPlatformTenant(input)).ok).toBe(true);
- expect(state.invite).toHaveBeenCalledWith("owner@example.test",{redirectTo:"https://canonical.example.test/auth/confirm",data:{full_name:"Original owner"}});
+ expect(state.invite).toHaveBeenCalledWith("owner@example.test",{redirectTo:"https://canonical.example.test/auth/verify",data:{full_name:"Original owner"}});
  expect(state.rpc).toHaveBeenCalledWith("complete_platform_admin_invitation",{target_tenant:tenant,actor_user_id:actor,target_user:owner});
 });
 it("self-recipient onboarding does not send an Auth invitation",async()=>{

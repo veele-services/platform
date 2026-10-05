@@ -3,13 +3,12 @@ import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
-import { authenticateStaff } from "./staff-auth";
+import { authenticateWorkspace } from "./login-auth";
 
 test.use({trace:"off",screenshot:"off",video:"off"});
 async function login(page:Page,email="platform-admin@fieldgrid.test",password="Fieldgrid-E2E-2026"){
   await test.step("Sign in with the synthetic account",async()=>{
-    await page.goto("/login");await page.getByLabel("E-mailadres").fill(email);await page.getByLabel("Wachtwoord").fill(password);
-    await page.getByRole("button",{name:"Inloggen",exact:true}).click();await page.waitForURL("**/app");
+    await authenticateWorkspace(page,email,"/app",password);await page.waitForURL("**/app");
     await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked");
   },{timeout:10000});
 }
@@ -36,7 +35,11 @@ test("logout removes legacy searches, fences another tab before logout completes
     const logout=page.getByRole("button",{name:"Uitloggen",exact:true}).click();
     await expect(other.locator("html")).toHaveAttribute("data-account-blocked","true");
     await expect(other.getByRole("heading",{name:"Klanten",exact:true})).not.toBeVisible();
-    await other.goBack();
+    await test.step("Restore the prior document while logout is pending",async()=>{
+      // The privacy fence may replace this navigation with the safe login
+      // document. Only its commit is required before testing the live fence.
+      await other.goBack({waitUntil:"commit"});
+    },{timeout:10000});
     // A still-live response during a pending logout must not uncover old data.
     const liveSignal=await (await other.request.get("/api/auth/session")).json();
     expect(Boolean(liveSignal.sessionKey)).toBe(true);
@@ -114,10 +117,7 @@ for(const audience of ["staff","customer"] as const)test(`${audience}: two real 
   if(audience==="staff")await Promise.all([page.setViewportSize({width:390,height:844}),other.setViewportSize({width:390,height:844})]);
   const checked=async(result:{error:unknown})=>{if(result.error)throw new Error("Synthetic fixture operation failed");};
   const enter=async(index:number)=>{
-    if(audience==="staff")await authenticateStaff(page,emails[index],target,password);
-    else{await page.goto(`/login?next=${target}`);await page.getByLabel("E-mailadres").fill(emails[index]);
-    await page.getByLabel("Wachtwoord",{exact:true}).fill(password);await page.getByRole("button",{name:"Inloggen",exact:true}).click();
-    await page.waitForURL(url=>url.pathname===target);}
+    await authenticateWorkspace(page,emails[index],target,password);
     await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked");
     if(audience==="staff")await page.getByRole("button",{name:"Meer",exact:true}).click();
     await expect(page.getByRole("heading",{name:names[index],exact:true})).toBeVisible();
@@ -156,7 +156,11 @@ for(const audience of ["staff","customer"] as const)test(`${audience}: two real 
       await expect(other.getByRole("heading",{name:names[0],exact:true})).toBeVisible();
     },{timeout:30000});
     await test.step("logout fences the first account in every tab",async()=>{
-      await page.getByRole("button",{name:"Uitloggen",exact:true}).click();await page.waitForURL(url=>url.pathname==="/login");
+      if(audience==="customer"){
+        await page.getByRole("button",{name:"Profielmenu openen",exact:true}).click();
+        await page.getByRole("menuitem",{name:"Uitloggen",exact:true}).click();
+      }else await page.getByRole("button",{name:"Uitloggen",exact:true}).click();
+      await page.waitForURL(url=>url.pathname==="/login");
       await expect(other.getByRole("heading",{name:names[0],exact:true})).not.toBeVisible();
     },{timeout:30000});
     await test.step("the second account cannot revive the first account",async()=>{
@@ -182,6 +186,8 @@ for(const audience of ["staff","customer"] as const)test(`${audience}: two real 
       await db.query("delete from public.personnel_documents where tenant_id=$1",[tenant]);
       await db.query("delete from public.personnel_dossier_access where tenant_id=$1",[tenant]);
       await db.query("delete from public.object_customer_bindings where tenant_id=$1",[tenant]);
+      await db.query("delete from private.customer_portal_commands where tenant_id=$1",[tenant]);
+      await db.query("delete from public.customer_portal_accounts where tenant_id=$1",[tenant]);
       for(const table of ["notification_deliveries","notification_requests","notification_planning_events"])await db.query(`delete from private.${table} where tenant_id=$1`,[tenant]);
       await db.query("delete from private.notification_template_versions where template_id in(select id from private.notification_templates where tenant_id=$1)",[tenant]);
       await db.query("delete from private.notification_templates where tenant_id=$1",[tenant]);

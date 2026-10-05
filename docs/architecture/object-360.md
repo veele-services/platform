@@ -20,6 +20,33 @@ generate recurrences or introduce another planning or billing engine.
 - Qualification requirements use the existing Personnel 360 catalog and
   assignment-period checks; no duplicate certificate registry.
 
+## Customer prototype extension — 4 October 2026
+
+The owner requested the complete customer prototype within `/klant`. Explicit
+tenant/customer/account bindings now form the bootstrap contract before an
+object exists; they are not inferred from an email, contact label or membership.
+Management grants self-service capabilities deliberately. Existing object
+bindings remain the resource boundary, including for accounts that have several
+customers. A customer selection cannot override the request hostname or expand
+object scope. Legacy bindings retain their rights without gaining creation or
+billing/profile editing automatically.
+
+Customer-created objects use `objects` and the existing object numbering,
+address, optimistic version and history contracts. Creation and the creator's
+exact object binding are one idempotent transaction. Onsite contacts use
+`customer_contacts` and ordinary contact records, not a parallel portal registry.
+Customer fixed instructions use `object_records` with an explicit
+customer-visible marker (default false); only ordinary fixed text can be created
+through self-service. Backoffice and assigned staff consume that same source.
+Visit instructions remain `object_visit_requests` tied to one exact work order,
+with the existing review, replanning, withdrawal and completion rules.
+
+All new customer projections are allowlists. They expose planned and actual
+times as separate server-owned fields, but no internal employee names, IDs,
+emails, signatures, review notes or raw history snapshots. Public authors are
+the tenant, Fieldgrid or the current customer. Vault policy and published/final
+concrete-visit access are unchanged. See [the portal contract](customer-portal.md).
+
 ## Secure access
 
 Managed Supabase Vault authenticated encryption is used for secret values and

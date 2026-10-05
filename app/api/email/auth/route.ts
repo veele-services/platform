@@ -12,7 +12,7 @@ import { authMailDestination, authMailMessages, authMailPayload } from "@/lib/em
 const contextSchema = z.object({ tenant_id: z.uuid().nullable(), company: z.string(), primary: z.string(), accent: z.string(), logo: z.boolean() });
 const headers = { "cache-control": "no-store" };
 // Never return/log provider errors or payloads: these contain account tokens.
-const failure = (status: number) => Response.json({ error: { http_code: status, message: "De accountmail is niet bevestigd. Vraag later een nieuwe link aan of neem contact op met je beheerder." } }, { status, headers });
+const failure = (status: number) => Response.json({ error: { http_code: status, message: "De accountmail is niet bevestigd. Vraag later een nieuwe code aan of neem contact op met je beheerder." } }, { status, headers });
 
 export async function POST(request: Request) {
   const env = getServerEnv();
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   let claimed = false, sendStarted = false;
   try {
     const context = contextSchema.parse(await ticketRpc(db, "email_auth_context", { target_slug: destination.slug, actor: payload.user.id, recipient: payload.user.email, action_type: payload.email_data.email_action_type }));
-    const messages = authMailMessages(payload, destination.origin, context.company, destination.staffOtp);
+    const messages = authMailMessages(payload, destination.origin, context.company);
     const claim = z.object({ claimed: z.boolean(), state: z.string().optional() }).parse(await receipt("begin"));
     if (!claim.claimed) return claim.state === "done" ? new Response(null, { status: 200, headers }) : failure(409);
     claimed = true;

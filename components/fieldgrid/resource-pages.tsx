@@ -20,6 +20,8 @@ import {
 import { toast } from "sonner";
 import { Popover, PopoverClose, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog,DialogContent,DialogTitle } from "@/components/ui/dialog";
+import { useTenantTheme } from "./tenant-theme";
 import { CompactFilterMenu } from "./compact-filter-menu";
 import { CUSTOMER_DOCUMENT_ACCEPT, CUSTOMER_DOCUMENT_MAX_BYTES } from "@/lib/customers/documents";
 import type { ActionResult } from "@/lib/actions/result";
@@ -86,12 +88,13 @@ function ResourceTable({ headers, children, empty }: { headers: ReactNode; child
 }
 
 function Modal({ title, eyebrow, onClose, children, wide = false }: { title: string; eyebrow?: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
-  return <div className="resource-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && confirmDiscard()) onClose(); }}>
-    <section className={`resource-modal ${wide ? "wide" : ""}`} role="dialog" aria-modal="true" aria-label={title}>
-      <header><div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h2>{title}</h2></div><button type="button" className="modal-close" onClick={()=>{if(confirmDiscard())onClose();}} aria-label="Sluiten"><X size={19}/></button></header>
+  const theme=useTenantTheme();
+  return <Dialog open onOpenChange={open=>{if(!open&&confirmDiscard())onClose();}}>
+    <DialogContent className={`resource-modal ${wide ? "wide" : ""}`} style={theme} showCloseButton={false} aria-describedby={undefined}>
+      <header><div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<DialogTitle>{title}</DialogTitle></div><button type="button" className="modal-close" onClick={()=>{if(confirmDiscard())onClose();}} aria-label="Sluiten"><X size={19}/></button></header>
       <div className="resource-modal-body">{children}</div>
-    </section>
-  </div>;
+    </DialogContent>
+  </Dialog>;
 }
 
 function ServerForm({ action, success, children, className = "resource-form", onSuccess, submitLabel = "Opslaan" }: {

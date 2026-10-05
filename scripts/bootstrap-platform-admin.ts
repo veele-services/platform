@@ -4,24 +4,21 @@ import { assertStagingProject } from "../lib/env/staging-database";
 const url = process.env.SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const email = process.env.FIELDGRID_ADMIN_EMAIL;
-const password = process.env.FIELDGRID_ADMIN_PASSWORD;
 const expectedProjectRef = process.env.EXPECTED_SUPABASE_PROJECT_REF;
 const forbiddenProjectRef = process.env.FORBIDDEN_SUPABASE_PROJECT_REF;
 
-if (!url || !serviceKey || !email || !password || !expectedProjectRef || !forbiddenProjectRef) {
+if (!url || !serviceKey || !email || !expectedProjectRef || !forbiddenProjectRef) {
   throw new Error("Supabase-, projectref- en platformbeheerconfiguratie zijn vereist");
 }
 const supabaseUrl = url;
 const supabaseServiceKey = serviceKey;
 const adminEmail = email;
-const adminPassword = password;
 
 assertStagingProject(process.env);
 const actualProjectRef = new URL(url).hostname.match(/^([a-z0-9]{20})\.supabase\.co$/)?.[1];
 if (!actualProjectRef || actualProjectRef !== expectedProjectRef || actualProjectRef === forbiddenProjectRef || expectedProjectRef === forbiddenProjectRef) {
   throw new Error("Platformbeheerbootstrap weigert het geconfigureerde Supabaseproject");
 }
-if (password.length < 10) throw new Error("FIELDGRID_ADMIN_PASSWORD moet minimaal 10 tekens bevatten");
 
 async function main() {
   const supabase = createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -35,7 +32,9 @@ async function main() {
   }
 
   if (!userId) {
-    const { data, error } = await supabase.auth.admin.createUser({ email: adminEmail, password: adminPassword, email_confirm: true });
+    // Platform admins use the same email OTP as every other account. Existing
+    // users retain their identity; bootstrap never sets or resets a password.
+    const { data, error } = await supabase.auth.admin.createUser({ email: adminEmail, email_confirm: true });
     if (error) throw error;
     userId = data.user.id;
   }

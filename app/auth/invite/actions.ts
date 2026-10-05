@@ -7,7 +7,6 @@ import { createClient as createIsolatedClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import type { AuthState } from "@/app/login/actions";
 import { getServerEnv } from "@/lib/env/server";
-import { createClient } from "@/lib/supabase/server";
 import { getInvitationTenant } from "@/lib/personnel/invite-tenant";
 
 export async function acceptPersonnelInvitation(_: AuthState, formData: FormData): Promise<AuthState> {
@@ -32,12 +31,9 @@ export async function acceptPersonnelInvitation(_: AuthState, formData: FormData
     await verifier.auth.signOut({ scope: "local" });
     return invalid;
   }
-  const supabase = await createClient();
-  const { error: sessionError } = await supabase.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
-  if (sessionError) {
-    await verifier.auth.signOut({ scope: "local" });
-    return invalid;
-  }
+  // Accepting an invitation activates email ownership but is not login. Never
+  // install its session or overwrite the person's existing credentials.
+  await verifier.auth.signOut({ scope: "local" }).catch(() => undefined);
   if (env.DEPLOY_TARGET === "local") (await cookies()).set("fieldgrid_tenant_id", tenant.id, { httpOnly: true, sameSite: "lax", path: "/" });
-  redirect("/auth/reset?next=/staff&invite=1");
+  redirect("/login?next=%2Fstaff&invite=accepted");
 }

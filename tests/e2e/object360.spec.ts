@@ -4,6 +4,7 @@ import pg from "pg";
 import {createClient} from "@supabase/supabase-js";
 import type {Database} from "../../lib/database.types";
 import {requireLocalDatabaseUrl} from "./local-target";
+import {authenticateWorkspace} from "./login-auth";
 
 // Even fictitious OTPs/secret values must not end up in browser traces or videos.
 test.use({trace:"off",screenshot:"off",video:"off"});
@@ -34,10 +35,10 @@ test.afterAll(async()=>{
  await db.query("delete from private.object_secret_versions where item_id in(select id from private.object_secret_items where object_id=$1)",[object]);await db.query("delete from private.object_secret_items where object_id=$1",[object]);await db.query("delete from private.object_vault_state where object_id=$1",[object]);await db.query("delete from vault.secrets where id=any($1)",[vaultIds]);
  for(const table of ["object_documents","object_request_proposals","object_visit_requests","object_instruction_receipts","object_records","object_nodes","object_reminder_recipients","object_customer_bindings","object_history"])await db.query(`delete from public.${table} where object_id=$1`,[object]);
  await db.query("delete from public.audit_events where entity_id=any($1)",[[object,order,secondOrder]]);await db.query("delete from public.work_orders where id=any($1)",[[order,secondOrder]]);await db.query("delete from public.objects where id=$1",[object]);
- if(customerUser)await db.query("delete from auth.users where id=$1",[customerUser]);await db.end();
+ if(customerUser){await db.query("delete from public.customer_portal_accounts where tenant_id=$1 and user_id=$2",[tenant,customerUser]);await db.query("delete from auth.users where id=$1",[customerUser]);}await db.end();
 });
 async function login(page:Page,next:string,email="platform-admin@fieldgrid.test",password="Fieldgrid-E2E-2026"){
- await page.goto(`/login?next=${encodeURIComponent(next)}`);await page.getByLabel("E-mailadres").fill(email);await page.getByLabel("Wachtwoord",{exact:true}).fill(password);await page.getByRole("button",{name:/Inloggen/}).click();await page.waitForURL(url=>url.pathname!=="/login");
+ await authenticateWorkspace(page,email,next,password);
 }
 test("Object 360: full page tabs, structure, versioned instructions and responsive layout",async({page})=>{
  test.setTimeout(120000);await login(page,`/app/objecten/${object}`);
@@ -64,7 +65,7 @@ test("Object 360: customer request applies to exactly one visit and reaches back
  await page.getByRole("button",{name:"Verzoek wijzigen",exact:true}).click();await page.getByLabel("Wat wil je doorgeven?").fill("Aangepast: alleen de toiletten beneden, bij dit bezoek.");await page.getByRole("button",{name:"Wijziging versturen"}).click();await expect(page.getByText("Deze versie gelezen",{exact:true})).toHaveCount(0);
  await page.getByText("Bijlage toevoegen aan dit verzoek",{exact:true}).click();await page.getByLabel("Titel",{exact:true}).fill("Bezoekbijlage");await page.getByLabel("Bestand (PDF, JPG of PNG)").setInputFiles({name:"visit.pdf",mimeType:"application/pdf",buffer:Buffer.from("%PDF-1.4\n% Fictitious visit attachment\n%%EOF")});await page.getByRole("button",{name:"Bijlage uploaden",exact:true}).click();const fileLink=page.getByRole("link",{name:"Bezoekbijlage · versie 1"});await expect(fileLink).toBeVisible();
  const ownFile=(await fileLink.getAttribute("href"))!;expect((await page.request.get(ownFile)).status()).toBe(200);expect((await page.request.get(ownFile.replace(order,secondOrder))).status()).toBe(404);
- await page.goto(`/klant?object=${object}&order=${secondOrder}`);await expect(page.getByText("Toiletten vandaag extra aandacht")).toHaveCount(0);
+ await page.goto(`/klant?object=${object}&order=${secondOrder}`);await page.getByRole("tab",{name:/^Instructies/}).click();await expect(page.getByText("Toiletten vandaag extra aandacht")).toHaveCount(0);
  const context=await browser.newContext();const backoffice=await context.newPage();
  try{await login(backoffice,`/app/objecten/${object}?tab=instructies`);await expect(backoffice.getByRole("heading",{name:"Toiletten vandaag extra aandacht"})).toBeVisible();await expect(backoffice.getByText("Beoordeling nodig: Het verzoek is gewijzigd;",{exact:false})).toBeVisible();}finally{await context.close();}
 });

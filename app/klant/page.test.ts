@@ -1,0 +1,28 @@
+import { createElement,isValidElement,type ReactElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { beforeEach,describe,expect,it,vi } from "vitest";
+const mocks=vi.hoisted(()=>({actor:vi.fn(),identity:vi.fn(),snapshot:vi.fn(),controller:vi.fn(),redirect:vi.fn(),notFound:vi.fn()}));
+vi.mock("@/lib/objects/auth",()=>({getObjectActor:mocks.actor}));
+vi.mock("@/lib/customer-portal/data",()=>({getCustomerPortal:mocks.identity,getCustomerPortalCoreSnapshot:mocks.snapshot}));
+vi.mock("@/components/fieldgrid/customer-portal/controller",()=>({CustomerPortalController:mocks.controller}));
+vi.mock("@/components/fieldgrid/brand",()=>({ProductBrand:()=>null}));
+vi.mock("next/navigation",()=>({redirect:mocks.redirect,notFound:mocks.notFound}));
+vi.mock("next/link",()=>({default:({children,...props}:Record<string,unknown>)=>createElement("a",props,children as string)}));
+import CustomerPortalPage from "./page";
+import { CustomerSnapshotError } from "@/lib/customer-portal/snapshot-model";
+const account="10000000-0000-4000-8000-000000000001",other="10000000-0000-4000-8000-000000000002",tenant="10000000-0000-4000-8000-000000000003",object="10000000-0000-4000-8000-000000000004",visit="10000000-0000-4000-8000-000000000005";
+const initial={workspace:{account:{id:account},objects:[{id:object}],visits:[{id:visit,objectId:object}]}},actorKey="a".repeat(64);
+const render=async(query:Record<string,string|string[]|undefined>={})=>CustomerPortalPage({searchParams:Promise.resolve(query)});
+beforeEach(()=>{vi.clearAllMocks();mocks.actor.mockResolvedValue({tenant:{id:tenant}});mocks.identity.mockResolvedValue({accounts:[{id:account,name:"Fictieve klant"}],workspace:{account:{id:account}},tenantId:tenant,actorKey});mocks.snapshot.mockResolvedValue(initial);mocks.redirect.mockImplementation(()=>{throw new Error("REDIRECT");});mocks.notFound.mockImplementation(()=>{throw new Error("NOT_FOUND");});});
+describe("reachable customer workspace boundary",()=>{
+ it("binds the strict snapshot to the verified tenant/session/account identity",async()=>{const result=await render({view:"objects"});expect(isValidElement(result)).toBe(true);const element=result as ReactElement<Record<string,unknown>>;expect(element.type).toBe(mocks.controller);expect(element.key).toBe(`${tenant}:${actorKey}:${account}`);expect(element.props).toMatchObject({initial,tenantId:tenant,actorKey,initialView:"objects"});expect(mocks.snapshot).toHaveBeenCalledExactlyOnceWith(account);});
+ it("requires an explicit choice when there are multiple customer accounts",async()=>{mocks.identity.mockResolvedValueOnce({accounts:[{id:account,name:"Fictieve A"},{id:other,name:"Fictieve B"}],workspace:null,tenantId:tenant,actorKey});const html=renderToStaticMarkup(await render());expect(html).toContain("Kies je klantomgeving");expect(html).toContain(`href="/klant?account=${account}"`);expect(html).toContain(`href="/klant?account=${other}"`);expect(mocks.snapshot).not.toHaveBeenCalled();});
+ it("does not fall back from a requested foreign account to the single own account",async()=>{const result=await render({account:other});expect((result as ReactElement<{title:string}>).props.title).toBe("Geen toegang tot dit klantaccount");expect(mocks.snapshot).not.toHaveBeenCalled();});
+ it("does not invent a customer when no explicit binding exists",async()=>{mocks.identity.mockResolvedValueOnce({accounts:[],workspace:null,tenantId:tenant,actorKey});expect(renderToStaticMarkup(await render())).toContain("Nog geen klanttoegang");expect(mocks.snapshot).not.toHaveBeenCalled();});
+ it("keeps the bounded destination through the OTP login redirect",async()=>{mocks.actor.mockRejectedValueOnce(new Error("PRIVATE AUTH ERROR"));await expect(render({account,view:"news"})).rejects.toThrow("REDIRECT");expect(mocks.redirect).toHaveBeenCalledExactlyOnceWith(`/login?${new URLSearchParams({next:`/klant?account=${account}&view=news`})}`);expect(mocks.identity).not.toHaveBeenCalled();});
+ it.each([{account:[account,other]},{tenant},{view:"platform"},{order:"malformed"}])("rejects invalid selectors before any identity/database access",async query=>{await expect(render(query)).rejects.toThrow("NOT_FOUND");expect(mocks.actor).not.toHaveBeenCalled();});
+ it("passes a concrete authorized appointment deep link, not a rich legacy projection",async()=>{const result=await render({object,order:visit});expect((result as ReactElement<Record<string,unknown>>).props).toMatchObject({initialVisit:visit,initialObject:undefined});});
+ it.each([{object:other},{order:other},{object:other,order:visit}])("cannot open a foreign resource through a query selector",async query=>{await expect(render(query)).rejects.toThrow("NOT_FOUND");});
+ it.each([403,409,503] as const)("does not expose a private partial payload or error after snapshot HTTP %i",async status=>{mocks.snapshot.mockRejectedValueOnce(new CustomerSnapshotError(status,"PRIVATE CANARY"));const html=renderToStaticMarkup(await render({account}));expect(html).not.toContain("PRIVATE");expect(html).not.toContain("Fictieve klant");expect(html).toContain(status===403?"Je klanttoegang is gewijzigd":"Je actuele gegevens konden niet worden geladen");});
+ it("renders recovery rather than a login loop for a temporary identity query error",async()=>{mocks.identity.mockRejectedValueOnce(new Error("PRIVATE DATABASE ERROR"));const html=renderToStaticMarkup(await render());expect(html).toContain("tijdelijk niet beschikbaar");expect(html).not.toContain("PRIVATE");expect(mocks.redirect).not.toHaveBeenCalled();expect(mocks.snapshot).not.toHaveBeenCalled();});
+});

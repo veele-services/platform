@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const ticketWorkspaces = ["staff", "tenant", "support", "platform"] as const;
+export const ticketWorkspaces = ["staff", "tenant", "support", "platform", "customer"] as const;
 export type TicketWorkspace = typeof ticketWorkspaces[number];
 export const ticketWorkspaceSchema = z.enum(ticketWorkspaces);
 export const ticketStatuses = ["new", "in_progress", "waiting_reporter", "waiting_external", "resolved", "closed", "cancelled"] as const;
@@ -11,8 +11,8 @@ export type TicketAudience = "reporter" | "tenant" | "platform";
 export type TicketRoute = "internal" | "platform_support";
 export const ticketStatusLabels: Record<TicketStatus, string> = { new: "Nieuw", in_progress: "In behandeling", waiting_reporter: "Wacht op melder", waiting_external: "Wacht op externe partij", resolved: "Opgelost", closed: "Gesloten", cancelled: "Geannuleerd" };
 export const ticketPriorityLabels: Record<TicketPriority, string> = { low: "Laag", normal: "Normaal", high: "Hoog", critical: "Kritiek" };
-export const ticketPaths: Record<TicketWorkspace, string> = { staff: "/staff/meldingen", tenant: "/app/meldingen", support: "/app/support", platform: "/platform/support" };
-export const ticketWorkspaceLabels: Record<TicketWorkspace, string> = { staff: "Mijn meldingen", tenant: "Personeelsmeldingen", support: "Fieldgrid-support", platform: "Supportdesk" };
+export const ticketPaths: Record<TicketWorkspace, string> = { staff: "/staff/meldingen", tenant: "/app/meldingen", support: "/app/support", platform: "/platform/support", customer: "/klant?view=tickets" };
+export const ticketWorkspaceLabels: Record<TicketWorkspace, string> = { staff: "Mijn meldingen", tenant: "Personeelsmeldingen", support: "Fieldgrid-support", platform: "Supportdesk", customer: "Klanttickets" };
 export const ticketModules = ["planning", "werkbonnen", "personeel", "objecten", "klanten", "rapportage", "finance", "communicatie", "account", "overig"] as const;
 const optionalId = z.preprocess(v => v === "" || v === null ? undefined : v, z.uuid().optional());
 export const ticketQuerySchema = z.object({

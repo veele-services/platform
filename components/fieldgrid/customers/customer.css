@@ -217,6 +217,10 @@
 .customer-dossier .dossier-card {
   min-width: 0;
 }
+.customer-dossier .dossier-notice {
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
 .customer-dossier .object-record {
   margin-top: 20px;
 }

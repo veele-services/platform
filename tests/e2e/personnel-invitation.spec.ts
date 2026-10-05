@@ -2,7 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../lib/database.types";
 import { requireLocalApiUrl } from "./local-target";
-import { authenticateStaff, E2E_APP_ORIGIN } from "./staff-auth";
+import { E2E_APP_ORIGIN } from "./staff-auth";
+import { authenticateWorkspace, signInWithEmailOtp } from "./login-auth";
 
 // Invitations contain one-use credentials. Never record browser/network traces.
 test.use({ trace: "off", screenshot: "off", video: "off" });
@@ -24,10 +25,7 @@ async function fixture() {
 }
 
 async function loginAdmin(page: Page) {
-  await page.goto("/login?next=%2Fapp%2Fpersoneel");
-  await page.getByLabel("E-mailadres").fill("platform-admin@fieldgrid.test");
-  await page.getByLabel("Wachtwoord", { exact: true }).fill("Fieldgrid-E2E-2026");
-  await page.getByRole("button", { name: /Inloggen/ }).click();
+  await authenticateWorkspace(page, "platform-admin@fieldgrid.test", "/app/personeel");
   await page.waitForURL("**/app/personeel");
 }
 
@@ -119,12 +117,14 @@ test("branded personnel invitation activates once and opens the personnel portal
     await employee.goto("about:blank");
     await openInvitation(employee, url);
     await employee.getByRole("button", { name: "Uitnodiging accepteren" }).click();
-    await employee.waitForURL("**/auth/reset?next=/staff&invite=1");
-    await expect(employee.getByRole("heading", { name: "Kies je wachtwoord" })).toBeVisible();
-    await employee.getByLabel("Nieuw wachtwoord").fill(password);
-    await employee.getByRole("button", { name: "Wachtwoord opslaan" }).click();
-    await employee.waitForURL("**/staff");
-    await expect(employee.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
+    await employee.waitForURL(url => url.pathname === "/login" && url.searchParams.get("next") === "/staff" && url.searchParams.get("invite") === "accepted");
+    await expect(employee.getByLabel("Wachtwoord", { exact: true })).toHaveCount(0);
+    // Activation must not install the invitation's session. Even a newly
+    // invited employee must request and verify an ordinary email login code.
+    await employee.goto("/staff");
+    await expect(employee).toHaveURL(/\/login/);
+    await signInWithEmailOtp(employee, email, "/staff");
+    await expect(employee.locator(".personnel-app")).toBeVisible();
     await recipient.request.post("/auth/signout");
     // Leave the revoked app document before opening the one-use link again:
     // its account fence may otherwise supersede the explicit test navigation.
@@ -154,15 +154,19 @@ test("existing accounts keep their password and roles when invited to the person
     await expect(await invite(page, email)).toBeHidden();
     const mail = await latestMail(email);
     const text = mail.content.find((item) => item.type === "text/plain")!.value;
-    expect(text.includes("Je wachtwoord blijft ongewijzigd")).toBe(true);
+    expect(text.includes("inlogcode")).toBe(true);
     expect(text.includes("http://127.0.0.1:3000/staff")).toBe(true);
     expect(text.includes("token_hash")).toBe(false);
     const { data: membership } = await admin.from("tenant_memberships").select("roles").eq("tenant_id", tenant.id).eq("user_id", account.user.id).single();
     expect(membership?.roles.sort()).toEqual(["management", "staff"]);
     const employee = await recipient.newPage();
-    // A direct local session both proves that the existing password still
-    // authenticates and avoids consuming the staff OTP email budget here.
-    await authenticateStaff(employee, email, "/staff", password);
+    // Preserve existing Auth credentials without providing a password login
+    // in the product: this API call is only an isolated fixture regression.
+    const prior = createClient(requireLocalApiUrl().href, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });
+    const unchanged = await prior.auth.signInWithPassword({ email, password });
+    expect(Boolean(unchanged.error)).toBe(false);
+    await prior.auth.signOut({ scope: "local" });
+    await signInWithEmailOtp(employee, email, "/staff");
     await expect(employee.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
   } finally {
     await recipient.request.post("/auth/signout");

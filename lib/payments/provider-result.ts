@@ -5,6 +5,7 @@ export type PaymentIdentity = {
   id: string; tenant_id: string; invoice_group_id: string | null;
   provider: string; provider_payment_id: string | null; provider_mode: string;
   amount_cents: number; currency: string;
+  merchant_profile_id?: string | null;
 };
 
 /** Only the authenticated provider response is evidence, never browser fields. */
@@ -15,6 +16,7 @@ export function verifiedPayment(payment: MolliePayment, attempt: PaymentIdentity
   if (!Number.isSafeInteger(cents) || cents <= 0 || attempt.provider !== "mollie" ||
     !/^tr_[a-zA-Z0-9_-]+$/.test(payment.id) || (attempt.provider_payment_id && payment.id !== attempt.provider_payment_id) ||
     payment.mode !== attempt.provider_mode || cents !== attempt.amount_cents || payment.amount.currency !== attempt.currency ||
+    (attempt.merchant_profile_id != null && payment.profileId !== attempt.merchant_profile_id) ||
     !attempt.invoice_group_id || payment.metadata?.payment_attempt_id !== attempt.id ||
     payment.metadata?.tenant_id !== attempt.tenant_id || payment.metadata?.invoice_group_id !== attempt.invoice_group_id ||
     !["open", "pending", "paid", "failed", "expired", "canceled"].includes(payment.status))

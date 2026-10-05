@@ -1,2 +1,3 @@
-import { NotificationDetailRoute } from "@/components/fieldgrid/notifications/routes";
-export default function Page({ params }: { params: Promise<{ id: string }> }) { return <NotificationDetailRoute workspace="customer" params={params}/>; }
+import { redirect } from "next/navigation";
+/** The account picker prevents an old notification link selecting another customer. */
+export default function CustomerNotification(){redirect("/klant?view=notifications");}

@@ -4,7 +4,8 @@ import { randomUUID } from "node:crypto";
 import pg from "pg";
 import type { Database } from "../../lib/database.types";
 import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
-import { authenticateStaff, E2E_APP_ORIGIN } from "./staff-auth";
+import { E2E_APP_ORIGIN } from "./staff-auth";
+import { authenticateWorkspace } from "./login-auth";
 
 // OTPs must not be retained in traces, automatic screenshots or videos.
 test.use({ trace: "off", screenshot: "off", video: "off" });
@@ -92,7 +93,7 @@ test.afterAll(async () => {
     for (const u of Object.values(users)) { const r = await admin.auth.admin.deleteUser(u.id); if (r.error) throw new Error("Notification fixture cleanup failed"); }
   } finally { await db.end(); }
 });
-async function login(page: Page, role: string, path: string) { page.setDefaultTimeout(20000); if (path === "/staff" || path.startsWith("/staff/") || path.startsWith("/staff?")) { await authenticateStaff(page, users[role].email, path, password); return; } await page.goto(`/login?next=${encodeURIComponent(path)}`); await page.getByLabel("E-mailadres").fill(users[role].email); await page.getByLabel("Wachtwoord", { exact: true }).fill(password); await page.getByRole("button", { name: /Inloggen/ }).click(); await expect(page).toHaveURL(new RegExp(path.replace(/[?]/g, "\\?"))); }
+async function login(page: Page, role: string, path: string) { page.setDefaultTimeout(20000); await authenticateWorkspace(page, users[role].email, path, password); await expect(page).toHaveURL(new RegExp(path.replace(/[?]/g, "\\?"))); }
 async function visual(page: Page, name: string, ready: () => Promise<void>) { for (const width of [320, 390, 768, 1440]) { await page.setViewportSize({ width, height: 960 }); await ready(); await page.evaluate(async () => { await document.fonts.ready; await Promise.all(document.getAnimations().map(animation => animation.finished.catch(() => undefined))); }); await expect.poll(() => page.evaluate(() => { const dialog = document.querySelector("[role=dialog]")?.getBoundingClientRect(); return document.documentElement.scrollWidth <= innerWidth && (!dialog || dialog.left >= 0 && dialog.right <= innerWidth && dialog.width <= innerWidth); })).toBe(true); await page.screenshot({ path: `test-results/notifications-${name}-${width}.png`, fullPage: true }); } }
 
 test("notificatiewizard publiceert exacte selectie; personeel leest, bevestigt en archiveert los van bronstatus", async ({ page, browser }) => {
@@ -124,12 +125,23 @@ test("notificatiewizard publiceert exacte selectie; personeel leest, bevestigt e
   } finally { await staffContext.close(); await otherContext.close(); }
 });
 
-test("klant- en platforminbox tonen uitsluitend eigen context, met voorkeuren en geregistreerde apparaatstatus", async ({ page, browser }) => {
-  test.setTimeout(120000); await login(page, "customer", "/klant/notificaties");
-  await visual(page, "customer-inbox", async () => { await expect(page.getByRole("heading", { name: "Mijn notificaties", exact: true })).toBeVisible(); await expect(page.locator(`.nt-inbox-item[href$='/${customerInboxId}']`)).toContainText("Klantbericht alleen voor klant"); });
-  await expect(page.getByRole("button", { name: "Nieuwe notificatie" })).toHaveCount(0); await page.getByRole("link", { name: "Mijn voorkeuren", exact: true }).click(); await expect(page.getByRole("heading", { name: "Mijn notificatievoorkeuren" })).toBeVisible();
-  await page.getByLabel("E-mail ontvangen waar toegestaan").uncheck(); await page.getByLabel("Uitstel tijdens mijn rusttijden").check(); await page.getByLabel("Van", { exact: true }).fill("21:30"); await page.getByLabel("Tot", { exact: true }).fill("08:30"); await page.getByRole("button", { name: "Voorkeuren opslaan" }).click(); await expect(page.getByRole("status").filter({ hasText: "Voorkeuren opgeslagen" })).toBeVisible();
-  await page.reload(); await expect(page.getByLabel("E-mail ontvangen waar toegestaan")).not.toBeChecked(); await expect(page.getByLabel("Van", { exact: true })).toHaveValue("21:30"); await expect(page.getByText("Actief op dit apparaat", { exact: true })).toHaveCount(0); await expect(page.getByRole("heading", { name: "Push op dit apparaat" })).toBeVisible();
+test("klant- en platforminbox tonen uitsluitend eigen context, met blijvende centrale voorkeuren", async ({ page, browser }) => {
+  test.setTimeout(120000);
+  await db.query("insert into private.notification_preferences(tenant_id,user_id,context,quiet_start,quiet_end) values($1,$2,'customer','21:30','08:30') on conflict do nothing",[tenantId,users.customer.id]);
+  await authenticateWorkspace(page,users.customer.email,"/klant/notificaties",password);
+  await expect(page).toHaveURL(/\/klant\?view=notifications$/);
+  await visual(page, "customer-inbox", async () => { await expect(page.getByRole("heading", { name: "Meldingen", exact: true })).toBeVisible(); await expect(page.locator(".notice-row").filter({has:page.getByRole("heading",{name:"Klantbericht alleen voor klant",exact:true})})).toBeVisible(); });
+  await expect(page.getByRole("button", { name: "Nieuwe notificatie" })).toHaveCount(0);
+  await expect(page.getByText("Fieldgrid bericht aan management",{exact:true})).toHaveCount(0);
+  await page.getByRole("button",{name:"Alles gelezen",exact:true}).click();
+  await expect.poll(async()=>(await db.query("select read_at is not null as read from public.notifications where id=$1",[customerInboxId])).rows[0].read).toBe(true);
+  const preferences=async()=>{await page.getByRole("button",{name:"Profielmenu openen",exact:true}).click();await page.getByRole("menuitem",{name:"Notificaties",exact:true}).click();return page.getByRole("dialog",{name:"Mijn e-mailvoorkeuren",exact:true});};
+  const form=await preferences();await expect(form.getByRole("checkbox")).toHaveCount(5);
+  await form.getByLabel("E-mail nieuws & dienstverlening",{exact:true}).uncheck();await form.getByRole("button",{name:"Voorkeuren opslaan",exact:true}).click();await expect(form.getByRole("status")).toContainText("Je voorkeuren zijn opgeslagen");
+  await page.reload();const restored=await preferences();await expect(restored.getByLabel("E-mail nieuws & dienstverlening",{exact:true})).not.toBeChecked();await expect(restored.getByLabel("E-mail afspraken & planning",{exact:true})).toBeChecked();
+  const central=(await db.query("select quiet_start::text,quiet_end::text from private.notification_preferences where tenant_id=$1 and user_id=$2 and context='customer' and type_code is null",[tenantId,users.customer.id])).rows[0];
+  expect(central).toEqual({quiet_start:"21:30:00",quiet_end:"08:30:00"});
+  expect((await db.query("select email from private.notification_preferences where tenant_id=$1 and user_id=$2 and context='customer' and type_code='manual.tenant'",[tenantId,users.customer.id])).rows[0].email).toBe(false);
   const platformContext = await browser.newContext({ baseURL: E2E_APP_ORIGIN });
   try { const platform = await platformContext.newPage(); await login(platform, "platform", "/platform/notificaties"); await visual(platform, "platform-inbox", async () => { await expect(platform.getByRole("heading", { name: "Notificatiebeheer", exact: true })).toBeVisible(); await expect(platform.locator(`.nt-inbox-item[href$='/${platformInboxId}']`)).toBeVisible(); }); await expect(platform.getByText("Klantbericht alleen voor klant")).toHaveCount(0); const denied = await platform.goto(`/platform/notificaties/${customerInboxId}`); expect(await denied!.text()).not.toContain("Klantbericht alleen voor klant"); await expect(platform.getByRole("heading", { name: "Deze pagina bestaat niet.", exact: true })).toBeVisible(); }
   finally { await platformContext.close(); }

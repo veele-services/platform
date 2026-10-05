@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { PDFDocument } from "pdf-lib";
 import type { Database } from "../../lib/database.types";
 import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
+import { authenticateWorkspace } from "./login-auth";
 
 test.use({actionTimeout:15000});
 const customer=randomUUID(),object=randomUUID(),order=randomUUID(),task=randomUUID(),assignment=randomUUID();
@@ -56,7 +57,7 @@ async function stopAndSubmitStaffReport(){
 
 test("Dossier 360: customer agreement, object programme, partial execution and linked invoice",async({page})=>{
  test.setTimeout(180000);
- await page.goto(`/login?next=${encodeURIComponent(`/app/klanten?record=${customer}`)}`);await page.getByLabel("E-mailadres").fill("platform-admin@fieldgrid.test");await page.getByLabel("Wachtwoord",{exact:true}).fill("Fieldgrid-E2E-2026");await page.getByRole("button",{name:/Inloggen/}).click();
+ await authenticateWorkspace(page,"platform-admin@fieldgrid.test",`/app/klanten?record=${customer}`);
  await page.waitForURL(url=>url.pathname===`/app/klanten/${customer}`,{timeout:30000});
  const dossier=page.locator(".customer-dossier");await expect(dossier).toBeVisible();
  await dossier.getByRole("navigation",{name:"Klantdossier"}).getByRole("link",{name:"Documenten",exact:true}).click();await expect(page).toHaveURL(/tab=documenten/);

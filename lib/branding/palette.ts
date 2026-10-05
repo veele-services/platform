@@ -85,5 +85,23 @@ export function brandThemeStyle(primary?: string | null, accent?: string | null)
     "--tenant-primary": palette.primary, "--tenant-accent": palette.accent,
     "--primary": palette.action, "--primary-foreground": palette.actionForeground,
     "--ring": palette.focus, "--foreground": palette.ink,
+    // Personnel prototype roles use the same accessible derived palette; do
+    // not leave its buttons/soft states fixed green for a customized tenant.
+    "--ps-brand": palette.focus, "--ps-action": palette.action,
+    "--ps-action-hover": palette.actionHover, "--ps-soft": palette.accentSoft,
   } as CSSProperties;
+}
+
+/** Adapter for the customer prototype's existing CSS roles. All three tenant
+ * workspaces now derive from one saved seed pair, with no raw-light navigation
+ * or unreadable white button text for saturated/light tenant colours. */
+export function portalThemeStyle(primary?:string|null,accent?:string|null):CSSProperties{
+ const palette=createBrandPalette(primary,accent);
+ return {
+  ...brandThemeStyle(primary,accent),
+  "--portal-primary":palette.sidebar,"--portal-accent":palette.action,"--portal-contrast":palette.actionForeground,
+  "--canvas":palette.canvas,"--ink":palette.ink,"--muted":palette.muted,"--line":palette.border,
+  "--soft":palette.accentSoft,"--brand":palette.focus,"--action":palette.action,
+  "--dark":palette.sidebar,"--button-text":palette.actionForeground,
+ } as CSSProperties;
 }

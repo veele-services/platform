@@ -6,6 +6,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { useOptionalTenantTheme } from "@/components/fieldgrid/tenant-theme"
 
 function Dialog({
   ...props
@@ -49,6 +50,7 @@ function DialogOverlay({
 
 function DialogContent({
   className,
+  style,
   children,
   showCloseButton = true,
   onInteractOutside,
@@ -56,11 +58,14 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const theme = useOptionalTenantTheme()
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        data-tenant-theme={theme ? "" : undefined}
+        style={{ ...theme, ...style }}
         onInteractOutside={(event) => {
           // Address suggestions deliberately escape scroll/overflow containers.
           // Selecting one must not dismiss its owning wizard or lose focus.

@@ -1,21 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { brandThemeStyle, createBrandPalette } from "../../lib/branding/palette";
-import { authenticateStaff } from "./staff-auth";
-
-const PASSWORD = "Fieldgrid-E2E-2026";
+import { authenticateWorkspace } from "./login-auth";
 const rgb = (hex: string) => `rgb(${[1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16)).join(", ")})`;
 
 
 async function login(page: Page, email: string, next = "/app") {
-  if (next === "/staff" || next.startsWith("/staff/")) {
-    await authenticateStaff(page, email, next, PASSWORD);
-    return;
-  }
-  await page.goto(`/login?next=${encodeURIComponent(next)}`);
-  await page.getByLabel("E-mailadres").fill(email);
-  await page.getByLabel("Wachtwoord").fill(PASSWORD);
-  await page.getByRole("button", { name: /Inloggen/ }).click();
-  await page.waitForURL((url) => url.pathname === next);
+  await authenticateWorkspace(page, email, next);
 }
 
 async function expectNoHorizontalOverflow(page: Page) {
@@ -29,9 +19,12 @@ test("beschermde routes vereisen een sessie en foutieve login lekt geen accounts
   await page.goto("/app");
   await expect(page).toHaveURL(/\/login/);
   await page.getByLabel("E-mailadres").fill("unknown@fieldgrid.test");
-  await page.getByLabel("Wachtwoord").fill("ongeldig");
-  await page.getByRole("button", { name: /Inloggen/ }).click();
-  await expect(page.getByText("Inloggen is niet gelukt. Controleer je gegevens.")).toBeVisible();
+  await expect(page.getByLabel("Wachtwoord", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Inlogcode versturen", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Als dit account toegang heeft");
+  await page.getByLabel("Inlogcode", { exact: true }).fill("000000");
+  await page.getByRole("button", { name: "Code controleren", exact: true }).click();
+  await expect(page.locator(".auth-message[role='alert']")).toContainText("ongeldig of verlopen");
 });
 
 
@@ -103,9 +96,8 @@ test("afgeleide kleurenpaletten zijn rustig, consistent en live zichtbaar zonder
   await login(page, "platform-admin@fieldgrid.test", "/app");
   const tenantPalette = createBrandPalette("#214E72", "#C65D21");
   const hero = page.locator(".view-overzicht > .page-intro");
-  await expect(hero).toHaveCSS("background-image", /radial-gradient.*linear-gradient/);
-  expect(await hero.evaluate((element) => getComputedStyle(element, "::after").backgroundImage)).toContain("repeating-linear-gradient");
-  expect(await hero.evaluate((element) => getComputedStyle(element, "::before").content)).toBe('""');
+  await expect(hero).toHaveCSS("background-image", "none");
+  expect(await hero.evaluate((element) => getComputedStyle(element, "::after").display)).toBe("none");
   // Exercise the screenshot's blue/turquoise family without changing stored branding.
   const workspace = page.locator(".workspace-shell");
   const previewPalette = createBrandPalette("#315794", "#52B3B7");
@@ -115,7 +107,7 @@ test("afgeleide kleurenpaletten zijn rustig, consistent en live zichtbaar zonder
   }, brandThemeStyle("#315794", "#52B3B7"));
   await expect.poll(() => workspace.evaluate((element) => getComputedStyle(element).getPropertyValue("--brand-primary").trim())).toBe("#315794");
   await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(previewPalette.sidebar));
-  await expect(hero).toHaveCSS("background-color", rgb(previewPalette.heroStart));
+  await expect(hero.locator("h1")).toHaveCSS("color", rgb(previewPalette.ink));
   await expect(page.locator(".metric").first()).toHaveCSS("border-color", rgb(previewPalette.border));
   for (const path of ["aanvragen", "taken", "klanten", "objecten", "personeel", "rapporten", "facturen", "instellingen"]) {
     await page.goto(`/app/${path}`);
@@ -128,7 +120,7 @@ test("afgeleide kleurenpaletten zijn rustig, consistent en live zichtbaar zonder
   await page.getByLabel("Secundaire kleur", { exact: true }).fill("#ffff00");
   const draft = createBrandPalette("#ffffff", "#ffff00");
   await expect(palettePreview.getByText(draft.action.toUpperCase(), { exact: true })).toBeVisible();
-  await expect(page.locator(".brand-settings-hero")).toHaveCSS("background-color", rgb(draft.heroStart));
+  await expect(page.locator(".tenant-branding-preview-button")).toHaveCSS("background-color", rgb(draft.action));
   await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(tenantPalette.sidebar));
   await page.reload();
   await expect(page.getByLabel("Primaire kleur", { exact: true })).toHaveValue("#214e72");
@@ -241,8 +233,8 @@ test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare v
   await expect(page.getByText("Reistijd berekenen", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Werkbon plannen", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Bestaande planning exact aanpassen", { exact: true })).toHaveCount(0);
-  const planboardHeight = await page.locator(".planboard-viewport").evaluate((element) => element.getBoundingClientRect().height);
-  expect(planboardHeight).toBeGreaterThan(600);
+  await expect(page.locator(".planboard-viewport")).toBeVisible();
+  await expect.poll(() => page.locator(".planboard-viewport").evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(600);
   await expect(page).toHaveScreenshot("planboard-full-1440.png", { fullPage: true });
 });
 
@@ -318,7 +310,7 @@ test("klantdossier opent elf volledige paginaonderdelen en bewaart contacten, no
   await contact.getByLabel("E-mail",{exact:true}).fill("contact@customer.test");
   await contact.getByRole("button",{name:"Contact opslaan",exact:true}).click();
   await expect(contact).toBeHidden();
-  await expect(dossier.getByText(`Contact ${unique}`,{exact:true})).toBeVisible();
+  await expect(dossier.getByRole("table").getByText(`Contact ${unique}`,{exact:true})).toBeVisible();
   await nav.getByRole("link",{name:"Objecten",exact:true}).click();
   await expect(dossier.getByText("Noordhaven Kantoor",{exact:true})).toBeVisible();
   await nav.getByRole("link",{name:"Afspraken & opdrachten",exact:true}).click();
@@ -592,7 +584,10 @@ test("planningwijziging verschijnt realtime bij personeel zonder paginareload", 
     await staff.evaluate((value) => Reflect.set(window, "__fieldgridRealtimeSentinel", value), sentinel);
 
     await login(planner, "platform-admin@fieldgrid.test", "/app/planning");
+    await expect(planner.getByLabel("Dagplanning", { exact: true })).toHaveAttribute("aria-busy", "false");
     await planner.getByLabel("Planningsdag").fill("2030-01-15");
+    await expect(planner.getByLabel("Planningsdag")).toHaveValue("2030-01-15");
+    await expect(planner).toHaveURL(url => url.searchParams.get("day") === "2030-01-15");
     await expect(planner.locator(`[data-order-id="${orderId}"]`)).toContainText("10:00–10:30");
 
     planningChanged = true;

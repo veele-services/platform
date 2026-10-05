@@ -1085,6 +1085,107 @@ export type Database = {
           },
         ]
       }
+      customer_portal_accounts: {
+        Row: {
+          active: boolean
+          can_create_objects: boolean
+          can_edit_objects: boolean
+          can_edit_profile: boolean
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          onboarding_completed_at: string | null
+          onboarding_draft: Json
+          onboarding_step: number
+          tenant_id: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          can_create_objects?: boolean
+          can_edit_objects?: boolean
+          can_edit_profile?: boolean
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          onboarding_completed_at?: string | null
+          onboarding_draft?: Json
+          onboarding_step?: number
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          active?: boolean
+          can_create_objects?: boolean
+          can_edit_objects?: boolean
+          can_edit_profile?: boolean
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          onboarding_completed_at?: string | null
+          onboarding_draft?: Json
+          onboarding_step?: number
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portal_accounts_tenant_id_contact_id_fkey"
+            columns: ["tenant_id", "contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_portal_accounts_tenant_id_customer_id_fkey"
+            columns: ["tenant_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      customer_portal_revisions: {
+        Row: {
+          account_id: string
+          changed_at: string
+          revision: number
+          tenant_id: string
+        }
+        Insert: {
+          account_id: string
+          changed_at?: string
+          revision?: number
+          tenant_id: string
+        }
+        Update: {
+          account_id?: string
+          changed_at?: string
+          revision?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portal_revisions_tenant_id_account_id_fkey"
+            columns: ["tenant_id", "account_id"]
+            isOneToOne: true
+            referencedRelation: "customer_portal_accounts"
+            referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           billing_address: Json
@@ -2301,6 +2402,7 @@ export type Database = {
           contact_id: string | null
           created_at: string
           created_by: string
+          customer_visible: boolean
           details: Json
           due_on: string | null
           ends_at: string | null
@@ -2328,6 +2430,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by?: string
+          customer_visible?: boolean
           details?: Json
           due_on?: string | null
           ends_at?: string | null
@@ -2355,6 +2458,7 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by?: string
+          customer_visible?: boolean
           details?: Json
           due_on?: string | null
           ends_at?: string | null
@@ -2671,6 +2775,7 @@ export type Database = {
           created_at: string
           customer_id: string
           dossier_status: string
+          floor_area_m2: number | null
           id: string
           latitude: number | null
           location_description: string
@@ -2693,6 +2798,7 @@ export type Database = {
           created_at?: string
           customer_id: string
           dossier_status?: string
+          floor_area_m2?: number | null
           id?: string
           latitude?: number | null
           location_description?: string
@@ -2715,6 +2821,7 @@ export type Database = {
           created_at?: string
           customer_id?: string
           dossier_status?: string
+          floor_area_m2?: number | null
           id?: string
           latitude?: number | null
           location_description?: string
@@ -2914,6 +3021,7 @@ export type Database = {
           idempotency_key: string
           invoice_group_id: string | null
           last_checked_at: string | null
+          merchant_profile_id: string | null
           paid_at: string | null
           provider: string
           provider_check_lease: string | null
@@ -2935,6 +3043,7 @@ export type Database = {
           idempotency_key: string
           invoice_group_id?: string | null
           last_checked_at?: string | null
+          merchant_profile_id?: string | null
           paid_at?: string | null
           provider: string
           provider_check_lease?: string | null
@@ -2956,6 +3065,7 @@ export type Database = {
           idempotency_key?: string
           invoice_group_id?: string | null
           last_checked_at?: string | null
+          merchant_profile_id?: string | null
           paid_at?: string | null
           provider?: string
           provider_check_lease?: string | null
@@ -4355,6 +4465,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_id: string | null
+          customer_portal_group_id: string | null
           description: string
           discipline: string
           followup_on: string | null
@@ -4381,6 +4492,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
+          customer_portal_group_id?: string | null
           description: string
           discipline: string
           followup_on?: string | null
@@ -4407,6 +4519,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
+          customer_portal_group_id?: string | null
           description?: string
           discipline?: string
           followup_on?: string | null
@@ -5524,6 +5637,7 @@ export type Database = {
           code: string
           confidential: boolean
           created_at: string
+          customer_visible: boolean
           default_assignee_id: string | null
           default_group_id: string | null
           description: string
@@ -5547,6 +5661,7 @@ export type Database = {
           code: string
           confidential?: boolean
           created_at?: string
+          customer_visible?: boolean
           default_assignee_id?: string | null
           default_group_id?: string | null
           description?: string
@@ -5570,6 +5685,7 @@ export type Database = {
           code?: string
           confidential?: boolean
           created_at?: string
+          customer_visible?: boolean
           default_assignee_id?: string | null
           default_group_id?: string | null
           description?: string
@@ -7686,6 +7802,7 @@ export type Database = {
           idempotency_key: string
           invoice_group_id: string | null
           last_checked_at: string | null
+          merchant_profile_id: string | null
           paid_at: string | null
           provider: string
           provider_check_lease: string | null
@@ -8204,8 +8321,230 @@ export type Database = {
           label: string
         }[]
       }
+      customer_portal_accounts: {
+        Args: { target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_activity: {
+        Args: { target_account: string; target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_activity_mark: {
+        Args: {
+          expected_version?: number
+          operation: string
+          request_id: string
+          target_account: string
+          target_notification?: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      customer_portal_bind: {
+        Args: {
+          can_create: boolean
+          can_edit_objects: boolean
+          can_edit_profile: boolean
+          enabled: boolean
+          expected_version: number
+          target_contact: string
+          target_customer: string
+          target_tenant: string
+          target_user: string
+        }
+        Returns: string
+      }
+      customer_portal_commercial_command: {
+        Args: {
+          command: string
+          command_id: string
+          input: Json
+          target_account: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
       customer_portal_documents: {
         Args: { target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_draft: {
+        Args: { target_account: string; target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_file_authorize: {
+        Args: {
+          kind: string
+          target_account: string
+          target_id: string
+          target_tenant: string
+        }
+        Returns: boolean
+      }
+      customer_portal_instruction_add: {
+        Args: {
+          expected_version: number
+          input_body: string
+          request_id: string
+          target_account: string
+          target_object: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      customer_portal_invoices: {
+        Args: { target_account: string; target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_management: {
+        Args: { target_customer: string; target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_news: {
+        Args: { target_account: string; target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_news_mark: {
+        Args: {
+          expected_version: number
+          operation: string
+          request_id: string
+          target_account: string
+          target_notification: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      customer_portal_object_save: {
+        Args: {
+          expected_account_version: number
+          input: Json
+          request_id: string
+          target_account: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      customer_portal_onboarding_save: {
+        Args: {
+          input: Json
+          request_id: string
+          target_account: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      customer_portal_payment_prepare: {
+        Args: {
+          expected_mode: string
+          expected_profile: string
+          invoice_ids: string[]
+          request_id: string
+          target_account: string
+          target_tenant: string
+        }
+        Returns: string
+      }
+      customer_portal_preferences: {
+        Args: { target_account: string; target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_preferences_save: {
+        Args: {
+          expected_version: number
+          input: Json
+          request_id: string
+          target_account: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      customer_portal_profile_save: {
+        Args: {
+          expected_account_version: number
+          expected_contact_version: number
+          expected_customer_version: number
+          input: Json
+          request_id: string
+          target_account: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      customer_portal_report_file: {
+        Args: {
+          asset_id?: string
+          target_account: string
+          target_report: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      customer_portal_reports: {
+        Args: { target_account: string; target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_request_create: {
+        Args: {
+          input: Json
+          request_id: string
+          target_account: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      customer_portal_request_detail: {
+        Args: {
+          target_account: string
+          target_request: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      customer_portal_requests: {
+        Args: { target_account: string; target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_services: {
+        Args: { target_account: string; target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_shared_documents: {
+        Args: { target_account: string; target_tenant: string }
+        Returns: Json
+      }
+      customer_portal_visit: {
+        Args: {
+          target_account: string
+          target_tenant: string
+          target_visit: string
+        }
+        Returns: Json
+      }
+      customer_portal_visit_command: {
+        Args: {
+          input: Json
+          operation: string
+          request_id: string
+          target_account: string
+          target_tenant: string
+          target_visit: string
+        }
+        Returns: Json
+      }
+      customer_portal_visit_note_add: {
+        Args: {
+          expected_version: number
+          input_body: string
+          request_id: string
+          target_account: string
+          target_tenant: string
+          target_visit: string
+        }
+        Returns: Json
+      }
+      customer_portal_workspace: {
+        Args: { target_account: string; target_tenant: string }
         Returns: Json
       }
       dispatch_work_order: {
@@ -8669,6 +9008,7 @@ export type Database = {
           idempotency_key: string
           invoice_group_id: string | null
           last_checked_at: string | null
+          merchant_profile_id: string | null
           paid_at: string | null
           provider: string
           provider_check_lease: string | null
@@ -8786,6 +9126,7 @@ export type Database = {
           idempotency_key: string
           invoice_group_id: string | null
           last_checked_at: string | null
+          merchant_profile_id: string | null
           paid_at: string | null
           provider: string
           provider_check_lease: string | null

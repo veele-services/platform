@@ -173,6 +173,7 @@ test('invoice payment and object binding maintain safe concurrent lifecycles',as
    await db.query('delete from public.object_history where tenant_id=$1',[tenant]);
    await db.query('delete from public.objects where tenant_id=$1',[tenant]);
    await db.query('delete from public.audit_events where tenant_id=$1',[tenant]);
+   await db.query('delete from public.customer_portal_accounts where tenant_id=$1',[tenant]);
    await db.query('delete from public.tenants where id=$1',[tenant]);
    await db.query('delete from auth.sessions where user_id=$1',[actor]);
    await db.query('delete from auth.users where id=$1',[actor]);

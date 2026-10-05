@@ -26,7 +26,8 @@ describe("personnel invitation email", () => {
   });
   it("leaves existing credentials unchanged and points to the portal", () => {
     const mail = renderPersonnelInvitation({ ...input, existingAccount: true, targetUrl: "https://noordhaven.staging.fieldgrid.nl/staff" });
-    expect(mail.text).toContain("Je wachtwoord blijft ongewijzigd");
+    expect(mail.text).toContain("eenmalige inlogcode");
+    expect(mail.text).not.toContain("bestaande inloggegevens");
     expect(mail.html).toContain("Personeelsportaal openen");
     expect(mail.html).not.toContain("Personeelsaccount activeren");
   });

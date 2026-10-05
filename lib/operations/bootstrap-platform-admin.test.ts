@@ -16,7 +16,7 @@ describe("platformbeheerbootstrap", () => {
           SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co",
           SUPABASE_SERVICE_ROLE_KEY: "local-test-key",
           FIELDGRID_ADMIN_EMAIL: "admin@example.invalid",
-          FIELDGRID_ADMIN_PASSWORD: "test-password-only",
+          FIELDGRID_ADMIN_PASSWORD: "",
           EXPECTED_SUPABASE_PROJECT_REF: "bbbbbbbbbbbbbbbbbbbb",
           FORBIDDEN_SUPABASE_PROJECT_REF: "ckdtiuemeygrnujjibnw",
         },

@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { safeNext } from "@/lib/auth/safe-next";
+import { otpNext } from "@/lib/auth/login-destination";
 
 export async function GET(request: NextRequest) {
-  const code = request.nextUrl.searchParams.get("code");
-  const nextParam = request.nextUrl.searchParams.get("next");
-  const next = safeNext(nextParam);
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL(next, request.url));
-  }
-  return NextResponse.redirect(new URL("/login?error=confirm", request.url));
+  // Old link credentials and GETs never create a login session. In particular
+  // email scanners cannot authenticate by following a URL.
+  const target = new URL("/login", request.url);
+  target.searchParams.set("error", "otp_required");
+  target.searchParams.set("next", otpNext(request.nextUrl.searchParams.get("next")));
+  const response = NextResponse.redirect(target);
+  response.headers.set("cache-control", "no-store");
+  response.headers.set("referrer-policy", "no-referrer");
+  return response;
 }

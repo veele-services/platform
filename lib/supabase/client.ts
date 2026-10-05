@@ -11,6 +11,9 @@ export function createClient(): SupabaseClient<Database> {
   browserClient ??= createBrowserClient<Database>(
     clientEnv.NEXT_PUBLIC_SUPABASE_URL,
     clientEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    // Sessions are installed by the verified server-side OTP action. Legacy
+    // implicit-flow URL fragments must never become an alternate login path.
+    { auth: { detectSessionInUrl: false } },
   );
   return browserClient;
 }

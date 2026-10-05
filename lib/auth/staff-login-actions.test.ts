@@ -4,12 +4,12 @@ const mocks = vi.hoisted(() => ({
   signInWithOtp: vi.fn(),
   verifyOtp: vi.fn(),
   signOut: vi.fn(),
-  authContext: vi.fn(),
+  access: vi.fn(),
   headers: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { signInWithOtp: mocks.signInWithOtp, verifyOtp: mocks.verifyOtp, signOut: mocks.signOut } }) }));
-vi.mock("@/lib/auth/context", () => ({ getAuthContext: mocks.authContext }));
+vi.mock("@/lib/auth/login-access", () => ({ getLoginAccess: mocks.access }));
 vi.mock("next/headers", () => ({ headers: mocks.headers }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`redirect:${url}`); } }));
 
@@ -36,7 +36,7 @@ describe("staff email OTP actions", () => {
     mocks.headers.mockResolvedValue(new Headers());
     mocks.signInWithOtp.mockResolvedValue({ data: { user: null, session: null }, error: null });
     mocks.verifyOtp.mockResolvedValue({ data: { user: { id: "user" }, session: { access_token: "access", refresh_token: "refresh" } }, error: null });
-    mocks.authContext.mockResolvedValue({ tenant: { roles: ["staff"] } });
+    mocks.access.mockResolvedValue({ workspaces: ["/staff"] });
     mocks.signOut.mockResolvedValue({ error: null });
   });
   afterEach(() => vi.restoreAllMocks());
@@ -44,7 +44,7 @@ describe("staff email OTP actions", () => {
   it("requests a non-creating OTP for the canonical staff destination", async () => {
     const result = await staffOtp({ step: "email" }, request(" Worker@Example.test ", "/staff/werkbon/123"));
     expect(result).toMatchObject({ step: "code", email: "worker@example.test", next: "/staff/werkbon/123", requestedAt: 1_800_000_000_000 });
-    expect(mocks.signInWithOtp).toHaveBeenCalledWith({ email: "worker@example.test", options: { emailRedirectTo: "https://staging.fieldgrid.nl/staff", shouldCreateUser: false } });
+    expect(mocks.signInWithOtp).toHaveBeenCalledWith({ email: "worker@example.test", options: { emailRedirectTo: "https://staging.fieldgrid.nl/login", shouldCreateUser: false } });
   });
 
   it("does not reveal whether an account exists or delivery failed", async () => {
@@ -63,7 +63,7 @@ describe("staff email OTP actions", () => {
   });
 
   it("removes a verified session when current tenant access is not staff", async () => {
-    mocks.authContext.mockResolvedValueOnce({ tenant: { roles: ["planning"] } });
+    mocks.access.mockResolvedValueOnce({ workspaces: ["/app"] });
     const result = await staffOtp({ step: "code" }, verify("worker@example.test", "123456"));
     expect(result.error).toContain("ongeldig of verlopen");
     expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });

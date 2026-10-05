@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { brandThemeStyle, contrastRatio, createBrandPalette } from "./palette";
+import { brandThemeStyle, contrastRatio, createBrandPalette,portalThemeStyle } from "./palette";
 
 describe("derived brand palettes", () => {
   const seeds = [
@@ -49,5 +49,15 @@ describe("derived brand palettes", () => {
     expect(tenant["--brand-action-foreground"]).toBe("#ffffff");
     expect(defaults).toEqual(brandThemeStyle());
     expect(defaults).not.toEqual(tenant);
+  });
+
+  it.each(seeds)("maps personnel/customer prototype roles to the same readable %s / %s palette",(primary,accent)=>{
+    const palette=createBrandPalette(primary,accent),shared=brandThemeStyle(primary,accent) as Record<string,string>,customer=portalThemeStyle(primary,accent) as Record<string,string>;
+    expect(shared["--ps-action"]).toBe(palette.action);expect(shared["--ps-soft"]).toBe(palette.accentSoft);
+    expect(customer["--portal-accent"]).toBe(shared["--ps-action"]);expect(customer["--portal-primary"]).toBe(palette.sidebar);
+    expect(customer["--canvas"]).toBe(palette.canvas);expect(customer["--ink"]).toBe(palette.ink);
+    expect(customer["--line"]).toBe(palette.border);expect(customer["--soft"]).toBe(shared["--ps-soft"]);
+    expect(contrastRatio(customer["--portal-contrast"],customer["--portal-accent"])).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(palette.sidebarText,customer["--portal-primary"])).toBeGreaterThanOrEqual(4.5);
   });
 });

@@ -1,2 +1,2 @@
-import { NotificationCampaignRoute } from "@/components/fieldgrid/notifications/routes";
-export default function Page({ params }: { params: Promise<{ id: string }> }) { return <NotificationCampaignRoute workspace="customer" params={params}/>; }
+import { redirect } from "next/navigation";
+export default function CustomerCampaign(){redirect("/klant?view=news");}

@@ -1,19 +1,37 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import {notFound,redirect} from "next/navigation";
-import {getObjectActor} from "@/lib/objects/auth";
-import {brandThemeStyle} from "@/lib/branding/palette";
-import {objectDate,type VisitContext} from "@/lib/objects/model";
-import {ObjectVisit} from "@/components/fieldgrid/objects/visit";
-import {FieldgridBrand} from "@/components/fieldgrid/brand";
-import {NotificationBell} from "@/components/fieldgrid/notifications/inbox";
-import {NotificationNavigation} from "@/components/fieldgrid/notifications/navigation";
+import { notFound,redirect } from "next/navigation";
+import { ProductBrand } from "@/components/fieldgrid/brand";
+import { CustomerPortalController } from "@/components/fieldgrid/customer-portal/controller";
+import { getObjectActor } from "@/lib/objects/auth";
+import { getCustomerPortal,getCustomerPortalCoreSnapshot } from "@/lib/customer-portal/data";
+import { CustomerSnapshotError } from "@/lib/customer-portal/snapshot-model";
+import { customerRouteHref,customerRouteSchema } from "./route-model";
 
-type CustomerObject={id:string;name:string;number:string;manageSecrets:boolean;visits:Array<{id:string;number:string;start:string|null;end:string|null;status:string;service:string}>};
-export default async function CustomerVisits({searchParams}:{searchParams:Promise<{object?:string;order?:string}>}){
- const actor=await getObjectActor().catch(()=>null);if(!actor)redirect("/login?next=/klant");const {db,admin,tenant}=actor;
- const {data,error}=await db.rpc("customer_object_visits",{target_tenant:tenant.id});if(error)throw new Error("Je afspraken konden niet worden geladen.");const objects=data as unknown as CustomerObject[];
- const query=await searchParams;const object=objects.find(o=>o.id===query.object);if(query.object&&!object)notFound();if(query.order&&!object?.visits.some(v=>v.id===query.order))notFound();
- const {data:brand}=await admin.from("tenant_branding").select("primary_color,accent_color,logo_path").eq("tenant_id",tenant.id).maybeSingle();
- let context:VisitContext|null=null;if(object){const r=await db.rpc("object_visit_context",{target_tenant:tenant.id,target_object:object.id,target_order:query.order});if(r.error)notFound();context=r.data as unknown as VisitContext;}
- return <main className="object-portal" style={brandThemeStyle(brand?.primary_color,brand?.accent_color)}><div className="object-portal-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={brand?.logo_path?`/api/branding/${tenant.id}/email-logo`:null}/><div className="nt-actions"><NotificationNavigation workspace="customer" actorKey={`${tenant.id}:${actor.user.id}`}/><NotificationBell workspace="customer" actorKey={`${tenant.id}:${actor.user.id}`}/></div><form action="/auth/signout" method="post"><button className="secondary-button">Uitloggen</button></form></div>{context?<ObjectVisit context={context} timezone={tenant.timezone} customerMode manageSecrets={object?.manageSecrets}/>:<div className="object-dossier"><header className="page-intro"><span className="eyebrow">KLANTOMGEVING</span><h1>Mijn afspraken</h1><Link className="secondary-button" href="/klant/aanvragen">Mijn aanvragen en offertes</Link><Link className="secondary-button" href="/klant/documenten">Mijn documenten en facturen</Link><p>Kies de concrete afspraak waarvoor je iets wilt doorgeven.</p></header>{objects.map(o=><section className="dossier-card" key={o.id}><h2>{o.name}</h2><small>{o.number}</small>{o.visits.map(w=><Link className="dossier-event" key={w.id} href={`/klant?object=${o.id}&order=${w.id}`}><div><strong>{w.number} · {w.service}</strong><small>{objectDate(w.start,tenant.timezone)}</small></div><span>Afspraak openen →</span></Link>)}{!o.visits.length&&<p>Er zijn nog geen afspraken.</p>}{o.manageSecrets&&<Link className="secondary-button" href={`/klant?object=${o.id}`}>Beveiligde objectgegevens beheren</Link>}</section>)}{!objects.length&&<section className="dossier-card"><h2>Nog geen objecten gekoppeld</h2><p>Vraag je contactpersoon om jouw account expliciet aan het juiste object te koppelen.</p></section>}</div>}</main>;
+export const metadata:Metadata={title:"Klantportaal",robots:{index:false,follow:false}};
+export default async function CustomerPortalPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){
+ const parsed=customerRouteSchema.safeParse(await searchParams);
+ if(!parsed.success)notFound();
+ const route=parsed.data;
+ const actor=await getObjectActor().catch(()=>null);
+ if(!actor)redirect(`/login?${new URLSearchParams({next:customerRouteHref(route)})}`);
+ const identity=await getCustomerPortal().catch(()=>null);
+ if(!identity)return <CustomerAccessState title="Je klantgegevens zijn tijdelijk niet beschikbaar" description="We konden je actuele toegang niet controleren. Probeer opnieuw; er is geen ander klantaccount geopend." href={customerRouteHref(route)}/>;
+ if(route.account&&!identity.accounts.some(account=>account.id===route.account))return <CustomerAccessState title="Geen toegang tot dit klantaccount" description="Kies een van de klantaccounts die expliciet aan jou zijn gekoppeld." href="/klant"/>;
+ const accountId=route.account??identity.workspace?.account.id;
+ if(!accountId)return <main className="auth-page"><section className="auth-card"><ProductBrand/><span className="eyebrow">KLANTPORTAAL</span><h1>{identity.accounts.length?"Kies je klantomgeving":"Nog geen klanttoegang"}</h1><p>{identity.accounts.length?"Deze klantaccounts zijn expliciet aan jou gekoppeld. Kies de organisatie waarvoor je verder wilt gaan.":"Vraag je contactpersoon om je klantaccount expliciet te koppelen."}</p>{identity.accounts.map(account=><Link className="secondary-button" key={account.id} href={customerRouteHref({account:account.id,view:route.view})}>{account.name}</Link>)}<form action="/auth/signout" method="post"><button className="secondary-button">Uitloggen</button></form></section></main>;
+ const snapshot=await getCustomerPortalCoreSnapshot(accountId).catch(error=>error instanceof CustomerSnapshotError?error:null);
+ if(snapshot instanceof CustomerSnapshotError||!snapshot){const denied=snapshot instanceof CustomerSnapshotError&&snapshot.status===403;return <CustomerAccessState title={denied?"Je klanttoegang is gewijzigd":"Je actuele gegevens konden niet worden geladen"} description={denied?"Dit klantaccount is niet meer beschikbaar. Kies opnieuw of vraag je contactpersoon om toegang.":"Probeer de gegevens opnieuw te laden. Je wordt niet naar een andere organisatie doorgestuurd."} href={denied?"/klant":customerRouteHref({...route,account:accountId})}/>;}
+ if(route.object&&!snapshot.workspace.objects.some(object=>object.id===route.object))notFound();
+ if(route.order&&!snapshot.workspace.visits.some(visit=>visit.id===route.order&&(!route.object||visit.objectId===route.object)))notFound();
+ if(route.ticket&&!snapshot.tickets.some(ticket=>ticket.id===route.ticket))notFound();
+ if(route.request&&!snapshot.requests.some(request=>request.id===route.request||request.parts.some(part=>part.id===route.request)))notFound();
+ if(route.invoice&&!snapshot.invoices.some(invoice=>invoice.id===route.invoice))notFound();
+ if(route.report&&!snapshot.reports.some(report=>report.id===route.report))notFound();
+ if(route.news&&!snapshot.news.some(news=>news.id===route.news))notFound();
+ return <CustomerPortalController key={`${identity.tenantId}:${identity.actorKey}:${accountId}`} initial={snapshot} tenantId={identity.tenantId} actorKey={identity.actorKey} accounts={identity.accounts} initialView={route.view??"dashboard"} initialObject={route.order?undefined:route.object} initialVisit={route.order} initialTicket={route.ticket} initialRequest={route.request} initialInvoice={route.invoice} initialReport={route.report} initialNews={route.news} paymentReturn={route.payment==="return"}/>;
+}
+
+function CustomerAccessState({title,description,href}:{title:string;description:string;href:string}){
+ return <main className="auth-page"><section className="auth-card"><ProductBrand/><span className="eyebrow">KLANTPORTAAL</span><h1>{title}</h1><p role="alert">{description}</p><Link className="primary-button" href={href}>Opnieuw controleren</Link><form action="/auth/signout" method="post"><button className="secondary-button">Uitloggen</button></form></section></main>;
 }
