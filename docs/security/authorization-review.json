@@ -820,11 +820,13 @@
     },
     {
       "id": "code:app/auth/confirm/route.ts",
-      "surfaceFingerprint": "ebdd977d7b94d20f9c03330b07d635b77b9768b9f9da396ca3dcbfe0777670aa",
-      "status": "controlled",
+      "surfaceFingerprint": "8e6638ca671e8e178170564124fea003d046df3b3e127c88509bb984ed6560fb",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/otp-activity-verification-2026-10-05.md"
+        "docs/security/otp-activity-verification-2026-10-05.md",
+        "docs/security/staging-redirect-verification-2026-10-05.md",
+        "lib/auth/auth-destinations.test.ts"
       ]
     },
     {
@@ -4258,7 +4260,7 @@
     },
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
-      "surfaceFingerprint": "8da06eb04b126bc8b91d6ab232799d5c8121b6532aa4d93c0a5aa33b8dbf29d6",
+      "surfaceFingerprint": "144d81ca6714ca32c12d2f40b62a2ffd344dbe5ef47d4aa0b5ee5530efe76b46",
       "status": "corrected-and-rechecked",
       "evidence": [
         "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
@@ -4268,7 +4270,9 @@
         "The exact staging artifact is extracted and booted with isolated non-secret smoke configuration before backup or forward migrations begin (2026-10-02).",
         "Activation and retryable worker acceptance are separate jobs; the latter has no handoff download, broker call, secrets or service-management authority. Full reruns use attempt-scoped immutable handoffs selected by artifact ID; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-03).",
         "Hosted acceptance receives only the canonical public APP_URL from GitHub Environment staging, restoring the existing fail-closed staging target guard without adding credentials or authority; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-04).",
-        "Remote rollback-only fixtures run serially because their existing global notification-policy lock lives until rollback. All suites/assertions, staging/TLS guards and worker/exact-SHA prerequisites remain; lib/operations/staging-smoke.test.ts and docs/deployment/staging-smoke-serialization-2026-10-05.md (2026-10-05)."
+        "Remote rollback-only fixtures run serially because their existing global notification-policy lock lives until rollback. All suites/assertions, staging/TLS guards and worker/exact-SHA prerequisites remain; lib/operations/staging-smoke.test.ts and docs/deployment/staging-smoke-serialization-2026-10-05.md (2026-10-05).",
+        "docs/security/staging-redirect-verification-2026-10-05.md",
+        "scripts/verify-public-auth-redirect.mjs"
       ]
     },
     {
@@ -4563,13 +4567,15 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "d2699f46fad645d2fc2cb7ad470939bbf7e5a515c69013bccbcb7da7cf1516cf",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "5421e1e788b4b7ffeef19e018071239d20deea25c5c80510b48e5dd5c22f6832",
+      "status": "controlled",
       "evidence": [
         "The new scanner startup gate is explicitly included in the deterministic operational surface inventory.",
         "lib/auth/security-surface.test.ts requires scripts/check-clamav-socket.mjs to remain inventoried; the complete captured ledger has a reviewed entry for every surface.",
         "The packaged-release launch smoke is explicitly inventoried as an operational release control (2026-10-02).",
-        "The operational inventory now fingerprints pnpm workspace security settings and all committed dependency patches (2026-10-03)."
+        "The operational inventory now fingerprints pnpm workspace security settings and all committed dependency patches (2026-10-03).",
+        "docs/security/staging-redirect-verification-2026-10-05.md",
+        "scripts/verify-public-auth-redirect.mjs"
       ]
     },
     {
@@ -4772,6 +4778,15 @@
         "lib/operations/deployment-broker.test.ts",
         "lib/env/staging-migration-diagnostic.test.ts",
         "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:scripts/verify-public-auth-redirect.mjs",
+      "surfaceFingerprint": "f5b4a6196b8f3a64aafa952273f5a7cc921a54c136b0f5fddfac4b2a47cad717",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/staging-redirect-verification-2026-10-05.md",
+        "scripts/verify-public-auth-redirect.mjs"
       ]
     },
     {

@@ -1181,7 +1181,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "ad8e721be8d688e03b20cb171a99bb76817141cbccd8a9e98b96fc166641ec69"
+      "source_sha256": "792bb506028b8e4a1743d5167a4a816c5180fc2a137cc915fc5214c43eaac2cc"
     },
     {
       "id": "code:app/auth/forgot/page.tsx",
@@ -6228,7 +6228,7 @@
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
       "classification": "operation",
-      "source_sha256": "f6760822761efc0b95787b214cdbfb386266657328c1ac555c93bbae402b2915"
+      "source_sha256": "2c0292f8296e74b247ec2d505f4d6c746bb7280242dce1386df91aa66f52b448"
     },
     {
       "id": "operation:deploy/Caddyfile.example",
@@ -6373,7 +6373,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "3f2c0cdd516475f5b9c5ee93c0348f7664d11f13a87cbb7476c1ad976ee4bf64"
+      "source_sha256": "159a5e9202ecd5b6ba56195491a14e0ce5d2832eba1b822aa8e95cae8072e92e"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -6464,6 +6464,11 @@
       "id": "operation:scripts/verify-migration-target.ts",
       "classification": "operation",
       "source_sha256": "673b37f36e5e29675b87dc4e5593cc9a129d08a6f68c4a84369cf8dc32698aa8"
+    },
+    {
+      "id": "operation:scripts/verify-public-auth-redirect.mjs",
+      "classification": "operation",
+      "source_sha256": "6b08a213d0d4ff586aae1472685e4a17d6cd9707a8ff006e6b4a581099827751"
     },
     {
       "id": "operation:scripts/write-runtime-env.sh",

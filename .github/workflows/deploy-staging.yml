@@ -321,6 +321,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Verify public health, exact SHA and deployed scanner readiness
         run: node scripts/verify-healthcheck.mjs
+      - name: Verify obsolete Auth links preserve the public staging origin
+        run: node scripts/verify-public-auth-redirect.mjs
       - name: Verify work-order persistence and access with rollback-only staging fixtures
         env:
           FIELDGRID_STAGING_SMOKE: "1"

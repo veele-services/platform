@@ -57,6 +57,7 @@ const baseOperationalPaths = [
   "scripts/verify-healthcheck.mjs",
   "scripts/verify-local-migration-manifest.ts",
   "scripts/verify-migration-target.ts",
+  "scripts/verify-public-auth-redirect.mjs",
   "scripts/write-runtime-env.sh",
   "supabase/config.toml",
   "vitest.config.mts",
