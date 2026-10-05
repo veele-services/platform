@@ -132,9 +132,10 @@ function ArchiveButton({ action, fields, label, success }: { action: ServerActio
 }
 
 function ResourceMore({ children }: { children: ReactNode }) {
+  const theme = useTenantTheme();
   return <Popover>
     <PopoverTrigger asChild><button type="button" className="resource-action"><MoreHorizontal size={13}/><span>Meer</span></button></PopoverTrigger>
-    <PopoverContent className="resource-more-content" aria-label="Meer informatie en acties" align="end" sideOffset={6} collisionPadding={12} hideWhenDetached>
+    <PopoverContent className="resource-more-content" style={theme} data-tenant-theme="" aria-label="Meer informatie en acties" align="end" sideOffset={6} collisionPadding={12} hideWhenDetached>
       {children}
     </PopoverContent>
   </Popover>;
