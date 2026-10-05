@@ -553,6 +553,7 @@ test("nieuwe medewerker hervat en voltooit de volledige personeels-onboarding", 
   await mobileNavigation.getByRole("button", { name: "Meer", exact: true }).click();
   await page.locator(".ps-more-grid").getByRole("button", { name: /Beschikbaarheid/ }).click();
   await expect(page.getByRole("heading", { name: "Beschikbaarheid", exact: true })).toBeVisible();
+  await page.getByText("Overige planningsvoorkeuren", { exact: true }).click();
   const availabilityNote = page.getByRole("textbox", { name: "Planningsopmerking", exact: true });
   const saveAvailability = page.getByRole("button", { name: "Beschikbaarheid opslaan", exact: true });
   const savedAvailability = page.getByText("Beschikbaarheid opgeslagen", { exact: true });

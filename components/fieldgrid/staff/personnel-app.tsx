@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
-  List, LogOut, Megaphone, Menu,
+  List, LockKeyhole, LogOut, Megaphone, Menu,
   Info, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Settings2, SlidersHorizontal, Square, TicketCheck, Umbrella, UserRound,
   UsersRound, X,
 } from "lucide-react";
@@ -231,7 +231,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         </div>
       </header>
       <main className="ps-content">
-        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && moreView === "verlof") && <header className="ps-page-heading"><div><span className="ps-page-kicker">FIELDGRID / PERSONEEL</span><h1>{title}</h1></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
+        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid"].includes(moreView)) && <header className="ps-page-heading"><div><span className="ps-page-kicker">FIELDGRID / PERSONEEL</span><h1>{title}</h1></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
         {view === "planning" && (tenant.enabledServices.includes("planning") ? <PlanningScreen orders={assigned} assignments={assignments} data={data} timezone={tenant.timezone} onOpen={openOrder} onHours={() => navigate("uren")} onNews={() => navigate("nieuws")}/> : <Empty icon={CalendarDays} title="Planning niet ingeschakeld">Vraag je beheerder om de module Planning te activeren.</Empty>)}
         {view === "nieuws" && <NewsScreen data={data} onRead={(id) => run(() => markAnnouncementRead(id), "Gemarkeerd als gelezen")}/>}
         {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run}/>}
@@ -460,7 +460,7 @@ function CorrectionDialog({ entry, timezone, pending, close, submit }: { entry: 
 
 function MoreScreen({ view, setView, data, profile, timezone, email, ticketsEnabled, pending, run }: { view: MoreView; setView: (view: MoreView) => void; data: StaffWorkspaceData; profile: StaffPersonnel; timezone: string; email: string; ticketsEnabled: boolean; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
   if (view === "verlof") return <LeaveScreen requests={data.staffLeaveRequests} entitlements={data.staffLeaveEntitlements} timezone={timezone} pending={pending} run={run}/>;
-  if (view === "beschikbaarheid") return <AvailabilityScreen key={profile.id} profile={profile} pending={pending} run={run}/>;
+  if (view === "beschikbaarheid") return <AvailabilityScreen key={profile.id} profile={profile} pending={pending} run={run} onLeave={() => setView("verlof")}/>;
   if (view === "documenten") return <DocumentsScreen data={data} profile={profile}/>;
   if (view === "profiel") return <ProfileScreen key={profile.id} profile={profile} depots={data.staffDepots} email={email} pending={pending} run={run}/>;
   if (view === "instellingen") return <SettingsScreen profile={profile}/>;
@@ -547,26 +547,65 @@ function LeaveScreen({ requests, entitlements, timezone, pending, run }: { reque
   </div>;
 }
 
-function AvailabilityScreen({ profile, pending, run }: { profile: StaffPersonnel; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
+function AvailabilityScreen({ profile, pending, run, onLeave }: { profile: StaffPersonnel; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void; onLeave: () => void }) {
   const [value, setValue] = useState(() => ({ ...defaultAvailability(profile.availability_preferences), version: profile.version ?? 1 }));
+  // Empty visible times represent an unavailable day. Keep the stored fallback
+  // times separately because the RPC requires valid times even for those days.
+  const [week, setWeek] = useState(() => Object.fromEntries(dayKeys.map((key) => [key, {
+    start: value.week[key].enabled ? value.week[key].start : "",
+    end: value.week[key].enabled ? value.week[key].end : "",
+  }])));
+  const [invalidDay, setInvalidDay] = useState<(typeof dayKeys)[number] | null>(null);
   const enabled = Boolean(profile.availability_self_service_enabled);
+  const setTime = (key: (typeof dayKeys)[number], field: "start" | "end", time: string) => {
+    setWeek((current) => ({ ...current, [key]: { ...current[key], [field]: time } }));
+    setInvalidDay(null);
+  };
   const toggleShift = (shift: "day" | "evening" | "night", checked: boolean) => setValue((current) => ({
     ...current,
     shifts: checked ? [...new Set([...current.shifts, shift])] : current.shifts.filter((item) => item !== shift),
   }));
-  return <section className="ps-panel">
-    <div className="ps-panel-heading"><div><span>WEEKPATROON</span><h2>Mijn beschikbaarheid</h2></div><span className="ps-status" data-status={enabled ? "approved" : "closed"}>{enabled ? "Bewerken toegestaan" : "Alleen-lezen"}</span></div>
-    {!enabled && <div className="ps-toast-note">Je planner beheert dit patroon. Vraag management om selfservice tijdelijk te activeren als je wijzigingen moet doorgeven.</div>}
-    <div className="ps-card-list">{dayKeys.map((key) => <div className="ps-list-row" key={key}><label className="ps-check"><input type="checkbox" disabled={!enabled} checked={value.week[key].enabled} onChange={(event) => setValue({ ...value, week: { ...value.week, [key]: { ...value.week[key], enabled: event.target.checked } } })}/><span><strong>{dayLabels[key]}</strong><small>{value.week[key].enabled ? "Beschikbaar" : "Niet beschikbaar"}</small></span></label><input aria-label={`${dayLabels[key]} vanaf`} type="time" disabled={!enabled || !value.week[key].enabled} value={value.week[key].start} onChange={(event) => setValue({ ...value, week: { ...value.week, [key]: { ...value.week[key], start: event.target.value } } })}/><input aria-label={`${dayLabels[key]} tot`} type="time" disabled={!enabled || !value.week[key].enabled} value={value.week[key].end} onChange={(event) => setValue({ ...value, week: { ...value.week, [key]: { ...value.week[key], end: event.target.value } } })}/></div>)}</div>
-    <fieldset className="ps-choice-group" disabled={!enabled}><legend>Dienstvoorkeur</legend><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("day")} onChange={(event) => toggleShift("day", event.target.checked)}/>Dag</label><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("evening")} onChange={(event) => toggleShift("evening", event.target.checked)}/>Avond</label><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("night")} onChange={(event) => toggleShift("night", event.target.checked)}/>Nacht</label></fieldset>
-    <div className="ps-form-grid"><label className="ps-check"><input type="checkbox" disabled={!enabled} checked={value.weekends} onChange={(event) => setValue({ ...value, weekends: event.target.checked })}/>Weekend inzetbaar</label><label className="ps-check"><input type="checkbox" disabled={!enabled} checked={value.holidays} onChange={(event) => setValue({ ...value, holidays: event.target.checked })}/>Feestdagen inzetbaar</label></div>
-    <label className="ps-field">Planningsopmerking<textarea disabled={!enabled} rows={4} maxLength={1000} value={value.planningNote} onChange={(event) => setValue({ ...value, planningNote: event.target.value })}/></label>
-    {enabled && <button className="ps-primary" disabled={pending} onClick={() => run(async () => {
-      const result = await updateStaffAvailability(value);
-      if (result.ok) setValue((current) => ({ ...current, version: result.version }));
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!enabled || pending) return;
+    const invalid = dayKeys.find((key) => (week[key].start || week[key].end) && (!week[key].start || !week[key].end || week[key].start >= week[key].end));
+    if (invalid) { setInvalidDay(invalid); return; }
+    const savedWeek = Object.fromEntries(dayKeys.map((key) => [key, {
+      enabled: Boolean(week[key].start && week[key].end),
+      start: week[key].start || value.week[key].start,
+      end: week[key].end || value.week[key].end,
+    }]));
+    run(async () => {
+      const result = await updateStaffAvailability({ ...value, week: savedWeek });
+      if (result.ok) setValue((current) => ({ ...current, week: savedWeek, version: result.version }));
       return result;
-    }, "Beschikbaarheid opgeslagen")}>Beschikbaarheid opslaan</button>}
-  </section>;
+    }, "Beschikbaarheid opgeslagen");
+  };
+  return <div className="ps-availability-screen">
+    <header className="ps-page-heading"><div><h1>Beschikbaarheid</h1><p>Geef aan wanneer je doorgaans kunt werken.</p></div></header>
+    <div className="ps-availability-grid">
+      <section className="ps-panel ps-availability-week" aria-labelledby="ps-availability-title"><form onSubmit={submit}>
+        <div className="ps-panel-heading"><h2 id="ps-availability-title">Mijn vaste week</h2><span className="ps-status" data-status={enabled ? "approved" : "managed"}>{enabled ? "Bewerken toegestaan" : "Beheerd door planning"}</span></div>
+        {!enabled && <p className="ps-availability-managed"><LockKeyhole size={19} aria-hidden="true"/><span>Je organisatie beheert je beschikbaarheid. Neem voor een wijziging contact op met de planning.</span></p>}
+        <div className="ps-availability-days">{dayKeys.map((key) => {
+          const required = Boolean(week[key].start || week[key].end);
+          return <div className="ps-availability-day" key={key}><span>{dayLabels[key]}</span><input aria-label={`${dayLabels[key]} vanaf`} aria-describedby="ps-availability-help" type={enabled ? "time" : "text"} placeholder="--:--" required={required} disabled={!enabled || pending} value={week[key].start} onChange={(event) => setTime(key, "start", event.target.value)}/><input aria-label={`${dayLabels[key]} tot`} aria-describedby={invalidDay === key ? "ps-availability-error" : "ps-availability-help"} aria-invalid={invalidDay === key || undefined} type={enabled ? "time" : "text"} placeholder="--:--" required={required} disabled={!enabled || pending} value={week[key].end} onChange={(event) => setTime(key, "end", event.target.value)}/></div>;
+        })}</div>
+        <p id="ps-availability-help" className="ps-availability-help">Laat beide tijden leeg als je die dag niet beschikbaar bent.</p>
+        {invalidDay && <p id="ps-availability-error" className="ps-availability-error" role="alert">{dayLabels[invalidDay]}: vul beide tijden in; de eindtijd moet na de begintijd liggen.</p>}
+        <button type="submit" className="ps-primary" disabled={!enabled || pending}>Beschikbaarheid opslaan</button>
+        <details className="ps-availability-preferences"><summary>Overige planningsvoorkeuren</summary>
+          <fieldset className="ps-choice-group" disabled={!enabled || pending}><legend>Dienstvoorkeur</legend><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("day")} onChange={(event) => toggleShift("day", event.target.checked)}/>Dag</label><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("evening")} onChange={(event) => toggleShift("evening", event.target.checked)}/>Avond</label><label className="ps-check"><input type="checkbox" checked={value.shifts.includes("night")} onChange={(event) => toggleShift("night", event.target.checked)}/>Nacht</label></fieldset>
+          <div className="ps-form-grid"><label className="ps-check"><input type="checkbox" disabled={!enabled || pending} checked={value.weekends} onChange={(event) => setValue({ ...value, weekends: event.target.checked })}/>Weekend inzetbaar</label><label className="ps-check"><input type="checkbox" disabled={!enabled || pending} checked={value.holidays} onChange={(event) => setValue({ ...value, holidays: event.target.checked })}/>Feestdagen inzetbaar</label></div>
+          <div className="ps-field"><label htmlFor="ps-availability-note">Planningsopmerking</label><textarea id="ps-availability-note" disabled={!enabled || pending} rows={4} maxLength={1000} value={value.planningNote} onChange={(event) => setValue({ ...value, planningNote: event.target.value })}/></div>
+        </details>
+      </form></section>
+      <aside className="ps-availability-aside" aria-label="Over beschikbaarheid">
+        <section className="ps-panel"><h2>Goed om te weten</h2><p>Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan.</p></section>
+        <section className="ps-panel"><h2>Tijdelijk afwezig?</h2><p>Voor vakantie of een vrije dag dien je een verlofaanvraag in.</p><button type="button" className="ps-text-button" onClick={onLeave}>Naar mijn verlof</button></section>
+      </aside>
+    </div>
+  </div>;
 }
 
 function DocumentsScreen({ data, profile }: { data: StaffWorkspaceData; profile: StaffPersonnel }) {
