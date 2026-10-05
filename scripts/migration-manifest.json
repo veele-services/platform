@@ -551,6 +551,11 @@
       "version": "20261005075500",
       "name": "customer_auth_mail_context",
       "sha256": "cbdfc13e948dcbd43e1c64dd1f04a9b02ffdf98f37481cfe2fc4c24a0ead5013"
+    },
+    {
+      "version": "20261005201500",
+      "name": "work_order_planning_state",
+      "sha256": "08fd23c5da5cb49d648ec2df8b8d041e8bdd8aa4a72a56e2d180960e4c62ea61"
     }
   ]
 }

@@ -160,6 +160,43 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
       [object, tenant, customer],
     );
 
+    await t.test("arrival preference stays unassigned until personnel planning; retry, removal and undo preserve state", async () => {
+      const id = await order();
+      await admin.query("update public.work_orders set planning_state='unassigned',budget_labor_minutes=180 where id=$1", [id]);
+      const state = async () => (await admin.query("select planning_state,published_at,projected_start_at,budget_labor_minutes,version from public.work_orders where id=$1", [id])).rows[0];
+      const confirm = async (p) => {
+        const result = await mutate(p);
+        if (result.ok) return result;
+        assert.equal(result.code, "confirmation");
+        return mutate({ ...p, warnings: result.warnings.map(w => w.key) });
+      };
+      const incomplete = await mutate(await proposal(id, []));
+      assert.equal(incomplete.ok, false);
+      assert.equal(incomplete.code, "confirmation");
+      assert.equal((await state()).planning_state, "unassigned");
+      const p = await proposal(id);
+      assert.equal((await mutate(p)).ok, true);
+      const planned = await state();
+      assert.equal(planned.planning_state, "tentative");
+      assert.equal(planned.published_at, null);
+      assert.equal(planned.budget_labor_minutes, 180);
+      const history = (await admin.query("select before_data,after_data from public.planning_changes where id=$1", [p.mutation])).rows[0];
+      assert.equal(history.before_data.planningState, "unassigned");
+      assert.equal(history.after_data.planningState, "tentative");
+      assert.equal((await mutate(p)).replayed, true);
+      assert.equal((await state()).version, planned.version);
+      assert.equal((await confirm({ ...await proposal(id, []), undo: p.mutation })).ok, true);
+      assert.equal((await state()).planning_state, "unassigned");
+      assert.equal((await state()).projected_start_at, null);
+      assert.equal((await mutate(await proposal(id))).ok, true);
+      const remove = await proposal(id, [], null, null);
+      assert.equal((await confirm(remove)).ok, true);
+      assert.equal((await state()).planning_state, "unassigned");
+      assert.equal((await confirm({ ...await proposal(id, []), undo: remove.mutation })).ok, true);
+      assert.equal((await state()).planning_state, "tentative");
+      assert.equal((await confirm(await proposal(id, [], null, null))).ok, true);
+    });
+
     await t.test(
       "minute precision, multiple people, history, idempotency, undo and actual/financial isolation",
       async () => {
@@ -167,6 +204,7 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
         const p = await proposal(id, [people[0], people[1]]);
         const first = await mutate(p);
         assert.equal(first.ok, true);
+        assert.equal((await admin.query("select planning_state from public.work_orders where id=$1", [id])).rows[0].planning_state, "final");
         assert.equal((await mutate(p)).replayed, true);
         assert.equal(
           (

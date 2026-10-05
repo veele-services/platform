@@ -176,6 +176,28 @@ code-oppervlakken zijn handmatig vergeleken; databasegrants en RPC's zijn niet
 veranderd. Dit is een gerichte bronreview, geen brede eindcontrole of
 stagingacceptatie.
 
+## Planningstatus na uitgestelde indeling — 5 oktober 2026
+
+De forward migratie `20261005201500_work_order_planning_state.sql` wijzigt uitsluitend
+de bestaande planningtransactie en haar private snapshot. Eerste personeelsindeling
+zet `unassigned` om naar `tentative`; verwijderen en undo bewaren de status bij de
+uitvoering en haar historie. Publicatie, bestaande definitieve bonnen, arbeidsbudget,
+klantvenster en feitelijke uitvoering worden niet aangepast door deze overgang.
+
+De bronreview bevestigt behoud van de bestaande tenant-/planningsrolcontrole,
+actuele sessie-/modulecontrole via `private.planning_access`, tenantlock,
+versiecontrole, actor-/bongebonden herhaalsleutel, overlap-/beschikbaarheidsvalidatie
+en undo-controle. Beide functies behouden hun lege `search_path` en bestaande
+EXECUTE-grants. De private snapshot blijft ontoegankelijk voor Data API-rollen.
+
+Een schone lokale replay behoudt alle 110 bestaande statementhashes en voegt één
+forward hash toe. `scripts/test-planboard.mjs` slaagt met 10 controles, inclusief
+statusovergang, expliciete afwijkingsbevestiging, retry, verwijderen, undo en behoud
+van definitieve status. De gerichte werkbon-, RPC-, module- en releaseguardregressies
+slagen met 29 controles. Het manifest en uitsluitend de drie daardoor gewijzigde
+autorisatievingerafdrukken zijn na deze review bijgewerkt. De verplichte release-CI
+en stagingacceptatie blijven afzonderlijke controles vóór een deploymentclaim.
+
 ## Portaalreeks bronreview vóór deployment — 5 oktober 2026
 
 De vier gewijzigde bronbestanden hieronder zijn opnieuw vergeleken met de

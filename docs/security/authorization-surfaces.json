@@ -6444,7 +6444,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "a7b950e4215db8154a9e489fd40ebb77d75a6886a640ddddfc0dfd5634d59f9d"
+      "source_sha256": "c2eca33180b796eb4a18ad091d91d17ac2b3381de909fb37dd91b8a3ccf2fe3f"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -8363,7 +8363,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "10a19e373ac618611b034400ab48e136a56743d8b8255473b9ca69e38e4a82df"
+      "definition_sha256": "ae8b843b725300196faf015a571a912c40ac0dcc6b3ae0da963c2b6cabedb10e"
     },
     {
       "id": "rpc:private.platform_invitation_identity()",
@@ -9524,7 +9524,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "60e230081c9649d6ffb2364915f75509aa23167d78efb8ea37ded844c70f00c1"
+      "definition_sha256": "5df56c84ee87bf9e8a6aa00954dc693b212cea6ab0a75bacd130dd3f97a58d64"
     },
     {
       "id": "rpc:public.change_work_order_signature_policy(target_order uuid, expected_version bigint, mode text, employee_required boolean, reason text, mutation_id uuid)",
