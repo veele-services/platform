@@ -5793,7 +5793,7 @@
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
       "classification": "operation",
-      "source_sha256": "30ac4fdeaa306cc75ecf7d4fc4dfa7fee617c910e0e34701571b6fed96863a8e"
+      "source_sha256": "f6760822761efc0b95787b214cdbfb386266657328c1ac555c93bbae402b2915"
     },
     {
       "id": "operation:deploy/Caddyfile.example",
