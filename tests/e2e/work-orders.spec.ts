@@ -127,7 +127,7 @@ test("werkbonwizard bewaart twee individuele inzetten en opent hetzelfde dossier
   await page.goto(`/app/werkbonnen?q=${encodeURIComponent(title)}`);
   await expect(page.locator(".wo-table tbody tr")).toHaveCount(1);
   await expect(page.locator(".wo-table")).toContainText("Milan Werkbontest");
-  await page.getByRole("button", { name: /^Filters/ }).click();
+  await page.getByRole("button", { name: /^Zoeken en filteren/ }).click();
   await page.getByLabel("Planningsstatus", { exact: true }).selectOption("tentative");
   await page.getByLabel("Uitvoeringsstatus", { exact: true }).selectOption("planned");
   await page.getByLabel("Facturatiestatus", { exact: true }).selectOption("not_ready");
@@ -229,6 +229,7 @@ test("werkbonwizard bewaart twee individuele inzetten en opent hetzelfde dossier
 test("checklistbeheer bewaart zes antwoordtypes en maakt een nieuwe versie na publicatie", async ({ page }) => {
   test.setTimeout(90000);
   await login(page);
+  await page.getByRole("button", { name: /^Zoeken en filteren/ }).click();
   await page.getByRole("link", { name: "Templates beheren", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Werkbon- en checklisttemplates", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Nieuwe checklist", exact: true }).click();

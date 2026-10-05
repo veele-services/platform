@@ -52,9 +52,10 @@ test("Dossier 360: shared sources, approval, partial allocation and current acce
    assert.equal((await chain(null,null,null,secondOrder)).requests.length,0);
    await call("select public.record_task_execution($1,$2,1,'completed',1,'Done')",[tenant,regular.work_order_task_id],staff);
    assert.equal((await chain()).actions.find(a=>a.id===id).status,'completed');
-   await call("select public.complete_work_order_task($1,false,null)",[regular.work_order_task_id],staff);
+   const currentVersion=async taskId=>(await db.query("select execution_version from public.work_order_tasks where id=$1",[taskId])).rows[0].execution_version;
+   await call("select public.record_task_execution($1,$2,$3,'in_progress',0,'FICTITIOUS resumed')",[tenant,regular.work_order_task_id,await currentVersion(regular.work_order_task_id)],staff);
    assert.equal((await chain()).actions.find(a=>a.id===id).status,'regular');
-   await call("select public.complete_work_order_task($1,true,null)",[regular.work_order_task_id],staff);
+   await call("select public.record_task_execution($1,$2,$3,'completed',1,'FICTITIOUS completed')",[tenant,regular.work_order_task_id,await currentVersion(regular.work_order_task_id)],staff);
    assert.equal((await chain()).actions.find(a=>a.id===id).status,'completed');
   });
   await t.test("scenarios B/C: exact proposal consent, stale version rejected, internal assessment not exposed",async()=>{
@@ -74,7 +75,7 @@ test("Dossier 360: shared sources, approval, partial allocation and current acce
   await t.test("scenario J: partial actual execution, review and parallel retry allocate exactly once",async()=>{
    await call("select public.record_task_execution($1,$2,1,'partial',2,'Two completed; one follows at the next agreed visit')",[tenant,task],staff);
    const partialBefore=(await db.query("select executed_quantity,execution_state,execution_version,completion_note from public.work_order_tasks where id=$1",[task])).rows[0];
-   await call("select public.complete_work_order_task($1,true,$2)",[task,partialBefore.completion_note],staff);
+   await assert.rejects(call("select public.complete_work_order_task($1,true,$2)",[task,partialBefore.completion_note],staff),e=>e.code==="42501");
    assert.deepEqual((await db.query("select executed_quantity,execution_state,execution_version,completion_note from public.work_order_tasks where id=$1",[task])).rows[0],partialBefore);
    await assert.rejects(call("select public.record_task_execution($1,$2,1,'completed',3,'Stale update')",[tenant,task],staff),e=>e.code==="40001");
    await db.query("update public.work_orders set status='completed' where id=$1",[order]);

@@ -5,7 +5,7 @@ import { getAuthContext, type AppRole } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { addressFromForm } from "@/lib/addresses/form";
 import { mobilityFromForm } from "@/lib/travel/forms";
-import type { Mobility } from "@/lib/travel/model";
+import { vehicleKeys, type Mobility } from "@/lib/travel/model";
 import type { ActionResult } from "@/lib/actions/result";
 import type { Database } from "@/lib/database.types";
 const fail = (): ActionResult<never> => ({
@@ -136,7 +136,7 @@ export async function saveTravelSettings(
       .parse(form.get("margin"));
     const updated = z.string().parse(form.get("updatedAt"));
     const overrides: Record<string, number> = {};
-    for (const k of ["car", "van", "bicycle", "ebike", "walking", "other"]) {
+    for (const k of vehicleKeys) {
       const raw = form.get(`margin-${k}`);
       if (raw !== null && raw !== "")
         overrides[k] = z.coerce.number().int().min(0).max(180).parse(raw);
@@ -322,15 +322,7 @@ export async function saveTravelDaySettings(
         personnelId: z.string().uuid(),
         day: z.string().date(),
         version: z.coerce.number().int().min(0),
-        vehicle: z.enum([
-          "",
-          "car",
-          "van",
-          "bicycle",
-          "ebike",
-          "walking",
-          "other",
-        ]),
+        vehicle: z.enum(["", ...vehicleKeys]),
         departure: z.enum(["", "home", "depot", "custom"]),
         depot: z.string().uuid().or(z.literal("")),
         returnTrip: z.enum(["", "yes", "no"]),

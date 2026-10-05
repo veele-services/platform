@@ -272,7 +272,7 @@ export async function invitePersonnel(formData: FormData): Promise<ActionResult<
     if (personnelError) throw new Error(personnelError.code === "23505" ? "Deze medewerker of dit personeelsnummer bestaat al. Controleer de personeelslijst." : personnelError.message);
     revalidatePath("/app", "layout");
     try {
-      const delivery = await deliverPersonnelInvitation({ tenant: context.tenant, person: { ...person, email: input.email, full_name: input.name }, tokenHash: account.tokenHash });
+      const delivery = await deliverPersonnelInvitation({ tenant: context.tenant, person: { ...person, userId: account.userId, email: input.email, full_name: input.name }, tokenHash: account.tokenHash });
       return { ok: true, employeeNumber: person.employee_number, ...delivery };
     } catch (error) {
       return { ok: true, employeeNumber: person.employee_number, warning: `De medewerker is aangemaakt. ${message(error)}` };
@@ -295,7 +295,7 @@ export async function repeatPersonnelInvitation(formData: FormData): Promise<Act
     if (user.user?.email?.toLowerCase() !== person.email.toLowerCase()) throw new Error("Het e-mailadres wijkt af van het account. Laat de beheerder dit eerst controleren.");
     const account = await preparePersonnelAccount(person.email);
     if (account.userId !== person.user_id) throw new Error("Het account kon niet worden gecontroleerd.");
-    const delivery = await deliverPersonnelInvitation({ tenant: context.tenant, person: { ...person, email: person.email }, tokenHash: account.tokenHash });
+    const delivery = await deliverPersonnelInvitation({ tenant: context.tenant, person: { ...person, userId: person.user_id, email: person.email }, tokenHash: account.tokenHash });
     return { ok: true, ...delivery };
   } catch (error) { return { ok: false, error: message(error) }; }
 }

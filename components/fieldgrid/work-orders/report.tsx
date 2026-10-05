@@ -3,16 +3,16 @@ import { useCallback,useEffect,useRef,useState,useTransition } from "react";
 import { changeWorkOrderSignaturePolicy,loadWorkOrderReport,reviewWorkOrderReport,waiveWorkOrderSignature } from "@/lib/work-orders/report-actions";
 import { reportDocumentLines,reportStateLabels,signatureModeLabels,signatureSourceLabels,type ReportVersion,type WorkOrderReport } from "@/lib/work-orders/report-model";
 
-export function ReportDocument({report}:{report:ReportVersion}){
+export function ReportDocument({report,signaturePreview=false}:{report:ReportVersion;signaturePreview?:boolean}){
  return <section className="report-detail" aria-label={`Klantrapport versie ${report.version}`}>
   {reportDocumentLines(report).map((line,i)=><p style={{whiteSpace:"pre-wrap"}} key={i}>{line}</p>)}
-  {report.snapshot.attachments.map(a=><a key={a.id} href={`/api/files/work-order-report/${report.id}?asset=${a.id}`} target="_blank" rel="noreferrer">{a.name}</a>)}
-  {report.signatures.map(s=><figure key={s.id}>
+  {report.snapshot.attachments.map(a=><a key={a.id} href={`/api/files/work-order-report/${report.id}?asset=${a.id}${signaturePreview?`&signatureHash=${report.contentHash}`:""}`} target="_blank" rel="noreferrer">{a.name}</a>)}
+  {!signaturePreview&&report.signatures.map(s=><figure key={s.id}>
    {/* eslint-disable-next-line @next/next/no-img-element */}
    <img style={{maxWidth:"100%",width:280}} src={`/api/files/work-order-report/${report.id}?asset=${s.id}`} alt={`Ontvangen handtekening van ${s.name}`}/>
    <figcaption>{s.name} · {s.capacity} · versie {report.version} · {new Intl.DateTimeFormat("nl-NL",{dateStyle:"short",timeStyle:"short",timeZone:report.snapshot.timezone}).format(new Date(s.signedAt))} · personeelsapp op locatie{s.capturedBy&&` · vastgelegd door ${s.capturedBy}`}</figcaption>
   </figure>)}
-  <a className="secondary-button" href={`/api/files/work-order-report/${report.id}`} target="_blank" rel="noreferrer">Rapport-PDF openen</a>
+  {!signaturePreview&&<a className="secondary-button" href={`/api/files/work-order-report/${report.id}`} target="_blank" rel="noreferrer">Rapport-PDF openen</a>}
  </section>;
 }
 

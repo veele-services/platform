@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import pg from "pg";
 import sharp from "sharp";
 import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
+import { authenticateStaff, E2E_APP_ORIGIN } from "./staff-auth";
 
 const fixture = randomUUID(), tenantId = randomUUID(), orderId = randomUUID(), objectId = randomUUID(), customerId = randomUUID();
 const tenantName = `Meldingen browser ${fixture.slice(0, 8)}`, tenantSlug = `tickets-e2e-${fixture.slice(0, 8)}`;
@@ -34,7 +35,7 @@ test.beforeAll(async () => {
       for (const capability of ["tickets.internal.share", "tickets.support.read", "tickets.support.create", "tickets.support.reply", "tickets.support.manage", "tickets.support.note"]) await db.query("insert into public.permission_grants(tenant_id,user_id,membership_id,capability,scope) values($1,$2,$3,$4,'{\"all\":true}') on conflict do nothing", [tenantId, users[role].id, membership, capability]);
     } else {
       users[role].personnelId = randomUUID();
-      await db.query("insert into public.personnel(id,tenant_id,user_id,full_name,employee_number,status) values($1,$2,$3,$4,$5,'active')", [users[role].personnelId, tenantId, users[role].id, role === "worker" ? "Robin Tickettest" : "Collega Tickettest", role === "worker" ? "T-001" : "T-002"]);
+      await db.query("insert into public.personnel(id,tenant_id,user_id,full_name,employee_number,status,onboarding_step,onboarding_completed_at) values($1,$2,$3,$4,$5,'active',5,now())", [users[role].personnelId, tenantId, users[role].id, role === "worker" ? "Robin Tickettest" : "Collega Tickettest", role === "worker" ? "T-001" : "T-002"]);
     }
   }
   await db.query("insert into public.platform_admins(user_id) values($1)", [users.platform.id]);
@@ -90,6 +91,10 @@ test.afterAll(async () => {
 
 async function login(page: Page, role: string, path: string) {
   page.setDefaultTimeout(20000);
+  if (path === "/staff" || path.startsWith("/staff/") || path.startsWith("/staff?")) {
+    await authenticateStaff(page, users[role].email, path, password);
+    return;
+  }
   await page.goto(`/login?next=${encodeURIComponent(path)}`);
   await page.getByLabel("E-mailadres").fill(users[role].email);
   await page.getByLabel("Wachtwoord").fill(password);
@@ -104,16 +109,20 @@ async function expectTicketListReady(page: Page, workspace: "staff" | "tenant", 
   await expect(item).toHaveCount(1);
   await expect(item).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "Meldingen laden…" })).toHaveCount(0);
-  if ((page.viewportSize()?.width ?? 0) <= 480) {
-    await expect.poll(() => page.locator(".ticket-toolbar").evaluate(toolbar => {
-      const style = getComputedStyle(toolbar);
-      const available = toolbar.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-      const sort = toolbar.querySelector<HTMLSelectElement>('select[aria-label="Sortering"]')!.getBoundingClientRect();
-      const direction = toolbar.querySelector<HTMLSelectElement>('select[aria-label="Sorteerrichting"]')!.getBoundingClientRect();
-      const filters = toolbar.querySelector<HTMLButtonElement>("button.secondary-button")!.getBoundingClientRect();
-      return { fullWidth: sort.width >= available - 1 && direction.width >= available - 1, separateRows: direction.top >= sort.bottom && filters.top >= direction.bottom };
-    })).toEqual({ fullWidth: true, separateRows: true });
-  }
+  const filters = page.getByRole("button", { name: /^Zoeken en filteren/ });
+  await expect(filters).toBeVisible();
+  await expect(page.getByLabel("Sortering", { exact: true })).toHaveCount(0);
+  await filters.click();
+  const popover = page.locator(".ticket-filter-popover");
+  await expect(popover.getByLabel("Sortering", { exact: true })).toBeVisible();
+  await expect(popover.getByLabel("Sorteerrichting", { exact: true })).toBeVisible();
+  await expect.poll(() => popover.evaluate(element => {
+    const bounds = element.getBoundingClientRect();
+    return bounds.left >= 0 && bounds.right <= innerWidth && element.scrollWidth <= element.clientWidth;
+  })).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(popover).toHaveCount(0);
+  await expect(filters).toBeFocused();
 }
 async function screenshotSizes(page: Page, label: string, ready?: () => Promise<void>) {
   for (const width of [320, 390, 768, 1440]) {
@@ -160,7 +169,7 @@ test("personeelsmelding met echte scan, private notitie, bewuste escalatie en on
   expect((await page.request.get(staffFileUrl!)).ok()).toBe(true);
   await screenshotSizes(page, "staff-detail");
 
-  const managerContext = await browser.newContext(), manager = await managerContext.newPage();
+  const managerContext = await browser.newContext({ baseURL: E2E_APP_ORIGIN }), manager = await managerContext.newPage();
   await login(manager, "manager", `/app/meldingen?search=${encodeURIComponent(subject)}`);
   await expect(manager.locator(".ticket-table tbody tr")).toHaveCount(1);
   await manager.locator(".ticket-table").getByRole("link", { name: /^Bekijk/ }).click();
@@ -184,7 +193,7 @@ test("personeelsmelding met echte scan, private notitie, bewuste escalatie en on
   expect(await staffPayload.text()).not.toContain(note);
   await page.reload();
   await expect(page.getByText(note, { exact: true })).toHaveCount(0);
-  const coworkerContext = await browser.newContext(), coworker = await coworkerContext.newPage();
+  const coworkerContext = await browser.newContext({ baseURL: E2E_APP_ORIGIN }), coworker = await coworkerContext.newPage();
   await login(coworker, "colleague", "/staff/meldingen");
   await expect(coworker.getByText(subject, { exact: true })).toHaveCount(0);
   const colleagueResponse = await coworker.request.get(`/staff/meldingen/${ticketId}`);
@@ -211,7 +220,7 @@ test("personeelsmelding met echte scan, private notitie, bewuste escalatie en on
   expect(supportId).not.toBe(ticketId);
   expect((await db.query("select count(*)::int count from private.ticket_links where source_ticket_id=$1", [ticketId])).rows[0].count).toBe(1);
 
-  const platformContext = await browser.newContext(), platform = await platformContext.newPage();
+  const platformContext = await browser.newContext({ baseURL: E2E_APP_ORIGIN }), platform = await platformContext.newPage();
   await login(platform, "platform", `/platform/support/${supportId}`);
   await expect(platform.getByText(note, { exact: true })).toHaveCount(0);
   const platformPayload = await platform.request.get(`/platform/support/${supportId}`), platformHtml = await platformPayload.text();
@@ -330,7 +339,7 @@ test("configuratiebevoegdheid geeft geen gesprekstoegang; personeel ziet alleen 
     const response = await page.request.get(`/platform/support/${ticket.id}`);
     expect(await response.text()).not.toContain(ticket.title);
   }
-  const staffContext = await browser.newContext(), staff = await staffContext.newPage();
+  const staffContext = await browser.newContext({ baseURL: E2E_APP_ORIGIN }), staff = await staffContext.newPage();
   await login(staff, "worker", "/staff/meldingen/instellingen");
   await expect(staff.getByRole("heading", { name: "Mijn notificatievoorkeuren" })).toBeVisible();
   await expect(staff.getByRole("heading", { name: "Categorieën & routing", exact: true })).toHaveCount(0);

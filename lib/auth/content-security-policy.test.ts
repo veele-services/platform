@@ -27,4 +27,16 @@ describe("content security policy", () => {
       "upgrade-insecure-requests",
     );
   });
+
+  it("allows only the configured Supabase HTTP and realtime origins", () => {
+    const local = createContentSecurityPolicy(false, false, "http://127.0.0.1:59321").value;
+    expect(local).toContain("connect-src 'self' https://tiles.openfreemap.org http://127.0.0.1:59321 ws://127.0.0.1:59321");
+
+    const hosted = createContentSecurityPolicy(false, true, "https://fieldgrid-test.supabase.co/path").value;
+    expect(hosted).toContain("https://fieldgrid-test.supabase.co wss://fieldgrid-test.supabase.co");
+    expect(hosted).not.toContain("/path");
+
+    const credentialed = createContentSecurityPolicy(false, true, "https://user:pass@fieldgrid-test.supabase.co").value;
+    expect(credentialed).not.toContain("fieldgrid-test.supabase.co");
+  });
 });

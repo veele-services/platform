@@ -40,7 +40,13 @@ test('HR classification applies to legacy rows as well as managed dossiers',asyn
       assert.ok((await call(staff,'select public.personnel_mobility($1,$2) data',[tenant,own]))[0].data);
       await assert.rejects(call(staff,'select public.personnel_mobility($1,$2)',[tenant,other]),e=>e.code==='42501');
       await assert.rejects(call(planner,'select public.personnel_mobility($1,$2)',[tenant,own]),e=>e.code==='42501');
-      assert.equal((await call(staff,"insert into public.availability(tenant_id,personnel_id,starts_at,ends_at,kind) values($1,$2,'2030-01-01T08:00Z','2030-01-01T09:00Z','available') returning id",[tenant,own])).length,1);
+      // Availability is now management-owned operational data. Staff can
+      // update only the explicitly enabled preference contract through the
+      // guarded staff RPC; direct Data API rows must remain unavailable.
+      await assert.rejects(
+        call(staff,"insert into public.availability(tenant_id,personnel_id,starts_at,ends_at,kind) values($1,$2,'2030-01-01T08:00Z','2030-01-01T09:00Z','available') returning id",[tenant,own]),
+        e=>e.code==='42501',
+      );
     });
     await t.test('only explicitly published own document fields reach staff; raw HR metadata stays private',async()=>{
       assert.deepEqual(await call(staff,'select * from public.personnel_documents where tenant_id=$1',[tenant]),[]);
@@ -69,7 +75,7 @@ test('HR classification applies to legacy rows as well as managed dossiers',asyn
       assert.equal((await call(staff,'select * from public.personnel_availability($1)',[tenant])).length,1);
       assert.deepEqual(await call(colleague,'select * from public.personnel_availability($1)',[tenant]),[]);
       assert.deepEqual(await call(planner,'select * from public.personnel_availability($1)',[otherTenant]),[]);
-      assert.equal((await call(staff,"update public.availability set note='FICTITIOUS OWN UPDATE' where id=$1 returning id",[absence])).length,1);
+      assert.deepEqual(await call(staff,"update public.availability set note='FICTITIOUS OWN UPDATE' where id=$1 returning id",[absence]),[]);
       assert.deepEqual(await call(planner,"update public.availability set note='DENIED UPDATE' where id=$1 returning id",[absence]),[]);
       await db.query("update public.tenant_memberships set status='revoked' where tenant_id=$1 and user_id=$2",[tenant,planner]);
       assert.deepEqual(await call(planner,'select * from public.personnel_availability($1)',[tenant]),[]);

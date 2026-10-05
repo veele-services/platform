@@ -102,8 +102,11 @@ describe("employee itineraries", () => {
     expect(profiles).toEqual({
       car: "driving-car",
       van: "driving-car",
+      motorcycle: null,
+      scooter: null,
+      electric_bicycle: "cycling-electric",
       bicycle: "cycling-regular",
-      ebike: "cycling-electric",
+      public_transport: null,
       walking: "foot-walking",
       other: null,
     });

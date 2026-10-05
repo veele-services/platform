@@ -4,7 +4,7 @@ const origin = "https://staging.fieldgrid.nl";
 const fixture = (type = "recovery") => authMailPayload.parse({ user: { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", email: "old@example.test", new_email: "new@example.test", user_metadata: { tenant_id: "untrusted" } }, email_data: { email_action_type: type, token_hash: "a".repeat(64), token: "123456" } });
 describe("Auth email destination and content", () => {
   it("accepts only the canonical platform and tenant origins", () => {
-    expect(authMailDestination("https://test.staging.fieldgrid.nl/auth/confirm?next=https://evil.test", origin, "staging")).toEqual({ origin: "https://test.staging.fieldgrid.nl", slug: "test" });
+    expect(authMailDestination("https://test.staging.fieldgrid.nl/auth/confirm?next=https://evil.test", origin, "staging")).toEqual({ origin: "https://test.staging.fieldgrid.nl", slug: "test", staffOtp: false });
     expect(authMailDestination("", origin, "staging").slug).toBeNull();
     for (const target of ["https://www.fieldgrid.nl", "https://evil.test", "http://staging.fieldgrid.nl", "https://staging.fieldgrid.nl:444", "https://user:pass@staging.fieldgrid.nl", "https://a.b.staging.fieldgrid.nl", "https://staging.fieldgrid.nl/api/worker", "https://staging.fieldgrid.nl/#token"]) expect(() => authMailDestination(target, origin, "staging")).toThrow();
   });
@@ -30,5 +30,14 @@ describe("Auth email destination and content", () => {
     expect(() => authMailMessages(fixture("unknown"), origin, "Fieldgrid")).toThrow();
     const p = fixture("email_changed_notification"); p.email_data.old_email = "prior@example.test";
     expect(authMailMessages(p, origin, "Fieldgrid").map(m => m.recipient)).toEqual(["old@example.test", "prior@example.test"]);
+  });
+  it("renders staff sign-in as a six-digit code without a credential-bearing link", () => {
+    const payload = fixture("magiclink");
+    const message = authMailMessages(payload, origin, "Fieldgrid", true)[0];
+    expect(message).toMatchObject({ recipient: "old@example.test", subject: "Je inlogcode voor Fieldgrid", otp: true, targetUrl: `${origin}/staff`, label: "" });
+    expect(message.body).toContain(payload.email_data.token);
+    expect(message.targetUrl).not.toContain(payload.email_data.token_hash);
+    payload.email_data.token = "12345";
+    expect(() => authMailMessages(payload, origin, "Fieldgrid", true)).toThrow("Invalid staff Auth code");
   });
 });

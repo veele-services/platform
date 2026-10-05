@@ -7,6 +7,7 @@ import { getPlanningShellData } from "@/lib/planning/data";
 import { getTicketAccess, getTicketDetail, getTicketList, getTicketOptions, getTicketSettings } from "@/lib/tickets/data";
 import { ticketPaths, ticketQueryFromSearch, type TicketWorkspace } from "@/lib/tickets/model";
 import { BackofficeShell } from "@/components/fieldgrid/backoffice-shell";
+import { StaffRouteShell } from "@/components/fieldgrid/staff/route-shell";
 import { TicketStandaloneShell } from "./shell";
 import { TicketList } from "./list";
 import { TicketDetailPage } from "./detail";
@@ -23,8 +24,8 @@ export async function TicketRouteLayout({ workspace, children }: { workspace: Ti
   }
   const context = await getAuthContext();
   if (!context.tenant || context.tenant.id !== access.tenant?.id) notFound();
+  if (workspace === "staff") return <StaffRouteShell active="tickets">{children}</StaffRouteShell>;
   const shell = await getPlanningShellData(context.tenant.id);
-  if (workspace === "staff") return <TicketStandaloneShell access={access} logoUrl={shell.brandingLogoUrl}>{children}</TicketStandaloneShell>;
   return <BackofficeShell context={{ ...context, tenant: context.tenant }} data={shell} initialView={workspace === "tenant" ? "meldingen" : "support"}>{children}</BackofficeShell>;
 }
 export async function TicketIndexRoute({ workspace, searchParams }: { workspace: TicketWorkspace; searchParams: Promise<TicketSearch> }) {

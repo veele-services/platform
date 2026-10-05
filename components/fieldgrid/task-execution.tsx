@@ -4,7 +4,12 @@ import type { Row } from "@/lib/objects/model";
 import { assignWorkOrderTask, getTaskCollaboration, recordTaskExecution, type TaskCollaboration } from "@/app/app/dossier-actions";
 import { billingStatus, executionLabels } from "@/lib/dossiers/status";
 import { ObjectForm } from "./objects/forms";
-type ExecutionTask = Omit<Row<"work_order_tasks">, "unit_price_cents" | "vat_basis_points" | "commercial_snapshot"> & { unit_price_cents?: number };
+type ExecutionTask = Pick<Row<"work_order_tasks">,
+  "id" | "task_name" | "quantity" | "unit" | "transferred_quantity" |
+  "withdrawn_quantity" | "executed_quantity" | "completed_at" |
+  "completion_note" | "execution_state" | "execution_version" |
+  "is_extra_work" | "extra_work_status"
+> & { unit_price_cents?: number };
 export function TaskExecution({ task, editable = false, allocated = 0, reviewed = false }: { task: ExecutionTask; editable?: boolean; allocated?: number; reviewed?: boolean }) {
   const [open, setOpen] = useState(false);
   const [collaboration, setCollaboration] = useState<TaskCollaboration | null>(null), [details, setDetails] = useState(false), [error, setError] = useState("");

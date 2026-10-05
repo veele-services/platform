@@ -179,30 +179,31 @@ test("bonnenweergave en filters zijn onafhankelijk en tellen de juiste resultate
 }) => {
   await open(page);
   await page.getByLabel("Bonnenweergave").selectOption("all");
-  await expect(page.locator(".pb-filter-button b")).toHaveCount(0);
-  await page.getByRole("button", { name: "Zoeken & filteren" }).click();
+  const filters = page.getByRole("button", { name: /^Zoeken en filteren/ });
+  await expect(filters).toHaveAccessibleName("Zoeken en filteren");
+  await filters.click();
   const pop = page.locator(".pb-filter-popover");
   await expect(pop.locator("select")).toHaveCount(1);
   await pop.getByLabel("Zoeken", { exact: true }).fill("PB-90");
   await expect(page.locator(".pb-count")).toHaveText("2 bonnen");
-  await expect(page.locator(".pb-filter-button b")).toHaveText("1");
+  await expect(filters).toHaveAccessibleName("Zoeken en filteren, 1 actief");
   await pop.getByLabel("Uitvoeringsstatus").selectOption("completed");
   await expect(page.locator(".pb-count")).toHaveText("0 bonnen");
-  await expect(page.locator(".pb-filter-button b")).toHaveText("2");
+  await expect(filters).toHaveAccessibleName("Zoeken en filteren, 2 actief");
   await pop.getByRole("button", { name: "Wis filters" }).click();
   await expect(page.getByLabel("Bonnenweergave")).toHaveValue("all");
-  await expect(page.locator(".pb-filter-button b")).toHaveCount(0);
+  await expect(filters).toHaveAccessibleName("Zoeken en filteren");
   await pop.getByLabel("Zoeken", { exact: true }).fill("PB-90-2");
   await expect(
     pop.getByRole("button", { name: "Toon 1 bon", exact: true }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(pop).toHaveCount(0);
-  await expect(page.locator(".pb-filter-button b")).toHaveText("1");
+  await expect(filters).toHaveAccessibleName("Zoeken en filteren, 1 actief");
   await page.reload();
   await expect(page.getByLabel("Bonnenweergave")).toHaveValue("all");
   await expect(page.locator(".pb-count")).toHaveText("2 bonnen");
-  await expect(page.locator(".pb-filter-button b")).toHaveCount(0);
+  await expect(filters).toHaveAccessibleName("Zoeken en filteren");
 });
 test("minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebruiken dezelfde uitvoering", async ({
   page,

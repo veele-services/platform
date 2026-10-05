@@ -1,16 +1,28 @@
 import { expect, test, type Page } from "@playwright/test";
 import { brandThemeStyle, createBrandPalette } from "../../lib/branding/palette";
+import { authenticateStaff } from "./staff-auth";
 
 const PASSWORD = "Fieldgrid-E2E-2026";
 const rgb = (hex: string) => `rgb(${[1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16)).join(", ")})`;
 
 
 async function login(page: Page, email: string, next = "/app") {
+  if (next === "/staff" || next.startsWith("/staff/")) {
+    await authenticateStaff(page, email, next, PASSWORD);
+    return;
+  }
   await page.goto(`/login?next=${encodeURIComponent(next)}`);
   await page.getByLabel("E-mailadres").fill(email);
   await page.getByLabel("Wachtwoord").fill(PASSWORD);
   await page.getByRole("button", { name: /Inloggen/ }).click();
   await page.waitForURL((url) => url.pathname === next);
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  await expect.poll(() => page.evaluate(() => {
+    const viewport = document.documentElement.clientWidth;
+    return document.documentElement.scrollWidth <= viewport && document.body.scrollWidth <= viewport;
+  })).toBe(true);
 }
 
 test("beschermde routes vereisen een sessie en foutieve login lekt geen accountstatus", async ({ page }) => {
@@ -209,13 +221,15 @@ test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare v
 
   await page.getByRole("link", { name: "Rapportcontrole" }).click();
   await expect(page).toHaveURL(/\/app\/rapporten$/);
+  await page.getByRole("button", { name: /^Zoeken en filteren/ }).click();
   await expect(page.getByRole("option", { name: "Openstaand" })).toBeAttached();
   await expect(page.getByRole("option", { name: "Verwerkt" })).toBeAttached();
 
   await page.getByRole("link", { name: "Facturen" }).click();
   await expect(page).toHaveURL(/\/app\/facturen$/);
+  await page.getByRole("button", { name: /^Zoeken en filteren/ }).click();
   for (const [value, status] of [["new", "Nieuw"], ["submitted", "Ingediend"], ["open", "Openstaand"], ["paid", "Betaald"], ["late", "Te laat"]]) {
-    await expect(page.locator(`.resource-toolbar option[value="${value}"]`)).toHaveText(status);
+    await expect(page.locator(`.compact-filter-popover option[value="${value}"]`)).toHaveText(status);
   }
 
   await page.getByRole("link", { name: "Planbord" }).click();
@@ -347,25 +361,257 @@ test("klantdossier opent elf volledige paginaonderdelen en bewaart contacten, no
   try{const staff=await staffContext.newPage();await login(staff,"field-worker@fieldgrid.test","/staff");expect((await staffContext.request.get(downloadPath!)).status()).toBe(404);}finally{await staffContext.close();}
 });
 
-test("personeels-PWA opent een vrijgegeven bon, zet gezien en toont de echte checklist", async ({ page }) => {
+test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, uren en personeelszaken", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page, "field-worker@fieldgrid.test", "/staff");
-  await expect(page.getByRole("heading", { name: "Planning" })).toBeVisible();
-  await expect(page.getByRole("img", { name: "Logo van Demo Organisatie" })).toBeVisible();
+  const app = page.locator(".personnel-app");
+  const workOrder = page.getByRole("button", { name: /WB-2030-001/ });
+
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(app).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
+    await expect(app.locator(".ps-planning-main")).toBeVisible();
+    await expect(workOrder).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+  }
+
+  const planningMasks = [
+    app.locator(".ps-sync"),
+    app.locator(".ps-week-navigation strong"),
+    app.locator(".ps-week-days"),
+    app.locator(".ps-order-meta time"),
+    app.locator(".ps-metric-row strong"),
+  ];
+  await expect(app).toHaveScreenshot("staff-planning-1440.png", { animations: "disabled", mask: planningMasks });
+
+  await page.setViewportSize({ width: 768, height: 900 });
+  await expect(app).toHaveScreenshot("staff-planning-768.png", { animations: "disabled", mask: planningMasks });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(app.locator(".ps-mobile-brand")).toContainText("Fieldgrid");
   await expect(page.getByText("LOGO", { exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: /WB-2030-001/ }).click();
-  await page.getByRole("button", { name: "Taken" }).click();
-  await expect(page.getByText("Periodieke controle")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Vertrek" })).toBeVisible();
-  await expect(page.getByText("Werkbon geopend")).toBeHidden({ timeout: 8_000 });
-  await expect(page).toHaveScreenshot("staff-order-390.png", { fullPage: true });
+  await expect(app).toHaveScreenshot("staff-planning-390.png", { animations: "disabled", mask: planningMasks });
+  await workOrder.click();
+  const order = page.getByRole("dialog", { name: "Werkbon WB-2030-001" });
+  const orderTabs = order.getByRole("tablist", { name: "Werkbononderdelen" });
+  await expect(order).toBeVisible();
+  await expect(orderTabs.getByRole("tab", { name: "Overzicht", exact: true })).toHaveAttribute("aria-selected", "true");
+  // The open transition deliberately confirms itself with a short-lived toast.
+  // Keep that transient layer out of the visual baseline so the sheet header,
+  // close controls and work-order identity remain reviewable.
+  const openedToast = page.getByText("Werkbon geopend", { exact: true });
+  await expect(openedToast).toBeVisible({ timeout: 8_000 });
+  await expect(openedToast).toBeHidden({ timeout: 8_000 });
+  await expect(order).toHaveScreenshot("staff-work-order-overview-390.png", {
+    animations: "disabled",
+    mask: [order.locator("time")],
+  });
+  await order.getByRole("button", { name: "Route bekijken", exact: true }).click();
+  const routeDialog = page.getByRole("dialog", { name: "Route naar locatie", exact: true });
+  await expect(routeDialog.getByText("Marktstraat 12, 2511 AA Den Haag", { exact: true })).toBeVisible();
+  await expect(routeDialog.getByRole("link", { name: "Open navigatie", exact: true })).toHaveAttribute("href", /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=/);
+  await routeDialog.getByRole("button", { name: "Terug naar werkbon", exact: true }).click();
+  await order.getByRole("button", { name: "Beveiligde objecttoegang", exact: true }).click();
+  const accessDialog = page.getByRole("dialog", { name: "Beveiligde objecttoegang", exact: true });
+  await expect(accessDialog.getByText(/geen code of toegangsinformatie gekopieerd/i)).toBeVisible();
+  await expect(accessDialog.getByRole("link", { name: "Object & instructies openen", exact: true })).toHaveAttribute("href", "/staff/objecten/e3000000-0000-4000-8000-000000000001?order=e6000000-0000-4000-8000-000000000001");
+  await accessDialog.getByRole("button", { name: "Terug naar werkbon", exact: true }).click();
+  await orderTabs.getByRole("tab", { name: "Taken", exact: true }).click();
+  await expect(orderTabs.getByRole("tab", { name: "Taken", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(order.getByText("Periodieke controle", { exact: true })).toBeVisible();
+  await orderTabs.getByRole("tab", { name: "Tijd & status", exact: true }).click();
+  await expect(order.getByRole("heading", { name: "Werk en reis", exact: true })).toBeVisible();
+  await orderTabs.getByRole("tab", { name: "Rapport", exact: true }).click();
+  await expect(order.getByRole("heading", { name: /Werkrapport/ })).toBeVisible();
+  await expect(order.getByRole("button", { name: "Vertrek", exact: true })).toBeVisible({ timeout: 8_000 });
+  await expectNoHorizontalOverflow(page);
+  await order.getByRole("button", { name: "Sluiten", exact: true }).click();
+  await expect(order).toBeHidden();
+
+  const mobileNavigation = page.getByRole("navigation", { name: "Mobiele navigatie" });
+  await expect(mobileNavigation).toBeVisible();
+  await mobileNavigation.getByRole("button", { name: "Nieuws", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Nieuws", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Welkom in Fieldgrid/ })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await mobileNavigation.getByRole("button", { name: "Uren", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Mijn uren", exact: true })).toBeVisible();
+  const hoursWeek = app.locator(".ps-hours-week-panel");
+  await expect(hoursWeek).toBeVisible();
+  await expect(hoursWeek.locator(".ps-hours-week-day")).toHaveCount(7);
+  await expect(hoursWeek.getByText("Geregistreerd weektotaal", { exact: true })).toBeVisible();
+  const currentWeek = hoursWeek.getByRole("button", { name: "Terug naar huidige week", exact: true });
+  await expect(currentWeek).toBeDisabled();
+  await hoursWeek.getByRole("button", { name: "Vorige week", exact: true }).click();
+  await expect(currentWeek).toBeEnabled();
+  await currentWeek.click();
+  await expect(currentWeek).toBeDisabled();
+  await expectNoHorizontalOverflow(page);
+
+  await mobileNavigation.getByRole("button", { name: "Meer", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Meer", exact: true })).toBeVisible();
+  const leaveLink = app.locator(".ps-more-grid").getByRole("button", { name: /Verlof/ });
+  await leaveLink.click();
+  await expect(page.getByRole("heading", { name: "Verlof", exact: true })).toBeVisible();
+  const leaveTrigger = page.getByRole("button", { name: "Verlof aanvragen", exact: true });
+  await leaveTrigger.click();
+  const leaveDialog = page.getByRole("dialog", { name: "Verlof aanvragen" });
+  await expect(leaveDialog).toBeVisible();
+  await expect(leaveDialog).toHaveAttribute("aria-modal", "true");
+  await expect(leaveDialog.getByRole("combobox", { name: "Type", exact: true })).toBeVisible();
+  await expect(leaveDialog.getByLabel("Vanaf", { exact: true })).toBeVisible();
+  await expect(leaveDialog.getByLabel("Tot en met", { exact: true })).toBeVisible();
+  await expect(leaveDialog.getByRole("button", { name: "Sluiten", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect.poll(() => leaveDialog.evaluate((element) => element.contains(document.activeElement))).toBe(true);
+  await expectNoHorizontalOverflow(page);
+  await page.keyboard.press("Escape");
+  await expect(leaveDialog).toBeHidden();
+  await expect(leaveTrigger).toBeFocused();
 });
 
-test("login en PWA hebben geen horizontale overflow op smalle doelbreedtes", async ({ page }) => {
+test("nieuwe medewerker hervat en voltooit de volledige personeels-onboarding", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page, "new-field-worker@fieldgrid.test", "/staff");
+
+  const onboarding = page.locator(".ps-onboarding");
+  await expect(onboarding).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Welkom bij Fieldgrid/ })).toBeVisible();
+  await expect(onboarding.getByText("new-field-worker@fieldgrid.test", { exact: true })).toBeVisible();
+  await onboarding.getByRole("button", { name: "Lees privacy- en gebruiksinformatie" }).click();
+  await expect(page.getByRole("heading", { name: "Zo gaan we met je gegevens om" })).toBeVisible();
+  await expect(onboarding.getByText(/formele privacy-informatie en gebruiksvoorwaarden/i)).toBeVisible();
+  await onboarding.getByRole("button", { name: "Terug naar onboarding" }).click();
+  await expect(page.getByRole("heading", { name: /Welkom bij Fieldgrid/ })).toBeVisible();
+  await onboarding.getByRole("button", { name: "Opslaan en volgende" }).click();
+  await expect(page.getByRole("heading", { name: "Hoe kunnen we je bereiken?" })).toBeVisible();
+
+  // Bewijs dat de server de tussenstap bewaart en de wizard na een reload hervat.
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Hoe kunnen we je bereiken?" })).toBeVisible();
+  await onboarding.getByLabel("Mobiel nummer *", { exact: true }).fill("0612345678");
+  await onboarding.getByLabel("Straat en huisnummer", { exact: true }).fill("Testlaan 12");
+  await onboarding.getByLabel("Postcode", { exact: true }).fill("1234 AB");
+  await onboarding.getByLabel("Plaats", { exact: true }).fill("Utrecht");
+  await onboarding.getByRole("button", { name: "Opslaan en volgende" }).click();
+
+  await expect(page.getByRole("heading", { name: "Hoe vertrek je naar afspraken?" })).toBeVisible();
+  await onboarding.getByRole("combobox", { name: "Standaard vervoer", exact: true }).selectOption("electric_bicycle");
+  await onboarding.getByRole("button", { name: "Opslaan en volgende" }).click();
+
+  await expect(page.getByRole("heading", { name: "Wanneer ben je inzetbaar?" })).toBeVisible();
+  await onboarding.getByLabel("Maandag", { exact: true }).check();
+  await onboarding.getByLabel("Dag", { exact: true }).check();
+  await onboarding.getByRole("button", { name: "Opslaan en volgende" }).click();
+
+  await expect(page.getByRole("heading", { name: "Blijf op de hoogte" })).toBeVisible();
+  await expect(onboarding.getByRole("button", { name: "Opslaan en volgende" })).toBeDisabled();
+  await onboarding.getByRole("button", { name: "Nu niet, later instellen" }).click();
+  await onboarding.getByRole("button", { name: "Opslaan en volgende" }).click();
+
+  await expect(page.getByRole("heading", { name: "Klaar om te beginnen" })).toBeVisible();
+  await onboarding.getByRole("button", { name: "Lees privacy- en gebruiksinformatie" }).click();
+  await expect(page.getByRole("heading", { name: "Zo gaan we met je gegevens om" })).toBeVisible();
+  await onboarding.getByRole("button", { name: "Terug naar onboarding" }).click();
+  await onboarding.getByLabel("Mijn profielgegevens zijn correct.", { exact: true }).check();
+  await onboarding.getByLabel("Mijn beschikbaarheid is correct.", { exact: true }).check();
+  await onboarding.getByLabel("Ik heb mijn meldingsinstellingen gecontroleerd.", { exact: true }).check();
+  await onboarding.getByLabel("Ik heb de privacy-informatie van mijn organisatie gecontroleerd.", { exact: true }).check();
+  await onboarding.getByLabel("Ik heb de toepasselijke gebruiksvoorwaarden gecontroleerd.", { exact: true }).check();
+  await onboarding.getByRole("button", { name: "Naar mijn planning" }).click();
+
+  await expect(onboarding).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(onboarding).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
+  const mobileNavigation = page.getByRole("navigation", { name: "Mobiele navigatie" });
+  await mobileNavigation.getByRole("button", { name: "Meer", exact: true }).click();
+  await page.locator(".ps-more-grid").getByRole("button", { name: /Beschikbaarheid/ }).click();
+  await expect(page.getByRole("heading", { name: "Beschikbaarheid", exact: true })).toBeVisible();
+  const availabilityNote = page.getByRole("textbox", { name: "Planningsopmerking", exact: true });
+  const saveAvailability = page.getByRole("button", { name: "Beschikbaarheid opslaan", exact: true });
+  const savedAvailability = page.getByText("Beschikbaarheid opgeslagen", { exact: true });
+  await availabilityNote.fill("FICTITIOUS eerste opgeslagen beschikbaarheid");
+  await saveAvailability.click();
+  await expect(savedAvailability).toBeVisible();
+  await expect(savedAvailability).toBeHidden({ timeout: 8_000 });
+  await availabilityNote.fill("FICTITIOUS tweede opgeslagen beschikbaarheid");
+  await saveAvailability.click();
+  await expect(savedAvailability).toBeVisible();
+  await expect(page.getByText(/intussen gewijzigd/i)).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+});
+
+test("planningwijziging verschijnt realtime bij personeel zonder paginareload", async ({ page: planner, browser }) => {
+  test.setTimeout(60_000);
+  const staffContext = await browser.newContext({
+    baseURL: "http://127.0.0.1:3000",
+    locale: "nl-NL",
+    timezoneId: "Europe/Amsterdam",
+  });
+  const staff = await staffContext.newPage();
+  const orderId = "e6000000-0000-4000-8000-000000000001";
+  const oldStart = "2030-01-15T10:00";
+  const oldEnd = "2030-01-15T10:30";
+  const newStart = "2030-01-15T10:15";
+  const newEnd = "2030-01-15T10:45";
+  let planningChanged = false;
+
+  const savePlanningTime = async (start: string, end: string, expected: string) => {
+    await planner.getByRole("button", { name: "Acties voor werkbon WB-2030-001" }).click();
+    await planner.getByRole("button", { name: "Tijd en medewerker(s) aanpassen" }).click();
+    const detail = planner.getByRole("dialog", { name: "Noordhaven Kantoor" });
+    const confirmation = planner.getByRole("dialog", { name: "Controleer de afwijking" });
+    await expect(detail).toBeVisible();
+    await detail.getByLabel("Begin", { exact: true }).fill(start);
+    await detail.getByLabel("Einde", { exact: true }).fill(end);
+    await detail.getByRole("button", { name: "Planning opslaan" }).click();
+    await expect.poll(async () => {
+      if (await confirmation.isVisible()) return "confirmation";
+      return await detail.isVisible() ? "saving" : "saved";
+    }).not.toBe("saving");
+    if (await confirmation.isVisible()) {
+      await confirmation.getByRole("button", { name: "Plan toch" }).click();
+    }
+    await expect(detail).toBeHidden();
+    await expect(planner.locator(`[data-order-id="${orderId}"]`)).toContainText(expected);
+  };
+
+  try {
+    await login(staff, "field-worker@fieldgrid.test", "/staff");
+    const staffOrder = staff.getByRole("button", { name: /WB-2030-001/ });
+    const staffTime = staffOrder.locator(".ps-order-time");
+    await expect(staffTime).toHaveText("10:00–10:30");
+    await expect(staff.locator(".ps-topbar .ps-sync")).toContainText(/bijgewerkt/i);
+    const sentinel = `staff-realtime-${Date.now()}`;
+    await staff.evaluate((value) => Reflect.set(window, "__fieldgridRealtimeSentinel", value), sentinel);
+
+    await login(planner, "platform-admin@fieldgrid.test", "/app/planning");
+    await planner.getByLabel("Planningsdag").fill("2030-01-15");
+    await expect(planner.locator(`[data-order-id="${orderId}"]`)).toContainText("10:00–10:30");
+
+    planningChanged = true;
+    await savePlanningTime(newStart, newEnd, "10:15–10:45");
+
+    await expect(staffTime).toHaveText("10:15–10:45", { timeout: 8_000 });
+    await expect.poll(() => staff.evaluate(() => Reflect.get(window, "__fieldgridRealtimeSentinel"))).toBe(sentinel);
+    await expect(staff).toHaveURL(/\/staff$/);
+  } finally {
+    if (planningChanged) await savePlanningTime(oldStart, oldEnd, "10:00–10:30");
+    await staffContext.close();
+  }
+});
+
+test("login heeft geen horizontale overflow op smalle doelbreedtes", async ({ page }) => {
   for (const width of [320, 430]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto("/login");
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await expectNoHorizontalOverflow(page);
   }
 });
 

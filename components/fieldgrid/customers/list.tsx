@@ -28,6 +28,7 @@ import {
 import { customerCommand } from "@/app/app/klanten/actions";
 import { CustomerWizard } from "./forms";
 import { customerScroll, rememberCustomerScroll } from "@/lib/auth/browser-state";
+import { CompactFilterMenu } from "../compact-filter-menu";
 
 export function CustomersList({
   data,
@@ -88,9 +89,10 @@ export function CustomersList({
   const canDelete = tenant.roles.some((r) =>
     ["tenant_admin", "management"].includes(r),
   );
-  const active = Object.entries(filters).some(
+  const activeFilters = Object.entries(filters).filter(
     ([k, v]) => !["page", "sort"].includes(k) && v,
   );
+  const active = activeFilters.length > 0;
   return (
     <div className="customer-workspace">
       <header className="commercial-heading page-intro resource-intro">
@@ -107,8 +109,11 @@ export function CustomersList({
           Nieuwe klant
         </button>
       </header>
+      <div className="compact-filter-bar">
+        <span className="compact-filter-result">{data.total} {data.total === 1 ? "klant" : "klanten"}</span>
+        <CompactFilterMenu activeCount={activeFilters.length} contentClassName="customer-filter-popover">
       <form
-        className="panel customer-toolbar"
+        className="customer-toolbar"
         aria-label="Klanten filteren"
         onSubmit={(e) => {
           e.preventDefault();
@@ -205,6 +210,8 @@ export function CustomersList({
           )}
         </div>
       </form>
+        </CompactFilterMenu>
+      </div>
       <section className="panel resource-table-panel" aria-label="Klantenlijst">
         <div className="table-scroll">
           <table className="resource-table customer-table">

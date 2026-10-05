@@ -1,9 +1,10 @@
 import "server-only";
 import { z } from "zod";
 import { addressFromForm } from "@/lib/addresses/form";
+import { vehicleKeys } from "@/lib/travel/model";
 export async function mobilityFromForm(form: FormData) {
   const vehicle = z
-    .enum(["", "car", "van", "bicycle", "ebike", "walking", "other"])
+    .enum(["", ...vehicleKeys])
     .parse(form.get("standardVehicle") || "");
   const departure = z
     .enum(["", "home", "depot", "custom"])

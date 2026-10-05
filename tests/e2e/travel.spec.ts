@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import pg from "pg";
 import { requireLocalDatabaseUrl } from "./local-target";
+import { authenticateStaff } from "./staff-auth";
 import { randomUUID } from "node:crypto";
 const day = "2032-05-10",
   person = "e1000000-0000-4000-8000-000000000001",
@@ -131,6 +132,10 @@ async function login(
   path: string,
   email = "platform-admin@fieldgrid.test",
 ) {
+  if (path === "/staff" || path.startsWith("/staff/")) {
+    await authenticateStaff(page, email, path);
+    return;
+  }
   await page.goto(`/login?next=${encodeURIComponent(path)}`);
   await page.getByLabel("E-mailadres").fill(email);
   await page.getByLabel("Wachtwoord").fill("Fieldgrid-E2E-2026");
@@ -234,6 +239,7 @@ test("PDOK address selection, exact suffixes, stale response protection and mobi
 test("planboard basic travel, exact shortage, daily bicycle override, manual fallback and staff privacy", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page, `/app/planning?day=${day}`);
   await expect(

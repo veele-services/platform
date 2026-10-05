@@ -605,7 +605,16 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
         assert.equal(
           (
             await admin.query(
-              "select count(*)::int n from public.time_entries e join public.work_order_assignments a on a.id=e.assignment_id where a.work_order_id=$1 and e.ends_at is not null",
+              "select count(*)::int n from public.time_entries e join public.work_order_assignments a on a.id=e.assignment_id where a.work_order_id=$1 and e.kind='work' and e.ends_at is not null",
+              [id],
+            )
+          ).rows[0].n,
+          2,
+        );
+        assert.equal(
+          (
+            await admin.query(
+              "select count(*)::int n from public.time_entries e join public.work_order_assignments a on a.id=e.assignment_id where a.work_order_id=$1 and e.kind='travel' and e.ends_at is not null",
               [id],
             )
           ).rows[0].n,

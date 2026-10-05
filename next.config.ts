@@ -7,7 +7,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   experimental: {
     serverActions: {
-      bodySizeLimit: "12mb",
+      // Rapportages accepteren maximaal vijf gecontroleerde bijlagen van 10 MB.
+      // De action zelf handhaaft aantal, MIME, inhoud, scanner en opslaggrenzen.
+      bodySizeLimit: "55mb",
     },
   },
   async headers() {

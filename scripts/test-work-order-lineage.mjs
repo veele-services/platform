@@ -130,11 +130,12 @@ test("Work-order lineage conserves scope, historical evidence and occurrence ide
       row = (await db.query("select * from public.work_order_tasks where id=$1", [task])).rows[0];
       assert.ok(row.completed_at);assert.equal(row.execution_state,'not_applicable');assert.equal(Number(row.executed_quantity),0);
       await execute('completed', 6);
-      await call("select public.complete_work_order_task($1,false,null)",[task],staff);
-      const result = (await call("select to_jsonb(public.complete_work_order_task($1,true,'FICTITIOUS own scope')) result", [task], staff))[0].result;
-      assert.equal(result.executed_quantity,6);assert.equal(result.unit_price_cents,0);assert.deepEqual(result.commercial_snapshot,{});
+      await assert.rejects(
+        call("select public.complete_work_order_task($1,true,'FICTITIOUS legacy bypass')", [task], staff),
+        error => error.code === '42501'
+      );
       const collaboration = (await call("select public.work_order_task_context($1,$2) result", [tenant,task],staff))[0].result;
-      assert.equal(collaboration.assignedPersonnelId,person);assert.equal(collaboration.crew.length,1);assert.equal(collaboration.contributions.length,5);
+      assert.equal(collaboration.assignedPersonnelId,person);assert.equal(collaboration.crew.length,1);assert.equal(collaboration.contributions.length,3);
       assert.equal(collaboration.contributions[0].toQuantity,6);assert.equal(JSON.stringify(collaboration).includes('unit_price'),false);
       await assert.rejects(call("select public.work_order_task_context($1,$2)",[tenant,task],stranger),error=>error.code==='42501');
       await assert.rejects(call("insert into public.work_order_task_contributions(tenant_id,task_id,actor_id,execution_version,from_quantity,to_quantity,result) values($1,$2,$3,100,0,100,'completed')",[tenant,task,staff],staff),error=>error.code==='42501');

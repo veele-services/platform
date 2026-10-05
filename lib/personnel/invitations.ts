@@ -40,7 +40,7 @@ export async function preparePersonnelAccount(email: string): Promise<{ userId: 
 
 export async function deliverPersonnelInvitation(input: {
   tenant: TenantContext;
-  person: { id: string; email: string; full_name: string; employee_number: string };
+  person: { id: string; userId: string; email: string; full_name: string; employee_number: string };
   tokenHash: string | null;
 }): Promise<{ warning?: string }> {
   const env = requirePersonnelEmail();
@@ -86,7 +86,9 @@ export async function deliverPersonnelInvitation(input: {
     }
     providerStarted=true;sent = await sendEmail({ ...mail, to: input.person.email, fromEmail: env.SENDGRID_FROM_EMAIL,
       fromName: branding.sender_name || input.tenant.name, deliveryKey, disableTracking: true,
-      policy: input.tokenHash ? { kind: "security", flow: "invitation", tenantId: input.tenant.id } : { kind: "notification", tenantId: input.tenant.id, type: "personnel.invitation", context: "staff", sourceId: delivery!.id } });
+      policy: input.tokenHash
+        ? { kind: "security", flow: "invitation", tenantId: input.tenant.id }
+        : { kind: "notification", tenantId: input.tenant.id, type: "personnel.invitation", context: "staff", recipientUserId: input.person.userId, sourceId: delivery!.id } });
   } catch (cause) {
     if (!input.tokenHash && await deferNotificationMail(cause,input.tenant.id,delivery!.id,"personnel.invitation","staff")) {
       return {warning:"De uitnodigingsmail staat klaar en wordt na de persoonlijke rusttijden verzonden. Het personeelsaccount is gekoppeld."};

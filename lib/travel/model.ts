@@ -1,19 +1,26 @@
 import { location, normalizeAddress, type Point } from "../addresses/model";
 
-export const vehicles = {
+export const vehicleKeys = ["car", "van", "motorcycle", "scooter", "electric_bicycle", "bicycle", "public_transport", "walking", "other"] as const;
+export type Vehicle = (typeof vehicleKeys)[number];
+export const vehicles: Record<Vehicle, string> = {
   car: "Auto",
   van: "Bestelauto",
+  motorcycle: "Motor",
+  scooter: "Scooter",
+  electric_bicycle: "E-bike",
   bicycle: "Fiets",
-  ebike: "E-bike",
+  public_transport: "Openbaar vervoer",
   walking: "Lopend",
   other: "Overig / handmatige reistijd",
-} as const;
-export type Vehicle = keyof typeof vehicles;
+};
 export const profiles: Record<Vehicle, string | null> = {
   car: "driving-car",
   van: "driving-car",
+  motorcycle: null,
+  scooter: null,
   bicycle: "cycling-regular",
-  ebike: "cycling-electric",
+  electric_bicycle: "cycling-electric",
+  public_transport: null,
   walking: "foot-walking",
   other: null,
 };

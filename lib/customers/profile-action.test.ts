@@ -17,6 +17,13 @@ vi.mock("@/lib/auth/context", () => ({
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({ rpc: mocks.rpc })),
 }));
+vi.mock("@/lib/work-orders/report-rpc", () => ({
+  reportRpc: vi.fn(async (database: { rpc: typeof mocks.rpc }, name: string, args: Record<string, unknown>) => {
+    const result = await database.rpc(name, args);
+    if (result.error) throw result.error;
+    return result.data;
+  }),
+}));
 vi.mock("@/lib/addresses/form", () => ({ addressFromForm: mocks.address }));
 
 import { saveCustomerProfile } from "@/app/app/klanten/actions";

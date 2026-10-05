@@ -82,7 +82,8 @@ de providerwerking of de werkelijke inhoud van runtimeconfiguratie.
 
 De security- en scangatewaymigraties zijn additief en bewaren bestaande
 rapporten, handtekeningen, tijdregistraties, documentbytes en mailevents.
-De huidige lokale set bevat 55 migraties. De aanvullende lifecyclemigraties
+De huidige lokale set bevat 57 migraties. De aanvullende lifecycle- en
+personeelsmigraties
 bewaren ook oorspronkelijke uitnodigingsbindingen en definitieve factuurregels.
 Een object met toegangskoppelingen/historie kan niet naar een andere klant
 worden verplaatst; een privédagadres kan niet naar een ander personeelsnummer

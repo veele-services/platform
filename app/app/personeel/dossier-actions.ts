@@ -13,6 +13,36 @@ import { canReadDossier, recordKinds, validateDossierInput, recordDeadline, priv
 import type { DossierTable } from "@/lib/personnel/dossier-data";
 import { customerDocumentExtension, customerDocumentFileName } from "@/lib/customers/documents";
 
+const reviewStaffLeaveSchema=z.object({
+ personnelId:z.string().uuid(),
+ requestId:z.string().uuid(),
+ decision:z.enum(["approve","reject"]),
+ expectedVersion:z.number().int().positive(),
+ approvedMinutes:z.number().int().positive().max(527040).nullable(),
+ note:z.string().trim().max(2000),
+}).strict().superRefine((value,context)=>{
+ if(value.decision==="reject"&&!value.note)context.addIssue({code:"custom",path:["note"],message:"Een toelichting is verplicht bij afwijzen."});
+ if(value.decision==="approve"&&!value.approvedMinutes)context.addIssue({code:"custom",path:["approvedMinutes"],message:"Goedgekeurde verlofuren zijn verplicht."});
+});
+export type ReviewStaffLeaveInput=z.input<typeof reviewStaffLeaveSchema>;
+const reviewStaffTimeCorrectionSchema=z.object({
+ personnelId:z.string().uuid(),
+ requestId:z.string().uuid(),
+ decision:z.enum(["approve","reject"]),
+ expectedVersion:z.number().int().positive(),
+ note:z.string().trim().max(2000),
+}).strict().superRefine((value,context)=>{
+ if(value.decision==="reject"&&!value.note)context.addIssue({code:"custom",path:["note"],message:"Een toelichting is verplicht bij afwijzen."});
+});
+export type ReviewStaffTimeCorrectionInput=z.input<typeof reviewStaffTimeCorrectionSchema>;
+
+type UntypedMaybeSingleResult={data:Record<string,unknown>|null;error:{message:string}|null};
+type UntypedMaybeSingleFilter={
+ eq(column:string,value:string):UntypedMaybeSingleFilter;
+ maybeSingle():Promise<UntypedMaybeSingleResult>;
+};
+type UntypedTable={select(columns:string):UntypedMaybeSingleFilter};
+
 async function authorize(personnelId: string) {
  z.string().uuid().parse(personnelId);
  const context=await getAuthContext();
@@ -34,6 +64,100 @@ export async function prepareDossierChecklist(personnelId:string,type:"onboardin
   z.enum(["onboarding","offboarding"]).parse(type);const {db,tenant,person}=await authorize(personnelId);
   const {error}=await db.rpc("prepare_personnel_checklist",{target_tenant:tenant.id,target_personnel:person.id,checklist_type:type});
   if(error)throw new Error("Checklist kon niet worden klaargezet.");refresh(person.id);return {ok:true};
+ }catch(error){return failure(error);}
+}
+
+export async function setStaffAvailabilitySelfService(personnelId:string,enabled:boolean,expectedVersion:number):Promise<ActionResult<{enabled:boolean;version:number}>> {
+ try {
+  const input=z.object({personnelId:z.string().uuid(),enabled:z.boolean(),expectedVersion:z.number().int().positive()}).parse({personnelId,enabled,expectedVersion});
+  const {db,tenant,person}=await authorize(input.personnelId);
+  const rpc=db.rpc.bind(db) as unknown as (name:string,args:Record<string,unknown>)=>Promise<{data:unknown;error:{code?:string;message:string}|null}>;
+  const {data,error}=await rpc("set_staff_availability_permission",{target_tenant:tenant.id,target_personnel:person.id,enabled:input.enabled,expected_version:input.expectedVersion});
+  if(error){
+   if(error.code==="40001")throw new Error("De medewerker is intussen gewijzigd. Vernieuw de pagina en probeer opnieuw.");
+   if(error.code==="42501")throw new Error("Je hebt geen toegang om deze instelling te wijzigen.");
+   throw new Error("De beschikbaarheidsinstelling kon niet worden opgeslagen.");
+  }
+  const output=z.object({availability_self_service_enabled:z.boolean(),version:z.number().int().positive()}).safeParse(data);
+  if(!output.success)throw new Error("De beschikbaarheidsinstelling is opgeslagen, maar het resultaat kon niet worden gecontroleerd. Vernieuw de pagina.");
+  refresh(person.id);
+  return {ok:true,enabled:output.data.availability_self_service_enabled,version:output.data.version};
+ }catch(error){return failure(error);}
+}
+
+export async function reviewStaffLeaveRequest(input:ReviewStaffLeaveInput):Promise<ActionResult> {
+ try {
+  const parsed=reviewStaffLeaveSchema.parse(input);
+  const {db,tenant,person}=await authorize(parsed.personnelId);
+  const untypedFrom=db.from.bind(db) as unknown as (table:string)=>UntypedTable;
+  const request=await untypedFrom("staff_leave_requests").select("id").eq("tenant_id",tenant.id).eq("personnel_id",person.id).eq("id",parsed.requestId).maybeSingle();
+  if(request.error)throw new Error("De verlofaanvraag kon niet worden gecontroleerd.");
+  if(!request.data)throw new Error("Deze verlofaanvraag hoort niet bij de geselecteerde medewerker of is niet meer beschikbaar.");
+  const rpc=db.rpc.bind(db) as unknown as (name:string,args:Record<string,unknown>)=>Promise<{data:unknown;error:{code?:string;message:string}|null}>;
+  const {error}=await rpc("review_staff_leave_request",{
+   target_tenant:tenant.id,
+   target_request:parsed.requestId,
+   decision:parsed.decision,
+   expected_version:parsed.expectedVersion,
+   approved_minutes:parsed.approvedMinutes,
+   note:parsed.note||null,
+  });
+  if(error){
+   if(error.code==="40001")throw new Error("De verlofaanvraag is intussen gewijzigd. Vernieuw het dossier en beoordeel de actuele versie.");
+   if(error.code==="42501")throw new Error("Je hebt geen toegang om deze verlofaanvraag te beoordelen.");
+   if(error.code==="23514")throw new Error("Deze verlofaanvraag kan niet meer worden beoordeeld.");
+   throw new Error("De beoordeling kon niet veilig worden opgeslagen. Probeer opnieuw.");
+  }
+  refresh(person.id);revalidatePath("/staff");return {ok:true};
+ }catch(error){return failure(error);}
+}
+
+export async function reviewStaffTimeCorrection(input:ReviewStaffTimeCorrectionInput):Promise<ActionResult> {
+ try {
+  const parsed=reviewStaffTimeCorrectionSchema.parse(input);
+  const {db,tenant,person}=await authorize(parsed.personnelId);
+  const untypedFrom=db.from.bind(db) as unknown as (table:string)=>UntypedTable;
+  const request=await untypedFrom("staff_time_correction_requests").select("id").eq("tenant_id",tenant.id).eq("personnel_id",person.id).eq("id",parsed.requestId).maybeSingle();
+  if(request.error)throw new Error("Het correctieverzoek kon niet worden gecontroleerd.");
+  if(!request.data)throw new Error("Dit correctieverzoek hoort niet bij de geselecteerde medewerker of is niet meer beschikbaar.");
+  const rpc=db.rpc.bind(db) as unknown as (name:string,args:Record<string,unknown>)=>Promise<{data:unknown;error:{code?:string;message:string}|null}>;
+  const {error}=await rpc("review_staff_time_correction",{
+   target_tenant:tenant.id,
+   target_request:parsed.requestId,
+   decision:parsed.decision,
+   expected_version:parsed.expectedVersion,
+   note:parsed.note||null,
+  });
+  if(error){
+   if(error.code==="40001")throw new Error("Het correctieverzoek of de oorspronkelijke tijdregel is intussen gewijzigd. Vernieuw het dossier en beoordeel de actuele versie.");
+   if(error.code==="42501")throw new Error("Je hebt geen toegang om dit correctieverzoek te beoordelen.");
+   if(error.code==="23514")throw new Error(error.message.includes("overlapt")?"De gewenste tijden overlappen een andere registratie. Beoordeel de uren eerst handmatig.":"Dit correctieverzoek kan niet meer veilig worden beoordeeld.");
+   throw new Error("De beoordeling kon niet veilig worden opgeslagen. Probeer opnieuw.");
+  }
+  refresh(person.id);revalidatePath("/staff");return {ok:true};
+ }catch(error){return failure(error);}
+}
+
+export async function setStaffLeaveEntitlement(input:{personnelId:string;calendarYear:number;allowanceMinutes:number;carryoverMinutes:number;expectedVersion:number}):Promise<ActionResult> {
+ try {
+  const parsed=z.object({personnelId:z.string().uuid(),calendarYear:z.number().int().min(2000).max(2200),allowanceMinutes:z.number().int().min(0).max(527040),carryoverMinutes:z.number().int().min(0).max(527040),expectedVersion:z.number().int().nonnegative()}).strict().parse(input);
+  const {db,tenant,person}=await authorize(parsed.personnelId);
+  const rpc=db.rpc.bind(db) as unknown as (name:string,args:Record<string,unknown>)=>Promise<{data:unknown;error:{code?:string;message:string}|null}>;
+  const {error}=await rpc("set_staff_leave_entitlement",{
+   target_tenant:tenant.id,
+   target_personnel:person.id,
+   calendar_year:parsed.calendarYear,
+   allowance_minutes:parsed.allowanceMinutes,
+   carryover_minutes:parsed.carryoverMinutes,
+   expected_version:parsed.expectedVersion,
+  });
+  if(error){
+   if(error.code==="40001")throw new Error("Het verlofsaldo is intussen gewijzigd. Vernieuw het dossier en probeer opnieuw.");
+   if(error.code==="42501")throw new Error("Je hebt geen toegang om het verlofsaldo te wijzigen.");
+   if(error.code==="23514")throw new Error("Controleer kalenderjaar en verlofuren.");
+   throw new Error("Het verlofsaldo kon niet worden opgeslagen.");
+  }
+  refresh(person.id);revalidatePath("/staff");return {ok:true};
  }catch(error){return failure(error);}
 }
 

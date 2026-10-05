@@ -10,7 +10,7 @@ test('real local Auth, Data API and Storage enforce report ownership and revocat
   const local=JSON.parse(execFileSync('pnpm',['supabase','status','-o','json'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}));
   const api=new URL(local.API_URL);assert.equal(api.hostname,'127.0.0.1');assert.equal(api.port,'59321');
   Object.assign(process.env,{APP_ENV:'development',DEPLOY_TARGET:'local',APP_URL:'http://127.0.0.1:3000',SUPABASE_URL:local.API_URL,NEXT_PUBLIC_SUPABASE_URL:local.API_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY:local.ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:local.SERVICE_ROLE_KEY});
-  const {uploadScannedFile,readScannedFile}=await import('../lib/files/scanned-storage.ts');
+  const {publishScannedFile,uploadScannedFile,readScannedFile}=await import('../lib/files/scanned-storage.ts');
   const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
   const admin=createClient(local.API_URL,local.SERVICE_ROLE_KEY,options),db=await workOrderTestDatabase();
   const tenant=randomUUID(),customer=randomUUID(),object=randomUUID(),order=randomUUID();
@@ -39,15 +39,19 @@ test('real local Auth, Data API and Storage enforce report ownership and revocat
       const assignment=randomUUID();
       await db.query("insert into public.work_order_assignments(id,tenant_id,work_order_id,personnel_id,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at) values($1,$2,$3,$4,'in_progress',now(),now()+interval '2 hours',now(),now()+interval '2 hours')",[assignment,tenant,order,people[i]]);
       await db.query('insert into public.dispatches(tenant_id,work_order_id,assignment_id,dispatched_by,idempotency_key) values($1,$2,$3,$4,$5)',[tenant,order,assignment,users[0],randomUUID()]);
-      await db.query("insert into public.report_entries(id,tenant_id,work_order_id,author_user_id,body) values($1,$2,$3,$4,'FICTITIOUS PRIVATE REPORT')",[entries[i],tenant,order,users[i]]);
     }
     await db.query("update public.work_orders set status='in_progress' where id=$1",[order]);await db.query('commit');
 
-    await t.test('raw upload is denied; each employee publishes through the actual scanner gateway before metadata',async()=>{
+    await t.test('raw upload and direct metadata are denied; each employee atomically finalizes scanner-attested bytes',async()=>{
       for(let i=0;i<2;i++){
         assert.ok((await clients[i].storage.from('reports').upload(paths[i],png,{contentType:'image/png'})).error);
-        await uploadScannedFile(clients[i],'reports',paths[i],png,'image/png');
-        clean(await clients[i].from('attachments').insert({id:files[i],tenant_id:tenant,work_order_id:order,report_entry_id:entries[i],uploaded_by:users[i],storage_bucket:'reports',storage_path:paths[i],file_name:'FICTITIOUS.png',mime_type:'image/png',size_bytes:png.length,sha256:createHash('sha256').update(png).digest('hex')}));
+        const published=await publishScannedFile({bucket:'reports',path:paths[i],bytes:png,mime:'image/png',authorize:async()=>{
+          const allowed=await clients[i].rpc('staff_report_upload_allowed',{target_tenant:tenant,target_order:order,target_entry:entries[i],target_path:paths[i]});
+          if(allowed.error||allowed.data!==true)throw Error('No current authorization for staged report bytes');
+        }});
+        assert.ok((await clients[i].from('attachments').insert({id:files[i],tenant_id:tenant,work_order_id:order,report_entry_id:entries[i],uploaded_by:users[i],storage_bucket:'reports',storage_path:paths[i],file_name:'FICTITIOUS.png',mime_type:'image/png',size_bytes:png.length,sha256:published.sha256})).error);
+        const finalized=await clients[i].rpc('staff_finalize_report_entry',{target_tenant:tenant,input:{reportEntryId:entries[i],workOrderId:order,body:'FICTITIOUS PRIVATE REPORT',customerVisible:false,incidentSeverity:null,attachments:[{id:files[i],storagePath:paths[i],fileName:'FICTITIOUS.png',mimeType:'image/png',sizeBytes:png.length,sha256:published.sha256}]},idempotency_key:entries[i]});
+        clean(finalized);assert.equal(finalized.data.row.id,entries[i]);assert.equal(finalized.data.attachments.length,1);
       }
     });
     await t.test('actual ClamAV rejects the harmless EICAR marker and unavailable scanner never publishes',async()=>{
@@ -105,32 +109,41 @@ test('real local Auth, Data API and Storage enforce report ownership and revocat
       const ownRemoved=await a.remove([paths[0]]);assert.ok(ownRemoved.error||ownRemoved.data.length===0);
       clean(await a.download(paths[0]));
     });
-    await t.test('unfiltered Realtime sends own reports but no colleague insert or deletion identity',async()=>{
-      const received=[],deletions=[];
-      channel=clients[0].channel(`release-audit-${tenant}`).on('postgres_changes',{event:'*',schema:'public',table:'report_entries'},event=>{
-        if(event.eventType==='DELETE')deletions.push(event.old.id);else received.push(event.new.id);
-      });
+    await t.test('authenticated Realtime delivers only coarse revision invalidations, never raw staff payloads',async()=>{
+      const revisions=[];
+      channel=clients[0].channel(`release-audit-${tenant}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'staff_workspace_revisions',filter:`tenant_id=eq.${tenant}`},event=>{revisions.push(event);});
       await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Realtime subscription unavailable')),10000);channel.subscribe(status=>{if(status==='SUBSCRIBED'){clearTimeout(timer);resolve();}else if(['CHANNEL_ERROR','TIMED_OUT'].includes(status)){clearTimeout(timer);reject(Error('Realtime subscription failed'));}});});
       // Channel join acknowledgement can precede the Postgres subscription write.
       let subscription=0;const readyBy=Date.now()+7000;
       while(!subscription&&Date.now()<readyBy){
-        subscription=(await db.query("select count(*)::int n from realtime.subscription where entity='public.report_entries'::regclass and claims->>'sub'=$1 and claims ? 'session_id'",[users[0]])).rows[0].n;
+        subscription=(await db.query("select count(*)::int n from realtime.subscription where entity='public.staff_workspace_revisions'::regclass and claims->>'sub'=$1 and claims ? 'session_id'",[users[0]])).rows[0].n;
         if(!subscription)await new Promise(resolve=>setTimeout(resolve,50));
       }
       assert.ok(subscription>0,'Realtime registered the authenticated session-bearing subscription');
-      const colleagueEntry=randomUUID(),ownEntry=randomUUID();
-      for(const [id,actor] of [[colleagueEntry,users[1]],[ownEntry,users[0]]])await db.query("insert into public.report_entries(id,tenant_id,work_order_id,author_user_id,body) values($1,$2,$3,$4,'FICTITIOUS REALTIME REPORT')",[id,tenant,order,actor]);
-      const deadline=Date.now()+7000;while(!received.includes(ownEntry)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,50));
-      assert.ok(received.includes(ownEntry),'positive event proves subscription delivery works');
-      assert.equal(received.includes(colleagueEntry),false);
-      await db.query('delete from public.report_entries where id=$1',[colleagueEntry]);
-      // A subsequent visible WAL event proves that the stream has advanced past
-      // the delete. A silent subscription is never treated as isolation proof.
-      const barrier=randomUUID();
-      await db.query("insert into public.report_entries(id,tenant_id,work_order_id,author_user_id,body) values($1,$2,$3,$4,'FICTITIOUS WAL BARRIER')",[barrier,tenant,order,users[0]]);
-      const drainedBy=Date.now()+7000;while(!received.includes(barrier)&&Date.now()<drainedBy)await new Promise(resolve=>setTimeout(resolve,50));
-      assert.ok(received.includes(barrier),'authorized post-delete event proves live stream progress');
-      assert.equal(deletions.includes(colleagueEntry),false,'private deletion IDs must not bypass RLS');
+      const waitForRevision=async target=>{
+        const deadline=Date.now()+7000;
+        while(!revisions.some(event=>BigInt(String(event.new.revision))>=target)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,50));
+        assert.ok(revisions.some(event=>BigInt(String(event.new.revision))>=target),'authorized coarse revision event proves live subscription delivery');
+      };
+      const privateTitle='FICTITIOUS REALTIME PRIVATE TITLE';
+      await db.query('update public.work_orders set title=$2 where id=$1',[order,privateTitle]);
+      const workOrderRevision=BigInt((await db.query('select revision from public.staff_workspace_revisions where tenant_id=$1',[tenant])).rows[0].revision);
+      await waitForRevision(workOrderRevision);
+      const colleagueEntry=randomUUID(),privateBody='FICTITIOUS COLLEAGUE REALTIME REPORT BODY';
+      await db.query('insert into public.report_entries(id,tenant_id,work_order_id,author_user_id,body) values($1,$2,$3,$4,$5)',[colleagueEntry,tenant,order,users[1],privateBody]);
+      const reportRevision=BigInt((await db.query('select revision from public.staff_workspace_revisions where tenant_id=$1',[tenant])).rows[0].revision);
+      await waitForRevision(reportRevision);
+      assert.ok(revisions.length>=2,'independent source changes each invalidate the bounded staff projection');
+      for(const event of revisions){
+        assert.equal(event.schema,'public');assert.equal(event.table,'staff_workspace_revisions');assert.equal(event.eventType,'UPDATE');
+        assert.deepEqual(Object.keys(event.new).sort(),['revision','tenant_id','updated_at']);
+        assert.equal(event.new.tenant_id,tenant);
+      }
+      const wirePayload=JSON.stringify(revisions);
+      assert.equal(wirePayload.includes(privateTitle),false);assert.equal(wirePayload.includes(privateBody),false);assert.equal(wirePayload.includes(colleagueEntry),false);
+      const rawSources=['work_orders','work_order_assignments','time_entries','work_order_tasks','report_entries','status_events','availability','staff_leave_requests','staff_leave_entitlements','staff_day_reviews','staff_time_correction_requests','work_order_material_usage','work_order_expenses','announcements','announcement_reads','dispatches','travel_legs'];
+      const publicationTables=(await db.query("select tablename from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and (tablename='staff_workspace_revisions' or tablename=any($1::text[])) order by tablename",[rawSources])).rows.map(row=>row.tablename);
+      assert.deepEqual(publicationTables,['staff_workspace_revisions'],'the coarse revision relation is the only published personnel-app source under test');
       const publication=(await db.query("select pubinsert,pubupdate,pubdelete,pubtruncate from pg_publication where pubname='supabase_realtime'")).rows[0];
       assert.deepEqual(publication,{pubinsert:true,pubupdate:true,pubdelete:false,pubtruncate:false});
       await clients[0].removeChannel(channel);channel=null;
@@ -164,6 +177,8 @@ test('real local Auth, Data API and Storage enforce report ownership and revocat
     // Only generated fixture IDs and explicit paths owned by this test.
     try{
       clean(await admin.storage.from('reports').remove(cleanupPaths));
+      await db.query('delete from private.staff_app_command_receipts where tenant_id=$1',[tenant]);
+      await db.query('delete from public.audit_events where tenant_id=$1',[tenant]);
       for(const table of ['notification_deliveries','notification_requests','notification_planning_events'])await db.query(`delete from private.${table} where tenant_id=$1`,[tenant]);
       await db.query('delete from private.notification_template_versions where template_id in(select id from private.notification_templates where tenant_id=$1)',[tenant]);
       await db.query('delete from private.notification_templates where tenant_id=$1',[tenant]);

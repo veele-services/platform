@@ -13,6 +13,11 @@ naar het productieproject of de productie-VPS wijzen.
 - `fieldgrid@staging.service` en `fieldgrid-worker@staging.timer` zijn geïnstalleerd.
 - Het nieuwe staging-Supabaseproject is leeg en heeft nog geen applicatietabellen.
 - Supabase Auth heeft de staging Site URL en uitsluitend toegestane staging-redirects.
+- Supabase Auth heeft voor personeelslogin Email OTP length `6`, expiry `3600`
+  seconden en een provider-side resend-interval van minimaal `60` seconden.
+  Het hosted **Magic Link**-sjabloon toont `{{ .Token }}` en bevat geen
+  `ConfirmationURL` of zelfgebouwde tokenlink; zie
+  [Staging mail hooks](deployment/mail-hooks.md#personeelslogin-exacte-staging-auth-instelling).
 - De SendGrid-afzender of het afzenderdomein is geverifieerd.
 - Mollie gebruikt een `test_`-key; Google Routes is expliciet uitgeschakeld of gebruikt
   een tot staging beperkte serverkey.
@@ -76,11 +81,22 @@ naar het productieproject of de productie-VPS wijzen.
   mag geen nieuwe portalsessie opleveren.
   Personeelsuitnodigingen gebruiken de bestaande `SENDGRID_API_KEY` en
   `SENDGRID_FROM_EMAIL`, de ingestelde tenant-afzendernaam en het gedeelde
-  huisstijlsjabloon; er is geen nieuwe secret, migratie of Supabase-mailtemplate nodig.
+  huisstijlsjabloon; voor de **uitnodigingsmail zelf** is geen nieuwe secret,
+  migratie of Supabase-uitnodigingssjabloon nodig. Dit staat los van het hosted
+  Magic Link/OTP-sjabloon dat de personeelslogin hierboven vereist.
   Klik-/open-tracking staat voor deze mails uit. Activatietokens staan niet in
   verzendlogs en worden pas verbruikt bij bevestiging, niet door een GET van een
   mailscanner. Echte inboxbezorging blijft een stagingacceptatiepunt: de lokale
   browsertests gebruiken uitsluitend een in-memory SendGrid-testontvanger.
+- Open op de juiste tenanthost `/staff`. Controleer dat alleen een e-mailadres
+  wordt gevraagd, dat de response voor een onbekend adres niet verraadt of het
+  account bestaat, en dat een actief personeelslid één e-mail met een
+  zescijferige code zonder loginlink ontvangt. Voer de code in, controleer dat
+  de personeelswerkruimte opent en dat dezelfde code niet opnieuw bruikbaar is.
+  Controleer daarnaast dat `/app` en `/platform` hun wachtwoordlogin behouden.
+  Als de signed Send Email Hook actief is, moet de mail via de gebrande
+  Fieldgrid-hook lopen; schakel bij terugval naar Auth-SMTP pas over nadat het
+  hosted Magic Link-sjabloon opnieuw op `{{ .Token }}` is gecontroleerd.
 - Open **Klanten → Bekijk** en controleer de tabbladen **Overzicht**, **Contactpersonen**,
   **Objecten**, **Notities** en **Documenten**, ook op mobiel en met het toetsenbord.
   Voeg een contact, interne notitie en een PDF/JPG/PNG-document (maximaal 10 MB) toe;

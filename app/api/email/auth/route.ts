@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   let claimed = false, sendStarted = false;
   try {
     const context = contextSchema.parse(await ticketRpc(db, "email_auth_context", { target_slug: destination.slug, actor: payload.user.id, recipient: payload.user.email, action_type: payload.email_data.email_action_type }));
-    const messages = authMailMessages(payload, destination.origin, context.company);
+    const messages = authMailMessages(payload, destination.origin, context.company, destination.staffOtp);
     const claim = z.object({ claimed: z.boolean(), state: z.string().optional() }).parse(await receipt("begin"));
     if (!claim.claimed) return claim.state === "done" ? new Response(null, { status: 200, headers }) : failure(409);
     claimed = true;

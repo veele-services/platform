@@ -38,6 +38,7 @@ import {
 } from "@/app/app/planning/actions";
 import type { TenantContext } from "@/lib/auth/context";
 import { brandThemeStyle } from "@/lib/branding/palette";
+import { createClient } from "@/lib/supabase/client";
 import {
   assignmentInput,
   canPlan,
@@ -200,7 +201,7 @@ export function DayPlanboard({
     try {
       const fresh = await loadPlanboard(q);
       if (sequence === requestNumber.current) {
-        if (dragRef.current() || selectedRef.current || confirmationRef.current || scopeChoiceRef.current)
+        if (busyRef.current || dragRef.current() || selectedRef.current || confirmationRef.current || scopeChoiceRef.current)
           deferredData.current = { sequence, data: fresh };
         else {
           setData(fresh);
@@ -384,24 +385,54 @@ export function DayPlanboard({
     }
   }, [busy, selected, confirmation, scopeChoice, drag.preview]);
   useEffect(() => {
-    const update = () => {
-      if (
-        !busyRef.current &&
-        !selectedRef.current &&
-        !confirmationRef.current &&
-        !scopeChoiceRef.current &&
-        !dragRef.current() &&
-        document.visibilityState === "visible"
-      )
-        void refresh(queryRef.current, true);
+    let active = true;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleSnapshot = (delay = 180, force = false) => {
+      if (!active || document.visibilityState !== "visible") return;
+      if (refreshTimer && !force) return;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        refreshTimer = undefined;
+        if (active && document.visibilityState === "visible")
+          void refresh(queryRef.current, true);
+      }, delay);
+    };
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`planboard-live-${tenant.id}-${userId}`, {
+        config: { postgres_changes_options: { wait: true } },
+      })
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "staff_workspace_revisions",
+          filter: `tenant_id=eq.${tenant.id}`,
+        },
+        () => scheduleSnapshot(),
+      );
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") scheduleSnapshot(0, true);
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT")
+        scheduleSnapshot(0, true);
+    });
+    const update = () => scheduleSnapshot(0, true);
+    const visibility = () => {
+      if (document.visibilityState === "visible") scheduleSnapshot(0, true);
     };
     const interval = setInterval(update, 20000);
     window.addEventListener("focus", update);
+    document.addEventListener("visibilitychange", visibility);
     return () => {
+      active = false;
+      if (refreshTimer) clearTimeout(refreshTimer);
       clearInterval(interval);
       window.removeEventListener("focus", update);
+      document.removeEventListener("visibilitychange", visibility);
+      void supabase.removeChannel(channel);
     };
-  }, [refresh]);
+  }, [refresh, tenant.id, userId]);
   const setDay = (day: string) => {
     if (!validDay(day)) return;
     setQuery((q) => ({ ...q, day, page: 1 }));
@@ -1048,13 +1079,12 @@ export function DayPlanboard({
             <Popover open={filterOpen} onOpenChange={setFilterOpen}>
               <PopoverTrigger asChild>
                 <button
-                  className="secondary-button pb-filter-button"
-                  aria-label="Zoeken & filteren"
+                  className="compact-filter-trigger pb-filter-button"
+                  aria-label={activeFilters > 0 ? `Zoeken en filteren, ${activeFilters} actief` : "Zoeken en filteren"}
+                  title="Zoeken en filteren"
                 >
-                  <SlidersHorizontal size={15} />
-                  <span className="pb-filter-long">Zoeken & filteren</span>
-                  <span className="pb-filter-short">Filters</span>
-                  {activeFilters > 0 && <b>{activeFilters}</b>}
+                  <SlidersHorizontal size={18} />
+                  {activeFilters > 0 && <span aria-hidden="true">{activeFilters}</span>}
                 </button>
               </PopoverTrigger>
               <PopoverContent

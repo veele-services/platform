@@ -112,7 +112,7 @@ export function VehicleIcon({ vehicle }: { vehicle: Vehicle | null }) {
         ? Truck
         : vehicle === "walking"
           ? Footprints
-          : vehicle === "bicycle" || vehicle === "ebike"
+          : vehicle === "bicycle" || vehicle === "electric_bicycle"
             ? Bike
             : HelpCircle;
   return <Icon size={13} aria-hidden="true" />;

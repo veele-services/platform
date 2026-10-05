@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Eye, Pencil, MoreHorizontal, Plus, Search, SlidersHorizontal, X, PenLine } from "lucide-react";
+import { Eye, Pencil, MoreHorizontal, Plus, X, PenLine } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { TenantContext } from "@/lib/auth/context";
@@ -13,6 +13,7 @@ import { mutateWorkOrder } from "@/app/app/work-order-actions";
 import { executionLabels } from "@/lib/dossiers/status";
 import { WorkOrderWizard } from "./wizard";
 import { billingLabels, orderDate, planningLabels, priorityLabels, reportLabels, signatureLabels, sourceLabels } from "./presentation";
+import { CompactFilterMenu } from "../compact-filter-menu";
 import "./work-orders.css";
 
 export function WorkOrdersList({ data, options, query, tenant, create = false }: { data: WorkOrderListData; options: WorkOrderOptions; query: WorkOrderQuery; tenant: TenantContext; create?: boolean }) {
@@ -52,12 +53,9 @@ export function WorkOrdersList({ data, options, query, tenant, create = false }:
   };
   return <div className="wo-workspace" aria-busy={pending}>
     <header className="page-intro resource-intro"><div><span className="eyebrow">UITVOERING</span><h1>Werkbonnen</h1><p>Afspraken, bezetting, uitvoering en rapportcontrole.</p></div>{data.canManage && <button className="primary-button" onClick={() => setWizard(true)}><Plus size={17}/>Nieuwe werkbon</button>}</header>
-    <nav className="wo-views" aria-label="Werkweergave">{Object.entries(workOrderViews).map(([key, label]) => <Link key={key} href={href({ view: key })} aria-current={query.view === key ? "page" : undefined}>{label}<b>{data.counts[key as keyof typeof workOrderViews] ?? 0}</b></Link>)}</nav>
-    <div className="panel wo-toolbar">
-      <form className="wo-search" onSubmit={applyFilters}><label><span><Search size={15}/>Zoeken</span><input name="q" defaultValue={query.q} placeholder="Bonnummer, titel, klant, object of adres…" aria-label="Zoek werkbonnen"/></label><button type="submit" className="sr-only">Zoeken</button></form>
-      {data.canManage && <Link className="text-link" href="/app/taken/templates">Templates beheren</Link>}
-      <label>Sortering<select value={query.sort} onChange={e => router.push(href({ sort: e.target.value }))}>{[["date", "Datum oplopend"], ["date_desc", "Datum aflopend"], ["number", "Bonnummer"], ["title", "Titel"], ["customer", "Klant"], ["status", "Uitvoering"]].map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
-      <Popover><PopoverTrigger asChild><button className="secondary-button"><SlidersHorizontal size={15}/>Filters{active.length > 0 && ` (${active.length})`}</button></PopoverTrigger><PopoverContent className="wo-filter-panel" align="end" collisionPadding={12} style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}><form onSubmit={applyFilters}><div className="wo-filter-grid">
+    <div className="compact-filter-bar"><div className="compact-filter-bar-main"><nav className="wo-views" aria-label="Werkweergave">{Object.entries(workOrderViews).map(([key, label]) => <Link key={key} href={href({ view: key })} aria-current={query.view === key ? "page" : undefined}>{label}<b>{data.counts[key as keyof typeof workOrderViews] ?? 0}</b></Link>)}</nav></div><CompactFilterMenu activeCount={active.length} contentClassName="wo-filter-panel" contentStyle={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}><form onSubmit={applyFilters}><div className="wo-filter-grid">
+        <label className="wo-filter-wide">Zoeken<input name="q" defaultValue={query.q} placeholder="Bonnummer, titel, klant, object of adres…" aria-label="Zoek werkbonnen"/></label>
+        <label>Sortering<select name="sort" defaultValue={query.sort}>{[["date", "Datum oplopend"], ["date_desc", "Datum aflopend"], ["number", "Bonnummer"], ["title", "Titel"], ["customer", "Klant"], ["status", "Uitvoering"]].map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>
         <label>Vanaf<input name="from" type="date" defaultValue={query.from}/></label><label>Tot en met<input name="to" type="date" defaultValue={query.to}/></label>
         <label>Medewerker<select name="employee" defaultValue={query.employee}><option value="">Alle medewerkers</option>{options.personnel.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}</select></label>
         <label>Dienstcategorie<select name="discipline" defaultValue={query.discipline}><option value="">Alle diensten</option>{options.disciplines.map(d => <option key={d}>{d}</option>)}</select></label>
@@ -71,8 +69,7 @@ export function WorkOrdersList({ data, options, query, tenant, create = false }:
         <label>Klant<select name="customer" defaultValue={query.customer}><option value="">Alle klanten</option>{options.customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
         <label>Object<select name="object" defaultValue={query.object}><option value="">Alle objecten</option>{options.objects.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
         <label>Archief<select name="archived" defaultValue={query.archived}><option value="">Actuele werkbonnen</option><option value="yes">Inclusief archief</option></select></label>
-      </div><footer><Link className="text-link" href="/app/werkbonnen">Filters wissen</Link><button className="primary-button">Toepassen</button></footer></form></PopoverContent></Popover>
-    </div>
+      </div><footer><div className="wo-filter-links"><Link className="text-link" href="/app/werkbonnen">Filters wissen</Link>{data.canManage && <Link className="text-link" href="/app/taken/templates">Templates beheren</Link>}</div><button className="primary-button">Toepassen</button></footer></form></CompactFilterMenu></div>
     {active.length > 0 && <div className="wo-filter-chips" aria-label="Actieve filters">{active.map(([key, value]) => <Link key={key} href={href({ [key]: null })} aria-label={`${filterLabels[key]} verwijderen`}>{filterLabels[key]}: {filterValue(key, String(value))}<X size={12}/></Link>)}</div>}
     {error && <p className="wo-error" role="alert">{error}</p>}
     <section className="panel resource-table-panel" aria-label="Werkbonnenlijst"><div className="table-scroll"><table className="resource-table wo-table"><thead><tr>{["Bonnummer / titel", "Klant / object", "Datum / tijdvenster", "Medewerkers", "Uitvoering", "Rapportcontrole", ...(data.finance ? ["Facturatie"] : []), "Acties"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody>
