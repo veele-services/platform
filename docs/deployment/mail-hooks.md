@@ -128,10 +128,15 @@ object- en rechtenacties behouden hun eigen bestaande contract.
 
 ### Niet-schrijvende maildiagnose
 
-Dispatch `diagnose-auth-mail.yml` bewust vanaf de gereviewde `main`-tip. Deze
+Dispatch `diagnose-auth-mail.yml` bewust vanaf de expliciet gepromoveerde
+`staging`-tip. Deze
 workflow deployt niets. Hij bepaalt de bestaande stagingpromotie uit
-`origin/staging`, controleert de afkomst en de exacte publieke health-SHA en
+`origin/staging`, controleert de tip en afkomst uit `main` en de exacte
+publieke health-SHA en
 gebruikt uitsluitend Environment `staging` op een tijdelijke hosted runner.
+De eerste dispatch vanaf `main` werd vóór alle stappen geweigerd door de
+bestaande Environment-branchbescherming. Die bescherming blijft intact; ook
+niet-schrijvende diagnostiek gebruikt daarom uitsluitend de stagingpromotie.
 
 De ondertekende probe bevat alleen `{}`. HTTP 400 bevestigt dat de actieve
 endpoint de GitHub-hooksecret accepteert en de ongeldige payload afwijst vóór

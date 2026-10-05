@@ -27,8 +27,9 @@ transport policy and post-verification workspace authorization stay enforced.
 
 ## Operational boundary
 
-The manual diagnostic workflow requires the reviewed `main` tip, identifies
-the already promoted `origin/staging` commit, checks its ancestry and exact
+The manual diagnostic workflow requires the explicit `staging` promotion,
+checks that it equals `origin/staging` and is contained in reviewed `main`,
+and checks its exact
 public health SHA, and shares deployment concurrency. It does not deploy,
 alter Supabase hooks or change mail policy. Credentials come only from GitHub
 Environment `staging` and stay on the ephemeral hosted runner in the relevant
@@ -76,7 +77,10 @@ typecheck. All four aggregate queries were executed against the isolated local
 Supabase database with `transaction_read_only=on` verified before every SELECT,
 followed by rollback and connection closure. HTTP was mocked and no fixtures
 or external requests were used for that SQL check. The workflow received an
-independent review with no findings. The diagnostic has not yet established
+independent source review. Its first dispatch from `main` was rejected before
+all steps by Environment staging branch protection (run 37315280705). The
+protection remains intact; workflow and both executable guards now require
+the explicitly promoted staging branch. The diagnostic has not yet established
 the live failure cause or delivery.
 
 Reference: [GoTrue HTTP hook dispatcher](https://github.com/supabase/auth/blob/v2.196.0/internal/hooks/hookshttp/hookshttp.go).

@@ -6233,7 +6233,7 @@
     {
       "id": "operation:.github/workflows/diagnose-auth-mail.yml",
       "classification": "operation",
-      "source_sha256": "7365b0f230e5d5b4e2b875d6639970a9022887dc4b3c7092497b4cf3308a1c59"
+      "source_sha256": "bb4bbdd2e3c117a8112c701f6235505cf8d06efda23c7216e31cb3671cdf70ce"
     },
     {
       "id": "operation:deploy/Caddyfile.example",
@@ -6308,12 +6308,12 @@
     {
       "id": "operation:lib/operations/auth-mail-context-diagnostic.ts",
       "classification": "operation",
-      "source_sha256": "7a0dcb06dee372f5347a832dc790c92eaffabfe15f1bc1740f0a812c5a90f08f"
+      "source_sha256": "1634c5c996948288516fa457ada1dbc117f9784ac4491a019d078dd2a70b9f8e"
     },
     {
       "id": "operation:lib/operations/auth-mail-diagnostic.ts",
       "classification": "operation",
-      "source_sha256": "ffafc4f29cac74454cf6f22a57f475cab4e80feb461a5ae33f23aa487a44be2a"
+      "source_sha256": "1fbc06435c98723a6c842785eb6aa5c1bdaa8b088c02860885b294a24483068f"
     },
     {
       "id": "operation:next.config.ts",

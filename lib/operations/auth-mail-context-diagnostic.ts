@@ -29,7 +29,7 @@ export async function diagnoseAuthMailContext(env: Environment, dependencies: De
   };
   let endpoint: string, key: string;
   try {
-    if (env.GITHUB_ACTIONS !== "true" || env.GITHUB_REF !== "refs/heads/main" || env.APP_URL !== "https://staging.fieldgrid.nl") throw new Error();
+    if (env.GITHUB_ACTIONS !== "true" || env.GITHUB_REF !== "refs/heads/staging" || env.APP_URL !== "https://staging.fieldgrid.nl") throw new Error();
     const project = assertStagingProject(env);
     key = env.SUPABASE_SERVICE_ROLE_KEY ?? "";
     if (key.length < 20 || /[\r\n]/.test(key)) throw new Error();
