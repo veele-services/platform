@@ -38,10 +38,11 @@ verification suite, including the required Playwright flows, before its deploy
 job can start. It also proves that the branch tip equals the workflow SHA and
 that this SHA is contained in `origin/main`.
 
-The manually dispatched `diagnose-auth-mail.yml` runs only the reviewed `main`
-tip on an ephemeral hosted runner. It does not deploy or change provider
-configuration. It identifies the existing explicit `origin/staging` promotion,
-requires that promotion to be contained in `main`, and checks its exact public
+The manually dispatched `diagnose-auth-mail.yml` runs only the explicit
+`staging` promotion on an ephemeral hosted runner. Environment protection
+permits staging configuration only on that branch. It does not deploy or change
+provider configuration. It requires the `origin/staging` tip, verifies that
+promotion is contained in `main`, and checks its exact public
 health SHA before diagnostics. Configuration comes only from Environment
 `staging`. A signed empty hook payload is rejected before any database or mail
 action; database inspection uses a read-only transaction and fixed aggregate

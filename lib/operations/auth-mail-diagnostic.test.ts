@@ -7,7 +7,7 @@ const ref = "abcdefghijklmnopqrst", release = "a".repeat(40);
 const marker = "PRIVATE-TEST-SECRET-NOT-FOR-LOGS-2026";
 const key = Buffer.from(marker);
 const env = {
-  GITHUB_ACTIONS: "true", GITHUB_REF: "refs/heads/main", DEPLOY_TARGET: "staging", APP_ENV: "development",
+  GITHUB_ACTIONS: "true", GITHUB_REF: "refs/heads/staging", DEPLOY_TARGET: "staging", APP_ENV: "development",
   APP_URL: "https://staging.fieldgrid.nl", RELEASE_SHA: release,
   EXPECTED_SUPABASE_PROJECT_REF: ref, FORBIDDEN_SUPABASE_PROJECT_REF: "ckdtiuemeygrnujjibnw",
   SUPABASE_URL: `https://${ref}.supabase.co`,
@@ -24,7 +24,7 @@ function harness() {
 
 describe("read-only staging Auth-mail diagnostics", () => {
   it.each([
-    { GITHUB_ACTIONS: "false" }, { GITHUB_REF: "refs/heads/staging" }, { GITHUB_REF: "refs/pull/1/merge" },
+    { GITHUB_ACTIONS: "false" }, { GITHUB_REF: "refs/heads/main" }, { GITHUB_REF: "refs/pull/1/merge" },
     { APP_URL: "https://evil.invalid" }, { RELEASE_SHA: "abc123" }, { DEPLOY_TARGET: "production" },
     { EXPECTED_SUPABASE_PROJECT_REF: "ckdtiuemeygrnujjibnw" }, { FORBIDDEN_SUPABASE_PROJECT_REF: "" },
     { SUPABASE_URL: "https://ckdtiuemeygrnujjibnw.supabase.co" },

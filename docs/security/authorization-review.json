@@ -4285,8 +4285,8 @@
     },
     {
       "id": "operation:.github/workflows/diagnose-auth-mail.yml",
-      "surfaceFingerprint": "7c63910baeb640573e2c0ffce09745a6c40aca2614d7f0b625b377efdc9c4bee",
-      "status": "controlled",
+      "surfaceFingerprint": "e86cbc6067dc5bd370b702918a6012e896f1f5661aa0b127c1deab90ba4aa336",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/auth-mail-diagnostics-2026-10-05.md",
         "lib/operations/auth-mail-diagnostic.test.ts",
@@ -4441,8 +4441,8 @@
     },
     {
       "id": "operation:lib/operations/auth-mail-context-diagnostic.ts",
-      "surfaceFingerprint": "afe49573e636e781e7c71ed5d30f9082146688a61ace3bf23385ed02ed031af4",
-      "status": "controlled",
+      "surfaceFingerprint": "469d0235c11ac396b19e19eb9e915c6d55de9bff7cab0a544433e83a528577c5",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/auth-mail-diagnostics-2026-10-05.md",
         "lib/operations/auth-mail-diagnostic.test.ts",
@@ -4451,8 +4451,8 @@
     },
     {
       "id": "operation:lib/operations/auth-mail-diagnostic.ts",
-      "surfaceFingerprint": "578cc7aae7424ef576d42965a43e9cd92a09d002df4cb69c6ce19b33e9e6346a",
-      "status": "controlled",
+      "surfaceFingerprint": "ae615aad5fe276d148dbbc61151494b8edd10adc15b918127ca00c37b6bbc766",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/auth-mail-diagnostics-2026-10-05.md",
         "lib/operations/auth-mail-diagnostic.test.ts",

@@ -4,7 +4,7 @@ import { diagnoseAuthMailContext } from "./auth-mail-context-diagnostic";
 const marker = "PRIVATE-FICTITIOUS-SERVICE-KEY-2026";
 const ref = "abcdefghijklmnopqrst";
 const env = {
-  GITHUB_ACTIONS: "true", GITHUB_REF: "refs/heads/main", DEPLOY_TARGET: "staging", APP_ENV: "development",
+  GITHUB_ACTIONS: "true", GITHUB_REF: "refs/heads/staging", DEPLOY_TARGET: "staging", APP_ENV: "development",
   APP_URL: "https://staging.fieldgrid.nl", EXPECTED_SUPABASE_PROJECT_REF: ref,
   FORBIDDEN_SUPABASE_PROJECT_REF: "ckdtiuemeygrnujjibnw", SUPABASE_URL: `https://${ref}.supabase.co`,
   SUPABASE_SERVICE_ROLE_KEY: marker,
@@ -19,7 +19,7 @@ function report(h: ReturnType<typeof harness>) {
 
 describe("read-only staging Auth-mail context probe", () => {
   it.each([
-    { GITHUB_ACTIONS: "false" }, { GITHUB_REF: "refs/heads/staging" }, { GITHUB_REF: "refs/pull/1/merge" },
+    { GITHUB_ACTIONS: "false" }, { GITHUB_REF: "refs/heads/main" }, { GITHUB_REF: "refs/pull/1/merge" },
     { APP_URL: "https://evil.invalid" }, { DEPLOY_TARGET: "production" }, { APP_ENV: "production" },
     { EXPECTED_SUPABASE_PROJECT_REF: "ckdtiuemeygrnujjibnw" }, { FORBIDDEN_SUPABASE_PROJECT_REF: "" },
     { SUPABASE_URL: "https://ckdtiuemeygrnujjibnw.supabase.co" },

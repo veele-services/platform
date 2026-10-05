@@ -68,9 +68,9 @@ const aggregates = [
 ] as const;
 
 export function authMailDiagnosticConfiguration(env: Environment) {
-  if (env.GITHUB_ACTIONS !== "true" || env.GITHUB_REF !== "refs/heads/main" ||
+  if (env.GITHUB_ACTIONS !== "true" || env.GITHUB_REF !== "refs/heads/staging" ||
       env.APP_URL !== origin || !/^[a-f0-9]{40}$/.test(env.RELEASE_SHA ?? "")) {
-    throw new Error("Diagnose geweigerd: reviewed main, vaste stagingorigin en volledige release-SHA zijn vereist.");
+    throw new Error("Diagnose geweigerd: gereviewde stagingpromotie, vaste stagingorigin en volledige release-SHA zijn vereist.");
   }
   const databaseUrl = stagingDatabaseUrl("MIGRATION_DATABASE_URL", env);
   // pg URI sslmode can overwrite the explicit CA object in the runner.

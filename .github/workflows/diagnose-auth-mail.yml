@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   diagnose:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-24.04
     environment: staging
     timeout-minutes: 5
@@ -28,9 +28,9 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Require reviewed main and identify the explicit staging promotion
+      - name: Require the explicit reviewed staging promotion
         run: |
-          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
+          test "$(git rev-parse origin/staging)" = "$GITHUB_SHA"
           git merge-base --is-ancestor origin/staging origin/main
           printf 'RELEASE_SHA=%s\n' "$(git rev-parse origin/staging)" >> "$GITHUB_ENV"
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
