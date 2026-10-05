@@ -429,12 +429,14 @@ test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, ur
   await expect(page.getByRole("button", { name: /Welkom in Fieldgrid/ })).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  await mobileNavigation.getByRole("button", { name: "Uren", exact: true }).click();
+  await mobileNavigation.getByRole("button", { name: "Mijn uren", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Mijn uren", exact: true })).toBeVisible();
   const hoursWeek = app.locator(".ps-hours-week-panel");
   await expect(hoursWeek).toBeVisible();
-  await expect(hoursWeek.locator(".ps-hours-week-day")).toHaveCount(7);
-  await expect(hoursWeek.getByText("Geregistreerd weektotaal", { exact: true })).toBeVisible();
+  for (const weekday of ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag"]) {
+    await expect(hoursWeek.getByRole("button", { name: new RegExp(`^${weekday}`) })).toBeVisible();
+  }
+  await expect(hoursWeek.getByText("Totaal", { exact: true })).toBeVisible();
   const currentWeek = hoursWeek.getByRole("button", { name: "Terug naar huidige week", exact: true });
   await expect(currentWeek).toBeDisabled();
   await hoursWeek.getByRole("button", { name: "Vorige week", exact: true }).click();

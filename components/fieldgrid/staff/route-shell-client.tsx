@@ -196,7 +196,7 @@ export function StaffRouteShellClient({
       <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">
         <Link href="/staff?tab=planning"><CalendarDays/><span>Planning</span></Link>
         <Link href="/staff?tab=nieuws"><Megaphone/><span>Nieuws</span></Link>
-        <Link href="/staff?tab=uren"><Clock3/><span>Uren</span></Link>
+        <Link href="/staff?tab=uren"><Clock3/><span>Mijn uren</span></Link>
         <StaffTicketsEntry className={active === "tickets" ? "active" : ""} active={active === "tickets"} enabled={ticketsEnabled}/>
         <Link href="/staff?tab=meer"><Menu/><span>Meer</span></Link>
       </nav>

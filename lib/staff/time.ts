@@ -88,7 +88,7 @@ export function staffDuration(minutes: number) {
   const hours = Math.floor(safe / 60);
   const rest = safe % 60;
   if (!hours) return `${rest} min`;
-  return `${hours}u ${String(rest).padStart(2, "0")}m`;
+  return rest ? `${hours} u ${rest} min` : `${hours} u`;
 }
 
 export function summarizeEntries(entries: StaffTimeEntry[], now = new Date()) {

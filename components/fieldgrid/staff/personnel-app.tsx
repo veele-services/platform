@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
   List, LogOut, Megaphone, Menu,
-  Navigation, Newspaper, Phone, Settings, Settings2, SlidersHorizontal, TicketCheck, Umbrella, UserRound,
+  Info, Navigation, Newspaper, Pencil, Phone, RotateCcw, Settings, Settings2, SlidersHorizontal, Square, TicketCheck, Umbrella, UserRound,
   UsersRound, X,
 } from "lucide-react";
 import {
@@ -231,7 +231,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         </div>
       </header>
       <main className="ps-content">
-        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : <header className="ps-page-heading"><div><span className="ps-page-kicker">FIELDGRID / PERSONEEL</span><h1>{title}</h1></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
+        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && <header className="ps-page-heading"><div><span className="ps-page-kicker">FIELDGRID / PERSONEEL</span><h1>{title}</h1></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
         {view === "planning" && (tenant.enabledServices.includes("planning") ? <PlanningScreen orders={assigned} assignments={assignments} data={data} timezone={tenant.timezone} onOpen={openOrder} onHours={() => navigate("uren")} onNews={() => navigate("nieuws")}/> : <Empty icon={CalendarDays} title="Planning niet ingeschakeld">Vraag je beheerder om de module Planning te activeren.</Empty>)}
         {view === "nieuws" && <NewsScreen data={data} onRead={(id) => run(() => markAnnouncementRead(id), "Gemarkeerd als gelezen")}/>}
         {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run}/>}
@@ -240,7 +240,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
       <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">
         <button className={view === "planning" ? "active" : ""} onClick={() => navigate("planning")}><CalendarDays/><span>Planning</span></button>
         <button className={view === "nieuws" ? "active" : ""} onClick={() => navigate("nieuws")}><Megaphone/><span>Nieuws</span></button>
-        <button className={view === "uren" ? "active" : ""} onClick={() => navigate("uren")}><Clock3/><span>Uren</span></button>
+        <button className={view === "uren" ? "active" : ""} onClick={() => navigate("uren")}><Clock3/><span>Mijn uren</span></button>
         <StaffTicketsEntry className="ps-bottom-tickets" enabled={ticketsEnabled}/>
         <button className={view === "meer" ? "active" : ""} onClick={() => navigate("meer")}><Menu/><span>Meer</span></button>
       </nav>
@@ -327,12 +327,14 @@ function NewsScreen({ data, onRead }: { data: StaffWorkspaceData; onRead: (id: s
 
 function HoursScreen({ data, personnelId, timezone, pending, run }: { data: StaffWorkspaceData; personnelId: string; timezone: string; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
   const [correction, setCorrection] = useState<StaffWorkspaceData["timeEntries"][number] | null>(null);
+  const [chooseCorrection, setChooseCorrection] = useState(false);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const dayCommandKeys = useRef(new Map<string, string>());
-  const runDayCommand = (
-    intent: string,
-    input: WithoutIdempotency<Parameters<typeof runStaffDayCommand>[0]>,
-    success: string,
-  ) => {
+  const runDayCommand = (intent: string, input: WithoutIdempotency<Parameters<typeof runStaffDayCommand>[0]>, success: string) => {
     const idempotencyKey = dayCommandKeys.current.get(intent) ?? crypto.randomUUID();
     dayCommandKeys.current.set(intent, idempotencyKey);
     run(async () => {
@@ -341,60 +343,81 @@ function HoursScreen({ data, personnelId, timezone, pending, run }: { data: Staf
       return result;
     }, success);
   };
-  const today = staffDate(new Date(), timezone);
-  const currentWeekStart = staffWeek(today)[0]!;
-  const [selectedWeekStart, setSelectedWeekStart] = useState(currentWeekStart);
-  const week = staffWeek(selectedWeekStart);
-  const weekDays = new Set(week);
-  const entries = data.timeEntries.filter((item) => item.personnel_id === personnelId).sort((a, b) => Date.parse(b.starts_at) - Date.parse(a.starts_at));
-  const reviews = data.staffDayReviews;
-  const weekEntries = entries.filter((entry) => weekDays.has(staffDate(entry.starts_at, timezone)));
-  const days = [...new Set([
-    ...weekEntries.map((entry) => staffDate(entry.starts_at, timezone)),
-    ...reviews.filter((review) => weekDays.has(review.day)).map((review) => review.day),
-  ])].sort((left, right) => left.localeCompare(right));
-  const dayTotals = new Map(week.map((date) => [date, summarizeEntries(weekEntries.filter((entry) => staffDate(entry.starts_at, timezone) === date))]));
-  const weekTotal = summarizeEntries(weekEntries).paid;
-  const rangeFormatter = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-  const weekLabel = `${rangeFormatter.format(new Date(`${week[0]}T12:00:00.000Z`))} – ${rangeFormatter.format(new Date(`${week[6]}T12:00:00.000Z`))}`;
-  const weekNumberDate = new Date(`${week[0]}T12:00:00.000Z`);
-  weekNumberDate.setUTCDate(weekNumberDate.getUTCDate() + 4 - (weekNumberDate.getUTCDay() || 7));
-  const weekYearStart = new Date(Date.UTC(weekNumberDate.getUTCFullYear(), 0, 1));
-  const weekNumber = Math.ceil((((weekNumberDate.getTime() - weekYearStart.getTime()) / 86_400_000) + 1) / 7);
+  const today = staffDate(now, timezone);
+  const [selectedDay, setSelectedDay] = useState(today);
+  const week = staffWeek(selectedDay);
+  const currentWeek = week[0] === staffWeek(today)[0];
+  const entries = data.timeEntries.filter(item => item.personnel_id === personnelId).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+  const rows = entries.filter(entry => staffDate(entry.starts_at, timezone) === selectedDay);
+  const totals = summarizeEntries(rows, now);
+  const review = data.staffDayReviews.find(item => item.personnel_id === personnelId && item.day === selectedDay);
+  const requestsFor = (entry: typeof rows[number]) => data.staffTimeCorrectionRequests.filter(item => item.time_entry_id === entry.id).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+  const hasPendingCorrection = rows.some(entry => entry.status === "correction_requested" || requestsFor(entry).some(request => request.status === "pending"));
+  const running = rows.some(entry => !entry.ends_at);
+  const closed = review?.state === "closed" || review?.state === "confirmed";
+  const canClose = rows.length > 0 && !closed && !running && !hasPendingCorrection && selectedDay <= today && selectedDay >= addStaffDays(today, -366);
+  const canConfirm = review?.state === "closed" && rows.length > 0 && !running && !hasPendingCorrection;
+  const correctable = rows.filter(entry => entry.ends_at && entry.status !== "correction_requested" && !requestsFor(entry).some(request => request.status === "pending"));
+  const dayTotals = new Map(week.map(date => [date, summarizeEntries(entries.filter(entry => staffDate(entry.starts_at, timezone) === date), now)]));
+  const weekTotal = week.reduce((sum, date) => sum + dayTotals.get(date)!.paid, 0);
+  const visibleWeek = week.filter((date, index) => index < 5 || date === selectedDay || entries.some(entry => staffDate(entry.starts_at, timezone) === date));
+  const rangeDate = (date: string) => new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+  const dayLabel = new Intl.DateTimeFormat("nl-NL", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${selectedDay}T12:00:00Z`));
+  const entryContext = (entry: typeof rows[number]) => {
+    const assignment = data.assignments.find(item => item.id === entry.assignment_id);
+    const order = data.workOrders.find(item => item.id === assignment?.work_order_id);
+    const object = data.objects.find(item => item.id === order?.object_id);
+    return object?.name ?? (entry.kind === "travel" ? "Geregistreerde reistijd" : entry.kind === "work" ? "Geregistreerd op locatie" : "Geregistreerde overige werktijd");
+  };
+  const correctionStatus = (entry: typeof rows[number]) => {
+    const requests = requestsFor(entry);
+    const request = requests.find(item => item.status === "pending");
+    const latest = requests[0];
+    return request ? <small id={`time-correction-${request.id}`}>Correctie in behandeling · gewenst {staffClock(request.requested_starts_at, timezone)}–{staffClock(request.requested_ends_at, timezone)} ({request.requested_duration_minutes} min)</small> : latest && latest.status !== "withdrawn" ? <small id={`time-correction-${latest.id}`}>{latest.status === "approved" ? "Correctie goedgekeurd" : "Correctie afgewezen"}{latest.review_note ? ` · ${latest.review_note}` : ""}</small> : null;
+  };
+  const closeHint = closed ? "Deze werkdag is al afgesloten." : !rows.length ? "Start een werkbon om uren te registreren." : selectedDay > today ? "Een toekomstige werkdag kun je nog niet afsluiten." : selectedDay < addStaffDays(today, -366) ? "Deze werkdag valt buiten de afsluitperiode." : running ? "Rond eerst je lopende werkbon of tijdregistratie af." : hasPendingCorrection ? "Wacht eerst op de beoordeling van je correctieverzoek." : undefined;
+  const openCorrection = () => {
+    if (correctable.length === 1) setCorrection(correctable[0]!);
+    else setChooseCorrection(true);
+  };
   return <>
-    <section className="ps-panel ps-hours-week-panel" aria-labelledby="ps-hours-week-title">
-      <div className="ps-hours-week-toolbar">
-        <div><span className="ps-page-kicker">WEEK {weekNumber}</span><h2 id="ps-hours-week-title" aria-live="polite">{weekLabel}</h2></div>
-        <div className="ps-hours-week-actions"><button className="ps-week-arrow" aria-label="Vorige week" onClick={() => setSelectedWeekStart(addStaffDays(selectedWeekStart, -7))}><ChevronLeft/></button><button className="ps-secondary" disabled={selectedWeekStart === currentWeekStart} onClick={() => setSelectedWeekStart(currentWeekStart)}>Terug naar huidige week</button><button className="ps-week-arrow" aria-label="Volgende week" onClick={() => setSelectedWeekStart(addStaffDays(selectedWeekStart, 7))}><ChevronRight/></button></div>
+    <header className="ps-page-heading ps-hours-heading"><div><h1>Mijn uren</h1><p>Je volledige werkdag, met reistijd apart geregistreerd.</p></div><button className="ps-secondary" disabled={pending || !canClose} title={closeHint} onClick={() => runDayCommand(`close:${selectedDay}`, { command: "close", workDay: selectedDay, note: null }, "Werkdag afgesloten")}><Square/>{closed ? "Werkdag afgesloten" : "Werkdag afsluiten"}</button></header>
+    <div className="ps-hours-metrics" aria-label="Geregistreerde dagtotalen">
+      <section className="ps-panel"><span>Werkdag</span><strong>{staffDuration(totals.paid)}</strong><small>{rows[0] ? `Vanaf ${staffClock(rows[0].starts_at, timezone)}${running ? " tot nu" : " · geregistreerde tijd"}` : "Nog geen geregistreerde tijd"}</small></section>
+      <section className="ps-panel"><span>Op locatie</span><strong>{staffDuration(totals.work)}</strong><small>Uit je werkbonnen</small></section>
+      <section className="ps-panel"><span>Reistijd</span><strong>{staffDuration(totals.travel)}</strong><small>Inbegrepen in totaal</small></section>
+    </div>
+    <div className="ps-hours-grid">
+      <div className="ps-hours-main">
+        <section className="ps-panel ps-hours-day" aria-labelledby="ps-hours-day-title">
+          <div className="ps-panel-heading"><h2 id="ps-hours-day-title">{dayLabel}</h2><span className="ps-status" data-status={hasPendingCorrection ? "correction_requested" : review?.state ?? "open"}>{hasPendingCorrection ? "Correctie in behandeling" : review?.state === "confirmed" ? "Door mij akkoord" : closed ? "Afgesloten" : !rows.length ? "Nog geen uren" : selectedDay === today ? "Dag loopt" : "Nog af te sluiten"}</span></div>
+          {!rows.length && <p className="ps-hours-empty">Er zijn nog geen uren voor deze dag. Start een werkbon om uren te registreren of kies een andere dag.</p>}
+          {rows.filter(entry => entry.kind !== "break").map(entry => <div className="ps-hour-row" key={entry.id}>
+            <time>{staffClock(entry.starts_at, timezone)} – {entry.ends_at ? staffClock(entry.ends_at, timezone) : "nu"}</time>
+            <div className="ps-hour-detail" data-kind={entry.kind}><strong>{entry.kind === "work" ? "Werk op locatie" : entry.kind === "travel" ? "Reistijd" : "Overige werktijd"}</strong><small>{entryContext(entry)}</small>{correctionStatus(entry)}</div>
+            <strong>{staffDuration(summarizeEntries([entry], now).paid)}</strong>
+          </div>)}
+          {!rows.some(entry => !["work", "travel", "break"].includes(entry.kind)) && <div className="ps-hour-row"><span>Overige tijd</span><div className="ps-hour-detail" data-kind="other"><strong>Overige werktijd</strong><small>Geregistreerde overige tijd</small></div><strong>0 min</strong></div>}
+          <div className="ps-hours-break"><span>Pauze (niet meegerekend)</span><strong>{staffDuration(totals.break)}</strong></div>
+          {rows.filter(entry => entry.kind === "break").map(entry => <div className="ps-hours-break-detail" key={entry.id}><span>{staffClock(entry.starts_at, timezone)} – {entry.ends_at ? staffClock(entry.ends_at, timezone) : "nu"}</span>{correctionStatus(entry)}</div>)}
+          <div className="ps-hours-day-total"><strong>Totaal ter akkoord</strong><strong>{staffDuration(totals.paid)}</strong></div>
+          <footer className="ps-hours-day-actions"><button className="ps-secondary" disabled={pending || correctable.length === 0} onClick={openCorrection}><Pencil/>Correctie doorgeven</button><button className="ps-primary" disabled={pending || !canConfirm} onClick={() => review && runDayCommand(`confirm:${review.id}:${review.version}`, { command: "confirm", dayReviewId: review.id, version: review.version, note: null }, "Uren door jou bevestigd")}><Check/>{review?.state === "confirmed" ? "Uren akkoord gegeven" : "Uren akkoord geven"}</button></footer>
+          {rows.length > 0 && (hasPendingCorrection || running || !closed) && <p className="ps-hours-action-note">{hasPendingCorrection ? "Je kunt deze dag pas akkoord geven nadat het openstaande correctieverzoek is beoordeeld." : running ? "Rond eerst je lopende werkbon of tijdregistratie af om je werkdag af te sluiten." : "Sluit eerst je werkdag af om je uren akkoord te geven."}</p>}
+        </section>
+        <p className="ps-hours-info"><Info/><span>Je uren bestaan uit geregistreerde tijd op locatie, reistijd en overige werktijd. Reistijd telt mee en blijft apart zichtbaar. Pauzes worden niet meegerekend.</span></p>
       </div>
-      <div className="ps-hours-week-overview" aria-label="Geregistreerde tijd per weekdag">{week.map((date) => <div className="ps-hours-week-day" data-today={date === today || undefined} key={date}><span>{new Intl.DateTimeFormat("nl-NL", { weekday: "short", timeZone: "UTC" }).format(new Date(`${date}T12:00:00.000Z`)).replace(".", "")}</span><small>{Number(date.slice(-2))}</small><strong>{staffDuration(dayTotals.get(date)?.paid ?? 0)}</strong></div>)}</div>
-      <div className="ps-hours-week-total"><span>Geregistreerd weektotaal</span><strong>{staffDuration(weekTotal)}</strong></div>
-    </section>
-    <div className="ps-hours-grid">{days.map((date) => {
-      const rows = weekEntries.filter((entry) => staffDate(entry.starts_at, timezone) === date);
-      const totals = summarizeEntries(rows);
-      const review = reviews.find((item) => item.day === date);
-      const hasPendingCorrection = rows.some((entry) => data.staffTimeCorrectionRequests.some((request) => request.time_entry_id === entry.id && request.status === "pending"));
-      return <section className="ps-panel" key={date}>
-        <div className="ps-panel-heading"><div><span>WERKDAG</span><h2>{staffDayLabel(date, timezone)}</h2></div><span className="ps-status" data-status={hasPendingCorrection ? "correction_requested" : review?.state ?? "open"}>{hasPendingCorrection ? "Correctie in behandeling" : review?.state === "confirmed" ? "Door mij akkoord" : review?.state === "closed" ? "Afgesloten" : "Open"}</span></div>
-        <div className="ps-hours-summary"><div><small>Werk op locatie</small><strong>{staffDuration(totals.work)}</strong></div><div><small>Reis</small><strong>{staffDuration(totals.travel)}</strong></div><div><small>Pauze</small><strong>{staffDuration(totals.break)}</strong></div><div><small>Overig</small><strong>{staffDuration(totals.other)}</strong></div><div><small>Geregistreerd totaal</small><strong>{staffDuration(totals.paid)}</strong></div></div>
-        {rows.map((entry) => {
-          const requests = data.staffTimeCorrectionRequests
-            .filter((item) => item.time_entry_id === entry.id)
-            .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at));
-          const request = requests.find((item) => item.status === "pending");
-          const latest = requests[0];
-          return <div className="ps-hour-row" key={entry.id}><Clock3/><span><strong>{entry.kind === "work" ? "Werk" : entry.kind === "travel" ? "Reis" : entry.kind === "break" ? "Pauze" : "Overige tijd"}</strong><small>{staffClock(entry.starts_at, timezone)}–{entry.ends_at ? staffClock(entry.ends_at, timezone) : "nu"} · {entry.status}</small>{request ? <small id={`time-correction-${request.id}`}>Correctie in behandeling · gewenst {staffClock(request.requested_starts_at, timezone)}–{staffClock(request.requested_ends_at, timezone)} ({request.requested_duration_minutes} min)</small> : latest && latest.status !== "withdrawn" ? <small id={`time-correction-${latest.id}`}>{latest.status === "approved" ? "Correctie goedgekeurd" : "Correctie afgewezen"}{latest.review_note ? ` · ${latest.review_note}` : ""}</small> : null}</span>{entry.ends_at && entry.status !== "correction_requested" && !request && <button className="ps-secondary" onClick={() => setCorrection(entry)}>Corrigeren</button>}</div>;
-        })}
-        <footer className="ps-modal-footer">
-          {(!review || review.state === "open" || review.state === "correction_requested") && <button className="ps-secondary" disabled={pending} onClick={() => runDayCommand(`close:${date}`, { command: "close", workDay: date, note: null }, "Werkdag afgesloten")}>Werkdag afsluiten</button>}
-          {review?.state === "closed" && <button className="ps-primary" disabled={pending || hasPendingCorrection} title={hasPendingCorrection ? "Rond eerst het openstaande correctieverzoek af" : undefined} onClick={() => runDayCommand(`confirm:${review.id}:${review.version}`, { command: "confirm", dayReviewId: review.id, version: review.version, note: null }, "Uren door jou bevestigd")}>Uren accorderen</button>}
-        </footer>
-        {review?.state === "closed" && hasPendingCorrection && <p className="ps-toast-note">Je kunt deze dag pas accorderen nadat het openstaande correctieverzoek is beoordeeld.</p>}
-      </section>;
-    })}</div>
-    {!days.length && <Empty icon={Clock3} title="Geen uren in deze week">Kies een andere week of start een werkbon om uren te registreren.</Empty>}
-    {correction && <CorrectionDialog entry={correction} timezone={timezone} pending={pending} close={() => setCorrection(null)} submit={(input) => run(() => requestTimeCorrection(input), "Correctieverzoek verstuurd; je uren blijven ongewijzigd", () => setCorrection(null))}/>}
+      <aside className="ps-hours-aside">
+        <section className="ps-panel ps-hours-week-panel" aria-labelledby="ps-hours-week-title">
+          <div className="ps-hours-week-toolbar"><h2 id="ps-hours-week-title">{currentWeek ? "Deze week" : "Weekoverzicht"}</h2><div className="ps-hours-week-actions"><button className="ps-week-arrow" aria-label="Vorige week" onClick={() => setSelectedDay(addStaffDays(selectedDay, -7))}><ChevronLeft/></button><button className="ps-week-arrow" aria-label="Terug naar huidige week" title="Terug naar huidige week" disabled={currentWeek && selectedDay === today} onClick={() => setSelectedDay(today)}><RotateCcw/></button><button className="ps-week-arrow" aria-label="Volgende week" onClick={() => setSelectedDay(addStaffDays(selectedDay, 7))}><ChevronRight/></button></div></div>
+          {!currentWeek && <small className="ps-hours-week-range" aria-live="polite">{rangeDate(week[0]!)} – {rangeDate(week[6]!)}</small>}
+          <div className="ps-hours-week-overview" aria-label="Geregistreerde tijd per weekdag">{visibleWeek.map(date => <button type="button" className="ps-hours-week-day" aria-pressed={date === selectedDay} aria-label={`${staffDayLabel(date, timezone)}: ${staffDuration(dayTotals.get(date)!.paid)}`} onClick={() => setSelectedDay(date)} key={date}><span>{new Intl.DateTimeFormat("nl-NL", { weekday: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`))}</span><strong>{staffDuration(dayTotals.get(date)!.paid)}</strong></button>)}</div>
+          <div className="ps-hours-week-total"><span>Totaal</span><strong>{staffDuration(weekTotal)}</strong></div>
+        </section>
+        <section className="ps-panel ps-hours-retention"><h2>DUIDELIJK GEREGISTREERD</h2><p>Je uren blijven beschikbaar nadat werkbonnen uit de dagplanning zijn verdwenen.</p></section>
+      </aside>
+    </div>
+    {chooseCorrection && <Dialog title="Correctie doorgeven" kicker="MIJN UREN" close={() => setChooseCorrection(false)}><p>Kies de registratie die je wilt corrigeren.</p><div className="ps-hours-correction-options">{correctable.map(entry => <button type="button" className="ps-secondary" key={entry.id} onClick={() => { setChooseCorrection(false); setCorrection(entry); }}><span>{entry.kind === "work" ? "Werk op locatie" : entry.kind === "travel" ? "Reistijd" : entry.kind === "break" ? "Pauze" : "Overige werktijd"} · {staffClock(entry.starts_at, timezone)} – {staffClock(entry.ends_at!, timezone)}</span><ChevronRight/></button>)}</div></Dialog>}
+    {correction && <CorrectionDialog entry={correction} timezone={timezone} pending={pending} close={() => setCorrection(null)} submit={input => run(() => requestTimeCorrection(input), "Correctieverzoek verstuurd; je uren blijven ongewijzigd", () => setCorrection(null))}/>}
   </>;
 }
 

@@ -155,7 +155,7 @@ een zichtbare parent maar slechts een deel van de bijlagemetadata.
 
 | Functie | Implementatie en servergedrag |
 | --- | --- |
-| Uren | Lokale weeknavigatie, zeven dagtotalen en uitgesplitste werk-, reis-, pauze- en overige geregistreerde tijd. |
+| Mijn uren | Prototype-indeling met drie dagtotalen, tijdlijn met locatie/duur, correctiekeuze, pauze/totaal, weekzijbalk en blijvende registratie-uitleg. Weekdagen zijn selecteerbaar; weekenddagen verschijnen bij geregistreerde uren of selectie. Weeknavigatie blijft beschikbaar. Lege dagen tonen dezelfde structuur met nulwaarden. Totalen tellen alleen geregistreerde tijd; lopende regels verversen elke minuut. |
 | Werkdag sluiten/bevestigen | staff_day_command; open tijdregels blokkeren sluiten, open correcties blokkeren bevestigen, exacte retries leveren hetzelfde resultaat. |
 | Correctieverzoek medewerker | Alleen voor een gesloten eigen tijdregel en verwachte versie; de medewerker geeft gecorrigeerde begin-/eindtijd of duur plus reden op. Het verzoek bewaart bron- en doelsnapshot, wordt niet dubbel pending aangemaakt en verandert de bronregel of dagstaat nog niet. |
 | Correctiebeoordeling management/HR | Het personeelsdossier toont oorspronkelijk en gevraagd interval, reden en status. Tenant admin, management of HR kan de exacte versie toepassen of met verplichte toelichting afwijzen via review_staff_time_correction. |
