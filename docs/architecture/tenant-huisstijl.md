@@ -16,11 +16,24 @@ afzendergegevens en documentconfiguratie blijven in hun bestaande registratie.
 Er komt geen concurrerende huisstijltabel of secundaire-kleurveld.
 
 `createBrandPalette` en `brandThemeStyle` leiden leesbare semantische rollen af;
-`portalThemeStyle` koppelt diezelfde rollen aan het klantportaal. Personeel en
-management gebruiken dezelfde actie-, focus-, navigatie-, kaart- en accentrollen.
+`portalThemeStyle` koppelt diezelfde rollen aan het klantportaal. Management en
+klanten gebruiken dezelfde afgeleide tenantrollen.
 De standaardkleurzaden blijven `#222C35` en `#41AC42`; de afgeleide primaire
 actie is `#368341`, zoals in de portaalprototypes. Fout-, waarschuwing- en
 succeskleuren blijven statuskleuren, geen merkzaden.
+
+De vervolginstructie van de eigenaar op 5 oktober vraagt voor de personeelsapp
+een exacte kopie van het groen/grijze prototype. `/staff` en de gedeelde
+personeelsschil voor tickets/notificaties gebruiken daarom
+`personnelThemeStyle`: de vaste Fieldgrid-identiteit, witte kaarten en neutrale
+navigatie. Tenantkleuren blijven de bron voor management, klanten en externe
+tenantpagina's; deze personeelsuitzondering schrijft geen andere huisstijl op.
+
+Tickets blijft zichtbaar in de personeelsnavigatie. Wanneer de module uitstaat,
+opent de ingang alleen een uitleg over activering via de platformmodules.
+Bij een actieve module opent de bestaande ticketroute. De huidige RPC-,
+sessie-, module- en inhoudsrechten blijven gelden; zichtbaarheid activeert de
+module niet en verleent geen tickettoegang.
 
 Branding staat al in de serverrender. Bewaren invalideert `/app`, `/staff`,
 `/klant` en tenantgebonden `/login`; bestaande coarse-revision kanalen melden

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { getAuthContext } from "@/lib/auth/context";
-import { brandThemeStyle } from "@/lib/branding/palette";
+import { personnelThemeStyle } from "@/lib/staff/theme";
 import { StaffRouteShellClient } from "./route-shell-client";
 
 type StaffRoute = "tickets" | "notifications";
@@ -12,7 +12,7 @@ export async function StaffRouteShell({ active, children }: { active: StaffRoute
     active={active}
     actorKey={`${context.tenant.id}:${context.user.id}`}
     name="Medewerker"
-    style={brandThemeStyle(context.tenant.primaryColor, context.tenant.accentColor)}
+    style={personnelThemeStyle()}
     tenantId={context.tenant.id}
     ticketsEnabled={context.tenant.enabledServices.includes("tickets")}
   >{children}</StaffRouteShellClient>;

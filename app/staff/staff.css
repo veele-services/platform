@@ -26,18 +26,18 @@
   --ps-brand: #41ac42;
   --ps-action: #368341;
   --ps-action-hover: #2f7338;
-  --ps-sidebar: var(--brand-sidebar, #222c35);
-  --ps-sidebar-end: var(--brand-sidebar-end, #172129);
-  --ps-sidebar-text: var(--brand-sidebar-text, #ffffff);
-  --ps-sidebar-muted: var(--brand-sidebar-muted, #a3aeb6);
-  --ps-sidebar-active: color-mix(in srgb, var(--brand-sidebar-active, #315345) 42%, transparent);
-  --ps-canvas: var(--brand-canvas, #f2f4f6);
-  --ps-surface: var(--brand-surface, #ffffff);
-  --ps-ink: var(--brand-ink, #1a2632);
-  --ps-muted: var(--brand-muted, #6c7884);
-  --ps-line: var(--brand-border, #e4e9ec);
+  --ps-sidebar: #222c35;
+  --ps-sidebar-end: #172129;
+  --ps-sidebar-text: #ffffff;
+  --ps-sidebar-muted: #a3aeb6;
+  --ps-sidebar-active: rgb(255 255 255 / 5%);
+  --ps-canvas: #f2f4f6;
+  --ps-surface: #ffffff;
+  --ps-ink: #1a2632;
+  --ps-muted: #738190;
+  --ps-line: #e4e9ec;
   --ps-soft: #edf6ed;
-  --ps-focus: var(--brand-focus, #41ac42);
+  --ps-focus: #41ac42;
   --ps-danger: #b34949;
   --ps-radius: 18px;
   min-height: 100dvh;
@@ -116,7 +116,7 @@
   height: 100dvh;
   flex-direction: column;
   overflow-y: auto;
-  padding: 32px 18px 18px;
+  padding: 36px 18px 18px;
   background: linear-gradient(165deg, var(--ps-sidebar), var(--ps-sidebar-end));
   color: var(--ps-sidebar-text);
 }
@@ -154,7 +154,7 @@
 
 .personnel-app .ps-sidebar-brand > small {
   display: block;
-  margin-top: 2px;
+  margin-top: 10px;
   color: var(--ps-sidebar-muted);
   font-size: 0.75rem;
   font-weight: 500;
@@ -167,7 +167,7 @@
 }
 
 .personnel-app .ps-nav-section {
-  padding: 26px 16px 12px;
+  padding: 16px 16px 12px;
   color: color-mix(in srgb, var(--ps-sidebar-muted) 72%, transparent);
   font-size: 0.75rem;
   font-weight: 600;
@@ -186,7 +186,7 @@
   border-radius: 10px;
   padding: 12px 16px;
   background: transparent;
-  color: color-mix(in srgb, var(--ps-sidebar-text) 68%, var(--ps-sidebar-muted));
+  color: var(--ps-sidebar-muted);
   font-size: 0.9rem;
   font-weight: 500;
   text-align: left;
@@ -211,9 +211,9 @@
 }
 
 .personnel-app .ps-nav-button > b {
-  min-width: 22px;
+  min-width: 18px;
   margin-left: auto;
-  border-radius: 6px;
+  border-radius: 4px;
   padding: 1px 6px;
   background: #3a6640;
   color: #c9edcd;
@@ -226,10 +226,10 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 12px;
+  gap: 0;
   margin-top: auto;
   border-top: 1px solid rgb(255 255 255 / 8%);
-  padding: 19px 10px 2px;
+  padding: 24px 10px 4px;
   color: var(--ps-sidebar-text);
 }
 
@@ -344,21 +344,20 @@
   top: 0;
   z-index: 40;
   display: flex;
-  height: 82px;
+  height: 80px;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   border-bottom: 1px solid var(--ps-line);
   padding: 0 42px;
-  background: rgb(255 255 255 / 88%);
-  backdrop-filter: blur(18px);
+  background: #fff;
 }
 
 .personnel-app .ps-topbar > :first-child {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
 }
 
 .personnel-app .ps-topbar .ps-breadcrumb {
@@ -427,6 +426,15 @@
   display: none;
 }
 
+.personnel-app .ps-topbar-leading .ps-sync.current > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .personnel-app .ps-sync.current::before {
   background: var(--ps-brand);
 }
@@ -455,6 +463,7 @@
 }
 
 .personnel-app .ps-icon-button,
+.personnel-app .ps-top-actions .icon-button,
 .personnel-app .ps-profile-button {
   position: relative;
   display: inline-grid;
@@ -471,7 +480,13 @@
   border-radius: 12px;
 }
 
+.personnel-app .ps-top-actions .icon-button {
+  border-radius: 12px;
+  padding: 0;
+}
+
 .personnel-app .ps-icon-button:hover,
+.personnel-app .ps-top-actions .icon-button:hover,
 .personnel-app .ps-profile-button:hover {
   border-color: color-mix(in srgb, var(--ps-brand) 35%, var(--ps-line));
   background: color-mix(in srgb, var(--ps-soft) 55%, white);
@@ -496,6 +511,9 @@
 }
 
 .personnel-app .ps-profile-button {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
   border-color: transparent;
   border-radius: 50%;
   background: var(--ps-soft);
@@ -535,6 +553,20 @@
   background: var(--ps-surface);
   box-shadow: 0 12px 35px rgb(23 38 48 / 14%);
 }
+
+.personnel-app.ps-ticket-help {
+  min-height: 0;
+  width: min(440px, calc(100vw - 32px));
+  gap: 24px;
+  border: 1px solid var(--ps-line);
+  border-radius: 18px;
+  padding: 28px;
+  background: white;
+}
+
+.personnel-app.ps-ticket-help h2 {font-size: 1.2rem;}
+.personnel-app.ps-ticket-help p {color: var(--ps-muted);font-size: .875rem;line-height: 1.65;}
+.personnel-app.ps-ticket-help .ps-primary {justify-self: end;}
 
 .personnel-app .ps-profile-menu[hidden] {
   display: none;
@@ -585,7 +617,7 @@
   width: 100%;
   max-width: 1490px;
   margin: 0 auto;
-  padding: 34px 42px 50px;
+  padding: 42px 42px 50px;
 }
 
 .personnel-app .ps-page-heading {
@@ -621,7 +653,7 @@
 
 .personnel-app .ps-planning-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 310px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 26px;
   align-items: start;
 }
@@ -646,7 +678,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .personnel-app .ps-week-navigation {
@@ -696,7 +728,7 @@
   position: relative;
   display: grid;
   min-width: 0;
-  min-height: 68px;
+  min-height: 78px;
   place-items: center;
   align-content: center;
   gap: 4px;
@@ -785,7 +817,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 0 0 12px;
+  margin: 0 0 17px;
   color: var(--ps-muted);
   font-size: 0.8125rem;
 }
@@ -835,7 +867,6 @@
   content: "";
 }
 
-.personnel-app .ps-order-card[data-status="seen"]::before,
 .personnel-app .ps-order-card[data-status="travelling"]::before,
 .personnel-app .ps-order-card[data-status="in_progress"]::before,
 .personnel-app .ps-order-card.in-progress::before {
@@ -846,6 +877,8 @@
   background: #5f9ad6;
   content: "";
 }
+
+.personnel-app .ps-order-card[data-status="seen"] {border-color: #c4d8c5;}
 
 .personnel-app .ps-order-card-head {
   display: flex;
@@ -1129,6 +1162,10 @@
 }
 
 .personnel-app .ps-next-panel {
+  min-height: 265px;
+  max-height: 265px;
+  overflow-y: auto;
+  scrollbar-width: thin;
   border-color: #dbe9db;
   background: linear-gradient(135deg, #ecf5ec, #f9fcf7);
 }

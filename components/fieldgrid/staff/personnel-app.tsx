@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Bell, Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, FileText,
-  List, LogOut, Megaphone, Menu, MessageSquareText,
-  Navigation, Phone, Settings2, SlidersHorizontal, TicketCheck, UserRound,
+  Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
+  List, LogOut, Megaphone, Menu,
+  Navigation, Newspaper, Phone, Settings, Settings2, SlidersHorizontal, TicketCheck, Umbrella, UserRound,
   UsersRound, X,
 } from "lucide-react";
 import {
@@ -27,7 +27,7 @@ import type { NotificationPreferences } from "@/lib/notifications/model";
 import type { StaffPersonnel, StaffWorkspaceData } from "@/lib/staff/workspace";
 import { addStaffDays, assignmentInterval, staffClock, staffDate, staffDayLabel, staffDuration, staffWeek, summarizeEntries } from "@/lib/staff/time";
 import { localDateTime } from "@/lib/planning/time";
-import { brandThemeStyle } from "@/lib/branding/palette";
+import { personnelThemeStyle } from "@/lib/staff/theme";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationBell } from "@/components/fieldgrid/notifications/inbox";
 import { NotificationPushControl } from "@/components/fieldgrid/notifications/push";
@@ -40,6 +40,7 @@ import { StaffOrderSheet, type StaffOrder } from "@/components/fieldgrid/staff-a
 import { defaultAvailability, defaultTransport } from "@/lib/staff/onboarding";
 import { Onboarding } from "@/components/fieldgrid/staff/onboarding";
 import { StaffProfileRecovery } from "@/components/fieldgrid/staff/profile-recovery";
+import { StaffTicketsEntry } from "@/components/fieldgrid/staff/tickets-entry";
 
 type Assignment = StaffWorkspaceData["assignments"][number];
 type MainView = "planning" | "nieuws" | "uren" | "meer";
@@ -111,6 +112,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
   const selected = assigned.find((item) => item.id === selectedId) ?? null;
   const tenant = context.tenant;
   const ticketsEnabled = tenant.enabledServices.includes("tickets");
+  const unreadNews = data.announcements.filter(announcement => !data.announcementReads.some(read => read.announcement_id === announcement.id)).length;
 
   const run = (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => startTransition(async () => {
     let result: { ok: boolean; error?: string };
@@ -191,24 +193,22 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
   if (!profile) return <StaffProfileRecovery/>;
 
   const title = view === "planning" ? "Planning" : view === "nieuws" ? "Nieuws" : view === "uren" ? "Mijn uren" : moreView === "menu" ? "Meer" : ({ verlof: "Verlof", beschikbaarheid: "Beschikbaarheid", documenten: "Documenten", instellingen: "Instellingen", profiel: "Profiel" } as Record<MoreView, string>)[moreView];
-  return <div className={`personnel-app${view === "planning" ? " ps-planning-screen" : ""}`} style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
+  return <div className={`personnel-app${view === "planning" ? " ps-planning-screen" : ""}`} style={personnelThemeStyle()}>
     <aside className="ps-sidebar">
       <div className="ps-sidebar-brand"><div className="ps-sidebar-logo">Fieldgrid</div><small>PERSONEELSAPP</small></div>
       <nav className="ps-nav" aria-label="Hoofdnavigatie">
-        <span className="ps-nav-section">MIJN WERK</span>
         <button className={`ps-nav-button${view === "planning" ? " active" : ""}`} onClick={() => navigate("planning")}><CalendarDays/><span>Dagplanning</span></button>
-        <button className={`ps-nav-button${view === "nieuws" ? " active" : ""}`} onClick={() => navigate("nieuws")}><Megaphone/><span>Nieuws</span>{data.announcements.some((announcement) => !data.announcementReads.some((read) => read.announcement_id === announcement.id)) && <i/>}</button>
-        <button className={`ps-nav-button${view === "uren" ? " active" : ""}`} onClick={() => navigate("uren")}><Clock3/><span>Uren</span></button>
-        {ticketsEnabled && <Link className="ps-nav-button" href="/staff/meldingen"><MessageSquareText/><span>Tickets</span></Link>}
+        <button className={`ps-nav-button${view === "nieuws" ? " active" : ""}`} onClick={() => navigate("nieuws")}><Newspaper/><span>Nieuws</span>{unreadNews > 0 && <b>{unreadNews}</b>}</button>
+        <button className={`ps-nav-button${view === "uren" ? " active" : ""}`} onClick={() => navigate("uren")}><Clock3/><span>Mijn uren</span></button>
+        <StaffTicketsEntry className="ps-nav-button" enabled={ticketsEnabled}/>
         <span className="ps-nav-section">PERSONEELSZAKEN</span>
-        <button className={`ps-nav-button${view === "meer" && moreView === "verlof" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("verlof"); }}><CalendarDays/><span>Verlof</span></button>
-        <button className={`ps-nav-button${view === "meer" && moreView === "beschikbaarheid" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("beschikbaarheid"); }}><UsersRound/><span>Beschikbaarheid</span></button>
+        <button className={`ps-nav-button${view === "meer" && moreView === "verlof" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("verlof"); }}><Umbrella/><span>Verlof</span></button>
+        <button className={`ps-nav-button${view === "meer" && moreView === "beschikbaarheid" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("beschikbaarheid"); }}><CalendarCheck/><span>Beschikbaarheid</span></button>
         <button className={`ps-nav-button${view === "meer" && moreView === "documenten" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("documenten"); }}><FileText/><span>Documenten</span></button>
-        <button className={`ps-nav-button${view === "meer" && moreView === "instellingen" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("instellingen"); }}><Settings2/><span>Instellingen</span></button>
+        <button className={`ps-nav-button${view === "meer" && moreView === "instellingen" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("instellingen"); }}><Settings/><span>Instellingen</span></button>
       </nav>
       <footer className="ps-sidebar-footer">
         <div className="ps-sidebar-person"><span>{initials(profile.preferred_name || profile.full_name)}</span><span><strong>{profile.preferred_name || profile.full_name}</strong><small>Medewerker</small></span></div>
-        <span className={`ps-sync ${sync}`}><i/>{sync === "current" ? "Alles bijgewerkt" : sync === "offline" ? "Offline" : sync === "syncing" ? "Synchroniseren…" : "Verbinden…"}</span>
       </footer>
     </aside>
     <div className="ps-workspace">
@@ -237,11 +237,11 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run}/>}
         {view === "meer" && <MoreScreen view={moreView} setView={setMoreView} data={data} profile={profile} timezone={tenant.timezone} email={context.user.email ?? profile.email ?? ""} ticketsEnabled={ticketsEnabled} pending={pending} run={run}/>}
       </main>
-      <nav className={`ps-bottom-nav${ticketsEnabled ? "" : " without-tickets"}`} aria-label="Mobiele navigatie">
+      <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">
         <button className={view === "planning" ? "active" : ""} onClick={() => navigate("planning")}><CalendarDays/><span>Planning</span></button>
         <button className={view === "nieuws" ? "active" : ""} onClick={() => navigate("nieuws")}><Megaphone/><span>Nieuws</span></button>
         <button className={view === "uren" ? "active" : ""} onClick={() => navigate("uren")}><Clock3/><span>Uren</span></button>
-        {ticketsEnabled && <Link href="/staff/meldingen"><MessageSquareText/><span>Tickets</span></Link>}
+        <StaffTicketsEntry className="ps-bottom-tickets" enabled={ticketsEnabled}/>
         <button className={view === "meer" ? "active" : ""} onClick={() => navigate("meer")}><Menu/><span>Meer</span></button>
       </nav>
     </div>
@@ -310,9 +310,9 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
       : <Empty icon={CalendarDays} title="Geen werkbonnen op deze dag">Kies een andere dag. Nieuwe vrijgegeven opdrachten verschijnen automatisch.</Empty>}
     </section>
     <aside className="ps-planning-aside">
-      <section className="ps-panel ps-next-panel"><div className="ps-panel-heading"><span>EERSTVOLGENDE AFSPRAAK</span><CalendarDays/></div>{next && nextAssignment ? <><h2>{nextObject?.name ?? next.title}</h2><p>{objectAddress(nextObject?.address)}</p>{nextContact?.phone && <p className="ps-next-phone"><Phone/>{nextContact.phone}</p>}<strong className="ps-next-time">{assignmentInterval(nextAssignment, timezone).start}</strong><p>Verwachte start{nextTravel?.estimated_minutes != null ? ` · ${nextTravel.estimated_minutes} min reistijd` : ""}</p><button className="ps-primary ps-full" onClick={() => onOpen(next)}>Open werkbon</button><div className="ps-planner-line"><span className="ps-mini-avatar">FG</span><span>Toegewezen door je planning</span></div></> : <p>Er staat niets gepland.</p>}</section>
+      <section className="ps-panel ps-next-panel"><div className="ps-panel-heading"><span>EERSTVOLGENDE AFSPRAAK</span><CalendarDays/></div>{next && nextAssignment ? <><h2>{nextObject?.name ?? next.title}</h2><p>{objectAddress(nextObject?.address)}</p>{nextContact?.phone && <p className="ps-next-phone"><Phone/>{nextContact.phone}</p>}<strong className="ps-next-time">{assignmentInterval(nextAssignment, timezone).start}</strong><p>Verwachte start{nextTravel?.estimated_minutes != null ? ` · ${nextTravel.estimated_minutes} min reistijd` : ""}</p><button className="ps-primary ps-full" onClick={() => onOpen(next)}><Eye/>Open werkbon</button></> : <p>Er staat niets gepland.</p>}</section>
       <section className="ps-panel"><div className="ps-panel-heading"><h2>Jouw werkdag</h2><Clock3/></div><div className="ps-metric-row"><span>Werkbonnen afgerond</span><strong>{completedCount} / {visible.length}</strong></div><div className="ps-progress"><span style={{ width: `${visible.length ? completedCount / visible.length * 100 : 0}%` }}/></div><div className="ps-metric-row"><span>Geregistreerd vanaf</span><strong>{firstEntry ? staffClock(firstEntry.starts_at, timezone) : "–"}</strong></div><div className="ps-metric-row"><span>Werkdag tot nu toe</span><strong>{staffDuration(totals.paid)}</strong></div><button className="ps-text-button" onClick={onHours}>Bekijk mijn uren</button></section>
-      {data.announcements.length > 0 && <section className="ps-panel"><div className="ps-panel-heading"><h2>Goed om te weten</h2><Megaphone/></div>{data.announcements.slice(0, 2).map((announcement) => <button className="ps-mini-news" key={announcement.id} onClick={onNews}><small>Teamnieuws</small><strong>{announcement.title}</strong></button>)}</section>}
+      {data.announcements.length > 0 && <section className="ps-panel"><div className="ps-panel-heading"><h2>Goed om te weten</h2><Newspaper/></div>{data.announcements.slice(0, 2).map((announcement) => <button className="ps-mini-news" key={announcement.id} onClick={onNews}><small>Teamnieuws</small><strong>{announcement.title}</strong></button>)}</section>}
     </aside>
   </div>;
 }
@@ -450,7 +450,7 @@ function MoreScreen({ view, setView, data, profile, timezone, email, ticketsEnab
     <section className="ps-profile-summary"><span>{initials(profile.preferred_name || profile.full_name)}</span><div><small>MIJN PROFIEL</small><h2>{profile.preferred_name || profile.full_name}</h2><p>{profile.employee_number}</p></div></section>
     {actions.map(([key, title, text, Icon]) => <button className="ps-list-row" key={key} onClick={() => setView(key)}><Icon/><span><strong>{title}</strong><small>{text}</small></span><ChevronRight/></button>)}
     <Link className="ps-list-row" href="/staff/notificaties"><Bell/><span><strong>Notificaties</strong><small>Inbox en persoonlijke voorkeuren</small></span><ChevronRight/></Link>
-    {ticketsEnabled && <Link className="ps-list-row" href="/staff/meldingen"><TicketCheck/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span><ChevronRight/></Link>}
+    <StaffTicketsEntry className="ps-list-row" enabled={ticketsEnabled}><TicketCheck/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span><ChevronRight/></StaffTicketsEntry>
     <section className="ps-panel"><div className="ps-panel-heading"><div><span>OPEN DIENSTEN</span><h2>Interesse doorgeven</h2></div><CalendarDays/></div>{shifts.map((shift) => {
       const interest = data.shiftInterests.find((item) => item.open_shift_id === shift.id && item.personnel_id === profile.id);
       const interested = interest?.status === "interested";
