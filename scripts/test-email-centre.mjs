@@ -92,3 +92,88 @@ test('Mail centre: Auth context, durable transport, stop and signed event storag
   });
  } finally {await db.query('rollback');await db.end();}
 });
+
+test('Auth mail uses current customer identity before the first object and after revocation', async t => {
+ if(process.env.FIELDGRID_STAGING_SMOKE) throw Error('Draft mail tests are local only');
+ const db=await workOrderTestDatabase();await db.query('begin');
+ const tenant=randomUUID(),other=randomUUID(),user=randomUUID(),stranger=randomUUID();
+ const customer=randomUUID(),contact=randomUUID(),account=randomUUID(),object=randomUUID();
+ const slug=`auth-customer-${tenant}`,recipient=`${user}@example.test`;
+ const context=async({target=slug,actor=user,email=recipient,action='magiclink',role='service_role'}={})=>{
+  await db.query('savepoint customer_auth_call');
+  try{
+   await db.query(`set local role ${role}`);
+   await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({role,sub:actor})]);
+   return (await db.query('select public.email_auth_context($1,$2,$3,$4) result',[target,actor,email,action])).rows[0].result;
+  }finally{
+   await db.query('rollback to savepoint customer_auth_call');
+   await db.query('release savepoint customer_auth_call');
+  }
+ };
+ const denied=input=>assert.rejects(()=>context(input),error=>error.code==='42501');
+ const changed=async(sql,args,assertion)=>{
+  await db.query('savepoint customer_auth_change');
+  try{await db.query(sql,args);await assertion();}
+  finally{await db.query('rollback to savepoint customer_auth_change');await db.query('release savepoint customer_auth_change');}
+ };
+ try{
+  for(const id of [tenant,other]){
+   await db.query("insert into public.tenants(id,slug,name) values($1,$2,'FICTITIOUS customer mail tenant')",[id,`auth-customer-${id}`]);
+   await db.query("insert into public.tenant_branding(tenant_id,primary_color,accent_color) values($1,'#123456','#ABCDEF')",[id]);
+  }
+  for(const id of [user,stranger])await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,`${id}@example.test`]);
+  await db.query("insert into public.customers(id,tenant_id,customer_number,name) values($1,$2,$1::uuid::text,'FICTITIOUS customer')",[customer,tenant]);
+  await db.query("insert into public.customer_contacts(id,tenant_id,customer_id,full_name,email) values($1,$2,$3,'FICTITIOUS contact',$4)",[contact,tenant,customer,recipient]);
+  await db.query('insert into public.customer_portal_accounts(id,tenant_id,customer_id,user_id,contact_id) values($1,$2,$3,$4,$5)',[account,tenant,customer,user,contact]);
+  await t.test('an active explicit customer without membership, object or session receives its tenant brand',async()=>{
+   for(const table of ['tenant_memberships','object_customer_bindings','auth.sessions']){
+    const qualified=table.includes('.')?table:`public.${table}`;
+    assert.equal((await db.query(`select count(*) from ${qualified} where user_id=$1`,[user])).rows[0].count,'0');
+   }
+   assert.deepEqual(await context(),{tenant_id:tenant,company:'FICTITIOUS customer mail tenant',primary:'#123456',accent:'#ABCDEF',logo:false});
+  });
+  await t.test('a matching contact email cannot substitute for the bound user or tenant',async()=>{
+   await denied({actor:stranger});
+   await denied({target:`auth-customer-${other}`});await denied({target:'missing-auth-customer'});
+  });
+  await t.test('signed account events keep branding while an Auth email change is not yet committed',async()=>{
+   for(const action of ['email_change','email_changed_notification']){
+    assert.equal((await context({action,email:'pending-new-address@example.test'})).tenant_id,tenant);
+   }
+   assert.equal((await db.query('select email from auth.users where id=$1',[user])).rows[0].email,recipient);
+  });
+  await t.test('signed activation events can precede email confirmation while login and recovery remain denied',async()=>{
+   await changed('update auth.users set email_confirmed_at=null where id=$1',[user],async()=>{
+    for(const action of ['signup','invite','email_change','email_changed_notification']){
+     assert.equal((await context({action,email:'pending-new-address@example.test'})).tenant_id,tenant);
+    }
+    for(const action of ['magiclink','email','recovery','reauthentication'])await denied({action});
+   });
+  });
+  await t.test('inactive customer, contact or tenant and out-of-date contacts cannot authorize a code',async()=>{
+   for(const status of ['inactive','archived','draft'])await changed('update public.customers set status=$1 where id=$2',[status,customer],()=>denied());
+   await changed('update public.customer_contacts set active=false where id=$1',[contact],()=>denied());
+   await changed("update public.customer_contacts set active_from=(clock_timestamp() at time zone 'Europe/Amsterdam')::date+1 where id=$1",[contact],()=>denied());
+   await changed("update public.customer_contacts set active_until=(clock_timestamp() at time zone 'Europe/Amsterdam')::date-1 where id=$1",[contact],()=>denied());
+   await changed("update public.tenants set status='suspended' where id=$1",[tenant],()=>denied());
+  });
+  await t.test('deleted, banned, anonymous or unconfirmed Auth identities cannot authorize a code',async()=>{
+   for(const assignment of ["deleted_at=clock_timestamp()","banned_until=clock_timestamp()+interval '1 hour'",'is_anonymous=true','email_confirmed_at=null']){
+    await changed(`update auth.users set ${assignment} where id=$1`,[user],()=>denied());
+   }
+  });
+  await t.test('an inactive account remains denied even while an old object binding remains active',async()=>{
+   await changed('update public.customer_portal_accounts set active=false where id=$1',[account],()=>denied());
+   await db.query("insert into public.objects(id,tenant_id,customer_id,object_number,name,address) values($1,$2,$3,$1::uuid::text,'FICTITIOUS legacy object','{}')",[object,tenant,customer]);
+   await db.query('insert into public.object_customer_bindings(tenant_id,object_id,user_id,created_by) values($1,$2,$3,$3)',[tenant,object,user]);
+   await changed('update public.customer_portal_accounts set active=false where id=$1',[account],async()=>{
+    assert.equal((await db.query('select active from public.object_customer_bindings where object_id=$1 and user_id=$2',[object,user])).rows[0].active,true);
+    await denied();
+   });
+   assert.equal((await context()).tenant_id,tenant);
+  });
+  await t.test('anonymous and authenticated callers cannot obtain customer Auth mail context',async()=>{
+   await denied({role:'anon'});await denied({role:'authenticated'});
+  });
+ }finally{await db.query('rollback');await db.end();}
+});

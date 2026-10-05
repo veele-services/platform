@@ -133,11 +133,11 @@
     },
     {
       "id": "code:app/api/email/auth/route.ts",
-      "surfaceFingerprint": "b09ef23675185e99fb1a75d39beac53f7854290dc7c0c4afaeed6514211fcc9d",
-      "status": "controlled",
+      "surfaceFingerprint": "92dfc7746ff7c178c2eb5931803931eab01ae3b28c99e35645c75b6011c27bb7",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/otp-activity-verification-2026-10-05.md"
+        "docs/security/auth-mail-verification-2026-10-05.md",
+        "app/api/email/auth/route.test.ts"
       ]
     },
     {
@@ -4672,13 +4672,11 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "56b7069c8cbb8b517711a91159b9551f0edfdba24712089d1c96bd0e61504672",
+      "surfaceFingerprint": "37e4311668071b815916508856163557a8a53d3527ff127ff1dac647733ae66c",
       "status": "controlled",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md",
-        "docs/security/branding-management-verification-2026-10-05.md",
-        "scripts/verify-local-migration-manifest.ts: clean replay of 109 migrations, 57 deployed hashes preserved"
+        "docs/security/auth-mail-verification-2026-10-05.md",
+        "scripts/verify-local-migration-manifest.ts"
       ]
     },
     {
@@ -9202,13 +9200,12 @@
     },
     {
       "id": "rpc:public.email_auth_context(target_slug text, actor uuid, recipient text, action_type text)",
-      "surfaceFingerprint": "beccb61789ca9d1911056995c023fec39f9264828f1ae790f8702ec3caa49fb3",
-      "status": "controlled",
+      "surfaceFingerprint": "2cd84062bd0db3642cd742d85a6329fd963ef075b6279bd1b902396804a5e8d6",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/auth-mail-verification-2026-10-05.md",
+        "supabase/migrations/20261005075500_customer_auth_mail_context.sql",
+        "scripts/test-email-centre.mjs"
       ]
     },
     {

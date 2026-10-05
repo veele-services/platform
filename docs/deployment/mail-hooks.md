@@ -70,6 +70,46 @@ De redirectallowlist bevat de platform- en tenantorigins met `/login`,
 een geweigerde `emailRedirectTo` kan bij Auth terugvallen op de platform-Site URL
 en daarmee de tenantbranding verliezen.
 
+### Controleer het hooktype, niet alleen de status
+
+Onder Authentication → Hooks moet de kaart voor dit endpoint **Send Email**
+heten, het type **HTTPS endpoint** hebben en **Enabled** tonen. De eigenaar
+toonde op 5 oktober een ingeschakelde **Customize Access Token (JWT) Claims
+hook** met `https://staging.fieldgrid.nl/api/email/auth`. Die screenshot bewijst
+een verkeerd gekoppelde JWT-hook, geen ingeschakelde Send Email-hook.
+
+Schakel die verkeerd gekoppelde JWT-hook uit. Voeg via **Add hook → Send
+Email** het stagingendpoint `https://staging.fieldgrid.nl/api/email/auth` toe
+en gebruik de signing secret die overeenkomt met GitHub Environment `staging`
+`SUPABASE_SEND_EMAIL_HOOK_SECRET`. Genereer niet ongemerkt een andere secret:
+als de operator de secret bewust vervangt, moet dezelfde nieuwe waarde ook in
+die GitHub Environment-secret staan en via de bestaande stagingworkflow in de
+runtime terechtkomen. Deel of log de secret nooit.
+
+De JWT-hook wordt bij sessieuitgifte en tokenvernieuwing aangeroepen en verwacht
+een antwoord met JWT-claims. De mailendpoint verwacht `user` en `email_data`
+en bevestigt een geslaagde verzending met HTTP 200, `application/json` en `{}`.
+Ook een al voltooide hookaanroep krijgt dat JSON-antwoord zonder opnieuw mail
+te versturen. De GoTrue HTTP-hookdispatcher valideert het contenttype en de
+JSON-inhoud van een 200-respons; een lege 200 zonder JSON wordt geweigerd.
+Hij wijst
+een JWT-payload af vóór database- of mailtoegang. De verkeerde koppeling kan
+daarom zowel inloggen als tokenvernieuwing blokkeren, terwijl Auth nog steeds
+de standaard-SMTP-mail verstuurt. Een groene endpoint-healthcontrole detecteert
+deze hosted providerinstelling niet.
+
+Vraag na de correctie een **nieuwe** code aan en vul die in het openstaande
+OTP-scherm in; de eerder verzonden magic-link-mail bevat geen inlogcode. Voer
+daarna de provideracceptatie voor de vier werkruimtes hieronder uit.
+
+De eigenaar heeft daarna op 5 oktober bevestigd dat een nieuwe emailhook is
+aangemaakt, de GitHub-secret is aangepast en de verkeerd gekoppelde JWT-hook
+is uitgeschakeld. De draaiende applicatie leest
+die wijziging pas nadat de bestaande stagingworkflow de nieuwe runtime-
+configuratie heeft geïnstalleerd. Dit is operatorbevestiging van de wijziging;
+de juiste signing secret in de actieve runtime en echte codemailbezorging
+moeten nog na de deploy worden bevestigd.
+
 ### Controleerbare activatiegrens — 5 oktober 2026
 
 De repository bevat geen workflow of script dat hosted Auth-instellingen
@@ -77,9 +117,13 @@ wijzigt. Een inventarisatie van **namen** in GitHub Environment `staging`
 bevestigt `SUPABASE_SEND_EMAIL_HOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` en de
 SendGrid-configuratie. Er is geen `SUPABASE_ACCESS_TOKEN` voor de Auth Management
 API geïnventariseerd. De project-servicekey en de hook-handtekeningsleutel zijn
-geen beheertoken voor hosted providerinstellingen. De eigenaar bevestigde op 5 oktober 2026 tijdens de voorbereiding van de
-klantportaalrelease opnieuw dat de Send Email Hook **uitgeschakeld** staat.
-Dit is actuele operatorbevestiging, geen inspectie via een provider-API. Zonder geautoriseerde provider-UI
+geen beheertoken voor hosted providerinstellingen. De eigenaar meldde tijdens
+de voorbereiding van de klantportaalrelease dat de Send Email Hook uit stond;
+de latere screenshot toont de hierboven beschreven ingeschakelde JWT-hook.
+Vervolgens bevestigde de eigenaar het aanmaken van de juiste emailhook, het
+aanpassen van de GitHub-secret en het uitschakelen van de verkeerde JWT-hook.
+Dit zijn operatorgegevens, geen inspectie via
+een provider-API. Zonder geautoriseerde provider-UI
 of beheertoegang kan een applicatiedeploy activatie niet vaststellen of uitvoeren.
 
 De volgende acceptatiestappen blijven daarom expliciete operatorhandelingen
@@ -100,8 +144,10 @@ succesvolle lokale ondertekende test is geen bewijs van echte Auth-levering.
    in the **new staging Supabase project**. Then replace the temporary
    `https://www.fieldgrid.nl` hook URL with
    `https://staging.fieldgrid.nl/api/email/auth`. Keep the configured signing
-   secret consistent with GitHub. Enable the Send Email Hook only now. Keep the
-   Email provider enabled. Never edit the production project.
+   secret consistent with GitHub. Confirm the hook card is **Send Email**, not
+   **Customize Access Token (JWT) Claims**; disable any JWT-hook pointing at the
+   mail endpoint. Enable the Send Email Hook only now. Keep the Email provider
+   enabled. Never edit the production project.
 4. Request a code with operator-owned accounts for `/platform`, tenant `/app`,
    `/staff` and `/klant`. Confirm each mail uses the correct Fieldgrid/tenant
    brand and exactly a six-digit code without a credential-bearing URL. Enter
@@ -154,6 +200,8 @@ report those limitations explicitly.
   Those operator acceptance checks remain mandatory.
 
 References: [Supabase Send Email Hook](https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook)
+and [Supabase Custom Access Token Hook](https://supabase.com/docs/guides/auth/auth-hooks/custom-access-token-hook)
+and [GoTrue HTTP hook response contract](https://github.com/supabase/auth/blob/v2.196.0/internal/hooks/hookshttp/hookshttp.go#L186-L231)
 and [SendGrid signed Event Webhook](https://www.twilio.com/docs/sendgrid/for-developers/tracking-events/getting-started-event-webhook-security-features).
 
 ## Locally executed checks — 2026-10-01
@@ -180,5 +228,5 @@ Current integration evidence is maintained in
 The baseline staging release `1f47c7b8621c18cd2a70b570a2ea0cda275154ad`
 passed its full deployment workflow and exact-SHA public health check on
 5 October 2026. That application health does not establish provider delivery.
-The owner confirmed that the Send Email Hook remains disabled; replace the
-temporary URL only during the controlled activation sequence above.
+The later operator screenshot shows the JWT-hook misconfiguration described
+above; correct the hook type during the controlled activation sequence.

@@ -546,6 +546,11 @@
       "version": "20261005075400",
       "name": "customer_payment_availability",
       "sha256": "0978c694bd2edcc0435028e61434a37692052a2b1fb7d71c243c0fa6c6b1af98"
+    },
+    {
+      "version": "20261005075500",
+      "name": "customer_auth_mail_context",
+      "sha256": "cbdfc13e948dcbd43e1c64dd1f04a9b02ffdf98f37481cfe2fc4c24a0ead5013"
     }
   ]
 }
