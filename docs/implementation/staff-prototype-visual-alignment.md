@@ -119,3 +119,18 @@ Uitkomst:
 Dit is geen volledige repositorytestsuite of eindcontrole van de hele
 wijzigingsreeks. Deze wijzigingen zijn lokaal gecommit en niet gepusht of
 naar staging gedeployd.
+
+## Releasecontrole op 6 oktober 2026
+
+Na het expliciete verzoek om te pushen en te deployen zijn ook de bestaande
+visuele referenties van de overige gewijzigde dashboards en modals bijgewerkt.
+De 26 nieuwe beelden zijn visueel beoordeeld op typografie, uitlijning,
+scrollbaarheid en ruimte voor mobiele bediening. De tests en hun bestaande
+afwijkingsgrens zijn niet versoepeld.
+
+Negen gerichte Chromium-cases slagen op de productiebuild: platformoverzicht,
+huisstijl en templates, tenantoverzicht en aanvragen, kleurenpaletten,
+resourcepagina's en klant-/objectwizard, klantdossier, personeelsdossier,
+personeelsnummering, Object 360 en de personeels-PWA met werkbonvenster.
+De personeelscheck gebruikt dezelfde reeds gebouwde release opnieuw.
+De verplichte volledige GitHub CI blijft vereist voor merge en stagingpromotie.
