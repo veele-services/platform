@@ -1,14 +1,16 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { cleanAccountBrowserState } from "@/lib/auth/browser-state";
 import { isProtectedPage } from "@/lib/auth/session-signal";
+import { SessionLoading, type SessionLoadingBrand } from "@/components/fieldgrid/session-loading";
 
 /** Local notification chrome is cleared immediately. The signout route also
  * revokes server device bindings before ending the authenticated session. */
-export function NotificationAccountBoundary({renderedSessionKey}:{renderedSessionKey:string|null}) {
+export function NotificationAccountBoundary({renderedSessionKey,brand}:{renderedSessionKey:string|null;brand?:SessionLoadingBrand|null}) {
   const pathname=usePathname();
   const invalidating=useRef<{sessionKey:string|null}|null>(null);
+  const [unavailable,setUnavailable]=useState(false);
   useEffect(() => {
     const protectedPage=()=>isProtectedPage(location.pathname);
     const pulse="fieldgrid:account-event";
@@ -26,13 +28,19 @@ export function NotificationAccountBoundary({renderedSessionKey}:{renderedSessio
     const reload=()=>{invalidate();if(protectedPage())location.reload();};
     const check=async(cover=false)=>{
       if(!protectedPage()||closed)return;
-      if(cover)hide();request?.abort();request=new AbortController();const sequence=++epoch;
+      if(cover)hide();
+      // Focus and visibility often arrive together. Share the in-flight live
+      // check instead of cancelling it and starting the same request again.
+      if(request&&!request.signal.aborted)return;
+      const active=new AbortController();request=active;const sequence=++epoch;
+      const timeout=setTimeout(()=>active.abort(),15000);
       try{
-        const response=await fetch("/api/auth/session",{cache:"no-store",credentials:"same-origin",signal:request.signal});
+        const response=await fetch("/api/auth/session",{cache:"no-store",credentials:"same-origin",signal:active.signal});
         if(!response.ok)throw new Error("Session unavailable");
         const data=await response.json();
         if(closed||sequence!==epoch)return;
         if(data.sessionKey!==null&&(typeof data.sessionKey!=="string"||!/^[a-f0-9]{64}$/.test(data.sessionKey)))throw new Error("Invalid session signal");
+        setUnavailable(false);
         if(data.sessionKey===null||renderedSessionKey!==data.sessionKey){
           invalidate();signal("changed");location.replace(data.sessionKey===null?"/login":location.href);return;
         }
@@ -42,7 +50,8 @@ export function NotificationAccountBoundary({renderedSessionKey}:{renderedSessio
         if(invalidating.current?.sessionKey===renderedSessionKey)return;
         invalidating.current=null;
         delete document.documentElement.dataset.accountBlocked;
-      }catch{if(!closed&&sequence===epoch)hide();}
+      }catch{if(!closed&&sequence===epoch){hide();setUnavailable(true);}}
+      finally{clearTimeout(timeout);if(request===active)request=undefined;}
     };
     clean(false);
     if(pathname==="/login"){invalidating.current=null;clean();notices();signal("changed");delete document.documentElement.dataset.accountBlocked;}
@@ -77,12 +86,12 @@ export function NotificationAccountBoundary({renderedSessionKey}:{renderedSessio
     const restored=(event:PageTransitionEvent)=>{if(event.persisted&&protectedPage())reload();};
     const focus=()=>{if(document.visibilityState==="visible")void check(true);};
     const leaving=()=>hide();
-    const retry=()=>void check(true);
+    const retry=()=>{setUnavailable(false);void check(true);};
     const timer=setInterval(()=>{if(document.visibilityState==="visible")void check();},30000);
     document.addEventListener("submit",clear,true);window.addEventListener("storage",changed);
     window.addEventListener("pagehide",leaving);window.addEventListener("pageshow",restored);window.addEventListener("focus",focus);
     window.addEventListener("fieldgrid-session-retry",retry);document.addEventListener("visibilitychange",focus);
     return () => {closed=true;epoch++;request?.abort();clearInterval(timer);document.removeEventListener("submit",clear,true);window.removeEventListener("storage",changed);window.removeEventListener("pagehide",leaving);window.removeEventListener("pageshow",restored);window.removeEventListener("focus",focus);window.removeEventListener("fieldgrid-session-retry",retry);document.removeEventListener("visibilitychange",focus);};
   }, [pathname,renderedSessionKey]);
-  return <div data-account-fence role="status"><div><h1>Sessie controleren</h1><p>Je gegevens blijven afgeschermd terwijl we je toegang opnieuw controleren.</p><button type="button" onClick={()=>window.dispatchEvent(new Event("fieldgrid-session-retry"))}>Opnieuw controleren</button> <a href="/login">Naar inloggen</a></div></div>;
+  return <div data-account-fence><SessionLoading brand={brand} unavailable={unavailable} onRetry={()=>window.dispatchEvent(new Event("fieldgrid-session-retry"))}/></div>;
 }

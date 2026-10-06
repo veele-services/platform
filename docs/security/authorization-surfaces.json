@@ -1440,7 +1440,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "413d95929dc0dd8d0cb36176abb9d88d7ce91238035b5a93ade029e6361c2dfc"
+      "source_sha256": "53565f3aa477bd27ddcc34b3f31272577f62748c90dad16ef449d81a7a7df632"
     },
     {
       "id": "code:app/login/actions.ts",
@@ -1468,7 +1468,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "db8eaecac8dbbf89f36c3fc15ee60f8bbb292d4e4beebc3feee5a462fa9dd1ce"
+      "source_sha256": "8f1014c674c259b873d2d35d6aae1203081d84e9c59f50dbc2f2198a3e2b103c"
     },
     {
       "id": "code:app/notifications/actions.ts",
@@ -1731,7 +1731,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "3fcd5041708542c2fb638d2fb54ca394bb66f58921fc2e5f24e38858758da8cb"
+      "source_sha256": "2783bfda0e37d01e0511b6c37e868a57ce705c0a3720afd9196bcc8bd32a1552"
     },
     {
       "id": "code:app/staff/meldingen/[id]/page.tsx",
@@ -1906,7 +1906,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "fc05c5954cf1c91ccccb7594ea1150e142fa50c57282dd97ab72ea1d35d54f90"
+      "source_sha256": "9589c57fd389008a4285990fcd1d5cae8bc6e212334c71cef5da94dbdcc2fbfa"
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
@@ -1918,7 +1918,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "20ce79141a402a85f962b85f3dd05d188b709b2d1a3ac48202c8edf10522095a"
+      "source_sha256": "4a5bd31b7b50e503973ea89a5d925a760699188c430e1c1ed5c047d983e20f4a"
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
@@ -1931,7 +1931,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "fe37b7c1325699f3a7c17b5020d96daeeba2585d9f360ea3846697eddbd90e0a"
+      "source_sha256": "6e4398c4f262a461292088859b552d35487d2405fdf76da861e14f808cddcf15"
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
@@ -1943,7 +1943,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "c2530e4240757327c3eb74812ed1dcd9efdd2b5db692c47a10abd1445944cd59"
+      "source_sha256": "9c9f22bb182f475fcbdd7929e88ef62c6f167d7168558926b44705a86485ea92"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
@@ -1955,7 +1955,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "070aeaf356e3248bfdbd99a945b78d3c7680d86a6b2884bc519779de72599fc6"
+      "source_sha256": "fa41cdee512d6fb6f48a1ff5de6bb0b287279c7f81184cc0ba4e48c3857f79c7"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell.tsx",
@@ -1996,7 +1996,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "5c69ebe6aea900980f4cfd74103010f73a115ef76d4a161398f8fd61b88fe7a2"
+      "source_sha256": "9dca519eefd63bb4d16e7bb6f9b60df88eef50e45d1ad165c945bef2cc7b3cb8"
     },
     {
       "id": "code:lib/auth/context.ts",
@@ -2042,10 +2042,9 @@
         "createAdminClient"
       ],
       "resources": [
-        "from:tenant_branding",
         "from:tenants"
       ],
-      "source_sha256": "ee3fe5cb00058c8ff72865c94a9e05f677f7ac94ef3aa006d26384e22135703d"
+      "source_sha256": "aee4d5457f04346b96397b5417e1c7934f5457ba493b9834ede17173da02b3bc"
     },
     {
       "id": "code:lib/branding/house-style-actions.ts",
@@ -3004,11 +3003,12 @@
       ],
       "classification": "data-access-module",
       "observedControls": [
+        "auth.getClaims",
         "auth.getUser",
         "resolveHostContext"
       ],
       "resources": [],
-      "source_sha256": "569e5f1c01319301d6b96c5d6dfdb0038f3a63ebff97c052e66696904494e1eb"
+      "source_sha256": "971a2fe932df9e082ac20209ce45dc52544f5f47b06b4f2b980f6d8ef458a71c"
     },
     {
       "id": "db:private.commercial_commands",
@@ -6339,7 +6339,7 @@
     {
       "id": "operation:pnpm-lock.yaml",
       "classification": "operation",
-      "source_sha256": "f193b4215b71282c139a8033e36197488c0fc0bff1461c5e6a9010662608e902"
+      "source_sha256": "0877ba7ce05ad7c3c4c8fc8baa86a5ac54505c45456ce3199760032c33d69d33"
     },
     {
       "id": "operation:pnpm-workspace.yaml",

@@ -612,17 +612,46 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
             [id, action, await version(id), randomUUID()],
             actor,
           );
+        const currentDay = (await admin.query(
+          "select to_char($1::timestamptz at time zone 'Europe/Amsterdam','YYYY-MM-DD') as day",
+          [now.toISOString()],
+        )).rows[0].day;
+        const expectCrew = async (statuses, sharedStatus) => {
+          const projected = (await board("all", "", "", 1, currentDay)).board.find((w) => w.id === id);
+          assert.ok(projected, "The planner sees the shared work order");
+          assert.equal(projected.status, sharedStatus);
+          assert.deepEqual(
+            people.slice(0, 2).map((personnelId) => projected.assignments.find((a) => a.personnelId === personnelId)?.status),
+            statuses,
+            "The planboard RPC preserves each employee's own status",
+          );
+        };
+        const untouched = (await admin.query(
+          "select status,version,seen_at,departed_at,actual_start_at from public.work_order_assignments where work_order_id=$1 and personnel_id=$2",
+          [id, people[1]],
+        )).rows[0];
+        await expectCrew(["released", "released"], "released");
         await step("open", staff);
+        await expectCrew(["seen", "released"], "seen");
         await step("travel", staff);
-        await step("start", staff);
+        await expectCrew(["travelling", "released"], "travelling");
+        assert.deepEqual((await admin.query(
+          "select status,version,seen_at,departed_at,actual_start_at from public.work_order_assignments where work_order_id=$1 and personnel_id=$2",
+          [id, people[1]],
+        )).rows[0], untouched, "Another employee's departure never marks this assignment seen or travelling");
         await step("open", secondPlanner);
+        await expectCrew(["travelling", "seen"], "travelling");
+        await step("start", staff);
+        await expectCrew(["in_progress", "seen"], "in_progress");
         await step("travel", secondPlanner);
+        await expectCrew(["in_progress", "travelling"], "in_progress");
         await step("start", secondPlanner);
         await admin.query(
           "update public.work_order_tasks set completed_at=clock_timestamp() where work_order_id=$1",
           [id],
         );
         await step("stop", staff);
+        await expectCrew(["completed", "in_progress"], "in_progress");
         let w = (
           await admin.query(
             "select status,actual_end_at from public.work_orders where id=$1",
@@ -632,6 +661,7 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
         assert.equal(w.status, "in_progress");
         assert.equal(w.actual_end_at, null);
         await step("stop", secondPlanner);
+        await expectCrew(["completed", "completed"], "completed");
         w = (
           await admin.query(
             "select status,actual_end_at from public.work_orders where id=$1",

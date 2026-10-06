@@ -46,7 +46,7 @@
 }
 .address-feedback,
 .address-location {
-  font-size: 12px;
+  font-size: calc(12px * var(--dashboard-font-scale, 1));
   color: var(--muted, #526b7a);
   margin: 0;
 }
@@ -84,7 +84,7 @@
   background: transparent;
   border: 0;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: calc(13px * var(--dashboard-font-scale, 1));
 }
 .address-suggestions button[aria-selected="true"],
 .address-suggestions button:focus-visible {
@@ -95,7 +95,7 @@
 .address-suggestions small {
   display: block;
   padding: 8px;
-  font-size: 10px;
+  font-size: calc(10px * var(--dashboard-font-scale, 1));
 }
 .location-map {
   display: grid;
@@ -110,7 +110,7 @@
   background: #edf2f5;
 }
 .location-map small {
-  font-size: 10px;
+  font-size: calc(10px * var(--dashboard-font-scale, 1));
   color: var(--muted, #526b7a);
 }
 .travel-card {
@@ -140,11 +140,11 @@
   margin: 0;
 }
 .travel-facts dt {
-  font-size: 11px;
+  font-size: calc(11px * var(--dashboard-font-scale, 1));
   color: var(--muted, #526b7a);
 }
 .travel-facts dd {
-  font-size: 13px;
+  font-size: calc(13px * var(--dashboard-font-scale, 1));
   margin: 3px 0;
   overflow-wrap: anywhere;
 }
@@ -158,11 +158,26 @@
   display: grid;
   gap: 14px;
 }
+.travel-person-select {
+  display: grid;
+  gap: 6px;
+  font-size: calc(12px * var(--dashboard-font-scale, 1));
+  font-weight: 600;
+}
+.travel-person-select select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #d5e1e8);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: inherit;
+}
 .travel-status {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: calc(11px * var(--dashboard-font-scale, 1));
 }
 .travel-form {
   display: grid;
@@ -172,7 +187,7 @@
 .travel-form label {
   display: grid;
   gap: 6px;
-  font-size: 12px;
+  font-size: calc(12px * var(--dashboard-font-scale, 1));
 }
 .travel-form input,
 .travel-form select {
@@ -190,7 +205,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
+  font-size: calc(10px * var(--dashboard-font-scale, 1));
   border: 0;
   background: none;
   color: inherit;
@@ -205,7 +220,7 @@
   border: 1px dashed #85a8b1;
   border-radius: 4px;
   overflow: hidden;
-  font-size: 9px;
+  font-size: calc(9px * var(--dashboard-font-scale, 1));
   z-index: 2;
   white-space: nowrap;
   color: #214958;
@@ -220,14 +235,14 @@
   top: 24px;
 }
 .pb-bon .travel-status {
-  font-size: 9px;
+  font-size: calc(9px * var(--dashboard-font-scale, 1));
 }
 .travel-dialog {
   max-height: 85dvh;
   overflow: auto;
 }
 .travel-notice {
-  font-size: 12px;
+  font-size: calc(12px * var(--dashboard-font-scale, 1));
   color: var(--muted, #526b7a);
 }
 @media (max-width: 480px) {

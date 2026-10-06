@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
 import { HOST_KIND_HEADER, resolveHostContext, TENANT_SLUG_HEADER } from "@/lib/tenancy/hostname";
 import { isAuthenticatedWorkerRequest } from "@/lib/operations/worker-request";
-import { isProtectedPage, PROTECTED_PAGE_HEADER } from "@/lib/auth/session-signal";
+import { BROWSER_SESSION_HEADER, isProtectedPage, PROTECTED_PAGE_HEADER } from "@/lib/auth/session-signal";
+import { deriveBrowserSessionKey } from "@/lib/auth/session-key";
 import { createContentSecurityPolicy } from "@/lib/auth/content-security-policy";
 import { signedInLoginDestination } from "@/lib/auth/workspace-destination";
 
@@ -11,6 +12,7 @@ export async function proxy(request: NextRequest) {
   if (isAuthenticatedWorkerRequest({ method: request.method, pathname: request.nextUrl.pathname, search: request.nextUrl.search, host: request.headers.get("host"), authorization: request.headers.get("authorization") }, { DEPLOY_TARGET: process.env.DEPLOY_TARGET, PORT: process.env.PORT, ADMIN_API_SECRET: process.env.ADMIN_API_SECRET })) {
     const workerHeaders = new Headers(request.headers);
     workerHeaders.delete(TENANT_SLUG_HEADER);
+    workerHeaders.delete(BROWSER_SESSION_HEADER);
     workerHeaders.set(HOST_KIND_HEADER, "platform");
     workerHeaders.set(PROTECTED_PAGE_HEADER, "0");
     return NextResponse.next({ request: { headers: workerHeaders } });
@@ -41,6 +43,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const requestHeaders = new Headers(request.headers);
+  requestHeaders.delete(BROWSER_SESSION_HEADER);
   const contentSecurityPolicy = createContentSecurityPolicy();
   // Always overwrite incoming presentation headers, including public routes.
   requestHeaders.set("x-nonce", contentSecurityPolicy.nonce);
@@ -71,8 +74,22 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
   const protectedPath = isProtectedPage(request.nextUrl.pathname);
+  if (protectedPath || request.nextUrl.pathname === "/api/auth/session") {
+    const claims = user && !userError ? await supabase.auth.getClaims() : null;
+    const localTenant = (process.env.DEPLOY_TARGET ?? "local") === "local"
+      ? request.cookies.get("fieldgrid_tenant_id")?.value ?? "" : "";
+    const key = claims && !claims.error ? deriveBrowserSessionKey(
+      user?.id, claims.data?.claims,
+      hostContext.kind === "tenant" ? hostContext.slug : "platform", localTenant,
+    ) : null;
+    requestHeaders.set(BROWSER_SESSION_HEADER, key ?? "");
+    // Preserve refreshed session cookies when rebuilding the forwarded headers.
+    const verifiedResponse = nextResponse();
+    response.cookies.getAll().forEach(cookie => verifiedResponse.cookies.set(cookie));
+    response = verifiedResponse;
+  }
   if (protectedPath && !user) {
     const destination = `${request.nextUrl.pathname}${request.nextUrl.search}`;
     const url = request.nextUrl.clone();

@@ -77,7 +77,7 @@ het planbord gebruikt hetzelfde signaal om via zijn serveractie de begrensde
 | Profielmenu consistent en bruikbaar met toetsenbord | Gecontroleerd menu met Escape, buitenklik, focusverlies, pijlen, Home/End en focusreturn | Uitloggen blijft een serverroute; menu-inhoud verleent geen rechten. |
 | Compacte online-/syncstatus | offline, connecting, syncing en current in hoofd- en subshell | Realtime is alleen invalidatie; de actuele gegevens komen opnieuw uit de begrensde serverprojectie. |
 | Vaste dialogafmeting en bruikbare mobiele variant | Personeelsdialogs en geneste werkbonformulieren zijn 860 px × 90dvh, met vaste buitenmaat, scrollende body en vaste/sticky footer; tot en met 600 px fullscreen | Open formulieren worden niet naar een publieke of tijdelijke datalaag gekopieerd. |
-| Personeelslogin met e-mailcode | Een apart /staff-loginpad vraagt een eenmalige zescijferige code aan en verifieert die via Supabase Auth; resend heeft een zichtbare cooldown | Geen nieuwe gebruiker wordt aangemaakt, onbekende accounts krijgen dezelfde response en na verificatie wordt de staffrol opnieuw server-side gecontroleerd. |
+| Personeelslogin met e-mailcode | Het universele /loginpad vraagt een eenmalige e-mailcode aan en verifieert die via Supabase Auth; het actuele providercontract gebruikt acht cijfers en resend heeft een zichtbare cooldown | Geen nieuwe gebruiker wordt aangemaakt, onbekende accounts krijgen dezelfde response en na verificatie wordt de staffrol opnieuw server-side gecontroleerd. |
 
 Voor staging is dit tevens een providercontract: de hosted Supabase Magic
 Link-template moet `{{ .Token }}` bevatten en mag geen credentialdragende link

@@ -1,0 +1,266 @@
+/* Staff styling for the shared ticket/notification engines and body portals.
+ * Explicit staff classes keep the other workspaces' appearance unchanged. */
+.ps-staff-dialog,
+.ps-staff-popover,
+.staff-order-dialog {
+  --ps-ink: #1a2632;
+  --ps-muted: #6c7884;
+  --ps-line: #e4e9ec;
+  --ps-action: #368341;
+  --ps-soft: #edf6ed;
+  color: var(--ps-ink);
+  font-family: Inter, Arial, sans-serif;
+  font-size: calc(16px * var(--dashboard-font-scale, 1));
+  line-height: 1.5;
+}
+
+.personnel-app :is(.ticket-workspace, .nt-page) {
+  color: var(--ps-ink);
+}
+
+.personnel-app :is(.ticket-intro, .nt-header) {
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 26px;
+}
+
+.personnel-app :is(.ticket-intro, .nt-header) h1 {
+  font-size: calc(1.85rem * var(--dashboard-font-scale, 1));
+  letter-spacing: -.045em;
+  line-height: 1.35;
+}
+
+.personnel-app .ticket-intro > div > .ticket-eyebrow {
+  margin-bottom: 6px;
+  color: var(--ps-muted) !important;
+}
+
+.personnel-app :is(.ticket-intro, .nt-header) p {
+  margin-top: 6px;
+  color: var(--ps-muted);
+  font-size: calc(.9rem * var(--dashboard-font-scale, 1));
+}
+
+.personnel-app :is(.ticket-panel, .nt-panel) {
+  border: 1px solid var(--ps-line);
+  border-radius: 18px;
+  padding: 24px;
+  background: white;
+  box-shadow: 0 3px 8px rgb(39 60 80 / 1%);
+}
+
+.personnel-app .ticket-staff-list {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--ps-line);
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 3px 8px rgb(39 60 80 / 1%);
+}
+
+.personnel-app .ticket-staff-card {
+  border: 0;
+  border-bottom: 1px solid var(--ps-line);
+  border-radius: 0;
+  padding: 20px 24px;
+  color: var(--ps-ink);
+}
+
+.personnel-app .ticket-staff-card:last-child { border-bottom: 0; }
+.personnel-app .ticket-staff-card:hover { background: #fafcf9; }
+.personnel-app .ticket-staff-card strong { font-size: calc(1rem * var(--dashboard-font-scale, 1)); font-weight: 600; }
+.personnel-app :is(.ticket-staff-card, .ticket-message) small { color: var(--ps-muted); font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
+.personnel-app :is(.ticket-muted, .ticket-facts, .ticket-message p, .nt-muted) { font-size: calc(.875rem * var(--dashboard-font-scale, 1)); }
+.personnel-app :is(.ticket-views, .nt-tabs) { gap: 8px; }
+.personnel-app :is(.ticket-views, .nt-tabs) a { min-height: 44px; padding: 11px 14px; font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
+.personnel-app :is(.ticket-views, .nt-tabs) a[aria-current="page"] { background: var(--ps-soft); color: var(--ps-action) !important; }
+.personnel-app :is(.ticket-status, .nt-status) { border-radius: 5px; padding: 5px 9px; font-size: calc(.75rem * var(--dashboard-font-scale, 1)); }
+.personnel-app :is(.ticket-back, .nt-back) { display: inline-flex; min-height: 44px; align-items: center; gap: 8px; color: var(--ps-action); font-size: calc(.875rem * var(--dashboard-font-scale, 1)); }
+.personnel-app .ticket-message { border-color: var(--ps-line); border-radius: 12px; padding: 20px; }
+.personnel-app .ticket-message p { font-size: calc(.875rem * var(--dashboard-font-scale, 1)); line-height: 1.7; }
+.personnel-app .ticket-composer { padding: 24px; }
+.personnel-app .nt-page { gap: 24px; }
+.personnel-app .nt-header { margin-bottom: 2px; }
+.personnel-app .nt-inbox-item { padding: 20px 0; border: 0; border-bottom: 1px solid var(--ps-line); border-radius: 0; }
+.personnel-app .nt-inbox-item:last-child { border-bottom: 0; }
+.personnel-app .nt-inbox-item.unread { background: transparent; }
+.personnel-app .nt-inbox-item strong { color: var(--ps-ink); font-size: calc(1rem * var(--dashboard-font-scale, 1)); }
+.personnel-app .nt-inbox-item p { color: var(--ps-muted); font-size: calc(.875rem * var(--dashboard-font-scale, 1)); line-height: 1.6; }
+.personnel-app .nt-inbox-item small { color: var(--ps-muted); font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
+.personnel-app .nt-prose { font-size: calc(.9375rem * var(--dashboard-font-scale, 1)); line-height: 1.75; }
+
+.personnel-app :is(.ticket-workspace, .nt-page) :is(.primary-button, .secondary-button),
+.ps-staff-dialog :is(.primary-button, .secondary-button),
+.staff-order-dialog :is(.primary-button, .secondary-button) {
+  min-height: 44px;
+  gap: 9px;
+  border: 1px solid var(--ps-line);
+  border-radius: 10px;
+  padding: 11px 17px;
+  background: white;
+  color: var(--ps-ink);
+  font-family: inherit;
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
+  font-weight: 600;
+}
+
+.personnel-app :is(.ticket-workspace, .nt-page) .primary-button,
+.ps-staff-dialog[role="dialog"] .primary-button,
+.staff-order-dialog .primary-button {
+  border-color: var(--ps-action);
+  background: var(--ps-action);
+  box-shadow: 0 2px 3px rgb(18 48 26 / 7%);
+  color: white;
+}
+
+.ps-staff-dialog.ticket-dialog,
+.ps-staff-dialog.nt-dialog,
+.staff-order-dialog {
+  z-index: 110;
+  display: flex;
+  width: min(860px, calc(100vw - 32px)) !important;
+  max-width: calc(100vw - 32px) !important;
+  height: 90dvh;
+  max-height: 90dvh;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--ps-line);
+  border-radius: 18px !important;
+  padding: 0;
+  background: white;
+  box-shadow: 0 26px 85px rgb(14 31 43 / 24%);
+}
+
+/* A nested dialog must dim the work-order sheet as well as the page. */
+body:has(.staff-order-dialog, .ps-staff-dialog) [data-slot="dialog-overlay"] {
+  z-index: 105;
+}
+
+.ps-staff-dialog > header,
+.staff-order-dialog > [data-slot="dialog-header"] {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--ps-line);
+  padding: 24px 28px 20px;
+  text-align: left;
+}
+
+.ps-staff-dialog > header h2,
+.staff-order-dialog [data-slot="dialog-title"] {
+  margin: 4px 0 2px;
+  color: var(--ps-ink);
+  font-family: Poppins, Inter, sans-serif;
+  font-size: calc(1.35rem * var(--dashboard-font-scale, 1));
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.ps-staff-dialog > header p,
+.staff-order-dialog [data-slot="dialog-description"] {
+  color: var(--ps-muted);
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
+  line-height: 1.6;
+}
+
+.staff-order-dialog .eyebrow { color: var(--ps-action); }
+
+.ps-staff-dialog :is(.ticket-dialog-body, .nt-dialog-body),
+.staff-order-dialog > :is(.staff-dialog-scroll, form) {
+  min-height: 0;
+  flex: 1 1 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 24px 28px;
+}
+
+.staff-order-dialog > form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.staff-order-dialog > form > * { flex-shrink: 0; }
+
+.ps-staff-dialog[role="dialog"] :is(input:not([type="checkbox"]), textarea, select),
+.ps-staff-popover :is(input:not([type="checkbox"]), textarea, select),
+.staff-order-dialog :is(input:not([type="checkbox"]), textarea, select) {
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  border: 1px solid #dce3e7;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fcfdfd;
+  color: var(--ps-ink);
+  font-family: inherit;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
+}
+
+.ps-staff-dialog[role="dialog"] label,
+.staff-order-dialog label { color: #4b5969; font-size: calc(.875rem * var(--dashboard-font-scale, 1)); }
+.ps-staff-dialog .ticket-form { gap: 20px; }
+.ps-staff-dialog :is(button, a, input, select, textarea):focus-visible,
+.ps-staff-popover :is(button, a, input, select, textarea):focus-visible,
+.staff-order-dialog :is(button, a, input, select, textarea):focus-visible { outline: 3px solid #41ac42; outline-offset: 3px; }
+
+.ps-staff-dialog .ticket-form-footer,
+.staff-order-dialog > form > [data-slot="dialog-footer"] {
+  position: sticky;
+  z-index: 2;
+  bottom: -24px;
+  margin: 24px -28px -24px;
+  border-top: 1px solid var(--ps-line);
+  padding: 17px 28px;
+  background: #fcfdfd;
+}
+
+.staff-order-dialog > form > [data-slot="dialog-footer"] { margin-top: auto; }
+
+.ps-staff-dialog > .ticket-dialog-footer,
+.staff-order-dialog > [data-slot="dialog-footer"] {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--ps-line);
+  padding: 17px 28px;
+  background: #fcfdfd;
+}
+
+.ps-staff-popover {
+  z-index: 120;
+  max-width: calc(100vw - 24px);
+  max-height: min(640px, calc(100dvh - 120px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--ps-line);
+  border-radius: 14px;
+  padding: 20px;
+  background: white;
+  box-shadow: 0 12px 35px rgb(23 38 48 / 14%);
+}
+
+@media (max-width: 600px) {
+  .personnel-app :is(.ticket-intro, .nt-header) { align-items: flex-start; gap: 12px; }
+  .personnel-app :is(.ticket-intro, .nt-header) h1 { font-size: calc(1.55rem * var(--dashboard-font-scale, 1)); }
+  .personnel-app :is(.ticket-intro, .nt-header) p { font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
+  .personnel-app :is(.ticket-panel, .nt-panel, .ticket-composer) { padding: 20px; }
+  .personnel-app .ticket-staff-card { padding: 18px; }
+  .personnel-app :is(.ticket-intro, .nt-header) > :is(.primary-button, .nt-actions) { flex-wrap: wrap; }
+  .ps-staff-dialog.ticket-dialog,
+  .ps-staff-dialog.nt-dialog,
+  .staff-order-dialog { width: 100vw !important; max-width: 100vw !important; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0 !important; }
+  .ps-staff-dialog > header,
+  .staff-order-dialog > [data-slot="dialog-header"] { padding: calc(21px + env(safe-area-inset-top)) 20px 17px; }
+  .ps-staff-dialog > header h2,
+  .staff-order-dialog [data-slot="dialog-title"] { font-size: calc(1.15rem * var(--dashboard-font-scale, 1)); }
+  .ps-staff-dialog :is(.ticket-dialog-body, .nt-dialog-body),
+  .staff-order-dialog > :is(.staff-dialog-scroll, form) { padding: 21px 20px; }
+  .ps-staff-dialog .ticket-form-footer,
+  .staff-order-dialog > form > [data-slot="dialog-footer"] { bottom: -21px; margin: 21px -20px -21px; padding: 14px 20px calc(14px + env(safe-area-inset-bottom)); }
+  .ps-staff-dialog > .ticket-dialog-footer,
+  .staff-order-dialog > [data-slot="dialog-footer"] { padding: 14px 20px calc(14px + env(safe-area-inset-bottom)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ps-staff-dialog *, .ps-staff-popover *, .staff-order-dialog * { animation: none !important; transition: none !important; }
+}

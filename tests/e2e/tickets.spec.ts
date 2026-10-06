@@ -96,7 +96,7 @@ async function login(page: Page, role: string, path: string) {
   await expect(page).toHaveURL(new RegExp(path.replace(/[?]/g, "\\?")));
 }
 async function expectTicketListReady(page: Page, workspace: "staff" | "tenant", subject: string) {
-  await expect(page.getByRole("heading", { name: workspace === "staff" ? "Mijn meldingen" : "Personeelsmeldingen", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: workspace === "staff" ? "Mijn tickets" : "Personeelsmeldingen", exact: true })).toBeVisible();
   await expect(page.locator(".ticket-workspace")).toHaveAttribute("aria-busy", "false");
   if (workspace === "tenant") await expect(page.locator(".ticket-table")).toBeVisible();
   const item = page.locator(workspace === "staff" ? ".ticket-staff-card" : ".ticket-table tbody tr").filter({ hasText: subject });

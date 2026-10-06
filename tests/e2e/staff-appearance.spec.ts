@@ -1,27 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "../../lib/database.types";
-import { requireLocalApiUrl } from "./local-target";
+import { ticketModule } from "./staff-modules";
 import { authenticateStaff } from "./staff-auth";
 
-async function ticketModule(enabled: boolean) {
-  const api = requireLocalApiUrl();
-  const admin = createClient<Database>(api.href, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
-  const tenant = await admin.from("tenants").select("id").eq("slug", "fieldgrid-e2e").single();
-  expect(tenant.error).toBeNull();
-  const tenantId = tenant.data!.id;
-  const settings = await admin.from("tenant_settings").select("enabled_services").eq("tenant_id", tenantId).single();
-  expect(settings.error).toBeNull();
-  const original = settings.data!.enabled_services;
-  const services = original.filter(service => service !== "tickets");
-  if (enabled) services.push("tickets");
-  const result = await admin.from("tenant_settings").update({ enabled_services: services }).eq("tenant_id", tenantId);
-  expect(result.error).toBeNull();
-  return async () => {
-    const restored = await admin.from("tenant_settings").update({ enabled_services: original }).eq("tenant_id", tenantId);
-    expect(restored.error).toBeNull();
-  };
-}
 
 test("Tickets blijft zichtbaar met uitleg als de module uitstaat", async ({ page, context }) => {
   const restore = await ticketModule(false);
@@ -76,12 +56,69 @@ test("actieve Tickets opent de bestaande engine in dezelfde personeelsopmaak", a
     await expect(bell).toHaveCSS("border-top-width", "1px");
     await expect(bell).toHaveCSS("border-radius", "12px");
     await page.getByRole("navigation", { name: "Hoofdnavigatie" }).getByRole("link", { name: "Tickets", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Mijn meldingen", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Mijn tickets", exact: true })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Hoofdnavigatie" }).getByRole("link", { name: "Tickets", exact: true })).toHaveAttribute("aria-current", "page");
     await capture("tickets-1920");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("link", { name: "Tickets", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Mijn meldingen", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Mijn tickets", exact: true })).toBeVisible();
     await capture("tickets-390");
+  } finally { await restore(); }
+});
+
+test("Meer houdt alle personeelsacties bereikbaar op mobiel en desktop", async ({ page }, info) => {
+  test.setTimeout(90_000);
+  const restore = await ticketModule(true);
+  try {
+    await authenticateStaff(page, "field-worker@fieldgrid.test", "/staff?tab=meer");
+    for (const width of [320, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expect(page.getByRole("heading", { name: "Meer", exact: true })).toBeVisible();
+      await expect(page.getByRole("region", { name: "Mijn profiel", exact: true })).toContainText("Robin de Vries");
+      for (const title of ["Verlof", "Beschikbaarheid", "Documenten", "Instellingen", "Profiel", "Notificaties", "Tickets"]) {
+        const tile = page.locator(".ps-more-card").filter({ has: page.getByText(title, { exact: true }) });
+        await expect(tile).toHaveCount(1);
+        await tile.scrollIntoViewIfNeeded();
+        const bounds = await tile.boundingBox();
+        expect(bounds).not.toBeNull();
+        expect(bounds!.x).toBeGreaterThanOrEqual(0);
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+        expect(bounds!.height).toBeGreaterThanOrEqual(44);
+      }
+      await expect(page.getByRole("region", { name: "Open diensten", exact: true })).toBeVisible();
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.evaluate(() => document.fonts.ready);
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: info.outputPath(`more-${width}.png`), fullPage: true, animations: "disabled", style: "nextjs-portal,[data-sonner-toaster]{visibility:hidden}" });
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => window.scrollTo(0, 0));
+    const nav = page.getByRole("navigation", { name: "Mobiele navigatie" });
+    await expect(nav.locator("button, a")).toHaveText(["Planning", "Nieuws", "Mijn uren", "Tickets", "Meer"]);
+    await page.getByRole("button", { name: /^Profielmenu van/ }).click();
+    const menu = page.getByRole("menu");
+    await expect(menu.getByRole("menuitem", { name: "Uitloggen" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^Profielmenu van/ })).toBeFocused();
+    for (const [tile, heading] of [["Verlof", "Verlof"], ["Beschikbaarheid", "Beschikbaarheid"], ["Documenten", "Documenten"], ["Profiel", "Profiel"], ["Instellingen", "Instellingen"]]) {
+      await page.locator(".ps-more-card").filter({ has: page.getByText(tile, { exact: true }) }).click();
+      await expect(page.getByRole("heading", { name: heading, exact: true, level: 1 })).toBeVisible();
+      await nav.getByRole("button", { name: "Meer", exact: true }).click();
+    }
+    await page.locator(".ps-more-card").filter({ has: page.getByText("Notificaties", { exact: true }) }).click();
+    await expect(page).toHaveURL(/\/staff\/notificaties$/);
+    await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("link", { name: "Meer", exact: true }).click();
+    await page.locator(".ps-more-card").filter({ has: page.getByText("Tickets", { exact: true }) }).click();
+    await expect(page).toHaveURL(/\/staff\/meldingen$/);
+    await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("link", { name: "Meer", exact: true }).click();
+    const signout = page.locator(".ps-more-signout");
+    await expect(signout).toHaveAttribute("action", "/auth/signout");
+    await expect(signout).toHaveAttribute("method", "post");
+    const logout = signout.getByRole("button", { name: "Uitloggen", exact: true });
+    await logout.scrollIntoViewIfNeeded();
+    const bottom = await nav.boundingBox();
+    const button = await logout.boundingBox();
+    expect(button!.y + button!.height).toBeLessThanOrEqual(bottom!.y);
   } finally { await restore(); }
 });

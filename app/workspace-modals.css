@@ -1,0 +1,432 @@
+/* Shared presentation for tenant, customer and staff overlays. Keep form
+ * ownership, hidden wizard steps and each workspace's focus handling intact. */
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog,.travel-dialog)[data-tenant-theme],
+.staff-order-dialog[data-slot="dialog-content"],
+.ps-staff-dialog[data-slot="dialog-content"],
+.personnel-app.ps-ticket-help[data-slot="dialog-content"],
+.pb-confirm[role="dialog"],
+.personnel-app :is(.ps-modal,.ps-onboarding,.order-sheet),
+.customer-portal [data-customer-dialog] {
+  --modal-space:28px;
+  --modal-line:var(--brand-border,var(--ps-line,var(--line,#e4e9ec)));
+  --modal-muted:var(--brand-muted,var(--ps-muted,var(--muted,#6c7884)));
+  --modal-action:var(--brand-action,var(--ps-action,var(--action,#368341)));
+  border-radius:20px!important;
+  background:#fff;
+  box-shadow:0 28px 90px rgb(16 32 40 / 24%);
+}
+
+body:has(.workspace-shell,.personnel-app,.customer-portal) :is([data-slot="dialog-overlay"],[data-slot="sheet-overlay"],.pb-confirm-overlay) {
+  background:rgb(23 38 48 / 34%);
+  backdrop-filter:blur(5px);
+}
+.customer-portal [data-customer-dialog]::backdrop {
+  background:rgb(23 38 48 / 34%);
+  backdrop-filter:blur(5px);
+}
+
+/* Headers and close controls have the same calm hierarchy in every frame. */
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme]>header,
+.ps-staff-dialog[data-slot="dialog-content"]>header,
+.staff-order-dialog[data-slot="dialog-content"]>[data-slot="dialog-header"],
+.personnel-app :is(.ps-modal-header,.ps-order-header),
+.customer-portal [data-customer-dialog] .modal-head {
+  display:flex;
+  flex:0 0 auto;
+  align-items:flex-start;
+  justify-content:space-between;
+  position:static;
+  text-align:left;
+  gap:16px;
+  padding:24px var(--modal-space) 20px;
+  border-bottom:1px solid var(--modal-line);
+  background:white;
+}
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme]>header>div {
+  min-width:0;
+}
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme]>header :is(.eyebrow,small) {
+  margin:0 0 6px;
+  color:var(--modal-muted);
+  font-weight:500;
+}
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme]>header h2 {
+  margin:0 0 4px;
+  font-size:calc(1.35rem * var(--dashboard-font-scale,1));
+  line-height:1.35;
+  font-weight:600;
+}
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme]>header p {
+  margin:0;
+  color:var(--modal-muted);
+  line-height:1.6;
+}
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme]>header>button,
+.personnel-app :is(.ps-modal-header,.ps-order-header)>button,
+.customer-portal [data-customer-dialog] .modal-head>button,
+.pb-detail[data-slot="sheet-content"] .pb-close,
+.pb-confirm[role="dialog"] .pb-close {
+  display:inline-flex;
+  flex:0 0 42px;
+  align-items:center;
+  justify-content:center;
+  width:42px;
+  height:42px;
+  min-height:42px;
+  padding:0;
+  border:1px solid var(--modal-line,#e4e9ec);
+  border-radius:12px;
+  background:#fff;
+  color:inherit;
+}
+.staff-order-dialog[data-slot="dialog-content"]>[data-slot="dialog-close"],
+.travel-dialog[data-tenant-theme]>[data-slot="dialog-close"] {
+  top:20px;
+  right:var(--modal-space);
+  display:grid;
+  place-items:center;
+  width:42px;
+  height:42px;
+  border:1px solid var(--modal-line);
+  border-radius:12px;
+  background:white;
+  opacity:1;
+}
+.staff-order-dialog[data-slot="dialog-content"]>[data-slot="dialog-header"] {
+  justify-content:flex-start;
+  gap:6px;
+}
+
+/* One scrolling body, with natural-height fields. Never make a nested grid
+ * a flex filler: that stretches its rows to the full height of the modal. */
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-form,.commercial-wizard) {
+  display:flex;
+  flex:1 1 0;
+  flex-direction:column;
+  gap:0;
+  min-height:0;
+  overflow:hidden;
+  padding:0;
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme] :is(.dossier-form-fields,.commercial-form-body,.wo-wizard-step),
+.commercial-dialog[data-tenant-theme] .commercial-wizard fieldset {
+  flex:0 0 auto;
+  align-content:start;
+  align-items:start;
+  grid-auto-rows:max-content;
+  min-width:0;
+  margin:0;
+  padding:0;
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme] fieldset {
+  border:0;
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme] fieldset>legend {
+  /* Participate in the grid, inside its padding, rather than straddling
+   * the native fieldset border above the scrolling content. */
+  float:left;
+  grid-column:1/-1;
+  width:100%;
+  padding:0;
+  margin:0;
+  font-size:calc(1.05rem * var(--dashboard-font-scale,1));
+  font-weight:600;
+  line-height:1.5;
+}
+.customer-dialog[data-tenant-theme] .dossier-form-fields>.dossier-form-fields {
+  padding:20px 0 0;
+  border-top:1px solid var(--modal-line);
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme] p.dossier-notice {
+  display:block;
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-form,.commercial-wizard)>:is(.dossier-form-fields,.commercial-form-body,.wo-wizard-step) {
+  flex:1 1 0;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  padding:24px var(--modal-space);
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-form,.commercial-wizard)>[role="alert"] {
+  flex:0 0 auto;
+  margin:16px var(--modal-space) 0;
+}
+.wo-dialog[data-tenant-theme] .commercial-wizard>[data-planning-warning] {
+  flex:0 0 auto;
+  max-height:25dvh;
+  overflow-y:auto;
+  margin:0 var(--modal-space) 16px;
+}
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme] [hidden] {
+  display:none!important;
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-form,.commercial-wizard)>:is(footer,.wizard-footer) {
+  position:static;
+  flex:0 0 auto;
+  margin:0;
+  padding:16px var(--modal-space);
+  border-top:1px solid var(--modal-line);
+  background:#fcfdfd;
+}
+
+/* Quiet, single-row step navigation, separate from the scrolling form. */
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-steps,.wizard-progress) {
+  display:flex;
+  flex:0 0 auto;
+  flex-wrap:nowrap;
+  align-items:stretch;
+  gap:14px!important;
+  overflow-x:auto;
+  overflow-y:hidden;
+  scrollbar-width:thin;
+  margin:0!important;
+  padding:14px var(--modal-space) 0!important;
+  list-style:none;
+  border-bottom:1px solid var(--modal-line);
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-steps,.wizard-progress)>li {
+  display:flex;
+  flex:1 0 90px;
+  align-items:center;
+  justify-content:flex-start;
+  gap:7px;
+  min-width:0;
+  min-height:42px;
+  padding:0 0 12px;
+  border-bottom:2px solid transparent;
+  color:var(--modal-muted);
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-steps,.wizard-progress)>li[aria-current="step"] {
+  border-color:var(--modal-action);
+  color:var(--modal-action);
+  font-weight:600;
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-steps,.wizard-progress)>li :is(b,small,span) {
+  font-weight:500;
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-steps,.wizard-progress)>li :is(b,span:first-child) {
+  display:grid;
+  place-items:center;
+  flex:0 0 24px;
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  background:#f1f5f3;
+  color:var(--modal-muted);
+}
+:is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-steps,.wizard-progress)>li.active :is(b,span:first-child) {
+  background:var(--brand-accent-soft,#edf6ed);
+  color:var(--modal-action);
+}
+
+/* Dossier actions remain available, but have their own padded toolbar. */
+.commercial-dialog[data-tenant-theme]>.commercial-detail-actions {
+  flex:0 0 auto;
+  gap:8px;
+  margin:0;
+  padding:16px var(--modal-space);
+  border-bottom:1px solid var(--modal-line);
+}
+.commercial-dialog[data-tenant-theme]>.commercial-detail-actions button {
+  min-height:40px;
+  white-space:normal;
+  font-weight:600;
+}
+.commercial-dialog[data-tenant-theme]>.commercial-action-form {
+  flex:0 1 auto;
+  max-height:45%;
+  overflow-y:auto;
+  margin:0;
+  padding:24px var(--modal-space);
+  border-bottom:1px solid var(--modal-line);
+  align-content:start;
+}
+.commercial-dialog[data-tenant-theme]>.commercial-action-form footer {
+  margin:0;
+  padding-top:12px;
+}
+.commercial-dialog[data-tenant-theme]>.commercial-detail-tabs {
+  flex:1 1 0;
+  min-height:0;
+  gap:0;
+}
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme] [role="tablist"] {
+  display:flex;
+  flex:0 0 auto;
+  justify-content:flex-start;
+  width:100%;
+  height:auto;
+  min-height:54px;
+  gap:22px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding:0 var(--modal-space);
+  border-bottom:1px solid var(--modal-line);
+  border-radius:0;
+  background:white;
+}
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme] [role="tab"] {
+  flex:0 0 auto;
+  height:auto;
+  min-height:54px;
+  border:0;
+  border-bottom:2px solid transparent;
+  border-radius:0;
+  padding:15px 0;
+  background:transparent;
+  color:var(--modal-muted);
+  font-weight:500;
+  box-shadow:none;
+}
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme] [role="tab"][data-state="active"] {
+  border-color:var(--modal-action);
+  color:var(--modal-action);
+  font-weight:600;
+  box-shadow:none;
+}
+.resource-modal[data-tenant-theme] [role="tablist"] {padding:0;}
+.resource-modal[data-tenant-theme] .customer-tabs-scroll {padding:0;}
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme] [role="tabpanel"] {
+  align-content:start;
+  align-items:start;
+  grid-auto-rows:max-content;
+}
+.commercial-dialog[data-tenant-theme] .commercial-detail-body,
+:is(.dossier-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme]>:is(.dossier-history,.resource-modal-body,.ticket-dialog-body,.nt-dialog-body) {
+  flex:1 1 0;
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  padding:24px var(--modal-space);
+  align-content:start;
+}
+.commercial-dialog[data-tenant-theme] .commercial-detail-body>[role="tabpanel"] {
+  flex:none;
+  align-content:start;
+  align-items:start;
+  grid-auto-rows:max-content;
+}
+.commercial-dialog[data-tenant-theme] .commercial-detail-body .panel {
+  margin:0;
+  padding:20px;
+  border:1px solid var(--modal-line);
+  border-radius:16px;
+  box-shadow:none;
+}
+.commercial-dialog[data-tenant-theme] .commercial-detail-body .panel>h3 {
+  font-weight:600;
+  line-height:1.4;
+}
+.commercial-dialog[data-tenant-theme] .commercial-detail-links a {
+  color:var(--modal-action);
+}
+:is(.ticket-dialog,.nt-dialog)[data-tenant-theme]>.ticket-dialog-footer {
+  flex:0 0 auto;
+  padding:16px var(--modal-space);
+  border-top:1px solid var(--modal-line);
+  background:#fcfdfd;
+}
+
+/* Existing customer and staff bodies already own scrolling. Only normalize
+ * their content flow; do not create a second scroller around nested forms. */
+.customer-portal [data-customer-dialog] .modal-body,
+.personnel-app .ps-modal .ps-modal-body,
+.personnel-app .ps-onboarding .ps-onboarding-main>main,
+.staff-order-dialog[data-slot="dialog-content"]>:is(.staff-dialog-scroll,form),
+.ps-staff-dialog[data-slot="dialog-content"]>:is(.ticket-dialog-body,.nt-dialog-body) {
+  align-content:start;
+  align-items:start;
+}
+.customer-portal [data-customer-dialog] :is(.form-grid,.card-grid),
+.personnel-app :is(.ps-modal,.ps-onboarding,.order-sheet) :is(.ps-form-grid,.form-grid),
+:is(.ticket-dialog,.nt-dialog,.resource-modal)[data-tenant-theme] :is(.ticket-form,.nt-form,.resource-form) {
+  align-content:start;
+  align-items:start;
+  grid-auto-rows:max-content;
+}
+.customer-portal [data-customer-dialog] .detail-tabs {
+  position:sticky;
+  top:-24px;
+  z-index:1;
+  margin:-24px calc(-1 * var(--modal-space)) 24px;
+  padding:0 var(--modal-space);
+  background:white;
+}
+.customer-portal [data-customer-dialog] .detail-tabs button {
+  min-height:54px;
+}
+.travel-dialog[data-tenant-theme] {
+  width:min(860px,calc(100vw - 32px));
+  max-width:calc(100vw - 32px);
+  max-height:90dvh;
+  gap:20px;
+  padding:24px var(--modal-space);
+}
+.travel-dialog[data-tenant-theme]>:is(h2,p) {
+  padding-right:58px;
+  margin:0;
+}
+.pb-detail[data-slot="sheet-content"]>.pb-detail-body {
+  align-items:stretch;
+  padding:24px 28px;
+}
+.pb-detail[data-slot="sheet-content"]>[data-slot="sheet-header"] {
+  padding:24px 28px 20px;
+}
+.pb-detail[data-slot="sheet-content"] .pb-form-grid {
+  align-content:start;
+  align-items:start;
+}
+
+@media(max-width:600px) {
+  :is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog,.travel-dialog)[data-tenant-theme],
+  .staff-order-dialog[data-slot="dialog-content"],
+  .ps-staff-dialog[data-slot="dialog-content"],
+  .personnel-app :is(.ps-modal,.ps-onboarding,.order-sheet),
+  .customer-portal [data-customer-dialog] {
+    --modal-space:20px;
+    border-radius:0!important;
+  }
+  :is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme]>header,
+  .ps-staff-dialog[data-slot="dialog-content"]>header,
+  .staff-order-dialog[data-slot="dialog-content"]>[data-slot="dialog-header"],
+  .personnel-app :is(.ps-modal-header,.ps-order-header),
+  .customer-portal [data-customer-dialog] .modal-head {
+    padding:calc(21px + env(safe-area-inset-top)) var(--modal-space) 18px;
+  }
+  :is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-form,.commercial-wizard)>:is(.dossier-form-fields,.commercial-form-body,.wo-wizard-step),
+  .commercial-dialog[data-tenant-theme] .commercial-detail-body,
+  :is(.dossier-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme]>:is(.dossier-history,.resource-modal-body,.ticket-dialog-body,.nt-dialog-body) {
+    padding:21px var(--modal-space);
+  }
+  :is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-form,.commercial-wizard)>:is(footer,.wizard-footer) {
+    padding-bottom:calc(16px + env(safe-area-inset-bottom));
+    gap:12px;
+  }
+  :is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-steps,.wizard-progress) {
+    gap:5px!important;
+  }
+  :is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-steps,.wizard-progress)>li {
+    flex:1 1 0;
+    justify-content:center;
+  }
+  :is(.dossier-dialog,.commercial-dialog)[data-tenant-theme]>:is(.dossier-steps,.wizard-progress)>li :is(small,b+span) {
+    display:none;
+  }
+  .commercial-dialog[data-tenant-theme] .commercial-detail-tabs>[role="tablist"] {
+    gap:20px;
+  }
+  .commercial-dialog[data-tenant-theme]>.commercial-detail-actions {
+    gap:8px;
+    padding-top:12px;
+    padding-bottom:12px;
+    max-height:26dvh;
+    overflow-y:auto;
+  }
+  .customer-portal [data-customer-dialog] .detail-tabs {top:-21px;margin-top:-21px;}
+  .pb-detail[data-slot="sheet-content"]>.pb-detail-body {padding:21px 20px;}
+  .pb-detail[data-slot="sheet-content"]>[data-slot="sheet-header"] {padding:21px 20px 18px;}
+  .travel-dialog[data-tenant-theme] {width:calc(100vw - 24px);max-height:calc(100dvh - 24px);border-radius:20px!important;}
+}

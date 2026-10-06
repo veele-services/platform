@@ -256,3 +256,62 @@ niet-geactiveerde query-first rollenprototype. Dat is verklaarde lokale drift,
 geen onderdeel van het release-artifact. De metadata-snapshot en replayproeven
 gebruiken daarom de geïsoleerde migratiedatabase. Staging is niet onderzocht
 met databasecredentials; productie is niet benaderd.
+# Personeelsapp prototypevormgeving — 6 oktober 2026
+
+De wijzigingen in `components/fieldgrid/staff/personnel-app.tsx` en
+`components/fieldgrid/staff/route-shell-client.tsx` zijn opnieuw op bronniveau
+gecontroleerd. De nieuwe Meer-kaarten gebruiken dezelfde views, ticketmodule,
+notificatieroute en `toggleShiftInterest`-actie. Uitloggen blijft een POST naar
+`/auth/signout`. Alleen presentatie en iconen veranderen; geen query,
+workspaceprojectie, realtimefilter, versiecontrole, servercommando of
+autorisatievoorwaarde is verruimd. De mobiele navigatie en het profielmenu
+behouden hun bestaande routes en toetsenbordbediening.
+
+Gerichte controle: `tests/e2e/staff-appearance.spec.ts` controleert de
+bereikbaarheid van alle Meer-acties, modulegrenzen, focusreturn, zichtbare
+offlinestatus, tap targets en overflow op 320, 390, 768 en 1440 px.
+
+### Personeelsapp schermen en popupcontainers — 6 oktober 2026
+
+De wijzigingen in `app/staff/layout.tsx`, `personnel-app.tsx`, `staff-app.tsx`
+en de gedeelde ticket-/notificatiecomponenten zijn afzonderlijk op bron
+beoordeeld. De staffklassen en kleuren zijn alleen presentatie. De ticket- en
+notificatieworkspace, opties, categorieën, uploadscan, versie-/idempotencykeys,
+busy-/dirtybeveiliging, acties en servervoorwaarden blijven dezelfde.
+`notifications/routes.tsx` behoudt alle context-, bevoegdheids-, ID- en
+eigendomscontroles vóór de pagina wordt gerenderd. De objecttoegang blijft een
+link naar de bestaande beveiligde bezoekroute; er komt geen toegangscode in
+het werkbonvenster terecht.
+
+De focushelper verplaatst uitsluitend DOM-focus bij openen/sluiten. De nieuwe
+staffwrapper houdt de bestaande Radix-focusval en sluitvoorwaarden. De
+herstelwijziging voor tabnavigatie past de URL alleen bij een gewijzigde query
+toe; datarefresh en het tenantgebonden `staff_workspace_revisions`-kanaal
+blijven actief. Broncontrols, exports en resources zijn onveranderd volgens de
+structurele codeparser; uitsluitend de inhoudshashes wijzigen.
+
+Gericht bewijs staat in `tests/e2e/staff-popups.spec.ts`,
+`tests/e2e/staff-appearance.spec.ts` en de bestaande personeels-, ticket- en
+notificatieflows. De aanvullende uitvoeringspopupfixture gebruikt uitsluitend
+de gecontroleerde lokale database, bewaart/herstelt de oorspronkelijke status
+en dient geen rapport-, meerwerk- of tijdcommando in. Zie ook
+`docs/implementation/staff-prototype-visual-alignment.md` voor de visuele
+inventaris, de behouden functies en de precieze grenzen van de browserdekking.
+
+### Personeelslogin prototypevormgeving — 6 oktober 2026
+
+`app/login/page.tsx` verandert uitsluitend de presentatie voor een bestemming
+die al door `isStaffLoginDestination` wordt herkend. `getLoginBrand`, de
+hostgebonden tenantcontext, het universele `LoginForm` en de bestaande
+`loginOtp`-actie zijn ongewijzigd. Andere werkruimtes krijgen de bestaande
+loginpresentatie. Er is geen prototype-OTP, nieuwe accountaanmaak,
+authenticator, bypass, redirect of browseropslag toegevoegd. De aparte donkere
+identiteitskolom en groene formulieren gebruiken alleen publieke producttekst
+en dezelfde Fieldgrid-kleuren.
+
+`tests/e2e/staff-login.spec.ts` controleert het ongewijzigde OTP-formulier voor
+alle vier werkruimtes, personeel op 320/390/768/1440 px, de groene actieknop en
+zichtbare desktopidentiteit, gevolgd door een echte volledige achtcijferige
+lokale e-mailcode. Trace, screenshots en video blijven in die authproef uit.
+De productiebuild en typecontrole zijn geslaagd; zie het visuele overzicht
+voor de gerichte browserselectie en de bewust behouden real-data/authverschillen.

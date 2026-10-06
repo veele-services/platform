@@ -11,10 +11,9 @@ export async function getLoginBrand() {
   if (!slug) return null;
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) throw new Error("Onbekende tenant");
   const admin = createAdminClient();
-  const { data: tenant, error } = await admin.from("tenants").select("id,name").eq("slug", slug).eq("status", "active").maybeSingle();
+  const { data: tenant, error } = await admin.from("tenants").select("id,name,tenant_branding(primary_color,accent_color,logo_path)").eq("slug", slug).eq("status", "active").maybeSingle();
   if (error || !tenant) throw new Error("Onbekende tenant");
-  const { data: brand, error: brandError } = await admin.from("tenant_branding").select("primary_color,accent_color,logo_path").eq("tenant_id", tenant.id).maybeSingle();
-  if (brandError) throw new Error("Huisstijl niet beschikbaar");
+  const brand=tenant.tenant_branding;
   return { name: tenant.name, primaryColor: brand?.primary_color, accentColor: brand?.accent_color,
     logoUrl: currentBrandingLogoPath(tenant.id, brand?.logo_path) };
 }

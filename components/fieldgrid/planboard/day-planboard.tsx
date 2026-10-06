@@ -59,6 +59,8 @@ import {
   validDay,
 } from "@/lib/planning/time";
 import { PlanningDetail } from "./detail-panel";
+import { StatusLegend } from "./status-legend";
+import { assignmentStatus, assignmentStatusStyle } from "@/lib/planning/assignment-status";
 import {
   HEADER_HEIGHT,
   PERSONNEL_WIDTH,
@@ -561,7 +563,10 @@ export function DayPlanboard({
   return (
     <div className="pb-root planboard-viewport" ref={root}>
       <header className="pb-toolbar">
-        <h1>Planbord</h1>
+        <div className="pb-title-group">
+          <h1>Planbord</h1>
+          <StatusLegend />
+        </div>
         <div className="pb-date">
           <button
             className="pb-icon"
@@ -843,17 +848,19 @@ export function DayPlanboard({
                       );
                     if (right <= left) return null;
                     const attention = assignment.qualifications.length > 0;
+                    const status = assignmentStatus(assignment.status);
                     const editable = canPlan(order) && !busy;
                     return (
                       <div
                         key={assignment.id}
-                        className={`pb-bon pb-bon-${order.category} ${attention ? "pb-bon-attention" : ""} ${right - left < 80 ? "pb-bon-narrow" : ""}`}
-                        style={{ left, width: right - left }}
+                        className={`pb-bon ${editable ? "" : "pb-bon-locked"} ${right - left < 80 ? "pb-bon-narrow" : ""}`}
+                        style={{ ...assignmentStatusStyle(status), left, width: right - left }}
                         data-order-id={order.id}
                         data-assignment-id={assignment.id}
+                        data-status={status.status}
                         role="button"
                         tabIndex={0}
-                        aria-label={`${order.number} · ${order.object} · ${clockLabel(assignment.start, data.timezone)} tot ${clockLabel(assignment.end, data.timezone)} · ${executionStatuses[order.status]}`}
+                        aria-label={`${person.name} · ${order.number} · ${order.object} · ${clockLabel(assignment.start, data.timezone)} tot ${clockLabel(assignment.end, data.timezone)} · ${status.label}${attention ? " · Kwalificatie controleren" : ""}`}
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
@@ -866,7 +873,7 @@ export function DayPlanboard({
                         onClick={(e) => {
                           if (!editable || e.detail === 0) open(order);
                         }}
-                        title={`${order.number} · ${order.object} · ${executionStatuses[order.status]}${attention ? " · Kwalificatie controleren" : ""}`}
+                        title={`${person.name} · ${order.number} · ${order.object} · ${status.label}${attention ? " · Kwalificatie controleren" : ""}`}
                       >
                         <div className="pb-bon-text">
                           <strong>
@@ -880,9 +887,9 @@ export function DayPlanboard({
                           <span>{order.object}</span>
                           <TravelBadge leg={travel.data?.legs.find(l=>l.assignmentId===assignment.id&&l.direction==="before")}/>
                           <small>
-                            {attention
-                              ? "Vereiste controleren"
-                              : executionStatuses[order.status]}
+                            {attention && <AlertTriangle size={11} aria-hidden="true" />}
+                            {status.label}
+                            {attention && " · Vereiste controleren"}
                           </small>
                         </div>
                         <Popover
@@ -1295,7 +1302,7 @@ export function DayPlanboard({
       {selected && (
         <PlanningDetail
           key={`${selected.id}:${selected.version}`}
-          travel={<>{travel.error&&<p role="alert">{travel.error}</p>}<TravelList legs={travel.data?.legs.filter(l=>l.workOrderId===selected.id)||[]} timezone={data.timezone} canManage={travel.data?.canManage||false} onChange={travel.refresh}/></>}
+          travel={<>{travel.error&&<p role="alert">{travel.error}</p>}<TravelList legs={travel.data?.legs.filter(l=>l.workOrderId===selected.id)||[]} people={travel.data?.people} timezone={data.timezone} canManage={travel.data?.canManage||false} onChange={travel.refresh}/></>}
           order={selected}
           people={data.people}
           timezone={data.timezone}

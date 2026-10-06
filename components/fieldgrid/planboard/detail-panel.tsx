@@ -10,7 +10,7 @@ import {
   SheetDescription,
   SheetClose,
 } from "@/components/ui/sheet";
-import { X } from "lucide-react";
+import { ChevronDown, Route, X } from "lucide-react";
 import {
   assignmentInput,
   canPlan,
@@ -246,7 +246,10 @@ export function PlanningDetail({
               <small>Alleen deze bon; geen automatisch meerwerk.</small>
             </section>
           )}
-          <section className="pb-travel"><h3>Reisinformatie</h3>{travel}</section>
+          <details className="pb-travel">
+            <summary><Route size={18} aria-hidden="true"/><span>Reisinformatie</span><ChevronDown size={18} aria-hidden="true"/></summary>
+            <div className="pb-travel-content">{travel}</div>
+          </details>
           <form
             className="pb-edit"
             onSubmit={submit}

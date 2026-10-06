@@ -15,7 +15,16 @@ test("alle werkruimtes gebruiken hetzelfde OTP-formulier; personeel logt in met 
     await expect(page.getByLabel("E-mailadres", { exact: true })).toBeVisible();
   }
 
-  await page.goto("/login?next=%2Fstaff");
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/login?next=%2Fstaff");
+    await expect(page.getByRole("heading", { name: "Inloggen personeelsapp" })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await expect(page.locator(".staff-login .auth-input input")).toHaveCSS("font-size", "16px");
+    await expect(page.getByRole("button", { name: "Inlogcode versturen", exact: true })).toHaveCSS("background-color", "rgb(54, 131, 65)");
+    if (width > 800) await expect(page.locator(".staff-login-identity")).toBeVisible();
+    else await expect(page.locator(".staff-login-identity")).toBeHidden();
+  }
   await expect(page.getByRole("heading", { name: "Inloggen personeelsapp" })).toBeVisible();
   await expect(page.getByLabel("Wachtwoord", { exact: true })).toHaveCount(0);
 

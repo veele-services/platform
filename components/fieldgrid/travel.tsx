@@ -412,16 +412,29 @@ export function TravelList({
   canManage,
   onChange,
   initialMode,
+  people,
 }: {
   legs: TravelLeg[];
   timezone: string;
   canManage: boolean;
   onChange: () => void;
   initialMode?: string;
+  /** Show one employee's legs at a time when names are supplied. */
+  people?: ReadonlyArray<{id: string; name: string}>;
 }) {
+  const [selectedPerson, setSelectedPerson] = useState("");
+  const personnelIds = [...new Set(legs.map(leg => leg.personnelId))];
+  const activePerson = personnelIds.includes(selectedPerson) ? selectedPerson : personnelIds[0];
+  const visibleLegs = people ? legs.filter(leg => leg.personnelId === activePerson) : legs;
   return (
     <div className="travel-list">
-      {legs.map((l) => (
+      {people && personnelIds.length > 1 && <label className="travel-person-select">
+        Medewerker
+        <select aria-label="Medewerker" value={activePerson} onChange={event => setSelectedPerson(event.target.value)}>
+          {personnelIds.map((id, index) => <option key={id} value={id}>{people.find(person => person.id === id)?.name || `Medewerker ${index + 1}`}</option>)}
+        </select>
+      </label>}
+      {visibleLegs.map((l) => (
         <TravelLegCard
           key={`${l.assignmentId}:${l.direction}:${l.signature}:${l.calculatedAt}`}
           leg={l}
