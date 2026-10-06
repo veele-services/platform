@@ -1295,7 +1295,7 @@ export function DayPlanboard({
       {selected && (
         <PlanningDetail
           key={`${selected.id}:${selected.version}`}
-          travel={<>{travel.error&&<p role="alert">{travel.error}</p>}<TravelList legs={travel.data?.legs.filter(l=>l.workOrderId===selected.id)||[]} timezone={data.timezone} canManage={travel.data?.canManage||false} onChange={travel.refresh}/></>}
+          travel={<>{travel.error&&<p role="alert">{travel.error}</p>}<TravelList legs={travel.data?.legs.filter(l=>l.workOrderId===selected.id)||[]} people={travel.data?.people} timezone={data.timezone} canManage={travel.data?.canManage||false} onChange={travel.refresh}/></>}
           order={selected}
           people={data.people}
           timezone={data.timezone}

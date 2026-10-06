@@ -3,6 +3,7 @@ import pg from "pg";
 import { requireLocalDatabaseUrl } from "./local-target";
 import { authenticateWorkspace } from "./login-auth";
 import { randomUUID } from "node:crypto";
+test.use({ trace: "off", screenshot: "off", video: "off" });
 const day = "2032-05-10",
   person = "e1000000-0000-4000-8000-000000000001",
   customer = "e2000000-0000-4000-8000-000000000001";
@@ -428,4 +429,62 @@ test("address suggestions stay clickable outside an object wizard scroll contain
     modal.getByText("Locatie beschikbaar voor routeberekening"),
   ).toBeVisible();
   await modal.getByRole("button", { name: "Sluiten" }).click();
+});
+
+test("reisinformatie starts collapsed and shows one employee's route at a time", async ({page}) => {
+  const secondPerson = randomUUID(), secondAssignment = randomUUID();
+  try {
+    await db.query(
+      "insert into public.personnel(id,tenant_id,employee_number,full_name,standard_vehicle,departure_kind,home_address) values($1,$2,$3,'FICTIEF Tweede reiziger','car','home',$4)",
+      [secondPerson, tenant, `TRAVEL-${secondPerson}`, {...address, street_name: "FICTIEF Tweede vertrekplek", street: "FICTIEF Tweede vertrekplek 12A bis", longitude: 4.3}],
+    );
+    await db.query(
+      "insert into public.work_order_assignments(id,tenant_id,work_order_id,personnel_id,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at) values($1,$2,$3,$4,'released',$5,$6,$5,$6)",
+      [secondAssignment, tenant, orders[0], secondPerson, `${day}T06:00:00Z`, `${day}T07:30:00Z`],
+    );
+    await page.setViewportSize({width: 390, height: 844});
+    await login(page, `/app/planning?day=${day}`);
+    await page.getByRole("button", {name: "Acties voor werkbon FICTIEF-REIS-1", exact: true}).first().click();
+    await page.getByRole("button", {name: "Bekijk werkbon", exact: true}).click();
+    const panel = page.getByRole("dialog", {name: "FICTIEF reisobject 1", exact: true});
+    const travel = panel.locator(".pb-travel");
+    const summary = travel.locator("summary");
+    await expect(travel).not.toHaveAttribute("open");
+    await expect(summary).toHaveText("Reisinformatie");
+    await expect(travel.getByRole("button", {name: "Bekijk route", exact: true})).not.toBeVisible();
+    expect((await summary.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    await expect(travel).toHaveAttribute("open", "");
+    const employee = travel.getByLabel("Medewerker", {exact: true});
+    await expect(employee).toBeVisible();
+    await employee.selectOption(person);
+    await expect(travel.locator(".travel-card")).toHaveCount(1);
+    await expect(travel.getByText(/FICTIEF PRIVÉ/)).toBeVisible();
+    await employee.selectOption(secondPerson);
+    await expect(travel.locator(".travel-card")).toHaveCount(1);
+    await expect(travel.getByText(/FICTIEF Tweede vertrekplek/)).toBeVisible();
+    await expect(travel.getByText(/FICTIEF PRIVÉ/)).toHaveCount(0);
+    await expect(travel.getByRole("button", {name: "Bekijk route", exact: true})).toBeEnabled();
+    await travel.getByRole("button", {name: "Handmatige reistijd", exact: true}).click();
+    await expect(travel.getByLabel("Handmatige basisreistijd (minuten)")).toBeVisible();
+    await travel.getByLabel("Handmatige basisreistijd (minuten)").fill("12");
+    await travel.getByLabel("Reden", {exact: true}).fill("FICTIEVE reistijd voor tweede medewerker");
+    await travel.getByRole("button", {name: "Handmatige reistijd opslaan", exact: true}).click();
+    await expect(travel.getByText(/Handmatige reistijd actief/)).toBeVisible();
+    expect(Number((await db.query("select manual_seconds from public.travel_legs where assignment_id=$1 and direction='before'", [secondAssignment])).rows[0].manual_seconds)).toBe(720);
+    for (const width of [320, 390, 1440]) {
+      await page.setViewportSize({width, height: 900});
+      await expect.poll(() => panel.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    }
+    await summary.click();
+    await expect(travel).not.toHaveAttribute("open");
+    await page.getByRole("button", {name: "Details sluiten", exact: true}).click();
+    await page.getByRole("button", {name: "Acties voor werkbon FICTIEF-REIS-1", exact: true}).first().click();
+    await page.getByRole("button", {name: "Bekijk werkbon", exact: true}).click();
+    await expect(page.getByRole("dialog", {name: "FICTIEF reisobject 1", exact: true}).locator(".pb-travel")).not.toHaveAttribute("open");
+  } finally {
+    await db.query("delete from public.work_order_assignments where id=$1", [secondAssignment]);
+    await db.query("delete from public.personnel where id=$1", [secondPerson]);
+  }
 });

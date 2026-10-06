@@ -158,6 +158,21 @@
   display: grid;
   gap: 14px;
 }
+.travel-person-select {
+  display: grid;
+  gap: 6px;
+  font-size: calc(12px * var(--dashboard-font-scale, 1));
+  font-weight: 600;
+}
+.travel-person-select select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--border, #d5e1e8);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: inherit;
+}
 .travel-status {
   display: inline-flex;
   align-items: center;
