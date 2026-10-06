@@ -49,6 +49,25 @@ test("work-order dossier, immutable templates, checklist validation and list iso
       await assert.rejects(save(payload({objectId:object2})),e=>e.code==='23514');
       await assert.rejects(save({...input,mutationId:randomUUID(),version:1}),e=>e.code==='40001');
     });
+    await t.test("additional checklists bind a published snapshot with CAS, retry and live tenant/role guards",async()=>{
+      const definition={questions:[{id:'extra-check',section:'Oplevering',label:'Extra controle',help:'',type:'boolean',options:[],unit:'',required:false,proof:false,allowNA:false,customerVisible:true}]};
+      const added=await template('save',{name:'FICTITIOUS additional checklist',kind:'checklist',revisionId:null,definition});
+      await template('publish',{revisionId:added.id});
+      const input={orderId:first.id,revisionId:added.id,version:await version(first.id),mutationId:randomUUID()};
+      const attach=(payload,actor=manager,target=tenant)=>call('select public.attach_work_order_checklist($1,$2) r',[target,payload],actor).then(r=>r[0].r);
+      await assert.rejects(attach(input,staff),e=>e.code==='42501');
+      await assert.rejects(attach(input,manager,other),e=>e.code==='42501');
+      const result=await attach(input);assert.equal(result.ok,true);assert.deepEqual(await attach(input),result);
+      await assert.rejects(attach({...input,mutationId:randomUUID()}),e=>e.code==='40001');
+      await assert.rejects(attach({...input,version:await version(first.id),mutationId:randomUUID()}),e=>e.code==='23514');
+      const d=await dossier(first.id);assert.equal(d.checklists.length,2);assert.deepEqual(d.checklists.find(c=>c.revisionId===added.id).questions,definition.questions);
+      assert(d.history.some(event=>event.event==='work_order.checklist_added'&&event.note==='FICTITIOUS additional checklist'));
+      assert(d.history.every(event=>!event.actor||!sessions.has(event.actor)));
+      assert.equal((await call('select public.work_order_dossier($1,$2) r',[tenant,first.id],planner))[0].r.financial,null);
+      await db.query("update public.work_orders set report_state='review' where id=$1",[first.id]);
+      await assert.rejects(attach({...input,version:await version(first.id),revisionId:checklist.id,mutationId:randomUUID()}),e=>e.code==='23514');
+      await db.query("update public.work_orders set report_state='draft' where id=$1",[first.id]);
+    });
     await t.test("server list searches all source data with stable pagination and scoped financial projections",async()=>{
       assert.equal((await list({q:'Teststraat'})).total,1);assert.equal((await list({view:'unassigned'})).counts.unassigned,1);
       const plannerOptions=(await call('select public.work_order_options($1) r',[tenant],planner))[0].r;assert.equal(plannerOptions.finance,false);assert(!JSON.stringify(plannerOptions).includes('987654'));assert(!('priceCents' in plannerOptions.tasks[0]));

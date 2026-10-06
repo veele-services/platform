@@ -1,4 +1,5 @@
-import {test,expect,type Page} from "@playwright/test";
+import {expect,type Page} from "@playwright/test";
+import {test} from "./first-visit";
 import {randomUUID} from "node:crypto";
 import pg from "pg";
 import {createClient} from "@supabase/supabase-js";
@@ -43,6 +44,7 @@ async function login(page:Page,next:string,email="platform-admin@fieldgrid.test"
 test("Object 360: full page tabs, structure, versioned instructions and responsive layout",async({page})=>{
  test.setTimeout(120000);await login(page,`/app/objecten/${object}`);
  await expect(page.getByRole("heading",{name:"Object 360 testlocatie",exact:true})).toBeVisible();
+ await expect(page.locator("[data-account-guides-ready=true]")).toBeAttached();
  const tabs=page.getByRole("navigation",{name:"Objectdossier tabbladen"});await expect(tabs.getByRole("link")).toHaveCount(13);
  for(const width of [1440,768,390,320]){
   await page.setViewportSize({width,height:950});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
@@ -67,7 +69,7 @@ test("Object 360: customer request applies to exactly one visit and reaches back
  const ownFile=(await fileLink.getAttribute("href"))!;expect((await page.request.get(ownFile)).status()).toBe(200);expect((await page.request.get(ownFile.replace(order,secondOrder))).status()).toBe(404);
  await page.goto(`/klant?object=${object}&order=${secondOrder}`);await page.getByRole("tab",{name:/^Instructies/}).click();await expect(page.getByText("Toiletten vandaag extra aandacht")).toHaveCount(0);
  const context=await browser.newContext();const backoffice=await context.newPage();
- try{await login(backoffice,`/app/objecten/${object}?tab=instructies`);await expect(backoffice.getByRole("heading",{name:"Toiletten vandaag extra aandacht"})).toBeVisible();await expect(backoffice.getByText("Beoordeling nodig: Het verzoek is gewijzigd;",{exact:false})).toBeVisible();}finally{await context.close();}
+ try{await login(backoffice,`/app/objecten/${object}?tab=instructies`);await expect(backoffice.getByRole("heading",{name:"Toiletten vandaag extra aandacht"})).toBeVisible();await expect(backoffice.getByRole("main").getByText("Beoordeling nodig: Het verzoek is gewijzigd;",{exact:false})).toBeVisible();}finally{await context.close();}
 });
 test("Object 360: branded OTP mail, no-store secure value, blur and revocation",async({page,request})=>{
  test.setTimeout(90000);await login(page,`/app/objecten/${object}?tab=toegang`);

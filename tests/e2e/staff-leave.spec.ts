@@ -22,7 +22,7 @@ test("Verlof volgt het prototype en behoudt aanvragen en intrekken", async ({ pa
     const balance = await metrics.locator("strong").first().innerText();
     await expect(metrics.locator("strong").last()).toHaveText(String(person!.pending));
     await page.setViewportSize({ width: 1920, height: 944 });
-    for (const [upper, lower] of [[".ps-stat-grid", ".ps-leave-list"], [".ps-leave-list", ".ps-hours-info"]]) {
+    for (const [upper, lower] of [[".ps-stat-grid", ".ps-leave-list"], [".ps-leave-list", ".list-pagination"], [".list-pagination", ".ps-hours-info"]]) {
       const gap = await screen.evaluate((element, selectors) => {
         const top = element.querySelector(selectors[0]!)!.getBoundingClientRect();
         const bottom = element.querySelector(selectors[1]!)!.getBoundingClientRect();

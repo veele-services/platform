@@ -1,4 +1,9 @@
 "use client";
+import { GuideBanner } from "@/components/fieldgrid/guides/guide";
+import { WorkOrderDialog } from "./work-orders/dialog";
+import { ListPagination, useListPagination } from "./list-pagination";
+import { CompactFilterMenu } from "./compact-filter-menu";
+import { ContentSection } from "./content-section";
 import { TaskCatalogue } from "./tasks/catalogue";
 import { ContentTabs } from "./content-tabs";
 import { PageHeading } from "./page-heading";
@@ -15,7 +20,7 @@ import {
   Bell, BriefcaseBusiness, Building2, CalendarDays, ChevronRight, ClipboardCheck,
   Clock3, CreditCard, FileText, LayoutDashboard, LogOut, Megaphone,
   Menu, PackageCheck, Search, Settings,
-  UsersRound, Wrench,X,
+  UsersRound, Wrench,X, Plus, Eye,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import type { AuthContext } from "@/lib/auth/context";
@@ -165,11 +170,7 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
 
     if (view === "facturen") return <InvoicesPage data={data}/>;
 
-    if (view === "nieuws") return <>
-      <PageIntro eyebrow="COMMUNICATIE" title="Nieuws" description="Publiceer tenantnieuws en stuur optioneel een pushmelding." />
-      <section className="panel"><div className="section-heading"><h2>Bericht publiceren</h2></div><ActionForm action={createAnnouncement} className="workspace-form" success="Publiceren"><label className="wide">Titel<input name="title" required /></label><label className="wide">Bericht<textarea name="body" required rows={5}/></label><label className="check wide"><input type="checkbox" name="sendPush"/> Pushmelding versturen</label></ActionForm></section>
-      <div className="news-grid">{data.announcements.map((item) => <article className="panel news-card" key={item.id}><span className="eyebrow">{item.published_at ? dateTime(item.published_at, tenant.timezone) : "CONCEPT"}</span><h3>{item.title}</h3><p>{item.body}</p><small>{data.announcementReads.filter((read) => read.announcement_id === item.id).length} gelezen</small>{!item.withdrawn_at && <ActionForm action={withdrawAnnouncement} success="Intrekken"><input type="hidden" name="announcementId" value={item.id}/></ActionForm>}</article>)}</div>
-    </>;
+    if (view === "nieuws") return <NewsPage tenant={tenant} data={data}/>;
 
     return <>
       <PageIntro eyebrow="BEHEER" title="Instellingen" description="Huisstijl, afzendergegevens en nummering voor jouw organisatie." />
@@ -210,8 +211,24 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
         {!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}
       </footer>
     </aside>
-    <div className="workspace-main" inert={mobileNav||undefined}><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu" aria-expanded={mobileNav}><Menu size={20}/></button><span className="breadcrumb"><span className="workspace-origin-dot" aria-hidden="true"/><span className="workspace-origin-label">Mijn omgeving</span><span aria-hidden="true">/</span><strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input aria-label="Zoek werkbon" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select aria-label="Tenant kiezen" name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}>{content}</main></div><Toaster richColors position="top-right"/>
+    <div className="workspace-main" inert={mobileNav||undefined}><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu" aria-expanded={mobileNav}><Menu size={20}/></button><span className="breadcrumb"><span className="workspace-origin-dot" aria-hidden="true"/><span className="workspace-origin-label">Mijn omgeving</span><span aria-hidden="true">/</span><strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input aria-label="Zoek werkbon" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select aria-label="Tenant kiezen" name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}><GuideBanner guideKey={`backoffice.${view}`}/>{content}</main></div><Toaster richColors position="top-right"/>
   </div></TenantThemeProvider>;
+}
+
+function NewsPage({tenant,data}:{tenant:NonNullable<AuthContext["tenant"]>;data:WorkspaceData}) {
+ const router=useRouter(),[creating,setCreating]=useState(false),[selected,setSelected]=useState<WorkspaceData["announcements"][number]|null>(null),[query,setQuery]=useState(""),[state,setState]=useState("active");
+ const rows=data.announcements.filter(item=>(state==="all"||state==="withdrawn"?state==="all"||!!item.withdrawn_at:!item.withdrawn_at)&&`${item.title} ${item.body}`.toLowerCase().includes(query.toLowerCase())).sort((a,b)=>(b.published_at??b.created_at).localeCompare(a.published_at??a.created_at));
+ const pagination=useListPagination(rows),canManage=tenant.roles.some(role=>["tenant_admin","management"].includes(role));
+ return <><PageIntro eyebrow="COMMUNICATIE" title="Nieuws" description="Publiceer tenantnieuws en stuur optioneel een pushmelding."><CompactFilterMenu activeCount={(query?1:0)+(state!=="active"?1:0)}><div className="compact-filter-grid"><label>Zoeken<input type="search" value={query} onChange={e=>{setQuery(e.target.value);pagination.setPage(1);}} placeholder="Titel of bericht…"/></label><label>Weergave<select value={state} onChange={e=>{setState(e.target.value);pagination.setPage(1);}}><option value="active">Actieve berichten</option><option value="all">Alle berichten</option><option value="withdrawn">Ingetrokken berichten</option></select></label></div></CompactFilterMenu>{canManage&&<button className="primary-button" onClick={()=>setCreating(true)}><Plus size={16}/>Voeg toe</button>}</PageIntro>
+ <ContentSection title="Nieuwsberichten" bodyClassName="resource-table-panel"><div className="table-scroll"><table className="resource-table"><thead><tr><th>Bericht</th><th>Gepubliceerd</th><th>Gelezen</th><th>Status</th><th>Acties</th></tr></thead><tbody>{pagination.items.map(item=><tr key={item.id}><td><strong>{item.title}</strong><small>{item.body.length>180?`${item.body.slice(0,180)}…`:item.body}</small></td><td>{item.published_at?dateTime(item.published_at,tenant.timezone):"Concept"}</td><td>{data.announcementReads.filter(read=>read.announcement_id===item.id).length}</td><td><span className="resource-status">{item.withdrawn_at?"Ingetrokken":item.published_at?"Gepubliceerd":"Concept"}</span></td><td><div className="resource-actions"><button className="resource-action" onClick={()=>setSelected(item)}><Eye size={14}/>Bekijk</button>{canManage&&!item.withdrawn_at&&<ActionForm action={withdrawAnnouncement} success="Intrekken" className="inline-server-form"><input type="hidden" name="announcementId" value={item.id}/></ActionForm>}</div></td></tr>)}</tbody></table></div>{!rows.length&&<div className="resource-empty"><Megaphone size={24}/><strong>Geen nieuwsberichten binnen deze selectie.</strong></div>}</ContentSection>
+ <ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="berichten" preferenceKey={`backoffice:${tenant.id}:news`}/>
+ {creating&&canManage&&<AnnouncementEditor tenant={tenant} onClose={()=>setCreating(false)} onSaved={()=>{setCreating(false);router.refresh();}}/>}
+ {selected&&<WorkOrderDialog tenant={tenant} eyebrow="NIEUWS" title={selected.title} description={selected.published_at?dateTime(selected.published_at,tenant.timezone):"Concept"} onClose={()=>setSelected(null)}><div className="wo-dialog-body"><p style={{whiteSpace:"pre-wrap",margin:0,lineHeight:1.7}}>{selected.body}</p></div></WorkOrderDialog>}
+ </>;
+}
+function AnnouncementEditor({tenant,onClose,onSaved}:{tenant:NonNullable<AuthContext["tenant"]>;onClose:()=>void;onSaved:()=>void}) {
+ const[title,setTitle]=useState(""),[body,setBody]=useState(""),[push,setPush]=useState(false),[pending,start]=useTransition(),[error,setError]=useState("");
+ return <WorkOrderDialog tenant={tenant} eyebrow="COMMUNICATIE" title="Nieuwsbericht toevoegen" description="Publiceer een bericht voor de medewerkers van je organisatie." busy={pending} dirty={Boolean(title||body||push)} onClose={onClose}><form id="announcement-create" className="wo-dialog-body wo-form" onSubmit={event=>{event.preventDefault();const form=new FormData(event.currentTarget);start(async()=>{const result=await createAnnouncement(form);if(!result.ok){setError(result.error);return;}toast.success("Nieuwsbericht gepubliceerd");onSaved();});}}><label className="wide">Titel<input name="title" required maxLength={180} value={title} onChange={e=>setTitle(e.target.value)}/></label><label className="wide">Bericht<textarea name="body" required rows={6} value={body} onChange={e=>setBody(e.target.value)}/></label><label className="check wide" style={{display:"flex",alignItems:"center",gap:10}}><input type="checkbox" name="sendPush" checked={push} onChange={e=>setPush(e.target.checked)}/>Pushmelding versturen</label>{error&&<p className="wo-error wide" role="alert">{error}</p>}</form><footer className="wizard-footer"><button className="secondary-button" disabled={pending} onClick={onClose}>Annuleren</button><button className="primary-button" form="announcement-create" disabled={pending}>{pending?"Publiceren…":"Publiceren"}</button></footer></WorkOrderDialog>;
 }
 
 function PersonnelNumberSettings({ settings }: { settings: WorkspaceData["settings"] }) {

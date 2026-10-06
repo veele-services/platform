@@ -11,5 +11,6 @@ describe('commercial price contract',()=>{
  it('rejects negative and invalid quantities',()=>{
   expect(()=>previewPrices([{id:'test',description:'Test',quantity:'-1',unit:'stuk',price_cents:1,discount_basis_points:0,vat_basis_points:0,duration_minutes:1}])).toThrow();
  });
+ it('bounds preferred page size independently of the selected page',()=>{expect(filtersSchema.parse({page:'2',pageSize:'50'})).toMatchObject({page:2,pageSize:50});for(const pageSize of[-1,0,101,5000,'invalid'])expect(filtersSchema.parse({pageSize}).pageSize).toBe(25);});
  it('whitelists sorting and bounds pagination',()=>{expect(filtersSchema.parse({sort:'DROP TABLE',page:-1}).sort).toBe('attention');expect(filtersSchema.parse({page:-1}).page).toBe(1);});
 });

@@ -1,0 +1,51 @@
+.fg-section {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+}
+.fg-section > .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+.fg-section > .section-header h2 {
+  margin: 0;
+  font-size: calc(1.125rem * var(--dashboard-font-scale, 1));
+  line-height: 1.45;
+  color: var(--brand-ink, #1a2632);
+}
+.fg-section > .section-header .eyebrow {
+  display: flex;
+  align-items: center;
+  margin: 0 0 4px;
+  font-size: calc(.6875rem * var(--dashboard-font-scale, 1));
+  color: var(--brand-muted, #6c7884);
+}
+.fg-section-body {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--brand-border, #e2e8ed);
+  border-radius: 18px;
+  background: var(--brand-card, #fff);
+  color: var(--brand-ink, #1a2632);
+  box-shadow: 0 4px 20px rgb(20 35 45 / 2%);
+}
+.fg-section-body > :last-child { margin-bottom: 0; }
+.fg-section-body > :first-child { margin-top: 0; }
+.fg-section-body:has(> .table-scroll:only-child) { padding: 0; overflow: hidden; }
+.fg-section-body :is(.form-grid, .wo-form, .resource-form) {
+  align-items: start;
+  align-content: start;
+  grid-auto-rows: max-content;
+}
+.fg-section .section-header-actions { flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 600px) {
+  .fg-section > .section-header { align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .fg-section-body { padding: 20px; border-radius: 16px; }
+}

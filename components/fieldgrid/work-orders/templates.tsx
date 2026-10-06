@@ -1,8 +1,13 @@
 "use client";
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Plus, Trash2, ArrowLeft } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { PageHeading } from "../page-heading";
+import { ContentSection } from "../content-section";
+import { CompactFilterMenu } from "../compact-filter-menu";
+import { ListPagination, useListPagination } from "../list-pagination";
+import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@/components/ui/popover";
+import { Plus, Trash2, ArrowLeft, ChevronDown } from "lucide-react";
 import type { TenantContext } from "@/lib/auth/context";
 import type { ChecklistQuestion, WorkOrderOptions, WorkTemplate } from "@/lib/work-orders/model";
 import { mutateWorkTemplate } from "@/app/app/work-order-actions";
@@ -20,19 +25,19 @@ const library = [{ name: "Algemene oplevercontrole", definition: { questions: [
 ] } }];
 
 export function WorkOrderTemplates({ tenant, options }: { tenant: TenantContext; options: WorkOrderOptions }) {
-  const [selected, setSelected] = useState<WorkTemplate | null>(null), [create, setCreate] = useState<"work_order" | "checklist" | null>(null), [error, setError] = useState(""), [pending, startTransition] = useTransition(), [kind, setKind] = useState("all");
-  const router = useRouter();
+  const params=useSearchParams();
+  const [selected, setSelected] = useState<WorkTemplate | null>(null), [create, setCreate] = useState<"work_order" | "checklist" | null>(null), [error, setError] = useState(""), [pending, startTransition] = useTransition(), [kind, setKind] = useState(params.get("kind")==="checklist"?"checklist":"all");
+  const router = useRouter(),rows=options.templates.filter(t=>kind==="all"||t.kind===kind),pagination=useListPagination(rows);
   const mutate = (t: WorkTemplate, command: "publish" | "archive") => {
     if (!window.confirm(command === "publish" ? "Publiceer deze versie? De inhoud blijft daarna bewaard; wijzigingen krijgen een nieuwe versie." : "Archiveer deze versie? Bestaande werkbonnen behouden hun checklist en afspraken.")) return;
     startTransition(async () => { const r = await mutateWorkTemplate({ commandId: crypto.randomUUID(), command, template: t }); if (!r.ok) setError(r.error); else router.refresh(); });
   };
-  return <div className="wo-workspace"><Link href="/app/taken" className="dossier-back"><ArrowLeft size={16}/>Taken & tarieven</Link>
-    <header className="resource-page-heading"><div><h1>Werkbon- en checklisttemplates</h1><p>Herbruikbare werkinstructies. Een gepubliceerde versie blijft bewaard bij de werkbon.</p></div><div className="wo-heading-actions"><button className="secondary-button" onClick={() => setCreate("checklist")}><Plus size={16}/>Nieuwe checklist</button><button className="primary-button" onClick={() => setCreate("work_order")}><Plus size={16}/>Nieuwe werkbontemplate</button></div></header>
+  return <div className="wo-workspace"><PageHeading eyebrow="CATALOGUS" title="Werkbon- en checklisttemplates" help="Herbruikbare werkinstructies. Een gepubliceerde versie blijft bewaard bij de werkbon." actions={<><CompactFilterMenu activeCount={kind!=="all"?1:0}><label>Type<select value={kind} onChange={e=>{setKind(e.target.value);pagination.setPage(1);}}><option value="all">Alle templates</option><option value="work_order">Werkbonnen</option><option value="checklist">Checklists</option></select></label></CompactFilterMenu><Popover><PopoverTrigger asChild><button className="primary-button"><Plus size={16}/>Voeg toe<ChevronDown size={14}/></button></PopoverTrigger><PopoverContent className="resource-more-content" align="end"><PopoverClose asChild><button onClick={()=>setCreate("checklist")}>Nieuwe checklist</button></PopoverClose><PopoverClose asChild><button onClick={()=>setCreate("work_order")}>Nieuwe werkbontemplate</button></PopoverClose></PopoverContent></Popover></>}/><Link href="/app/taken" className="dossier-back"><ArrowLeft size={16}/>Taken & tarieven</Link>
     {error && <p role="alert" className="wo-error">{error}</p>}
-    <section className="wo-card"><label>Type <select value={kind} onChange={e => setKind(e.target.value)}><option value="all">Alle templates</option><option value="work_order">Werkbonnen</option><option value="checklist">Checklists</option></select></label>
-      <div className="table-scroll"><table className="resource-table"><thead><tr><th>Naam</th><th>Type</th><th>Versie</th><th>Status</th><th>Acties</th></tr></thead><tbody>{options.templates.filter(t => kind === "all" || t.kind === kind).map(t => <tr key={t.revisionId}><td>{t.name}</td><td>{t.kind === "work_order" ? "Werkbon" : "Checklist"}</td><td>{t.version}</td><td>{states[t.state]}</td><td><div className="resource-actions"><button className="resource-action" onClick={() => setSelected(t)}>{t.state === "draft" ? "Bewerk" : "Bekijk / nieuwe versie"}</button>{t.state === "draft" && <button className="resource-action" disabled={pending} onClick={() => mutate(t, "publish")}>Publiceer</button>}{t.state !== "archived" && <button className="resource-action" disabled={pending} onClick={() => mutate(t, "archive")}>Archiveer</button>}</div></td></tr>)}{!options.templates.length && <tr><td colSpan={5}>Nog geen templates. Maak een eigen template of neem een basischecklist over.</td></tr>}</tbody></table></div>
-    </section>
-    <section className="wo-card"><h2>Fieldgrid basischecklists</h2><p>Neem een eigen conceptkopie over en pas die aan. Latere platformwijzigingen wijzigen jouw versie niet.</p>{library.map(t => <button key={t.name} className="resource-action" onClick={() => setSelected({ id: "", revisionId: "", name: t.name, kind: "checklist", version: 0, state: "draft", definition: t.definition })}>Kopieer {t.name}</button>)}</section>
+    <ContentSection title="Templates" bodyClassName="resource-table-panel">
+      <div className="table-scroll"><table className="resource-table"><thead><tr><th>Naam</th><th>Type</th><th>Versie</th><th>Status</th><th>Acties</th></tr></thead><tbody>{pagination.items.map(t => <tr key={t.revisionId}><td>{t.name}</td><td>{t.kind === "work_order" ? "Werkbon" : "Checklist"}</td><td>{t.version}</td><td>{states[t.state]}</td><td><div className="resource-actions"><button className="resource-action" onClick={() => setSelected(t)}>{t.state === "draft" ? "Bewerk" : "Bekijk / nieuwe versie"}</button>{t.state === "draft" && <button className="resource-action" disabled={pending} onClick={() => mutate(t, "publish")}>Publiceer</button>}{t.state !== "archived" && <button className="resource-action" disabled={pending} onClick={() => mutate(t, "archive")}>Archiveer</button>}</div></td></tr>)}{!rows.length && <tr><td colSpan={5}>Nog geen templates. Maak een eigen template of neem een basischecklist over.</td></tr>}</tbody></table></div>
+    </ContentSection><ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="templates" preferenceKey={`backoffice:${tenant.id}:work-order-templates`}/>
+    <ContentSection title="Basischecklists" help="Neem een eigen conceptkopie over en pas die aan. Latere platformwijzigingen wijzigen jouw versie niet.">{library.map(t => <button key={t.name} className="resource-action" onClick={() => setSelected({ id: "", revisionId: "", name: t.name, kind: "checklist", version: 0, state: "draft", definition: t.definition })}>Kopieer {t.name}</button>)}</ContentSection>
     <WorkOrderSignatureSettings/>
     {(selected || create) && <TemplateEditor key={selected?.revisionId || create} tenant={tenant} options={options} existing={selected} kind={create || selected!.kind} close={() => { setSelected(null); setCreate(null); }} saved={() => { setSelected(null); setCreate(null); router.refresh(); }}/>} </div>;
 }

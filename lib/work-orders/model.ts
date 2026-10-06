@@ -11,6 +11,7 @@ export const workOrderQuery = z.object({
   from: z.iso.date().or(z.literal("")).catch(""), to: z.iso.date().or(z.literal("")).catch(""), report: z.string().max(30).catch(""),
   planning: z.string().max(30).catch(""), execution: z.string().max(30).catch(""), billing: z.string().max(30).catch(""),
   exception: z.enum(["", "crew", "signature", "remaining", "blocked"]).catch(""), archived: z.enum(["", "yes"]).catch(""),
+  pageSize: z.coerce.number().int().min(10).max(100).catch(25),
   sort: z.enum(["date", "date_desc", "number", "title", "customer", "status"]).catch("date"), page: z.coerce.number().int().min(1).max(100000).catch(1),
 });
 export type WorkOrderQuery = z.infer<typeof workOrderQuery>;
@@ -51,9 +52,14 @@ export type WorkOrderDossier = {
   tasks: Array<Omit<Row<"work_order_tasks">, "unit_price_cents" | "vat_basis_points" | "commercial_snapshot"> & { unit_price_cents?: number; vat_basis_points?: number; commercial_snapshot?: Json; instructions: string }>;
   assignments: Array<{ id: string; personnelId: string; name: string; start: string; end: string; status: string; seenAt: string | null; actualStart: string | null; actualEnd: string | null }>;
   times: Array<{ id: string; personnelId: string; name: string; start: string; end: string | null; kind: string; status: string }>;
-  checklists: ChecklistInstance[]; reports: Array<{ id: string; body: string; created_at: string; customer_visible: boolean }>;
-  attachments: Array<{ id: string; file_name: string; mime_type: string; created_at: string }>;
+  checklists: ChecklistInstance[]; reports: Array<{ id: string; body: string; created_at: string; customer_visible: boolean; author?: string }>;
+  attachments: Array<{ id: string; file_name: string; mime_type: string; created_at: string; customerVisible?: boolean }>;
   history: Array<{ id: string; at: string; actor: string | null; event: string; note: string | null }>;
+  financial?: {
+    materials: Array<{ id: string; description: string; quantity: number; unit: string; customerVisible: boolean; unitPriceCents: number | null }>;
+    expenses: Array<{ id: string; description: string; amountCents: number; customerVisible: boolean }>;
+    invoices: Array<{ id: string; number: string | null; status: string; totalCents: number; orderTotalCents?: number; paidCents: number; pdfAvailable: boolean; issuedOn: string | null }>;
+  };
   finance: boolean; canManage: boolean; canReview: boolean;
 };
 export const saveWorkOrderSchema = z.object({

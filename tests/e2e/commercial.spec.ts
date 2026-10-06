@@ -61,6 +61,8 @@ test("commerciële lijst, aanvraag, bevroren PDF-mail, expliciet akkoord en éé
   await page.reload();dialog=page.getByRole("dialog");await expect(dialog.getByRole("button",{name:"Omzetten naar opdracht"})).toBeVisible();await dialog.getByRole("button",{name:"Omzetten naar opdracht"}).click();await dialog.getByRole("button",{name:"Bevestigen en opslaan"}).click();await expect(dialog.getByRole("link",{name:"Naar planning / Inplannen"})).toBeVisible();
   const orders=(await db.query('select * from public.work_orders where tenant_id=$1 and quote_id=$2',[tenant,quote.id])).rows;expect(orders).toHaveLength(1);expect(orders[0].projected_start_at).toBeNull();
   await dialog.getByRole("button",{name:"Sluiten",exact:true}).click();await expect(page.getByRole("dialog")).toHaveCount(0);await page.getByRole("tab",{name:"Offertes",exact:true}).click();
+  await expect(page).toHaveURL(/tab=quotes/);
+  await expect(page.getByRole("main").locator(".resource-table-panel")).toHaveAttribute("aria-busy","false");
   const filterTrigger=page.getByRole("button",{name:/^Zoeken en filteren/});
   await filterTrigger.click();await page.getByLabel("Aanvragen en offertes zoeken").fill("Fictieve controle");await page.keyboard.press("Escape");
   await expect(page.getByRole("table").getByRole("row")).toHaveCount(2);await page.getByRole("button",{name:"Bekijk",exact:true}).click();await page.getByRole("dialog").getByRole("button",{name:"Sluiten",exact:true}).click();await expect(page.getByRole("dialog")).toHaveCount(0);

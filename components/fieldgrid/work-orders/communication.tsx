@@ -12,10 +12,10 @@ export function WorkOrderCommunication({ orderId }: { orderId: string }) {
     transition(async () => { try { const r = await addWorkOrderCommunication(data); if (!r.ok) { setError(r.error); return; } ref.current?.reset(); setId(crypto.randomUUID()); router.refresh(); } catch { setError("Opslaan is niet bevestigd. Probeer opnieuw; je invoer blijft bewaard."); } });
   }}>
     <input type="hidden" name="orderId" value={orderId}/><input type="hidden" name="mutationId" value={id}/>
-    <label className="wide">Bericht<textarea name="body" maxLength={5000} disabled={pending}/></label>
+    <label className="wide">Notitie<textarea name="body" maxLength={5000} disabled={pending}/></label>
     <label className="wide">Document of foto<input type="file" name="file" accept={CUSTOMER_DOCUMENT_ACCEPT} disabled={pending}/><small>PDF, JPG of PNG · maximaal 10 MB. Upload geen gevoelige toegangsgegevens.</small></label>
     <label className="check wide"><input type="checkbox" name="customerVisible" disabled={pending}/>Opnemen in het klantrapport na controle</label>
     {error && <p className="wo-error wide" role="alert">{error}</p>}
-    <button className="primary-button wide" disabled={pending}>{pending ? "Opslaan…" : "Bericht / bestand toevoegen"}</button>
+    <button className="primary-button wide" disabled={pending}>{pending ? "Opslaan…" : "Notitie / bestand toevoegen"}</button>
   </form>;
 }

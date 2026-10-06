@@ -47,7 +47,7 @@
 .address-feedback,
 .address-location {
   font-size: calc(12px * var(--dashboard-font-scale, 1));
-  color: var(--muted, #526b7a);
+  color: var(--brand-muted, var(--ps-muted, #526b7a));
   margin: 0;
 }
 .address-location {
@@ -111,7 +111,7 @@
 }
 .location-map small {
   font-size: calc(10px * var(--dashboard-font-scale, 1));
-  color: var(--muted, #526b7a);
+  color: var(--brand-muted, var(--ps-muted, #526b7a));
 }
 .travel-card {
   display: grid;
@@ -141,7 +141,7 @@
 }
 .travel-facts dt {
   font-size: calc(11px * var(--dashboard-font-scale, 1));
-  color: var(--muted, #526b7a);
+  color: var(--brand-muted, var(--ps-muted, #526b7a));
 }
 .travel-facts dd {
   font-size: calc(13px * var(--dashboard-font-scale, 1));
@@ -243,7 +243,7 @@
 }
 .travel-notice {
   font-size: calc(12px * var(--dashboard-font-scale, 1));
-  color: var(--muted, #526b7a);
+  color: var(--brand-muted, var(--ps-muted, #526b7a));
 }
 @media (max-width: 480px) {
   .address-fields {

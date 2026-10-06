@@ -1,4 +1,5 @@
 "use client";
+import { GuideBanner } from "@/components/fieldgrid/guides/guide";
 
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
@@ -195,7 +196,7 @@ export function StaffRouteShellClient({
         <div className="ps-topbar-leading"><div className="ps-mobile-brand"><FieldgridBrand tenantName={tenantName} logoUrl={logoUrl}/></div><div className={`ps-sync ${sync}`} role="status" aria-label={syncLabel(sync)}><i/><span>{syncLabel(sync, true)}</span></div><div className="ps-breadcrumb"><span>Mijn werkplek</span><span aria-hidden="true">/</span><strong>{title}</strong></div></div>
         <div className="ps-top-actions"><NotificationBell workspace="staff" actorKey={actorKey}/><div className="ps-profile-wrap" ref={profileMenuWrap}><button className="ps-profile-button" aria-label={`Profielmenu van ${name}`} aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={() => setProfileMenuOpen((open) => !open)}><span>{initials(name)}</span><small>{name}</small><ChevronRight/></button><form id="staff-route-signout" action="/auth/signout" method="post"/>{profileMenuOpen && <div className="ps-profile-menu" role="menu"><Link role="menuitem" href="/staff?tab=meer&section=profiel" onClick={() => setProfileMenuOpen(false)}><UserRound/>Profiel</Link><Link role="menuitem" href="/staff?tab=meer&section=instellingen" onClick={() => setProfileMenuOpen(false)}><Settings2/>Instellingen</Link><button role="menuitem" type="submit" form="staff-route-signout"><LogOut/>Uitloggen</button></div>}</div></div>
       </header>
-      <main className="ps-content ps-route-content">{children}</main>
+      <main className="ps-content ps-route-content"><GuideBanner guideKey={`staff.${active}`}/>{children}</main>
       <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">
         <Link href="/staff?tab=planning"><CalendarDays/><span>Planning</span></Link>
         <Link href="/staff?tab=nieuws"><Newspaper/><span>Nieuws</span></Link>

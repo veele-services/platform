@@ -15,7 +15,7 @@ it("renders every customer-visible material and expense value and validates the 
  const text=reportDocumentLines(exact).join("\n");
  expect(text).toMatch(/Filter: 2 stuk · .*12,50 per stuk/);
  expect(text).toMatch(/Parkeren: .*7,50/);
- expect(text).toContain(`Inhoudskenmerk: ${exact.contentHash}`);
+ expect(text).not.toContain(exact.contentHash);
  expect(reportVersionSchema.parse(exact).snapshot.expenses).toHaveLength(1);
  expect(()=>reportVersionSchema.parse({...exact,snapshot:{...exact.snapshot,internalNote:"PRIVATE"}})).toThrow();
 });
@@ -25,4 +25,10 @@ it("uses frozen tenant colors with safe malformed-color fallback",()=>{expect(re
 it("extra total uses approved executed extra work and actual material/expenses, never the base task or free time",()=>{
  const snapshot={...report.snapshot,tasks:[...report.snapshot.tasks,{...report.snapshot.tasks[0],id:"approved",extraWork:true,quantity:5,executedQuantity:2,extraUnitPriceCents:1500},{...report.snapshot.tasks[0],id:"pending",extraWork:true,executedQuantity:1,extraUnitPriceCents:null}],materials:[{description:"Filter",quantity:2,unit:"stuk",taskId:null,unitPriceCents:500}],expenses:[{id:"expense",description:"Parkeren",amountCents:750}]};
  expect(reportExtraTotal(snapshot)).toBe(4750);
+});
+
+it("customer report text and PDF omit integrity hashes and internal signers",async()=>{
+ const customer:ReportVersion={...report,projection:"customer_copy",signatures:[{id:"customer-signature",name:"Client contact",capacity:"Opdrachtgever",capturedBy:"PRIVATE-STAFF-CANARY",signedAt:"2026-09-30T10:10:00Z",channel:"staff",kind:"customer"}]};
+ const text=reportDocumentLines(customer).join("\n");expect(text).not.toContain(customer.contentHash);expect(text).not.toContain("PRIVATE-STAFF-CANARY");
+ const pdf=await PDFDocument.load(await renderWorkOrderReportPdf(customer));expect(pdf.getSubject()).not.toContain(customer.contentHash);expect(pdf.getSubject()).toBe("Uitgevoerde werkzaamheden en ondertekening");
 });

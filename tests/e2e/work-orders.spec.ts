@@ -77,7 +77,7 @@ test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzett
   test.setTimeout(120000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page);
-  await expect(page.getByRole("navigation", { name: "Werkweergave" }).getByRole("link")).toHaveCount(6);
+  await expect(page.getByLabel("Werkweergave").locator("option")).toHaveCount(6);
   await expect(page.locator(".kanban")).toHaveCount(0);
   await page.getByRole("button", { name: "Nieuwe werkbon", exact: true }).click();
   const wizard = page.getByRole("dialog", { name: "Nieuwe werkbon", exact: true });
@@ -138,7 +138,7 @@ test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzett
   expect(stored.rows[0]).toMatchObject({ orders: 1, crew: 2, minutes: 180 });
   expect(Number(stored.rows[0].quantity)).toBe(6);
   await page.getByRole("link", { name: "Planning & personeel", exact: true }).click();
-  await expect(page.getByText(/3 geplande arbeidsuren · 2 uur bezoekduur/)).toBeVisible();
+  await expect(page.getByText("3 uur",{exact:true})).toBeVisible();await expect(page.getByText("2 uur",{exact:true})).toBeVisible();
   await page.getByRole("link", { name: "Rapport & handtekening", exact: true }).click();
   await expect(page.locator("canvas")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Ondertekenen|Handtekening vastleggen/ })).toHaveCount(0);
@@ -176,13 +176,13 @@ test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzett
   expect(Number(intervals.rows.find(r => r.personnel_id === "e1000000-0000-4000-8000-000000000001").minutes)).toBe(120);
 
   await page.goto(`/app/werkbonnen/${orderId}?tab=communicatie`);
-  const communication = page.locator("form").filter({ has: page.getByRole("button", { name: "Bericht / bestand toevoegen", exact: true }) });
-  const body = communication.getByLabel("Bericht", { exact: true });
+  const communication = page.locator("form").filter({ has: page.getByRole("button", { name: "Notitie / bestand toevoegen", exact: true }) });
+  const body = communication.getByLabel("Notitie", { exact: true });
   const file = communication.locator('input[type="file"]');
   const note = `Veilig klantbericht ${title}`;
   await body.fill(note);
   await file.setInputFiles({ name: "niet-toegestaan.txt", mimeType: "text/plain", buffer: Buffer.from("Fictitious unsupported fixture") });
-  await communication.getByRole("button", { name: "Bericht / bestand toevoegen", exact: true }).click();
+  await communication.getByRole("button", { name: "Notitie / bestand toevoegen", exact: true }).click();
   await expect(communication.getByRole("alert")).toContainText("Gebruik PDF, JPG of PNG");
   await expect(body).toHaveValue(note);
   expect(await file.evaluate((input: HTMLInputElement) => input.files?.[0]?.name)).toBe("niet-toegestaan.txt");
@@ -212,7 +212,7 @@ test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzett
       return original(input, init);
     };
   }, note);
-  await communication.getByRole("button", { name: "Bericht / bestand toevoegen", exact: true }).click();
+  await communication.getByRole("button", { name: "Notitie / bestand toevoegen", exact: true }).click();
   await expect(body).toHaveValue("");
   expect(await page.evaluate(() => (window as Window & { workOrderReplay?: { status: number; ok: boolean } }).workOrderReplay)).toEqual({ status: 200, ok: true });
   await expect(page.getByText(note, { exact: true })).toBeVisible();
@@ -232,7 +232,7 @@ test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzett
   pdfDocument.addPage([100, 100]).drawText("Fictitious work order");
   const pdf = Buffer.from(await pdfDocument.save());
   await file.setInputFiles({ name: "oplevering-test.pdf", mimeType: "application/pdf", buffer: pdf });
-  await communication.getByRole("button", { name: "Bericht / bestand toevoegen", exact: true }).click();
+  await communication.getByRole("button", { name: "Notitie / bestand toevoegen", exact: true }).click();
   await expect(page.getByText("oplevering-test.pdf", { exact: true })).toBeVisible();
   const second = (await db.query("select id,storage_path,mime_type,sha256,size_bytes::int size_bytes from public.attachments where work_order_id=$1 and file_name='oplevering-test.pdf'", [orderId])).rows;
   expect(second).toHaveLength(1);
@@ -278,6 +278,7 @@ test("checklistbeheer bewaart zes antwoordtypes en maakt een nieuwe versie na pu
   await page.getByRole("button", { name: /^Zoeken en filteren/ }).click();
   await page.getByRole("link", { name: "Templates beheren", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Werkbon- en checklisttemplates", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Voeg toe", exact: true }).click();
   await page.getByRole("button", { name: "Nieuwe checklist", exact: true }).click();
   const editor = page.getByRole("dialog");
   await editor.getByLabel("Naam", { exact: true }).fill(templateName);

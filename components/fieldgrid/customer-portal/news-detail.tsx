@@ -28,7 +28,7 @@ export function CustomerNewsDetailDialog({news,tenant,timezone,close,mark}:{
    }catch{setError("Opslaan kon niet worden bevestigd. Probeer dezelfde leesactie opnieuw.");}
   });
  };
- return <CustomerDialog title={news.title} kicker="Nieuws & dienstverlening" close={close} busy={pending}
+ return <CustomerDialog guideKey="customer.news" title={news.title} kicker="Nieuws & dienstverlening" close={close} busy={pending}
   description={`${news.category} · ${customerDate(news.createdAt,timezone,true)}`}
   footer={<><button className="button" type="button" disabled={pending} onClick={close}>Sluiten</button>
    {!read&&<button className="button" type="button" disabled={pending||stale} onClick={()=>submit("read")}><Check/>{pending?"Opslaan…":"Als gelezen markeren"}</button>}

@@ -28,7 +28,17 @@
   flex: 1;
   padding: 16px !important;
   display: flex;
+  flex-direction: column;
   max-width: none;
+}
+/* First-visit explanations scroll above a full-size planning area. Closing the
+   account guide restores the usual single viewport with two scroll regions. */
+.workspace-main:has(.pb-root) > .view-planning:has(> .fg-guide) {
+  overflow-y: auto;
+}
+.view-planning:has(> .fg-guide) > .pb-root {
+  flex: 1 0 auto;
+  min-height: calc(100dvh - 162px);
 }
 .workspace-main:has(.pb-root) .global-search {
   visibility: hidden;
@@ -69,12 +79,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid #d8e2e7;
-  border-radius: 10px;
-  background: white;
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: #526475;
   font-size: calc(12px * var(--dashboard-font-scale, 1));
   font-weight: 600;
@@ -89,9 +99,7 @@
   outline: 2px solid var(--brand-accent, #328640);
   outline-offset: 3px;
 }
-.pb-legend-trigger[data-state="open"] > svg:last-child {
-  transform: rotate(180deg);
-}
+@media (pointer: coarse) { .pb-legend-trigger { width: 44px; min-height: 44px; } }
 .pb-status-legend[data-slot="popover-content"] {
   width: min(360px, calc(100vw - 32px));
   max-height: min(620px, var(--radix-popover-content-available-height));
@@ -1209,3 +1217,5 @@
     transition: none !important;
   }
 }
+
+@media(max-width:600px){.pb-legend-trigger{width:44px;min-width:44px;height:44px;min-height:44px}}

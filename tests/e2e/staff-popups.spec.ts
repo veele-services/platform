@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { authenticateStaff } from "./staff-auth";
 import { Client } from "pg";
+import { randomUUID } from "node:crypto";
 import { requireLocalDatabaseUrl } from "./local-target";
 import { ticketModule } from "./staff-modules";
 
@@ -57,7 +58,7 @@ test("werkbonvensters blijven binnen het scherm en bewaren terugkeer naar de bon
     await inspectDialog(page, returnDialog, info, `return-${width}`);
     await returnDialog.getByRole("button", { name: "Annuleren", exact: true }).click();
     await sheet.getByRole("tab", { name: "Werkzaamheden", exact: true }).click();
-    const extraHelp=sheet.locator(".staff-panel").filter({has:page.getByRole("heading",{name:"Meerwerk",exact:true})}).getByRole("button",{name:"Informatie over meerwerk",exact:true});
+    const extraHelp=sheet.locator(".fg-section").filter({has:page.getByRole("heading",{name:"Meerwerk",exact:true})}).getByRole("button",{name:"Informatie over Meerwerk",exact:true});
     await extraHelp.click();
     const help=page.getByRole("note").filter({hasText:"Extra werkzaamheden"});
     await expect(help).toBeVisible();
@@ -65,7 +66,7 @@ test("werkbonvensters blijven binnen het scherm en bewaren terugkeer naar de bon
     await page.keyboard.press("Escape");await expect(help).toHaveCount(0);
     await expect(sheet).toBeVisible();await expect(extraHelp).toBeFocused();
     for (const [trigger, title] of [["Materiaal", "Materiaal toevoegen"], ["Onkosten", "Onkosten toevoegen"]]) {
-      await sheet.locator(".staff-panel").filter({has:page.getByRole("heading",{name:"Materiaal & onkosten",exact:true})}).getByRole("button",{name:"Toevoegen",exact:true}).click();
+      await sheet.locator(".fg-section").filter({has:page.getByRole("heading",{name:"Materiaal & onkosten",exact:true})}).getByRole("button",{name:"Toevoegen",exact:true}).click();
       await page.getByRole("menuitem",{name:trigger,exact:true}).click();
       const dialog = page.getByRole("dialog", { name: title, exact: true });
       await inspectDialog(page, dialog, info, `${trigger}-${width}`);
@@ -155,7 +156,7 @@ test("actieve uitvoering toont meerwerk en afrondingscontrole zonder rapport of 
     await page.getByRole("button", { name: /WB-2030-001/ }).click();
     const sheet = page.getByRole("dialog", { name: "Werkbon WB-2030-001", exact: true });
     await sheet.getByRole("tab", { name: "Werkzaamheden", exact: true }).click();
-    const extra = sheet.locator(".staff-panel").filter({ has: page.getByRole("heading", { name: "Meerwerk", exact: true }) });
+    const extra = sheet.locator(".fg-section").filter({ has: page.getByRole("heading", { name: "Meerwerk", exact: true }) });
     await extra.getByRole("button", { name: "Toevoegen", exact: true }).click();
     const extraDialog = page.getByRole("dialog", { name: "Meerwerk toevoegen", exact: true });
     await inspectDialog(page, extraDialog, info, "extra-work-320");
@@ -176,21 +177,26 @@ test("actieve uitvoering toont meerwerk en afrondingscontrole zonder rapport of 
 test("gereedgemelde werkbon toont geen hervatten of uitvoeringsacties",async({page})=>{
  const db=new Client({connectionString:requireLocalDatabaseUrl().href});await db.connect();
  const orderId="e6000000-0000-4000-8000-000000000001",assignmentId="e8000000-0000-4000-8000-000000000001";
- const order=(await db.query('select status,report_state from public.work_orders where id=$1',[orderId])).rows[0];
+ const order=(await db.query('select status,report_state,report_version,signature_policy_snapshot,attention_reason from public.work_orders where id=$1',[orderId])).rows[0];
+ const reportId=randomUUID();
  const assignment=(await db.query('select status,actual_start_at,actual_end_at from public.work_order_assignments where id=$1',[assignmentId])).rows[0];
  try{
-  // A local display fixture only; no real report or signature is changed.
+  // A complete local display fixture includes a frozen report with a valid
+  // optional-signature policy. The completion invariant remains active.
   await db.query("update public.work_order_assignments set status='completed',actual_start_at=now()-interval '1 hour',actual_end_at=now() where id=$1",[assignmentId]);
-  await db.query("update public.work_orders set status='completed',report_state='review' where id=$1",[orderId]);
+  await db.query("insert into public.work_order_report_versions(id,tenant_id,work_order_id,version,snapshot,content_hash,signature_policy,state,created_by,submission_key) select $2,w.tenant_id,w.id,w.report_version+1,b.snapshot,encode(extensions.digest(b.snapshot::text,'sha256'),'hex'),coalesce(w.signature_policy_snapshot,private.work_order_signature_policy(w)),'review',w.created_by,$3 from public.work_orders w cross join lateral(select private.work_order_report_snapshot(w,'FICTITIOUS completed display report') snapshot)b where w.id=$1",[orderId,reportId,randomUUID()]);
+  await db.query("update public.work_orders set status='completed',report_state='review',report_version=report_version+1 where id=$1",[orderId]);
+  expect((await db.query("select status from public.work_orders where id=$1",[orderId])).rows[0].status).toBe("completed");
   await authenticateStaff(page,"field-worker@fieldgrid.test");await page.getByRole("button",{name:/WB-2030-001/}).click();
   const sheet=page.getByRole("dialog",{name:"Werkbon WB-2030-001",exact:true});
   await expect(sheet.getByRole("button",{name:/Hervatten|Gereedmelden hervatten|Oplevering afronden|Werk afronden|Pauzeren|Werkbon terugmelden/})).toHaveCount(0);
   await sheet.getByRole("tab",{name:"Werkzaamheden",exact:true}).click();
   for(const checkbox of await sheet.getByRole("checkbox").all())await expect(checkbox).toBeDisabled();
-  await expect(sheet.getByRole("button",{name:/15 minuten|Toevoegen|Materiaal|Onkosten/})).toHaveCount(0);
+  await expect(sheet.getByRole("button",{name:/^(?:15 minuten|Toevoegen|Materiaal|Onkosten)(?:\s|$)/})).toHaveCount(0);
   await sheet.getByRole("tab",{name:"Rapport",exact:true}).click();await expect(sheet.getByRole("button",{name:"Notitie",exact:true})).toHaveCount(0);
  }finally{
   await db.query('update public.work_order_assignments set status=$2,actual_start_at=$3,actual_end_at=$4 where id=$1',[assignmentId,assignment.status,assignment.actual_start_at,assignment.actual_end_at]);
-  await db.query('update public.work_orders set status=$2,report_state=$3 where id=$1',[orderId,order.status,order.report_state]);await db.end();
+  await db.query('update public.work_orders set status=$2,report_state=$3,report_version=$4,signature_policy_snapshot=$5,attention_reason=$6 where id=$1',[orderId,order.status,order.report_state,order.report_version,order.signature_policy_snapshot,order.attention_reason]);
+  requireLocalDatabaseUrl();await db.query('begin');try{await db.query("set local session_replication_role='replica'");await db.query('delete from public.work_order_report_versions where id=$1 and work_order_id=$2',[reportId,orderId]);await db.query('commit');}catch(error){await db.query('rollback');throw error;}await db.end();
  }
 });

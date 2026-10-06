@@ -43,6 +43,10 @@ describe("Klant 360 route and list contract", () => {
       }),
     ).toMatchObject({ sort: "next_visit", page: 2, status: "paused" });
   });
+  it("bounds genuine preferred page sizes and retains the filtered page", () => {
+    expect(customerFilters.parse({page: "3", pageSize: "50", q: "Amsterdam"})).toMatchObject({page: 3, pageSize: 50, q: "Amsterdam"});
+    for (const pageSize of [-1, 0, 101, 5000, "invalid"]) expect(customerFilters.parse({pageSize}).pageSize).toBe(25);
+  });
   it("reuses existing roles and keeps finance separate from planning", () => {
     expect(canManageCustomers(["planner"])).toBe(true);
     expect(canReadFinance(["planner"])).toBe(false);

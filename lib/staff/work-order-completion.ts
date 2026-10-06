@@ -39,3 +39,14 @@ export function externalMapsUrl(destination: string) {
   const query = destination.trim();
   return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : null;
 }
+
+/** Stopped personal time is not a submitted customer delivery. */
+export function staffExecutionLabel(assignmentStatus: string | undefined, reportState: string) {
+  if (assignmentStatus === "completed") {
+    if (["review", "approved"].includes(reportState)) return "Gereedgemeld";
+    if (reportState === "waiting_signature") return "Wacht op ondertekening";
+    return "Werkzaamheden afgerond";
+  }
+  const labels: Record<string, string> = { planned: "Ingepland", released: "Nieuw", seen: "Gezien", travelling: "Onderweg", in_progress: "Aan het werk", returned: "Teruggemeld", correction_required: "Correctie gevraagd", approved: "Goedgekeurd", invoice_ready: "Afgerond" };
+  return labels[assignmentStatus ?? ""] ?? "In behandeling";
+}

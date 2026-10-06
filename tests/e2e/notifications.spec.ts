@@ -227,3 +227,27 @@ test("gekozen kanalen blokkeren nulbereik en bevestigen uitsluitend het actuele 
     expect((await db.query("select user_id from private.notification_campaign_recipients where campaign_id=$1", [campaignId])).rows.map(row => row.user_id).sort()).toEqual([users.worker.id, users.colleague.id].sort());
   } finally { await db.query("delete from private.notification_preferences where tenant_id=$1 and user_id=$2 and context='staff' and type_code is null", [tenantId, users.colleague.id]); }
 });
+
+test("een notificatie opent compact boven de inbox en behoudt de lijst bij sluiten", async ({ page }) => {
+  await login(page, "manager", "/app/notificaties");
+  const entry = page.locator(`.nt-inbox-item[href$='/${managerInboxId}']`);
+  await entry.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe("/app/notificaties");
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    const bounds = (await dialog.boundingBox())!;
+    expect(bounds.width).toBeLessThanOrEqual(640);
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+    await expect(page.locator(".nt-page .list-pagination")).toBeAttached();
+  }
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(entry).toBeFocused();
+  await page.goto(`/app/notificaties/${managerInboxId}`);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Sluiten", exact: true }).click();
+  await expect(page).toHaveURL(/\/app\/notificaties$/);
+});

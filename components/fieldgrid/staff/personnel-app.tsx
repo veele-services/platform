@@ -1,6 +1,10 @@
 "use client";
+import { GuideBanner, GuideForTitle } from "@/components/fieldgrid/guides/guide";
 
 import Link from "next/link";
+import { ListPagination, useListPagination } from "../list-pagination";
+import { staffExecutionLabel } from "@/lib/staff/work-order-completion";
+import "./staff-report.css";
 import { FieldgridBrand } from "../brand";
 import { TenantThemeProvider } from "../tenant-theme";
 import { HelpTip } from "../help-tip";
@@ -54,11 +58,7 @@ type PlanningView = "lijst" | "agenda";
 type SyncState = "offline" | "connecting" | "syncing" | "current";
 type WithoutIdempotency<T> = T extends { idempotencyKey: string } ? Omit<T, "idempotencyKey"> : never;
 
-const statusLabels: Record<string, string> = {
-  planned: "Ingepland", released: "Nieuw", seen: "Gezien", travelling: "Onderweg",
-  in_progress: "Aan het werk", completed: "Gereedgemeld", returned: "Teruggemeld",
-  correction_required: "Correctie gevraagd", approved: "Goedgekeurd", invoice_ready: "Afgerond",
-};
+
 const leaveLabels: Record<string, string> = { vacation: "Vakantie", short: "Kort verlof", care: "Zorgverlof", unpaid: "Onbetaald verlof", other: "Anders" };
 const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
 const dayLabels: Record<(typeof dayKeys)[number], string> = { monday: "Maandag", tuesday: "Dinsdag", wednesday: "Woensdag", thursday: "Donderdag", friday: "Vrijdag", saturday: "Zaterdag", sunday: "Zondag" };
@@ -240,7 +240,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
           </div>
         </div>
       </header>
-      <main className="ps-content">
+      <main className="ps-content"><GuideBanner guideKey={`staff.${view === "meer" && moreView !== "menu" ? moreView : view}`}/>
         {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid", "instellingen"].includes(moreView)) && <header className="ps-page-heading"><div><div className="ps-page-title-row"><h1>{title}</h1><HelpTip label={`Informatie over ${title}`}>{view === "nieuws" ? "Berichten komen van je organisatie. Markeer een bericht als gelezen nadat je het hebt bekeken." : moreView === "menu" ? "Je personeelsgegevens, verlof, beschikbaarheid en voorkeuren vind je hier. De beschikbare acties volgen de instellingen van je organisatie." : moreView === "documenten" ? "Hier staan de documenten die je organisatie met jou heeft gedeeld." : "Werk je contact- en vervoersgegevens bij voor je organisatie."}</HelpTip></div><p>{view === "nieuws" ? "Het laatste van jouw organisatie." : moreView === "menu" ? "Personeelszaken en jouw instellingen." : moreView === "documenten" ? "Alles wat je nodig hebt voor je werk." : "Jouw contactgegevens en vervoer."}</p></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
         {view === "planning" && (tenant.enabledServices.includes("planning") ? <PlanningScreen orders={assigned} assignments={assignments} data={data} timezone={tenant.timezone} onOpen={openOrder} onHours={() => navigate("uren")} onNews={() => navigate("nieuws")}/> : <Empty icon={CalendarDays} title="Planning niet ingeschakeld">Vraag je beheerder om de module Planning te activeren.</Empty>)}
         {view === "nieuws" && <NewsScreen data={data} onRead={(id) => run(() => markAnnouncementRead(id), "Gemarkeerd als gelezen")}/>}
@@ -274,11 +274,12 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
     .sort((left, right) => mode === "agenda"
       ? Date.parse(assignmentsByOrder.get(left.id)!.projected_start_at) - Date.parse(assignmentsByOrder.get(right.id)!.projected_start_at)
       : Date.parse(right.published_at ?? assignmentsByOrder.get(right.id)!.created_at) - Date.parse(left.published_at ?? assignmentsByOrder.get(left.id)!.created_at));
+  const pagination = useListPagination(visible);
   const objects = new Map(data.objects.map((item) => [item.id, item]));
   const customers = new Map(data.customers.map((item) => [item.id, item]));
   const contacts = data.staffContacts;
   const chronological = [...visible].sort((left, right) => Date.parse(assignmentsByOrder.get(left.id)!.projected_start_at) - Date.parse(assignmentsByOrder.get(right.id)!.projected_start_at));
-  const next = chronological.find((order) => !assignmentsByOrder.get(order.id)?.actual_end_at) ?? chronological[0];
+  const next = chronological.find((order) => !assignmentsByOrder.get(order.id)?.actual_end_at && !["returned", "cancelled", "completed"].includes(assignmentsByOrder.get(order.id)?.status ?? ""));
   const dayEntries = data.timeEntries.filter((entry) => staffDate(entry.starts_at, timezone) === selectedDay);
   const totals = summarizeEntries(dayEntries);
   const nextAssignment = next ? assignmentsByOrder.get(next.id) : null;
@@ -304,7 +305,7 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
         </div>
         <div className="ps-result-line"><strong>{visible.length} {visible.length === 1 ? "werkbon" : "werkbonnen"}</strong><span>{mode === "lijst" ? "Nieuwste ontvangen bovenaan" : "Op volgorde van afspraak"}</span></div>
       </div>
-      {visible.length ? mode === "lijst" ? <div className="ps-order-list">{visible.map((order) => {
+      {visible.length ? mode === "lijst" ? <div className="ps-order-list">{pagination.items.map((order) => {
         const assignment = assignmentsByOrder.get(order.id)!;
         const object = objects.get(order.object_id);
         const customer = customers.get(order.customer_id);
@@ -312,12 +313,13 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
         const contact = contacts.find((item) => item.work_order_id === order.id && item.roles.includes("site")) ?? contacts.find((item) => item.work_order_id === order.id);
         const published = order.published_at ?? assignment.created_at;
         return <button className="ps-order-card" data-status={assignment.status} key={order.id} onClick={() => onOpen(order)} aria-label={`${order.work_order_number} ${object?.name ?? order.title}`}>
-          <span className="ps-order-card-head"><span className="ps-order-time"><Clock3/>{interval.start}<i>–</i>{interval.end}</span><span className="ps-status" data-status={assignment.status}>{interval.paused ? "Gepauzeerd" : statusLabels[assignment.status] ?? assignment.status}</span></span>
+          <span className="ps-order-card-head"><span className="ps-order-time"><Clock3/>{interval.start}<i>–</i>{interval.end}</span><span className="ps-status" data-status={assignment.status}>{interval.paused ? "Gepauzeerd" : staffExecutionLabel(assignment.status, order.report_state)}</span></span>
           <span className="ps-order-main"><span className="ps-object-icon"><Building2/></span><span className="ps-order-copy"><strong className="ps-order-title">{object?.name || customer?.name || order.title}</strong><span className="ps-order-address">{objectAddress(object?.address)}</span>{contact?.phone && <span className="ps-order-phone"><Phone/>{contact.phone}</span>}</span><ChevronRight className="ps-order-chevron"/></span>
           <span className="ps-order-meta"><span>{order.work_order_number}</span><time dateTime={published}>Ontvangen {staffClock(published, timezone)}</time></span>
         </button>;
-      })}</div> : <div className="ps-agenda">{visible.map((order) => { const assignment = assignmentsByOrder.get(order.id)!; const object = objects.get(order.object_id); const interval = assignmentInterval(assignment, timezone); return <div className="ps-agenda-row" key={order.id}><time><strong>{interval.start}</strong><small>{interval.end}</small></time><div><button onClick={() => onOpen(order)}><span className="ps-agenda-copy"><strong>{object?.name ?? order.title}</strong><small>{order.work_order_number} · {objectAddress(object?.address)}</small></span><span className="ps-status" data-status={assignment.status}>{interval.paused ? "Gepauzeerd" : statusLabels[assignment.status] ?? assignment.status}</span></button></div></div>; })}</div>
+      })}</div> : <div className="ps-agenda">{pagination.items.map((order) => { const assignment = assignmentsByOrder.get(order.id)!; const object = objects.get(order.object_id); const interval = assignmentInterval(assignment, timezone); return <div className="ps-agenda-row" key={order.id}><time><strong>{interval.start}</strong><small>{interval.end}</small></time><div><button onClick={() => onOpen(order)}><span className="ps-agenda-copy"><strong>{object?.name ?? order.title}</strong><small>{order.work_order_number} · {objectAddress(object?.address)}</small></span><span className="ps-status" data-status={assignment.status}>{interval.paused ? "Gepauzeerd" : staffExecutionLabel(assignment.status, order.report_state)}</span></button></div></div>; })}</div>
       : <Empty icon={CalendarDays} title="Geen werkbonnen op deze dag">Kies een andere dag. Nieuwe vrijgegeven opdrachten verschijnen automatisch.</Empty>}
+      <ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="werkbonnen" preferenceKey={`staff:${assignments[0]?.personnel_id ?? "planning"}:orders`}/>
     </section>
     <aside className="ps-planning-aside">
       <section className="ps-panel ps-next-panel"><div className="ps-panel-heading"><span>EERSTVOLGENDE AFSPRAAK</span><CalendarDays/></div>{next && nextAssignment ? <><h2>{nextObject?.name ?? next.title}</h2><p>{objectAddress(nextObject?.address)}</p>{nextContact?.phone && <p className="ps-next-phone"><Phone/>{nextContact.phone}</p>}<strong className="ps-next-time">{assignmentInterval(nextAssignment, timezone).start}</strong><p>Verwachte start{nextTravel?.estimated_minutes != null ? ` · ${nextTravel.estimated_minutes} min reistijd` : ""}</p><button className="ps-primary ps-full" onClick={() => onOpen(next)}><Eye/>Open werkbon</button></> : <p>Er staat niets gepland.</p>}</section>
@@ -330,7 +332,8 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
 function NewsScreen({ data, onRead }: { data: StaffWorkspaceData; onRead: (id: string) => void }) {
   const [selected, setSelected] = useState<StaffWorkspaceData["announcements"][number] | null>(null);
   const articles = [...data.announcements].filter((item) => item.published_at && !item.withdrawn_at).sort((a, b) => Date.parse(b.published_at!) - Date.parse(a.published_at!));
-  return <><div className="ps-news-layout"><div className="ps-card-list">{articles.map((item) => { const read = data.announcementReads.some((entry) => entry.announcement_id === item.id); return <button className="ps-news-card" key={item.id} onClick={() => setSelected(item)}><span className="ps-news-card-meta"><span className="ps-news-label">Teamnieuws</span><small>{new Intl.DateTimeFormat("nl-NL", { dateStyle: "long" }).format(new Date(item.published_at!))}</small></span><h2 className="ps-news-card-title">{item.title}</h2><span className="ps-news-card-summary">{item.body.slice(0, 220)}</span><span className="ps-news-card-footer"><span className="ps-news-read-link">Lees bericht</span><span className="ps-status" data-status={read ? "approved" : "pending"}>{read ? "Gelezen" : "Graag lezen"}</span></span></button>; })}{!articles.length && <Empty icon={Newspaper} title="Geen nieuws">Nieuwe teamberichten verschijnen hier.</Empty>}</div><aside className="ps-panel ps-news-aside"><h2>Op de hoogte</h2><p>Belangrijke updates herken je aan ‘Graag lezen’. Bevestig na het lezen dat je de informatie hebt gezien.</p></aside></div>
+  const pagination = useListPagination(articles);
+  return <><div className="ps-news-layout"><div className="ps-news-main"><div className="ps-card-list">{pagination.items.map((item) => { const read = data.announcementReads.some((entry) => entry.announcement_id === item.id); return <button className="ps-news-card" key={item.id} onClick={() => setSelected(item)}><span className="ps-news-card-meta"><span className="ps-news-label">Teamnieuws</span><small>{new Intl.DateTimeFormat("nl-NL", { dateStyle: "long" }).format(new Date(item.published_at!))}</small></span><h2 className="ps-news-card-title">{item.title}</h2><span className="ps-news-card-summary">{item.body.slice(0, 220)}</span><span className="ps-news-card-footer"><span className="ps-news-read-link">Lees bericht</span><span className="ps-status" data-status={read ? "approved" : "pending"}>{read ? "Gelezen" : "Graag lezen"}</span></span></button>; })}{!articles.length && <Empty icon={Newspaper} title="Geen nieuws">Nieuwe teamberichten verschijnen hier.</Empty>}</div><ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="nieuwsberichten" preferenceKey="staff:news"/></div><aside className="ps-panel ps-news-aside"><h2>Op de hoogte</h2><p>Belangrijke updates herken je aan ‘Graag lezen’. Bevestig na het lezen dat je de informatie hebt gezien.</p></aside></div>
     {selected && <Dialog title={selected.title} kicker="TEAMNIEUWS" close={() => setSelected(null)}><p style={{ whiteSpace: "pre-wrap" }}>{selected.body}</p><div className="ps-toast-note">Gepubliceerd op {new Intl.DateTimeFormat("nl-NL", { dateStyle: "long", timeStyle: "short" }).format(new Date(selected.published_at!))}</div>{!data.announcementReads.some((entry) => entry.announcement_id === selected.id) && <button className="ps-primary" onClick={() => { onRead(selected.id); setSelected(null); }}><Check/>Markeer als gelezen</button>}</Dialog>}
   </>;
 }
@@ -359,6 +362,7 @@ function HoursScreen({ data, personnelId, timezone, pending, run }: { data: Staf
   const currentWeek = week[0] === staffWeek(today)[0];
   const entries = data.timeEntries.filter(item => item.personnel_id === personnelId).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
   const rows = entries.filter(entry => staffDate(entry.starts_at, timezone) === selectedDay);
+  const pagination = useListPagination(rows);
   const totals = summarizeEntries(rows, now);
   const review = data.staffDayReviews.find(item => item.personnel_id === personnelId && item.day === selectedDay);
   const requestsFor = (entry: typeof rows[number]) => data.staffTimeCorrectionRequests.filter(item => item.time_entry_id === entry.id).sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
@@ -402,18 +406,19 @@ function HoursScreen({ data, personnelId, timezone, pending, run }: { data: Staf
         <section className="ps-panel ps-hours-day" aria-labelledby="ps-hours-day-title">
           <div className="ps-panel-heading"><h2 id="ps-hours-day-title">{dayLabel}</h2><span className="ps-status" data-status={hasPendingCorrection ? "correction_requested" : review?.state ?? "open"}>{hasPendingCorrection ? "Correctie in behandeling" : review?.state === "confirmed" ? "Door mij akkoord" : closed ? "Afgesloten" : !rows.length ? "Nog geen uren" : selectedDay === today ? "Dag loopt" : "Nog af te sluiten"}</span></div>
           {!rows.length && <p className="ps-hours-empty">Er zijn nog geen uren voor deze dag. Start een werkbon om uren te registreren of kies een andere dag.</p>}
-          {rows.filter(entry => entry.kind !== "break").map(entry => <div className="ps-hour-row" key={entry.id}>
+          {pagination.items.filter(entry => entry.kind !== "break").map(entry => <div className="ps-hour-row" key={entry.id}>
             <time>{staffClock(entry.starts_at, timezone)} – {entry.ends_at ? staffClock(entry.ends_at, timezone) : "nu"}</time>
             <div className="ps-hour-detail" data-kind={entry.kind}><strong>{entry.kind === "work" ? "Werk op locatie" : entry.kind === "travel" ? "Reistijd" : "Overige werktijd"}</strong><small>{entryContext(entry)}</small>{correctionStatus(entry)}</div>
             <strong>{staffDuration(summarizeEntries([entry], now).paid)}</strong>
           </div>)}
           {!rows.some(entry => !["work", "travel", "break"].includes(entry.kind)) && <div className="ps-hour-row"><span>Overige tijd</span><div className="ps-hour-detail" data-kind="other"><strong>Overige werktijd</strong><small>Geregistreerde overige tijd</small></div><strong>0 min</strong></div>}
           <div className="ps-hours-break"><span>Pauze (niet meegerekend)</span><strong>{staffDuration(totals.break)}</strong></div>
-          {rows.filter(entry => entry.kind === "break").map(entry => <div className="ps-hours-break-detail" key={entry.id}><span>{staffClock(entry.starts_at, timezone)} – {entry.ends_at ? staffClock(entry.ends_at, timezone) : "nu"}</span>{correctionStatus(entry)}</div>)}
+          {pagination.items.filter(entry => entry.kind === "break").map(entry => <div className="ps-hours-break-detail" key={entry.id}><span>{staffClock(entry.starts_at, timezone)} – {entry.ends_at ? staffClock(entry.ends_at, timezone) : "nu"}</span>{correctionStatus(entry)}</div>)}
           <div className="ps-hours-day-total"><strong>Totaal ter akkoord</strong><strong>{staffDuration(totals.paid)}</strong></div>
           <footer className="ps-hours-day-actions"><button className="ps-secondary" disabled={pending || correctable.length === 0} onClick={openCorrection}><Pencil/>Correctie doorgeven</button><button className="ps-primary" disabled={pending || !canConfirm} onClick={() => review && runDayCommand(`confirm:${review.id}:${review.version}`, { command: "confirm", dayReviewId: review.id, version: review.version, note: null }, "Uren door jou bevestigd")}><Check/>{review?.state === "confirmed" ? "Uren akkoord gegeven" : "Uren akkoord geven"}</button></footer>
           {rows.length > 0 && (hasPendingCorrection || running || !closed) && <p className="ps-hours-action-note">{hasPendingCorrection ? "Je kunt deze dag pas akkoord geven nadat het openstaande correctieverzoek is beoordeeld." : running ? "Rond eerst je lopende werkbon of tijdregistratie af om je werkdag af te sluiten." : "Sluit eerst je werkdag af om je uren akkoord te geven."}</p>}
         </section>
+        <ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="registraties" busy={pending} preferenceKey={`staff:${personnelId}:hours`}/>
         <p className="ps-hours-info"><Info/><span>Je uren bestaan uit geregistreerde tijd op locatie, reistijd en overige werktijd. Reistijd telt mee en blijft apart zichtbaar. Pauzes worden niet meegerekend.</span></p>
       </div>
       <aside className="ps-hours-aside">
@@ -497,6 +502,7 @@ function MoreScreen({ view, setView, data, profile, timezone, email, tenantName,
 
 function LeaveScreen({ requests, entitlements, timezone, pending, run }: { requests: StaffWorkspaceData["staffLeaveRequests"]; entitlements: StaffWorkspaceData["staffLeaveEntitlements"]; timezone: string; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
   const [open, setOpen] = useState(false);
+  const pagination = useListPagination(requests);
   const createKey = useRef<string | null>(null);
   const withdrawKeys = useRef(new Map<string, string>());
   const close = () => {
@@ -545,7 +551,7 @@ function LeaveScreen({ requests, entitlements, timezone, pending, run }: { reque
     <div className="ps-stat-grid" aria-label="Verlofoverzicht"><div><small>Beschikbaar saldo</small><strong>{availableMinutes === null ? "Nog niet ingesteld" : leaveDuration(Math.max(0, availableMinutes))}</strong><small>{year}</small></div><div><small>Goedgekeurd</small><strong>{leaveDuration(approvedMinutes)}</strong><small>Dit kalenderjaar</small></div><div><small>In afwachting</small><strong>{pendingCount}</strong><small>{pendingCount === 1 ? "Aanvraag" : "Aanvragen"}</small></div></div>
     <section className="ps-panel ps-leave-list" aria-labelledby="ps-leave-list-title">
       <div className="ps-panel-heading"><h2 id="ps-leave-list-title">Mijn aanvragen</h2><span className="ps-leave-year">{requestYears.size > 1 ? "Alle jaren" : [...requestYears][0] ?? year}</span></div>
-      {requests.map(request => <article className="ps-leave-request" key={request.id}>
+      {pagination.items.map(request => <article className="ps-leave-request" key={request.id}>
         <div className="ps-leave-request-heading"><h3>{leaveLabels[request.leave_type] ?? request.leave_type}</h3><span className="ps-status" data-status={request.status}>{request.status === "pending" ? "In afwachting" : request.status === "approved" ? "Goedgekeurd" : request.status === "rejected" ? "Afgewezen" : "Ingetrokken"}</span></div>
         <p className="ps-leave-dates">{dateLabel(request.starts_on)} – {dateLabel(request.ends_on)}</p>
         {(request.approved_minutes ?? request.requested_minutes) != null && <p>{request.status === "approved" ? "Goedgekeurd" : "Aangevraagd"}: {leaveDuration(request.approved_minutes ?? request.requested_minutes ?? 0)}</p>}
@@ -554,6 +560,7 @@ function LeaveScreen({ requests, entitlements, timezone, pending, run }: { reque
       </article>)}
       {!requests.length && <div className="ps-leave-empty"><CalendarDays/><h3>Nog geen verlofaanvragen</h3><p>Je aanvragen en besluiten verschijnen hier.</p></div>}
     </section>
+    <ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="aanvragen" busy={pending} preferenceKey="staff:leave"/>
     <p className="ps-hours-info"><Info/><span>Een aanvraag reserveert nog geen verlof. Je ontvangt een melding zodra je manager een besluit heeft genomen.</span></p>
     {open && <Dialog title="Verlof aanvragen" kicker="PERSONEELSZAKEN" close={close} footer={<><button type="button" className="ps-secondary" onClick={close}>Annuleren</button><button type="submit" form="staff-leave-request" className="ps-primary" disabled={pending}>Aanvraag indienen</button></>}><form id="staff-leave-request" className="ps-form" onChange={() => { createKey.current = null; }} onSubmit={submit}><label className="ps-field">Type<select name="leaveType" required><option value="vacation">Vakantie</option><option value="short">Kort verlof</option><option value="care">Zorgverlof</option><option value="unpaid">Onbetaald verlof</option><option value="other">Anders</option></select></label><div className="ps-form-grid"><label className="ps-field">Vanaf<input type="date" name="startsOn" required/></label><label className="ps-field">Tot en met<input type="date" name="endsOn" required/></label></div><label className="ps-field">Toelichting<textarea name="note" rows={4} maxLength={1000}/></label></form></Dialog>}
   </div>;
@@ -621,8 +628,9 @@ function AvailabilityScreen({ profile, pending, run, onLeave }: { profile: Staff
 }
 
 function DocumentsScreen({ data, profile }: { data: StaffWorkspaceData; profile: StaffPersonnel }) {
-  const docs = data.personnelDocuments.filter((item) => item.personnel_id === profile.id && item.visible_to_employee);
-  return docs.length ? <section className="ps-panel ps-documents" aria-label="Mijn documenten">{docs.map((item) => <a className="ps-list-row" href={`/api/files/personnel-document/${item.id}`} target="_blank" rel="noreferrer" key={item.id}><span className="ps-object-icon"><FileText/></span><span><strong>{item.title}</strong><small>{item.file_name ?? `Versie ${item.version}`}</small></span><span className="ps-document-open" aria-hidden="true"><Eye/></span></a>)}</section> : <Empty icon={FileText} title="Geen documenten">Documenten die HR met je deelt verschijnen hier.</Empty>;
+  const docs = data.personnelDocuments.filter(item => item.personnel_id === profile.id && item.visible_to_employee);
+  const pagination = useListPagination(docs);
+  return <><section className="ps-panel ps-documents" aria-label="Mijn documenten">{pagination.items.map(item => <a className="ps-list-row" href={`/api/files/personnel-document/${item.id}`} target="_blank" rel="noreferrer" key={item.id}><span className="ps-object-icon"><FileText/></span><span><strong>{item.title}</strong><small>{item.file_name ?? `Versie ${item.version}`}</small></span><span className="ps-document-open" aria-hidden="true"><Eye/></span></a>)}{!docs.length && <Empty icon={FileText} title="Geen documenten">Documenten die HR met je deelt verschijnen hier.</Empty>}</section><ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="documenten" preferenceKey={`staff:${profile.id}:documents`}/></>;
 }
 
 function ProfileScreen({ profile, depots, email, pending, run }: { profile: StaffPersonnel; depots: StaffWorkspaceData["staffDepots"]; email: string; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string) => void }) {
@@ -766,7 +774,7 @@ function Dialog({ title, kicker, close, children, footer }: { title: string; kic
     document.addEventListener("keydown", key);
     return () => { document.removeEventListener("keydown", key); document.body.style.overflow = previousOverflow; previous?.focus(); };
   }, []);
-  return <div className="ps-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}><section ref={panel} className="ps-modal" role="dialog" aria-modal="true" aria-labelledby="ps-dialog-title"><header className="ps-modal-header"><div><span>{kicker}</span><h2 id="ps-dialog-title">{title}</h2></div><button className="ps-icon-button" onClick={close} aria-label="Sluiten"><X/></button></header><div className="ps-modal-body">{children}</div>{footer && <footer className="ps-modal-footer">{footer}</footer>}</section></div>;
+  return <div className="ps-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}><section ref={panel} className="ps-modal" role="dialog" aria-modal="true" aria-labelledby="ps-dialog-title"><header className="ps-modal-header"><div><span>{kicker}</span><h2 id="ps-dialog-title">{title}</h2></div><button className="ps-icon-button" onClick={close} aria-label="Sluiten"><X/></button></header><div className="ps-modal-body"><GuideForTitle title={title}/>{children}</div>{footer && <footer className="ps-modal-footer">{footer}</footer>}</section></div>;
 }
 
 function Empty({ icon: Icon, title, children }: { icon: ComponentType<{ size?: number }>; title: string; children: ReactNode }) {
