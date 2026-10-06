@@ -392,12 +392,9 @@ test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, ur
   const orderTabs = order.getByRole("tablist", { name: "Werkbononderdelen" });
   await expect(order).toBeVisible();
   await expect(orderTabs.getByRole("tab", { name: "Overzicht", exact: true })).toHaveAttribute("aria-selected", "true");
-  // The open transition deliberately confirms itself with a short-lived toast.
-  // Keep that transient layer out of the visual baseline so the sheet header,
-  // close controls and work-order identity remain reviewable.
-  const openedToast = page.getByText("Werkbon geopend", { exact: true });
-  await expect(openedToast).toBeVisible({ timeout: 8_000 });
-  await expect(openedToast).toBeHidden({ timeout: 8_000 });
+  // A released assignment becomes seen on opening; an already seen assignment
+  // needs no transition or toast. Assert the durable state in either case.
+  await expect(order.getByRole("button", { name: "Vertrek", exact: true })).toBeEnabled();
   await expect(order).toHaveScreenshot("staff-work-order-overview-390.png", {
     animations: "disabled",
     mask: [order.locator("time")],
