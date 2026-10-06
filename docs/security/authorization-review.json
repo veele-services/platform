@@ -1014,13 +1014,14 @@
     },
     {
       "id": "code:app/layout.tsx",
-      "surfaceFingerprint": "a12649b72918ba5e38ed1820662fc99411dc6c33d2329de566d6325036d9df2e",
-      "status": "controlled",
+      "surfaceFingerprint": "c6de2c68d135a211c3bffe66c0acf1316793877350e775b5b2fdb9167112b590",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
         "manual-completion-audit:2026-10-01",
         "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "scripts/check-security-surface.mjs",
+        "docs/security/session-loading-verification-2026-10-06.md"
       ]
     },
     {
@@ -1503,13 +1504,14 @@
     },
     {
       "id": "code:lib/auth/browser-session.ts",
-      "surfaceFingerprint": "578f17d357b5159c83cfda907ac1dca83ebd91256e2b1a9d3bff21321a7412e3",
-      "status": "controlled",
+      "surfaceFingerprint": "4c69e6310caf46fb6a3361f93348a1abd2bf9e201aedff2c42529dbcbaea7363",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
         "manual-completion-audit:2026-10-01",
         "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "scripts/check-security-surface.mjs",
+        "docs/security/session-loading-verification-2026-10-06.md"
       ]
     },
     {
@@ -1534,12 +1536,13 @@
     },
     {
       "id": "code:lib/auth/login-brand.ts",
-      "surfaceFingerprint": "2f6153bbd7bbc1c2385e761f106ccf4f1bd91f6219478b9e134a17c172e4c137",
-      "status": "controlled",
+      "surfaceFingerprint": "5ba97f5788e66020b8800f8e97c006aa11c2fcd96ae3ec8fa7f0aeb5be4bc76f",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
         "docs/security/otp-activity-verification-2026-10-05.md",
-        "docs/security/branding-management-verification-2026-10-05.md"
+        "docs/security/branding-management-verification-2026-10-05.md",
+        "docs/security/session-loading-verification-2026-10-06.md"
       ]
     },
     {
@@ -2138,11 +2141,12 @@
     },
     {
       "id": "code:proxy.ts",
-      "surfaceFingerprint": "eba0e51f16a9805587df1344afe30594dbecfccf12e48391d39eb6b630b88690",
-      "status": "controlled",
+      "surfaceFingerprint": "a303d9ed98f09d0bbdcf57191cb968aee5bf0f5aaded7cb1d1e11242e3460d3f",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/customer-portal-verification-2026-10-05.md",
+        "docs/security/session-loading-verification-2026-10-06.md"
       ]
     },
     {

@@ -1440,7 +1440,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "413d95929dc0dd8d0cb36176abb9d88d7ce91238035b5a93ade029e6361c2dfc"
+      "source_sha256": "53565f3aa477bd27ddcc34b3f31272577f62748c90dad16ef449d81a7a7df632"
     },
     {
       "id": "code:app/login/actions.ts",
@@ -1996,7 +1996,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "5c69ebe6aea900980f4cfd74103010f73a115ef76d4a161398f8fd61b88fe7a2"
+      "source_sha256": "9dca519eefd63bb4d16e7bb6f9b60df88eef50e45d1ad165c945bef2cc7b3cb8"
     },
     {
       "id": "code:lib/auth/context.ts",
@@ -2042,10 +2042,9 @@
         "createAdminClient"
       ],
       "resources": [
-        "from:tenant_branding",
         "from:tenants"
       ],
-      "source_sha256": "ee3fe5cb00058c8ff72865c94a9e05f677f7ac94ef3aa006d26384e22135703d"
+      "source_sha256": "aee4d5457f04346b96397b5417e1c7934f5457ba493b9834ede17173da02b3bc"
     },
     {
       "id": "code:lib/branding/house-style-actions.ts",
@@ -3004,11 +3003,12 @@
       ],
       "classification": "data-access-module",
       "observedControls": [
+        "auth.getClaims",
         "auth.getUser",
         "resolveHostContext"
       ],
       "resources": [],
-      "source_sha256": "569e5f1c01319301d6b96c5d6dfdb0038f3a63ebff97c052e66696904494e1eb"
+      "source_sha256": "971a2fe932df9e082ac20209ce45dc52544f5f47b06b4f2b980f6d8ef458a71c"
     },
     {
       "id": "db:private.commercial_commands",

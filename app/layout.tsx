@@ -3,6 +3,7 @@ import { NotificationAccountBoundary } from "@/components/fieldgrid/notification
 import { headers } from "next/headers";
 import { browserSessionKey } from "@/lib/auth/browser-session";
 import { PROTECTED_PAGE_HEADER } from "@/lib/auth/session-signal";
+import {getLoginBrand} from "@/lib/auth/login-brand";
 import "./globals.css";
 import "@/components/fieldgrid/customers/customer.css";
 import "./personnel-dossier.css";
@@ -27,10 +28,12 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const protectedPage=(await headers()).get(PROTECTED_PAGE_HEADER)==="1";
-  const renderedSessionKey=protectedPage?await browserSessionKey():null;
+  const [renderedSessionKey,brand]=protectedPage
+    ?await Promise.all([browserSessionKey(),getLoginBrand().catch(()=>null)])
+    :[null,null];
   return (
     <html lang="nl" data-scroll-behavior="smooth" data-account-blocked={protectedPage?"true":undefined}>
-      <body suppressHydrationWarning><NotificationAccountBoundary renderedSessionKey={renderedSessionKey}/>{children}</body>
+      <body suppressHydrationWarning><NotificationAccountBoundary renderedSessionKey={renderedSessionKey} brand={brand}/>{children}</body>
     </html>
   );
 }
