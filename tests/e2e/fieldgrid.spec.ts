@@ -384,7 +384,7 @@ test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, ur
   await expect(app).toHaveScreenshot("staff-planning-768.png", { animations: "disabled", mask: planningMasks, stylePath: "tests/e2e/staff-screenshot.css" });
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(app.locator(".ps-mobile-brand")).toContainText("Fieldgrid");
+  await expect(app.locator(".ps-mobile-brand").getByRole("img", { name: "Logo van Demo Organisatie" })).toBeVisible();
   await expect(page.getByText("LOGO", { exact: true })).toHaveCount(0);
   await expect(app).toHaveScreenshot("staff-planning-390.png", { animations: "disabled", mask: planningMasks, stylePath: "tests/e2e/staff-screenshot.css" });
   await workOrder.click();
@@ -392,12 +392,9 @@ test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, ur
   const orderTabs = order.getByRole("tablist", { name: "Werkbononderdelen" });
   await expect(order).toBeVisible();
   await expect(orderTabs.getByRole("tab", { name: "Overzicht", exact: true })).toHaveAttribute("aria-selected", "true");
-  // The open transition deliberately confirms itself with a short-lived toast.
-  // Keep that transient layer out of the visual baseline so the sheet header,
-  // close controls and work-order identity remain reviewable.
-  const openedToast = page.getByText("Werkbon geopend", { exact: true });
-  await expect(openedToast).toBeVisible({ timeout: 8_000 });
-  await expect(openedToast).toBeHidden({ timeout: 8_000 });
+  // A released assignment becomes seen on opening; an already seen assignment
+  // needs no transition or toast. Assert the durable state in either case.
+  await expect(order.getByRole("button", { name: "Vertrek", exact: true })).toBeEnabled();
   await expect(order).toHaveScreenshot("staff-work-order-overview-390.png", {
     animations: "disabled",
     mask: [order.locator("time")],
@@ -410,11 +407,13 @@ test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, ur
   await routeDialog.getByRole("button", { name: "Terug naar werkbon", exact: true }).click();
   await order.getByRole("button", { name: "Beveiligde objecttoegang", exact: true }).click();
   const accessDialog = page.getByRole("dialog", { name: "Beveiligde objecttoegang", exact: true });
-  await expect(accessDialog.getByText(/geen code of toegangsinformatie gekopieerd/i)).toBeVisible();
-  await expect(accessDialog.getByRole("link", { name: "Object & instructies openen", exact: true })).toHaveAttribute("href", "/staff/objecten/e3000000-0000-4000-8000-000000000001?order=e6000000-0000-4000-8000-000000000001");
+  await expect(accessDialog.getByRole("heading", { name: "Bevestig je dossierinzage", exact: true })).toBeVisible();
+  await expect(accessDialog.getByRole("button", { name: "Code per e-mail versturen", exact: true })).toBeVisible();
+  await expect(accessDialog.getByRole("link", { name: "Object & instructies openen", exact: true })).toHaveCount(0);
+  await expect(page).toHaveURL(/\/staff/);
   await accessDialog.getByRole("button", { name: "Terug naar werkbon", exact: true }).click();
-  await orderTabs.getByRole("tab", { name: "Taken", exact: true }).click();
-  await expect(orderTabs.getByRole("tab", { name: "Taken", exact: true })).toHaveAttribute("aria-selected", "true");
+  await orderTabs.getByRole("tab", { name: "Werkzaamheden", exact: true }).click();
+  await expect(orderTabs.getByRole("tab", { name: "Werkzaamheden", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(order.getByText("Periodieke controle", { exact: true })).toBeVisible();
   await orderTabs.getByRole("tab", { name: "Tijd & status", exact: true }).click();
   await expect(order.getByRole("heading", { name: "Werk en reis", exact: true })).toBeVisible();

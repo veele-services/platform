@@ -556,6 +556,36 @@
       "version": "20261005201500",
       "name": "work_order_planning_state",
       "sha256": "08fd23c5da5cb49d648ec2df8b8d041e8bdd8aa4a72a56e2d180960e4c62ea61"
+    },
+    {
+      "version": "20261006080000",
+      "name": "staff_dossier_confirmation",
+      "sha256": "6fd1d5c7b2c22f8ddc41706387fbde6ea88c0549233d66e2e104a4af07096188"
+    },
+    {
+      "version": "20261006081000",
+      "name": "primary_employee_delivery",
+      "sha256": "56c23795416653bb680ac4226dcceaae28d706b9121def304c94ce230b8eb7eb"
+    },
+    {
+      "version": "20261006082000",
+      "name": "live_personnel_planning",
+      "sha256": "f6b93a4e5837604fbb1a94c666cadacf16a78f7b9dcdec83a2af83898ca06ba1"
+    },
+    {
+      "version": "20261006083000",
+      "name": "execution_activity_history",
+      "sha256": "ffe8ec96cc30f5684f4f7cf256abdd08cbd7700f1df9d75b4025985186847799"
+    },
+    {
+      "version": "20261006084000",
+      "name": "hybrid_inline_dossier",
+      "sha256": "1045956349f329ddc711fd33df002fa7b50db486041d050fecf43452a5d582bc"
+    },
+    {
+      "version": "20261006085000",
+      "name": "live_planning_preserve_untouched_orders",
+      "sha256": "85d60086df56cde2d30bd6055309add93faead8a2282425a1952aec2a351e053"
     }
   ]
 }

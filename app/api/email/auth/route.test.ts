@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), send: vi.fn(), env: { APP_URL: "https://staging.fieldgrid.nl", DEPLOY_TARGET: "staging", SENDGRID_FROM_EMAIL: "noreply@example.test", SUPABASE_SEND_EMAIL_HOOK_SECRET: `v1,whsec_${Buffer.alloc(32, 7).toString("base64")}` } }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/env/server", () => ({ getServerEnv: () => mocks.env }));
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({}) }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { white_label_enabled: false }, error: null }) }) }) }) }) }));
 vi.mock("@/lib/tickets/rpc", () => ({ ticketRpc: mocks.rpc }));
 vi.mock("@/lib/providers/sendgrid", () => ({ sendEmail: mocks.send, NotificationSuppressedError: class extends Error {} }));
 import { POST } from "./route";

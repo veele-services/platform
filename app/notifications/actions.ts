@@ -1,4 +1,6 @@
 "use server";
+
+import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { randomInt } from "node:crypto";
@@ -43,7 +45,7 @@ export async function requestNotificationVerification(workspace: NotificationWor
       const env = getServerEnv(); if (!env.SENDGRID_FROM_EMAIL) throw new Error("Unavailable");
       const subject = "Bevestig de wijziging van notificatierechten", body = `Je verificatiecode is ${code}.\n\nControleer de gebruiker, het notificatierecht en het bereik in het geopende bevestigingsscherm. Deze code is maximaal vijf minuten geldig en werkt alleen voor deze exacte wijziging in je huidige sessie.\n\nHeb je dit niet aangevraagd? Deel de code niet en neem contact op met je beheerder.`;
       const tenant = actor.tenant, targetUrl = tenant ? tenantAppUrl(tenant.slug, notificationPaths[workspace]) : `${env.APP_URL}${notificationPaths[workspace]}`;
-      const html = renderTenantEmailHtml({ brand: { company: tenant?.name ?? "Fieldgrid", domain: new URL(targetUrl).host, primary: tenant?.primaryColor ?? "#222C35", accent: tenant?.accentColor ?? "#41AC42", senderEmail: env.SENDGRID_FROM_EMAIL }, kind: "ticket_otp", message: { subject, body }, targetUrl, allowLocalLinks: env.DEPLOY_TARGET === "local" });
+      const html = renderTenantEmailHtml({ brand: await withTenantEmailBrand(actor.tenantId, { company: tenant?.name ?? "Fieldgrid", domain: new URL(targetUrl).host, primary: tenant?.primaryColor ?? "#222C35", accent: tenant?.accentColor ?? "#41AC42", senderEmail: env.SENDGRID_FROM_EMAIL }), kind: "ticket_otp", message: { subject, body }, targetUrl, allowLocalLinks: env.DEPLOY_TARGET === "local" });
       await sendEmail({ fromEmail: env.SENDGRID_FROM_EMAIL, fromName: tenant?.name ?? env.SENDGRID_FROM_NAME, to: z.email().parse(challenge.email), subject, text: body, html, deliveryKey: `notification-verification:${challengeId}`, disableTracking: true, policy: { kind: "security", flow: "permissions_otp", tenantId: actor.tenantId } });
       await call("delivered", { challenge_id: challengeId, delivered: true });
       return { ok: true as const, data: { challengeId, expiresAt: z.string().parse(challenge.expires_at) } };

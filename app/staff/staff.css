@@ -28,21 +28,21 @@
 }
 
 .personnel-app {
-  --ps-brand: #41ac42;
-  --ps-action: #368341;
-  --ps-action-hover: #2f7338;
-  --ps-sidebar: #222c35;
-  --ps-sidebar-end: #172129;
-  --ps-sidebar-text: #ffffff;
-  --ps-sidebar-muted: #a3aeb6;
-  --ps-sidebar-active: rgb(255 255 255 / 5%);
-  --ps-canvas: #f2f4f6;
-  --ps-surface: #ffffff;
-  --ps-ink: #1a2632;
-  --ps-muted: #6c7884;
-  --ps-line: #e4e9ec;
-  --ps-soft: #edf6ed;
-  --ps-focus: #41ac42;
+  --ps-brand: var(--brand-focus, #41ac42);
+  --ps-action: var(--brand-action, #368341);
+  --ps-action-hover: var(--brand-action-hover, #2f7338);
+  --ps-sidebar: var(--brand-sidebar, #222c35);
+  --ps-sidebar-end: var(--brand-sidebar-end, #172129);
+  --ps-sidebar-text: var(--brand-sidebar-text, #ffffff);
+  --ps-sidebar-muted: var(--brand-sidebar-muted, #a3aeb6);
+  --ps-sidebar-active: var(--brand-sidebar-active, rgb(255 255 255 / 5%));
+  --ps-canvas: var(--brand-canvas, #f2f4f6);
+  --ps-surface: var(--brand-surface, #ffffff);
+  --ps-ink: var(--brand-ink, #1a2632);
+  --ps-muted: var(--brand-muted, #6c7884);
+  --ps-line: var(--brand-border, #e4e9ec);
+  --ps-soft: var(--brand-accent-soft, #edf6ed);
+  --ps-focus: var(--brand-focus, #41ac42);
   --ps-danger: #b34949;
   --ps-radius: 18px;
   min-height: 100dvh;
@@ -2138,7 +2138,7 @@
 .personnel-app .ps-order-times strong { display: block; margin: 8px 0 4px; font-family: Poppins, Inter, sans-serif; font-size: calc(1.25rem * var(--dashboard-font-scale, 1)); letter-spacing: -.04em; }
 .personnel-app .ps-order-expectation { display: flex; gap: 8px; align-items: center; margin: 20px 0 24px; color: var(--ps-muted); font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
 .personnel-app .ps-order-expectation strong { color: var(--ps-ink); font-weight: 500; }
-.personnel-app .order-body .staff-panel { margin-bottom: 24px; border-color: var(--ps-line); border-radius: 14px; padding: 20px; }
+.personnel-app .order-body .staff-panel { margin: 0; border-color: var(--ps-line); border-radius: 16px; padding: 24px; }
 .personnel-app .order-body .staff-panel > h2 { font-size: calc(1.02rem * var(--dashboard-font-scale, 1)); }
 .personnel-app .order-body :where(.task-check, .time-detail) { border-color: var(--ps-line); color: var(--ps-ink); }
 .personnel-app .order-body .task-check { min-height: 72px; }
@@ -2259,8 +2259,8 @@
   height: 46px;
   place-items: center;
   border-radius: 50%;
-  background: #e8f5ed;
-  color: #368341;
+  background: var(--brand-accent-soft, #e8f5ed);
+  color: var(--brand-action, #368341);
   font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   font-weight: 700;
 }
@@ -2314,7 +2314,7 @@
 .staff-security-note svg {
   flex: 0 0 auto;
   margin-top: 1px;
-  color: #368341;
+  color: var(--brand-action, #368341);
 }
 
 .completion-step {
@@ -2360,7 +2360,7 @@
 
 .completion-summary > svg {
   flex: 0 0 auto;
-  color: #368341;
+  color: var(--brand-action, #368341);
 }
 
 .completion-summary > div {
@@ -2406,7 +2406,7 @@
 
 .completion-task-review > div.ready > span {
   background: #e7f4e9;
-  color: #368341;
+  color: var(--brand-action, #368341);
 }
 
 .completion-task-review > div > div {
@@ -3144,7 +3144,7 @@
 
   .personnel-app .ps-sidebar-logo::before {
     color: white;
-    content: "F";
+    content: none;
     font-family: Poppins, Inter, sans-serif;
     font-size: calc(28px * var(--dashboard-font-scale, 1));
     font-weight: 700;
@@ -3760,4 +3760,19 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* Contextual help stays beside each existing title; descriptions and page order stay in place. */
+.personnel-app .ps-page-title-row {display:flex;align-items:center;gap:6px;}
+.personnel-app .ps-page-title-row h1 {min-width:0;}
+.personnel-app .ps-page-title-row .help-tip-trigger {margin:0;width:28px;height:28px;}
+
+/* Compact navigation shows the same tenant identity as the full sidebar. */
+.personnel-app .ps-sidebar-logo::before,
+.personnel-app .ps-sidebar-logo::after {content:none;}
+@media(min-width:701px) and (max-width:1000px) {
+  .personnel-app .ps-sidebar-brand .ps-sidebar-logo .fieldgrid-brand {max-width:60px;}
+  .personnel-app .ps-sidebar-brand .ps-sidebar-logo .brand-logo-image {width:60px;min-width:0;max-width:60px;height:36px;}
+  .personnel-app .ps-sidebar-brand .ps-sidebar-logo .brand-logo-image img {width:100%;height:auto;max-height:36px;object-fit:contain;}
+  .personnel-app .ps-sidebar-brand .ps-sidebar-logo .brand-name-fallback {max-width:60px;font-size:11px;}
 }

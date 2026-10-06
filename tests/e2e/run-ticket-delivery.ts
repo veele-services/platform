@@ -79,9 +79,9 @@ async function main() {
     const supportId = await prepare(support.id, platform.user_id);
     assert.equal((await processTicketDeliveryClaims([await claim(supportId)])).sent, 1);
     const supportMail = (await mailbox()).at(-1)!;
-    assert.equal(supportMail.from.name, "Fieldgrid");
+    assert.equal(supportMail.from.name, tenant.name);
     assert.ok(supportMail.content.find(part => part.type === "text/plain")!.value.includes(`/app/support/${support.id}`));
-    assert.ok(supportMail.content.find(part => part.type === "text/html")!.value.toLowerCase().includes("#222c35"));
+    assert.ok(supportMail.content.find(part => part.type === "text/html")!.value.toLowerCase().includes("#214e72"));
     assert.equal((await mailbox()).length, baseline + 3);
     const centralPrepare=async()=>{
       const event=(await db.query("select private.ticket_emit($1,'reporter','reply','CENTRAL-PRIVATE-CANARY',$2) id",[ticket.id,ticket.reporter_user_id])).rows[0].id;

@@ -1,3 +1,4 @@
+import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
 import { randomInt } from "node:crypto";
 import { z } from "zod";
 import { getObjectActor } from "@/lib/objects/auth";
@@ -9,7 +10,7 @@ import type { Json } from "@/lib/database.types";
 import {localToInstant} from "@/lib/planning/time";
 
 const noStore={"Cache-Control":"private, no-store, max-age=0","Pragma":"no-cache","Referrer-Policy":"no-referrer","X-Content-Type-Options":"nosniff"};
-const schema=z.object({objectId:z.string().uuid(),orderId:z.string().uuid().nullable().default(null),itemId:z.string().uuid().nullable().default(null),operation:z.enum(["metadata","request","verify","read","check","hide","save","scope"]),input:z.record(z.string(),z.union([z.string().max(4000),z.number(),z.boolean(),z.null()])).default({})});
+const schema=z.object({objectId:z.string().uuid(),orderId:z.string().uuid().nullable().default(null),itemId:z.string().uuid().nullable().default(null),operation:z.enum(["dossier","metadata","request","verify","read","check","hide","save","scope"]),input:z.record(z.string(),z.union([z.string().max(4000),z.number(),z.boolean(),z.null()])).default({})});
 export async function POST(request:Request){
  const reply=(body:unknown,status=200)=>Response.json(body,{status,headers:noStore});
  try{
@@ -32,8 +33,8 @@ export async function POST(request:Request){
    const env=getServerEnv();const {data:brand,error}=await admin.from("tenant_branding").select("primary_color,accent_color,logo_path,sender_name").eq("tenant_id",tenant.id).single();
    if(error||!brand||!env.SENDGRID_FROM_EMAIL)throw new Error("E-mail niet beschikbaar");
    const subject="Je verificatiecode voor beveiligde objectgegevens";
-   const text=`Je verificatiecode is ${code}.\n\nDeze code is maximaal vijf minuten geldig. Vul hem alleen in de geopende omgeving van je organisatie in. Deel de code niet. Heb je geen code aangevraagd? Neem contact op met je leidinggevende.\n\nDit bericht bevat geen alarm- of toegangscode.`;
-   const html=renderTenantEmailHtml({brand:{company:tenant.name,domain:new URL(tenantAppUrl(tenant.slug)).host,primary:brand.primary_color,accent:brand.accent_color,senderEmail:env.SENDGRID_FROM_EMAIL,emailLogoUrl:brand.logo_path?`${env.APP_URL}/api/branding/${tenant.id}/email-logo`:null},kind:"object_otp",message:{subject,body:text},targetUrl:tenantAppUrl(tenant.slug,"/staff"),allowLocalLinks:env.DEPLOY_TARGET==="local"});
+   const text=`Je verificatiecode is ${code}.\n\nDeze code is maximaal twee minuten geldig. Vul hem alleen in de geopende omgeving van je organisatie in. Deel de code niet. Heb je geen code aangevraagd? Neem contact op met je leidinggevende.\n\nDit bericht bevat geen alarm- of toegangscode.`;
+   const html=renderTenantEmailHtml({brand:await withTenantEmailBrand(tenant.id, {company:tenant.name,domain:new URL(tenantAppUrl(tenant.slug)).host,primary:brand.primary_color,accent:brand.accent_color,senderEmail:env.SENDGRID_FROM_EMAIL,emailLogoUrl:brand.logo_path?`${env.APP_URL}/api/branding/${tenant.id}/email-logo`:null}),kind:"object_otp",message:{subject,body:text},targetUrl:tenantAppUrl(tenant.slug,"/staff"),allowLocalLinks:env.DEPLOY_TARGET==="local"});
    await sendEmail({to:String(result.email),fromEmail:env.SENDGRID_FROM_EMAIL,fromName:brand.sender_name||tenant.name,subject,text,html,deliveryKey:`object-otp:${result.challengeId}`,disableTracking:true,policy:{kind:"security",flow:"object_otp",tenantId:tenant.id}});
    const delivered=await call("delivered",{challengeId:result.challengeId});if(!delivered.ok)throw new Error("Toegang gewijzigd");
    return reply({ok:true,challengeId:result.challengeId,expiresAt:result.expiresAt});

@@ -85,8 +85,7 @@ export function brandThemeStyle(primary?: string | null, accent?: string | null)
     "--tenant-primary": palette.primary, "--tenant-accent": palette.accent,
     "--primary": palette.action, "--primary-foreground": palette.actionForeground,
     "--ring": palette.focus, "--foreground": palette.ink,
-    // Compatibility roles for tenant-themed adapters. personnelThemeStyle
-    // overrides these with the personnel prototype's fixed Fieldgrid identity.
+    // Compatibility roles for tenant-themed personnel adapters.
     "--ps-brand": palette.focus, "--ps-action": palette.action,
     "--ps-action-hover": palette.actionHover, "--ps-soft": palette.accentSoft,
   } as CSSProperties;

@@ -1,4 +1,5 @@
 "use client";
+import { HelpTip } from "../help-tip";
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -97,12 +98,9 @@ export function CustomersList({
     <div className="customer-workspace">
       <header className="commercial-heading page-intro resource-intro">
         <div>
-          <span className="eyebrow">RELATIES</span>
+          <span className="eyebrow">RELATIES<HelpTip>Relaties, contactpersonen en opvolging. Open een klant voor het volledige dossier.</HelpTip></span>
           <h1>Klanten</h1>
-          <p>
-            Relaties, contactpersonen en opvolging. Open een klant voor het
-            volledige dossier.
-          </p>
+
         </div>
         <button className="primary-button" onClick={() => setWizard(true)}>
           <Plus size={17} />

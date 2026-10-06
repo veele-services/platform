@@ -21,6 +21,8 @@ test("Object 360: real database boundaries, visit requests and session-bound vau
  const challenge=async(actor=staff,changes={})=>{const r=await vault("request",{code:fictitiousCode},actor,changes);assert.equal(r.ok,true,r.error);const delivery=await vault("delivered",{challengeId:r.challengeId},actor,changes);assert.equal(delivery.ok,true);return r.challengeId;};
  const grant=async(actor=staff,changes={})=>{const challengeId=await challenge(actor,changes);const r=await vault("verify",{challengeId,code:fictitiousCode},actor,changes);assert.equal(r.ok,true,r.error);return r.grantId;};
  const expectDenied=async(fn)=>assert.equal((await fn()).ok,false);
+ const staffVisit=async()=>{await loosenRequestLimit();await grant(staff,{item:null});return (await call("select public.object_visit_context($1,$2,$3) result",[tenant,object,order],staff))[0].result;};
+
  try{
   for(const u of users){await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())",[u,`${u}@object360.test`]);await db.query("insert into auth.sessions(id,user_id,created_at,updated_at) values($1,$2,now(),now())",[sessions[u],u]);}
   for(const id of [tenant,other]){await db.query("insert into public.tenants(id,slug,name) values($1,$2,'Object360 fictitious test')",[id,`object-${id}`]);await db.query("insert into public.tenant_settings(tenant_id,enabled_services) values($1,array['planning','personeel'])",[id]);}
@@ -73,9 +75,9 @@ test("Object 360: real database boundaries, visit requests and session-bound vau
    // Roll back this isolated stop so the later vault scenarios remain active.
    await db.query('begin');try{await db.query("update public.work_order_assignments set status='completed' where id=$1",[assignment]);}finally{await db.query('rollback');}
    await call("select public.acknowledge_object_instruction($1,$2,$3,1)",[tenant,order,id],staff);
-   assert.equal((await call("select public.object_visit_context($1,$2,$3) result",[tenant,object,order],staff))[0].result.instructions[0].read,true);
+   assert.equal((await staffVisit()).instructions[0].read,true);
    await call("update public.object_records set body='Changed safety procedure' where id=$1",[id]);
-   assert.equal((await call("select public.object_visit_context($1,$2,$3) result",[tenant,object,order],staff))[0].result.instructions[0].read,false);
+   assert.equal((await staffVisit()).instructions[0].read,false);
    await assert.rejects(call("select public.acknowledge_object_instruction($1,$2,$3,1)",[tenant,order,id],staff),e=>e.code==="40001");
    await call("select public.acknowledge_object_instruction($1,$2,$3,2)",[tenant,order,id],staff);
    assert.equal((await db.query("select count(*)::int n from public.object_instruction_receipts where record_id=$1",[id])).rows[0].n,2);
@@ -85,7 +87,7 @@ test("Object 360: real database boundaries, visit requests and session-bound vau
    await call("select public.submit_object_visit_request($1,$2,$3,$4,$5)",[tenant,object,order,id,input],customerUser);
    await call("select public.acknowledge_object_request($1,$2,1)",[tenant,id],staff);
    await call("select public.update_object_visit_request($1,$2,1,$3)",[tenant,id,{...input,body:"Updated request"}],customerUser);
-   const context=(await call("select public.object_visit_context($1,$2,$3) result",[tenant,object,order],staff))[0].result;
+   const context=(await staffVisit());
    assert.equal(context.requests.find(r=>r.id===id).read,false);
    await assert.rejects(call("select public.acknowledge_object_request($1,$2,1)",[tenant,id],staff),e=>e.code==="40001");
    await call("select public.review_object_visit_request($1,$2,2,'regular',$3)",[tenant,id,{reason:"Within existing scope",taskRevisionId:revision,quantity:1}]);
@@ -111,12 +113,28 @@ test("Object 360: real database boundaries, visit requests and session-bound vau
    const successor=()=>db.query("insert into public.object_documents(tenant_id,object_id,work_order_id,request_id,previous_id,title,category,storage_path,mime_type,file_name,size_bytes,created_by) values($1,$2,$3,$4,$5,'Next version','photo',$6,'application/pdf','next.pdf',20,$7) returning version",[tenant,object,order,request,doc,`${tenant}/${object}/${randomUUID()}.pdf`,manager]);
    const versions=await Promise.allSettled([successor(),successor()]);assert.equal(versions.filter(v=>v.status==="fulfilled").length,1);assert.equal(Number(versions.find(v=>v.status==="fulfilled").value.rows[0].version),2);
   });
+  await t.test("dossier requires delivered email confirmation, bounded expiry and live assignment scope",async()=>{
+   await db.query("update private.object_access_grants set revoked_at=now() where actor_id=$1",[staff]);
+   await assert.rejects(call("select public.object_visit_context($1,$2,$3)",[tenant,object,order],staff),e=>e.code==="42501");
+   await loosenRequestLimit();const ch=await challenge(staff,{item:null});
+   const seconds=(await db.query("select extract(epoch from(expires_at-created_at)) seconds from private.object_otp_challenges where id=$1",[ch])).rows[0].seconds;
+   assert.ok(Number(seconds)<=120 && Number(seconds)>0);
+   const verified=await vault("verify",{challengeId:ch,code:fictitiousCode},staff,{item:null});assert.equal(verified.ok,true);
+   await expectDenied(()=>vault("verify",{challengeId:ch,code:fictitiousCode},staff,{item:null}));
+   const viewed=await vault("dossier",{grantId:verified.grantId},staff,{item:null});assert.equal(viewed.ok,true);assert.equal(viewed.context.object.id,object);
+   assert.ok(Date.parse(verified.expiresAt)<=Date.now()+300000);
+   await expectDenied(()=>vault("dossier",{grantId:verified.grantId},staff,{item:null,order:secondOrder}));
+   await expectDenied(()=>vault("dossier",{grantId:verified.grantId},staff,{item:null,session:randomUUID()}));
+   await db.query("update private.object_access_grants set expires_at=now()-interval '1 second' where id=$1",[verified.grantId]);
+   await expectDenied(()=>vault("dossier",{grantId:verified.grantId},staff,{item:null}));
+   await assert.rejects(call("select public.object_visit_context($1,$2,$3)",[tenant,object,order],staff),e=>e.code==="42501");
+  });
   await t.test("vault values encrypted and excluded from all generic payloads",async()=>{
    const g=await grant(manager,{item:null});const saved=await vault("save",{grantId:g,name:"Fictitious test code",kind:"access",nodeId:"",value:fictitiousValue,validUntil:""},manager,{item:null});assert.equal(saved.ok,true);
    const meta=await vault("metadata",{},manager,{item:null});item=meta.items[0].id;assert.ok(item);
    assert.equal(JSON.stringify(meta).includes(fictitiousValue),false);
    const encrypted=(await db.query("select v.secret from private.object_secret_versions s join vault.secrets v on v.id=s.vault_id where s.item_id=$1",[item])).rows[0].secret;assert.equal(encrypted.includes(fictitiousValue),false);
-   const context=(await call("select public.object_visit_context($1,$2,$3) result",[tenant,object,order],staff))[0].result;assert.equal(JSON.stringify(context).includes(fictitiousValue),false);
+   const context=(await staffVisit());assert.equal(JSON.stringify(context).includes(fictitiousValue),false);
    const histories=(await call("select snapshot from public.object_history where object_id=$1",[object]));assert.equal(JSON.stringify(histories).includes(fictitiousValue),false);
    await assert.rejects(call("select * from private.object_secret_versions",[],staff),e=>e.code==="42501");
    await assert.rejects(call("select public.object_vault_operation($1,$2,$3,$4,null,null,'metadata','{}')",[tenant,staff,sessions[staff],object],staff),e=>e.code==="42501");
@@ -153,7 +171,7 @@ test("Object 360: real database boundaries, visit requests and session-bound vau
     await assert.rejects(call('select public.object_visit_context($1,$2,$3)',[tenant,object,order],staff),e=>e.code==='42501');
    } finally {await db.query("update public.tenant_memberships set roles=array['staff','finance']::public.app_role[] where tenant_id=$1 and user_id=$2",[tenant,staff]);}
    assert.equal((await vault('metadata',{},staff,{item})).ok,true);
-   assert.ok((await call('select public.object_visit_context($1,$2,$3) result',[tenant,object,order],staff))[0].result);
+   assert.ok((await staffVisit()));
    await db.query("update public.tenant_memberships set roles=array['staff']::public.app_role[] where tenant_id=$1 and user_id=$2",[tenant,staff]);
   });
   await t.test("vault window uses actual assignment bounds and bounded explicit extensions",async()=>{

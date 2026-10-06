@@ -1,4 +1,5 @@
 "use client";
+import { HelpTip } from "../help-tip";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { answerWorkOrderChecklist } from "@/app/app/work-order-actions";
@@ -22,7 +23,7 @@ function Question({ checklist, question, editable, attachments }: { checklist: C
   });
   return <section className="wo-checklist-question">
     <label htmlFor={id}><strong>{question.label}{question.required ? " *" : ""}</strong></label>
-    {question.help && <p id={`${id}-help`} className="dossier-muted">{question.help}</p>}
+    {question.help && <HelpTip label={`Informatie over ${question.label}`}>{question.help}</HelpTip>}
     {state.answered && !existing ? <p className="dossier-muted">Deze vraag is al ingevuld. Alleen je eigen antwoorden zijn hier zichtbaar. Vraag de backoffice om een eventuele correctie.</p> : editable && state.editable ? <>
       {question.allowNA && <label className="check"><input type="checkbox" checked={na} onChange={e => { setNA(e.target.checked); changed(); }}/>{" "}Niet van toepassing</label>}
       {na ? <label>Waarom niet van toepassing?<textarea value={reason} onChange={e => { setReason(e.target.value); changed(); }} maxLength={2000} required/></label> : <>

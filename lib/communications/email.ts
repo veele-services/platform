@@ -8,6 +8,7 @@ import {
 } from "./templates";
 
 export type EmailBrand = {
+  whiteLabelEnabled?: boolean;
   company: string;
   domain: string;
   primary: string;
@@ -141,7 +142,7 @@ export function renderTenantEmailHtml(input: {
           ${objectOtp ? "" : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;margin:25px 0 18px;"><tr><td align="center" bgcolor="${accent}" style="border-radius:9px;background:${accent};"><a href="${escapeHtml(target)}" style="display:inline-block;padding:15px 22px;color:${onAccent};font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:700;line-height:1.3;text-decoration:none;">${cta}</a></td></tr></table>
           <p style="margin:0;color:#91A2AA;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;word-break:break-word;">Werkt de knop niet? Open <a href="${escapeHtml(target)}" style="color:#457A8E;text-decoration:underline;">${escapeHtml(visibleTarget)}</a>.</p>`}
         </td></tr>
-        <tr><td class="mail-pad" style="padding:22px 42px;background:#F7F9FA;border-top:1px solid #E9EFF2;"><p style="margin:0 0 5px;color:#17334A;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;line-height:1.5;">${escapeHtml(company)}</p><p style="margin:0;color:#8195A1;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.65;">Dit bericht is voor u bestemd. Vragen? ${sender}</p>${website}</td></tr>
+        <tr><td class="mail-pad" style="padding:22px 42px;background:#F7F9FA;border-top:1px solid #E9EFF2;"><p style="margin:0 0 5px;color:#17334A;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;line-height:1.5;">${escapeHtml(company)}</p><p style="margin:0;color:#8195A1;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.65;">Dit bericht is voor u bestemd. Vragen? ${sender}</p>${website}${input.brand.whiteLabelEnabled || company === "Fieldgrid" ? "" : `<p style="margin:16px 0 0;color:#8195A1;font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:1.5;">Powered by Fieldgrid</p>`}</td></tr>
       </table>
     </td></tr>
   </table>

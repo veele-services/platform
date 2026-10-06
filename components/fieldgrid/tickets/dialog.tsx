@@ -22,7 +22,7 @@ export function TicketDialog({ title, description, children, footer, onClose, di
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
   const close = () => { if (!busy && (!dirty || window.confirm("Je bericht is nog niet verstuurd. Wil je het venster toch sluiten?"))) onClose(); };
-  return <Dialog open onOpenChange={open => { if (!open) close(); }}><DialogContent className={`ticket-dialog${workspace === "staff" ? " ps-staff-dialog" : ""}`} aria-modal={workspace === "staff" ? true : undefined} showCloseButton={false} {...focus} style={workspace === "staff" ? personnelThemeStyle() : brandThemeStyle(primaryColor, accentColor)}>
+  return <Dialog open onOpenChange={open => { if (!open) close(); }}><DialogContent className={`ticket-dialog${workspace === "staff" ? " ps-staff-dialog" : ""}`} aria-modal={workspace === "staff" ? true : undefined} showCloseButton={false} {...focus} style={workspace === "staff" ? personnelThemeStyle(primaryColor,accentColor) : brandThemeStyle(primaryColor, accentColor)}>
     <header><div><span className="ticket-eyebrow">Hulp & meldingen</span><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></div><button type="button" className="icon-button" aria-label="Sluiten" disabled={busy} onClick={close}><X size={19}/></button></header>
     <div className="ticket-dialog-body">{children}</div>{footer && <footer className="ticket-dialog-footer">{footer}</footer>}
   </DialogContent></Dialog>;

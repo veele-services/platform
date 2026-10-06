@@ -1,4 +1,6 @@
 "use server";
+
+import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
 import { readScannedFile, uploadScannedFile } from "@/lib/files/scanned-storage";
 import {createHash,createHmac,randomUUID} from "node:crypto";
 import {z} from "zod";
@@ -88,7 +90,7 @@ export async function sendCommercialQuote(id:string,commandId:string,reminder=fa
   const template=await resolveMailTemplate(admin,tenant.id,reminder?"quote.reminder":"quote.available","customer");
   const values={bedrijfsnaam:snapshot.brand.name,klantnaam:snapshot.contact.name,offertelink:url};
   const message={subject:template.title,body:template.body};const plain=renderPlainEmail({...message,values,targetUrl:url,targetLabel:template.cta_label||"Offerte bekijken"});
-  const html=renderTenantEmailHtml({kind:"quote",brand:{company:snapshot.brand.name,domain:new URL(tenantAppUrl(tenant.slug)).hostname,primary:snapshot.brand.primary,accent:snapshot.brand.accent,senderEmail:fromEmail,emailLogoUrl:logoPath?tenantAppUrl(tenant.slug,`/api/files/commercial/${id}?token=${token}&asset=logo`):null},message,values,targetUrl:url,targetLabel:template.cta_label,allowLocalLinks:env.DEPLOY_TARGET==="local"});
+  const html=renderTenantEmailHtml({kind:"quote",brand:await withTenantEmailBrand(tenant.id, {company:snapshot.brand.name,domain:new URL(tenantAppUrl(tenant.slug)).hostname,primary:snapshot.brand.primary,accent:snapshot.brand.accent,senderEmail:fromEmail,emailLogoUrl:logoPath?tenantAppUrl(tenant.slug,`/api/files/commercial/${id}?token=${token}&asset=logo`):null}),message,values,targetUrl:url,targetLabel:template.cta_label,allowLocalLinks:env.DEPLOY_TARGET==="local"});
   draft={fromEmail,fromName:snapshot.brand.sender_name||snapshot.brand.name,to:recipient,subject:plain.subject,text:plain.text,html,targetUrl:url,templateRevision:template.revision,templateVersionId:template.version_id,templateBaseVersionId:template.base_version_id,attachmentPath:pdfPath,attachmentFilename:`${q.quote_number}-v${q.revision}.pdf`};
   }
   await confirmAccess();

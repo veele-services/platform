@@ -114,3 +114,32 @@ Gericht bewijs: 15 unittests in `lib/work-orders/customer-window.test.ts` voor b
 ## Externe documentatie gecontroleerd
 
 De lokale Next 16.3.6-documentatie voor layouts/pages en servermutaties is gelezen. Supabase RLS en private-storage-documentatie en de changelog zijn geraadpleegd. De PostgreSQL 15.19/17.11-waarschuwing betreft legacy pgcrypto-ciphers, ltree en bepaalde float-GiST-indexen, niet een nieuwe onderteken-API; deze opdracht wijzigt geen databaseversie of cipher. Bronnen: [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [private buckets](https://supabase.com/docs/guides/storage/buckets/fundamentals), [PostgreSQL changelog](https://supabase.com/changelog/postgres-15-19-17-11-breaking-changes).
+
+## Individuele uitvoering en gezamenlijke oplevering — 6 oktober 2026
+
+De eigenaar vervangt de handmatig gekozen rapportverantwoordelijke door het eerst
+geplande actieve personeelslid. Bij gelijke geplande begintijd bepaalt de
+creatietijd de volgorde; bij onduidelijke historische gelijken wordt de bestaande
+lead gebruikt, vervolgens het assignment-ID. Andere personeelsleden stoppen hun
+eigen inzet zonder klantondertekening. Verplichte resultaten, instructies,
+checklists en actuele rapportversie blijven servervoorwaarden voor gezamenlijke
+oplevering. Het klantdocument combineert klantzichtbare bijdragen zonder
+personeelsnamen. Interne notities blijven intern; bestaande ondertekende versies
+worden niet herschreven.
+
+Extra kwartieren zijn eigen, herhaalveilige uitvoeringsevents en verhogen alleen
+de tijdsinschatting. Prijzen, factuurhoeveelheden en meerwerkgoedkeuring veranderen
+niet. Per-personeelslid telt werkduur zonder pauzes. Het planbord toont de echte
+start/stop en een rode lopende inzet bij overschrijding. Afgeleide vervolginzetten
+schuiven vooruit met bekende reistijd en aankomstmarge. Bestaande beschikbaarheids-,
+kwalificatie- en overlapguards blijven actief. Een onhaalbaar klantvenster zet
+alleen de getroffen, nog niet begonnen inzet terug naar planning. Lopende inzet
+blijft staan. De bestaande worker onderhoudt dit iedere minuut; het planbord
+ververst de afleiding bij lezen. Planners krijgen gededupliceerde urgente meldingen
+voor teruggezette inzetten en nog niet gestarte bonnen nabij het einde van een
+klantvenster. Onbekende reistijd wordt niet als een verzonnen schatting gebruikt.
+
+Rapportactiviteiten bewaren beperkte wijzigingsmetadata zonder toegangscodes of
+private notitietekst. Personeelspaginakoppen blijven op hun bestaande plek. Het
+extra uitlegveld krijgt contextuele hulp; daadwerkelijke gegevens, foutmeldingen
+en vereiste bevestigingen blijven zichtbaar.

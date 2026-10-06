@@ -1,4 +1,5 @@
 "use client";
+import { HelpTip } from "../help-tip";
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
@@ -52,7 +53,7 @@ export function WorkOrdersList({ data, options, query, tenant, create = false }:
     router.push(href(patch));
   };
   return <div className="wo-workspace" aria-busy={pending}>
-    <header className="page-intro resource-intro"><div><span className="eyebrow">UITVOERING</span><h1>Werkbonnen</h1><p>Afspraken, bezetting, uitvoering en rapportcontrole.</p></div>{data.canManage && <button className="primary-button" onClick={() => setWizard(true)}><Plus size={17}/>Nieuwe werkbon</button>}</header>
+    <header className="page-intro resource-intro"><div><span className="eyebrow">UITVOERING<HelpTip>Afspraken, bezetting, uitvoering en rapportcontrole.</HelpTip></span><h1>Werkbonnen</h1></div>{data.canManage && <button className="primary-button" onClick={() => setWizard(true)}><Plus size={17}/>Nieuwe werkbon</button>}</header>
     <div className="compact-filter-bar"><div className="compact-filter-bar-main"><nav className="wo-views" aria-label="Werkweergave">{Object.entries(workOrderViews).map(([key, label]) => <Link key={key} href={href({ view: key })} aria-current={query.view === key ? "page" : undefined}>{label}<b>{data.counts[key as keyof typeof workOrderViews] ?? 0}</b></Link>)}</nav></div><CompactFilterMenu activeCount={active.length} contentClassName="wo-filter-panel" contentStyle={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}><form onSubmit={applyFilters}><div className="wo-filter-grid">
         <label className="wo-filter-wide">Zoeken<input name="q" defaultValue={query.q} placeholder="Bonnummer, titel, klant, object of adres…" aria-label="Zoek werkbonnen"/></label>
         <label>Sortering<select name="sort" defaultValue={query.sort}>{[["date", "Datum oplopend"], ["date_desc", "Datum aflopend"], ["number", "Bonnummer"], ["title", "Titel"], ["customer", "Klant"], ["status", "Uitvoering"]].map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>

@@ -1,4 +1,5 @@
 "use client";
+import { PageHeading } from "./page-heading";
 
 import { AddressInput } from "./address-input";
 import { CommercialDossierPanel } from "./commercial/dossier-panel";
@@ -55,7 +56,7 @@ const addressLine = (value: unknown) => {
 };
 
 function ResourceHeader({ eyebrow, title, description, actions }: { eyebrow: string; title: string; description: string; actions?: ReactNode }) {
-  return <header className="page-intro resource-intro"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>{actions && <div className="resource-header-actions">{actions}</div>}</header>;
+  return <PageHeading eyebrow={eyebrow} title={title} help={description} actions={actions} className="resource-intro"/>;
 }
 
 function StatusBadge({ tone = "neutral", children }: { tone?: "green" | "blue" | "orange" | "neutral"; children: ReactNode }) {

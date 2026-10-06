@@ -1,3 +1,4 @@
+import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
 import "server-only";
 import {createAdminClient} from "@/lib/supabase/admin";
 import {getServerEnv} from "@/lib/env/server";
@@ -38,7 +39,7 @@ export async function flushCommercialMail(tenantId:string,entityId:string,includ
     const values={bedrijfsnaam:s.brand.company,onderwerp:s.subject,bericht:s.body,nummer:""};
     const subject=renderNotificationMailText(template.title,template.variables,values),body=renderNotificationMailText(template.body,template.variables,values);
     const logoUrl=await freezeEmailLogo(admin,tenantId,s.brand.slug,s.brand.logo_path);
-    const html=renderTenantEmailHtml({kind:"commercial_event",brand:{...s.brand,domain:new URL(tenantAppUrl(s.brand.slug)).hostname,senderEmail:env.SENDGRID_FROM_EMAIL,emailLogoUrl:logoUrl},message:{subject,body},targetUrl:url,targetLabel:template.cta_label,allowLocalLinks:env.DEPLOY_TARGET==="local"});
+    const html=renderTenantEmailHtml({kind:"commercial_event",brand:await withTenantEmailBrand(tenantId, {...s.brand,domain:new URL(tenantAppUrl(s.brand.slug)).hostname,senderEmail:env.SENDGRID_FROM_EMAIL,emailLogoUrl:logoUrl}),message:{subject,body},targetUrl:url,targetLabel:template.cta_label,allowLocalLinks:env.DEPLOY_TARGET==="local"});
     frozen=await freezeMailSnapshot(admin,tenantId,c.id,{fromEmail:env.SENDGRID_FROM_EMAIL,fromName:s.brand.company,to:recipient.email,subject,text:`${body}\n\n${url}`,html,targetUrl:url,templateRevision:template.revision,templateVersionId:template.version_id,templateBaseVersionId:template.base_version_id,attachmentPath:null,attachmentFilename:null});
     }
     providerStarted=true;const sent=await sendEmail({...frozen,deliveryKey:c.key,disableTracking:true,policy:{kind:"notification",tenantId,type:e.kind,context:recipient.audience==="customer"?"customer":"backoffice",sourceId:c.id}});

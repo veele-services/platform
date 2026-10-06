@@ -6,8 +6,8 @@ export type ReportSnapshot = {
   tenant: { name: string; primaryColor: string; accentColor: string };
   customer: { name: string }; object: { name: string; address: Record<string, unknown> };
   executionDate: string | null; endedAt: string | null; timezone: string;
-  tasks: Array<{ id: string; code: string; name: string; quantity: number; unit: string; executedQuantity: number; result: string; transferredQuantity: number; withdrawnQuantity: number; extraWork: boolean }>;
-  notes: Array<{ id: string; body: string }>;
+  tasks: Array<{ id: string; code: string; name: string; quantity: number; unit: string; executedQuantity: number; result: string; transferredQuantity: number; withdrawnQuantity: number; extraWork: boolean; extraUnitPriceCents?: number | null }>;
+  notes: Array<{ id: string; body: string; createdAt?: string }>;
   checklists?:Array<{name:string;version:number;question:string;unit:string;type:string;value:unknown;notApplicable:boolean;reason:string|null;answerVersion:number;attachmentId:string|null}>;
   materials?:Array<{description:string;quantity:number;unit:string;taskId:string|null;unitPriceCents?:number|null}>;
   expenses?:Array<{id:string;description:string;amountCents:number}>;
@@ -15,7 +15,8 @@ export type ReportSnapshot = {
 };
 export type ReportSignature = { id: string; name: string; capacity: string; capturedBy: string | null; signedAt: string; channel: string; kind: "customer" | "employee" };
 export type ReportVersion = { id: string; version: number; state: string; snapshot: ReportSnapshot; contentHash: string; projection?: "original" | "own_contribution" | "customer_copy"; employeeVerified?: boolean; policy: SignaturePolicy; createdAt: string; approvedAt: string | null; signatures: ReportSignature[]; waiver: { reason: string; at: string } | null };
-export type WorkOrderReport = { orderId: string; orderVersion: number; number: string; state: string; policy: SignaturePolicy; canReview: boolean; canSubmit: boolean; canCapture: boolean; canWaive?: boolean; canEditPolicy?:boolean;configuredMode?:"inherit"|SignaturePolicy["mode"];employeeSignatureRequired?:boolean; legacy: boolean; checklists:import("./model").ChecklistInstance[]; versions: ReportVersion[]; historicalSignatures: Array<{ id: string; name: string; version: number; signedAt: string }> };
+export type ReportActivity = { id: string; at: string; title: string; description: string | null; author: string | null };
+export type WorkOrderReport = { isDeliveryOwner?: boolean; draftSnapshot?: ReportSnapshot | null; activity?: ReportActivity[]; orderId: string; orderVersion: number; number: string; state: string; policy: SignaturePolicy; canReview: boolean; canSubmit: boolean; canCapture: boolean; canWaive?: boolean; canEditPolicy?:boolean;configuredMode?:"inherit"|SignaturePolicy["mode"];employeeSignatureRequired?:boolean; legacy: boolean; checklists:import("./model").ChecklistInstance[]; versions: ReportVersion[]; historicalSignatures: Array<{ id: string; name: string; version: number; signedAt: string }> };
 export const reportStateLabels: Record<string,string> = {draft:"Concept",waiting_signature:"Wacht op handtekening",review:"Ter controle",correction:"Correctie gevraagd",approved:"Goedgekeurd",superseded:"Vervangen door nieuwe versie"};
 export const signatureModeLabels = { none:"Niet nodig",optional:"Optioneel",required:"Verplicht" };
 export const signatureSourceLabels: Record<string,string> = {work_order:"Werkbon",object:"Object 360",template:"Werkbontemplate",tenant:"Tenantstandaard",historical:"Bestaande afspraak"};
@@ -34,9 +35,9 @@ const reportSnapshotSchema = z.object({
   tasks: z.array(z.object({
     id: z.string(), code: z.string(), name: z.string(), quantity: z.number(), unit: z.string(),
     executedQuantity: z.number(), result: z.string(), transferredQuantity: z.number(),
-    withdrawnQuantity: z.number(), extraWork: z.boolean(),
+    withdrawnQuantity: z.number(), extraWork: z.boolean(), extraUnitPriceCents: z.number().nullable().optional(),
   }).strict()),
-  notes: z.array(z.object({ id: z.string(), body: z.string() }).strict()),
+  notes: z.array(z.object({ id: z.string(), body: z.string(), createdAt: z.string().optional() }).strict()),
   checklists: z.array(z.object({
     name: z.string(), version: z.number(), question: z.string(), unit: z.string(), type: z.string(),
     value: z.unknown(), notApplicable: z.boolean(), reason: z.string().nullable(),
@@ -70,6 +71,12 @@ export const reportVersionSchema = z.object({
 
 /** The same customer-facing text is used by the preview and PDF. Explicit fields
  * prevent financial, HR or internal data from leaking through future additions. */
+export function reportExtraTotal(snapshot: ReportSnapshot): number {
+ return snapshot.tasks.filter(task=>task.extraWork).reduce((total,task)=>total+Math.round((task.extraUnitPriceCents??0)*task.executedQuantity),0)
+  +(snapshot.materials??[]).reduce((total,material)=>total+Math.round((material.unitPriceCents??0)*material.quantity),0)
+  +(snapshot.expenses??[]).reduce((total,expense)=>total+expense.amountCents,0);
+}
+
 export function reportDocumentLines(report: ReportVersion): string[] {
   const s=report.snapshot;
   const lines=[s.tenant.name,`Werkbon ${s.number} · rapportversie ${report.version}`,s.title,`Klant: ${s.customer.name}`,`Object: ${s.object.name}`];
@@ -81,11 +88,13 @@ export function reportDocumentLines(report: ReportVersion): string[] {
   if(s.endedAt)lines.push(`Afgerond: ${new Intl.DateTimeFormat("nl-NL",{dateStyle:"short",timeStyle:"short",timeZone:s.timezone}).format(new Date(s.endedAt))}`);
   lines.push("Samenvatting",s.summary,"Resultaten");
   for(const task of s.tasks){const state:Record<string,string>={completed:"Afgerond",partial:"Deels uitgevoerd",not_done:"Niet uitgevoerd",not_applicable:"Niet van toepassing",in_progress:"Bezig",planned:"Gepland"};lines.push(`${task.code} · ${task.name}: ${task.executedQuantity} van ${task.quantity} ${task.unit}${task.extraWork?" · meerwerk":""}${state[task.result]?` · ${state[task.result]}`:""}`);if(task.transferredQuantity)lines.push(`Overgedragen restwerk: ${task.transferredQuantity} ${task.unit}`);if(task.withdrawnQuantity)lines.push(`Ingetrokken: ${task.withdrawnQuantity} ${task.unit}`);}
-  for(const note of s.notes)lines.push(note.body);
+  for(const note of s.notes)lines.push(note.body, ...(note.createdAt ? [new Intl.DateTimeFormat("nl-NL",{dateStyle:"short",timeStyle:"short",timeZone:s.timezone}).format(new Date(note.createdAt))] : []));
   for(const answer of s.checklists??[]){const value=answer.notApplicable?`Niet van toepassing: ${answer.reason}`:answer.type==="photo"?"Bewijsfoto bijgevoegd":answer.value===true?"Ja / gecontroleerd":answer.value===false?"Nee":String(answer.value??"");lines.push(`${answer.name} v${answer.version} · ${answer.question}: ${value}${answer.unit?` ${answer.unit}`:""}`);}
   const currency=(cents:number)=>new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(cents/100);
   if(s.materials?.length)lines.push("Materialen",...s.materials.map(m=>`${m.description}: ${m.quantity} ${m.unit}${m.unitPriceCents==null?"":` · ${currency(m.unitPriceCents)} per ${m.unit}`}`));
   if(s.expenses?.length)lines.push("Onkosten",...s.expenses.map(expense=>`${expense.description}: ${currency(expense.amountCents)}`));
+  for(const task of s.tasks.filter(task=>task.extraWork&&task.extraUnitPriceCents!=null))lines.push(`Meerwerk ${task.name}: ${currency(Math.round(task.extraUnitPriceCents!*task.executedQuantity))}`);
+  lines.push(`Totaal extra kosten: ${currency(reportExtraTotal(s))}`);
   if(s.attachments.length)lines.push("Bijlagen",...s.attachments.map(a=>a.name));
   lines.push(`Inhoudskenmerk: ${report.contentHash}`);
   if(report.waiver)lines.push(`Klantondertekening vrijgesteld: ${report.waiver.reason}`);

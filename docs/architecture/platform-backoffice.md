@@ -86,3 +86,13 @@ Fieldgrid sender remains the operational fallback.
 
 No secret, provider key or tenant-specific brand value belongs in this
 configuration contract or in repository history.
+
+### Portalen en e-mailhuisstijl — 6 oktober 2026
+
+De eigenaar bevestigt dat dezelfde opgeslagen tenant-huisstijl ook geldt voor het
+personeelsportaal, klantenportaal, hun overlays en tenantgebonden e-mails. De
+vaste groene personeelsidentiteit vervalt. Tenantlogo of tenantnaam vervangt de
+product-lock-up; contextuele technische support blijft functioneel beschikbaar.
+Productattributie staat alleen klein onderaan sidebar/e-mail. De platformgestuurde
+white-label-entitlement verwijdert ook die attributie. Historische afgeleverde
+mail- en rapportbewijsversies blijven onveranderlijk.

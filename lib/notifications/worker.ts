@@ -1,3 +1,4 @@
+import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
 import "server-only";
 import webpush from "web-push";
 import { z } from "zod";
@@ -43,7 +44,8 @@ export async function processNotificationDeliveryClaims(input:Array<{id:string;l
      const target=delivery.context==="platform"?new URL(s.path,env.APP_URL).href:tenantAppUrl(s.slug,externalContact?"/":s.path);
      const logo=await freezeEmailLogo(db,delivery.tenantId,s.slug,s.brand.logo_path);
      const brand={company:s.brand.company,domain:new URL(target).hostname,primary:s.brand.primary,accent:s.brand.accent,senderEmail:env.SENDGRID_FROM_EMAIL,emailLogoUrl:logo};
-     const prepared={fromEmail:env.SENDGRID_FROM_EMAIL,fromName:brand.company,subject:s.title,text:`${s.body}\n\n${target}`,html:renderTenantEmailHtml({brand,kind:"notification_event",message:{subject:s.title,body:s.body},targetUrl:target,targetLabel:externalContact?"Website openen":s.actionLabel,allowLocalLinks:env.DEPLOY_TARGET==="local"})};
+     const emailBrand=await withTenantEmailBrand(delivery.context === "platform" ? null : delivery.tenantId,brand);
+     const prepared={fromEmail:env.SENDGRID_FROM_EMAIL,fromName:emailBrand.company,subject:s.title,text:`${s.body}\n\n${target}`,html:renderTenantEmailHtml({brand:emailBrand,kind:"notification_event",message:{subject:s.title,body:s.body},targetUrl:target,targetLabel:externalContact?"Website openen":s.actionLabel,allowLocalLinks:env.DEPLOY_TARGET==="local"})};
      frozen=emailSnapshot.parse(await ticketRpc(db,"notification_delivery_freeze",{delivery_id:claim.id,lease_id:claim.lease,input:prepared}));
     }
     submitted=true;const result=await sendEmail({...frozen,to:delivery.snapshot.recipient,deliveryKey:`notification-${delivery.id}`,disableTracking:true,policy});await finish("sent",result.id);sent++;

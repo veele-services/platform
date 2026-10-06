@@ -42,6 +42,24 @@ test("Work-order reports: individual time, immutable versions, signing and direc
   await db.query("insert into public.work_order_material_usage(tenant_id,work_order_id,description,quantity,unit,customer_visible,created_by) values($1,$2,'Public material',2,'piece',true,$3),($1,$2,'PRIVATE MATERIAL CANARY',1,'piece',false,$3)",[tenant,order,staff]);
   await db.query("insert into public.invoices(id,tenant_id,customer_id,created_by) values($1,$2,$3,$4)",[invoice,tenant,customer,manager]);
   await db.query("insert into public.report_entries(tenant_id,work_order_id,author_user_id,body,customer_visible) values($1,$2,$3,'FICTITIOUS customer-visible historical note',true)",[tenant,order,staff]);
+  await t.test("only the first planned employee owns combined delivery and signing",async()=>{
+   const first=await panel(staff),second=await panel(coworker);
+   assert.equal(first.isDeliveryOwner,true);assert.equal(second.isDeliveryOwner,false);
+   assert.ok(first.draftSnapshot);assert.equal(second.draftSnapshot,null);
+   assert.equal(second.canCapture,false);assert.equal(second.canSubmit,false);
+   await assert.rejects(call("select public.submit_work_order_report($1,$2,$3,$4)",[order,await version(),"Wrong owner",randomUUID()],coworker),e=>e.code==="42501");
+  });
+  await t.test("the primary draft combines shared colleague notes and expenses without exposing private contributions or identities",async()=>{
+   await db.query("savepoint combined_draft");try{
+    await db.query("insert into public.report_entries(tenant_id,work_order_id,author_user_id,body,customer_visible) values($1,$2,$3,'Shared colleague contribution',true),($1,$2,$3,'PRIVATE COLLEAGUE NOTE CANARY',false)",[tenant,order,coworker]);
+    await db.query("insert into public.work_order_expenses(tenant_id,work_order_id,description,amount_cents,customer_visible,created_by,assignment_id,personnel_id) values($1,$2,'Shared parking cost',750,true,$3,$4,$5),($1,$2,'PRIVATE COLLEAGUE EXPENSE CANARY',500,false,$3,$4,$5)",[tenant,order,coworker,assignments[1],people[1]]);
+    const primary=await panel(staff),secondary=await panel(coworker);
+    assert.ok(primary.draftSnapshot.notes.some(n=>n.body==='Shared colleague contribution'&&n.createdAt));
+    assert.ok(primary.draftSnapshot.expenses.some(e=>e.description==='Shared parking cost'&&e.amountCents===750));
+    const text=JSON.stringify(primary.draftSnapshot);assert.equal(text.includes('CANARY'),false);assert.equal(text.includes('Fictitious employee'),false);assert.equal(text.includes(coworker),false);
+    assert.equal(JSON.stringify(primary.activity).includes('PRIVATE COLLEAGUE'),false);assert.equal(secondary.draftSnapshot,null);
+   }finally{await db.query('rollback to savepoint combined_draft');await db.query('release savepoint combined_draft');}
+  });
   await t.test("published signature policy changes require explicit authority, reason and current version",async()=>{
    const change=(mode,key,actor=manager,expected)=>call("select public.change_work_order_signature_policy($1,$2,$3,false,'Explicit fictitious policy correction',$4)",[order,expected,mode,key],actor);
    await assert.rejects(change("optional",randomUUID(),staff,await version()),e=>e.code==="42501");

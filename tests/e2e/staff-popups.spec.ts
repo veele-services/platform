@@ -15,7 +15,6 @@ async function inspectDialog(page: Page, dialog: Locator, info: TestInfo, name: 
     const box = await dialog.boundingBox();
     return !!box && box.x >= -1 && box.y >= -1 && box.x + box.width <= viewport.width + 1 && box.y + box.height <= viewport.height + 1;
   }).toBe(true);
-  const frame = (await dialog.boundingBox())!;
   await expect.poll(() => dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   const input = dialog.locator('input:not([type="checkbox"]), select, textarea').first();
   if (await input.count()) await expect(input).toHaveCSS("font-size", viewport.width <= 600 ? "16px" : "12.8px");
@@ -26,9 +25,13 @@ async function inspectDialog(page: Page, dialog: Locator, info: TestInfo, name: 
     const body = dialog.locator(".ps-modal-body, .staff-dialog-scroll, .ticket-dialog-body, form").first();
     if (await body.count()) await body.evaluate(el => { el.scrollTop = el.scrollHeight; });
     await expect(footer).toBeVisible();
-    const box = await footer.boundingBox();
-    expect(box!.y).toBeGreaterThanOrEqual(frame!.y);
-    expect(box!.y + box!.height).toBeLessThanOrEqual(frame!.y + frame!.height + 1);
+    // Opening animations must not compare the footer's final frame with an
+    // earlier, still-scaled dialog frame. Read both in the same layout pass.
+    await expect.poll(() => footer.evaluate(element => {
+      const dialog = element.closest('[role="dialog"]')!;
+      const outer = dialog.getBoundingClientRect(), inner = element.getBoundingClientRect();
+      return inner.top >= outer.top && inner.bottom <= outer.bottom + 1;
+    })).toBe(true);
   }
   await page.screenshot({ path: info.outputPath(`${name}.png`), animations: "disabled", style: "nextjs-portal,[data-sonner-toaster]{visibility:hidden}" });
 }
@@ -53,9 +56,17 @@ test("werkbonvensters blijven binnen het scherm en bewaren terugkeer naar de bon
     const returnDialog = page.getByRole("dialog", { name: "Werkbon terugmelden", exact: true });
     await inspectDialog(page, returnDialog, info, `return-${width}`);
     await returnDialog.getByRole("button", { name: "Annuleren", exact: true }).click();
-    await sheet.getByRole("tab", { name: "Rapport", exact: true }).click();
+    await sheet.getByRole("tab", { name: "Werkzaamheden", exact: true }).click();
+    const extraHelp=sheet.locator(".staff-panel").filter({has:page.getByRole("heading",{name:"Meerwerk",exact:true})}).getByRole("button",{name:"Informatie over meerwerk",exact:true});
+    await extraHelp.click();
+    const help=page.getByRole("note").filter({hasText:"Extra werkzaamheden"});
+    await expect(help).toBeVisible();
+    const helpBox=(await help.boundingBox())!;expect(helpBox.x).toBeGreaterThanOrEqual(0);expect(helpBox.x+helpBox.width).toBeLessThanOrEqual(width);
+    await page.keyboard.press("Escape");await expect(help).toHaveCount(0);
+    await expect(sheet).toBeVisible();await expect(extraHelp).toBeFocused();
     for (const [trigger, title] of [["Materiaal", "Materiaal toevoegen"], ["Onkosten", "Onkosten toevoegen"]]) {
-      await sheet.getByRole("button", { name: trigger, exact: true }).click();
+      await sheet.locator(".staff-panel").filter({has:page.getByRole("heading",{name:"Materiaal & onkosten",exact:true})}).getByRole("button",{name:"Toevoegen",exact:true}).click();
+      await page.getByRole("menuitem",{name:trigger,exact:true}).click();
       const dialog = page.getByRole("dialog", { name: title, exact: true });
       await inspectDialog(page, dialog, info, `${trigger}-${width}`);
       await dialog.getByRole("button", { name: "Annuleren", exact: true }).click();
@@ -143,7 +154,7 @@ test("actieve uitvoering toont meerwerk en afrondingscontrole zonder rapport of 
     await authenticateStaff(page, "field-worker@fieldgrid.test");
     await page.getByRole("button", { name: /WB-2030-001/ }).click();
     const sheet = page.getByRole("dialog", { name: "Werkbon WB-2030-001", exact: true });
-    await sheet.getByRole("tab", { name: "Rapport", exact: true }).click();
+    await sheet.getByRole("tab", { name: "Werkzaamheden", exact: true }).click();
     const extra = sheet.locator(".staff-panel").filter({ has: page.getByRole("heading", { name: "Meerwerk", exact: true }) });
     await extra.getByRole("button", { name: "Toevoegen", exact: true }).click();
     const extraDialog = page.getByRole("dialog", { name: "Meerwerk toevoegen", exact: true });

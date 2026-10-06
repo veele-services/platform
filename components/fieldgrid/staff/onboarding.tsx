@@ -94,7 +94,7 @@ export function Onboarding({ profile, depots, email, notificationPreferences, pe
       <section className="ps-onboarding-main">
         <header className="ps-onboarding-header">
           <div>
-            <span className="ps-onboarding-kicker">Fieldgrid · Eerste bezoek</span>
+            <span className="ps-onboarding-kicker">Personeelsapp · Eerste bezoek</span>
             <h1 id="onboarding-title">Account instellen</h1>
             <p>{showPolicy ? "Privacy en gebruik" : `Stap ${step + 1} van ${labels.length} · ${labels[step]}`}</p>
           </div>
@@ -113,13 +113,13 @@ export function Onboarding({ profile, depots, email, notificationPreferences, pe
             <span className="ps-onboarding-kicker">Privacy en gebruik</span>
             <h2 id="onboarding-step-title">Zo gaan we met je gegevens om</h2>
             <p>Deze korte uitleg helpt je om de instellingen te controleren. De formele privacy-informatie en gebruiksvoorwaarden van jouw organisatie blijven leidend.</p>
-            <section><h3>Welke gegevens gebruikt Fieldgrid?</h3><p>Je profiel- en contactgegevens, vervoer, eventuele beschikbaarheid en meldingskeuzes worden gebruikt om je werk te plannen, uit te voeren en je daarover te informeren. In werkbonnen kunnen ook notities, bestanden en ondertekeningen staan.</p></section>
+            <section><h3>Welke gegevens gebruikt je organisatie?</h3><p>Je profiel- en contactgegevens, vervoer, eventuele beschikbaarheid en meldingskeuzes worden gebruikt om je werk te plannen, uit te voeren en je daarover te informeren. In werkbonnen kunnen ook notities, bestanden en ondertekeningen staan.</p></section>
             <section><h3>Wie kan de gegevens zien?</h3><p>Alleen bevoegde gebruikers binnen je huidige organisatie krijgen toegang voor hun werkzaamheden. Wat je zelf mag bekijken of aanpassen hangt af van de rechten die je organisatie heeft ingesteld.</p></section>
-            <section><h3>Jouw keuzes en verzoeken</h3><p>Je kunt je gegevens en meldingskeuzes in Fieldgrid controleren en, waar toegestaan, wijzigen. Vraag je organisatiebeheerder om de volledige privacy-informatie of om een verzoek voor inzage, correctie, bewaartermijnen of verwijdering te behandelen.</p></section>
+            <section><h3>Jouw keuzes en verzoeken</h3><p>Je kunt je gegevens en meldingskeuzes in de personeelsapp controleren en, waar toegestaan, wijzigen. Vraag je organisatiebeheerder om de volledige privacy-informatie of om een verzoek voor inzage, correctie, bewaartermijnen of verwijdering te behandelen.</p></section>
             <section><h3>Veilig en zorgvuldig gebruik</h3><p>Gebruik je account persoonlijk, deel geen inloggegevens en voeg alleen informatie toe die nodig is voor je werk. Meld verlies van een apparaat of vermoed misbruik direct bij je organisatie.</p></section>
           </div> : <>
             {step === 0 && <div className="ps-onboarding-step ps-onboarding-welcome">
-              <div><span className="ps-onboarding-kicker">Jouw start bij Fieldgrid</span><h2 id="onboarding-step-title">Welkom, {profile.preferred_name || profile.full_name.split(" ")[0]}.</h2><p>Laten we je account klaarzetten voor je eerste werkdag. Controleer je gegevens en stel je account in voor jouw werkdag.</p></div>
+              <div><span className="ps-onboarding-kicker">Jouw eerste werkdag</span><h2 id="onboarding-step-title">Welkom, {profile.preferred_name || profile.full_name.split(" ")[0]}.</h2><p>Laten we je account klaarzetten voor je eerste werkdag. Controleer je gegevens en stel je account in voor jouw werkdag.</p></div>
               <div className="ps-onboarding-feature-grid">
                 <article><UserRound/><div><strong>Je profiel</strong><p>Contactgegevens en bereikbaarheid</p></div></article>
                 <article><Navigation/><div><strong>Onderweg naar werk</strong><p>Je vervoer en vertreklocatie</p></div></article>

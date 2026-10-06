@@ -1,3 +1,4 @@
+import { createBrandPalette } from "../../lib/branding/palette";
 import { expect, test } from "@playwright/test";
 import { ticketModule } from "./staff-modules";
 import { authenticateStaff } from "./staff-auth";
@@ -45,8 +46,8 @@ test("actieve Tickets opent de bestaande engine in dezelfde personeelsopmaak", a
     };
     for (const width of [1920, 1440, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 944 });
-      await expect(page.locator(".ps-week-day.active")).toHaveCSS("background-color", "rgb(54, 131, 65)");
-      await expect(page.locator(".ps-order-card").first()).toHaveCSS("background-color", "rgb(255, 255, 255)");
+      await expect(page.locator(".ps-week-day.active")).toHaveCSS("background-color", `rgb(${[1,3,5].map(i=>Number.parseInt(createBrandPalette("#214E72","#C65D21").action.slice(i,i+2),16)).join(", ")})`);
+      await expect(page.locator(".ps-order-card").first()).toHaveCSS("background-color", `rgb(${[1,3,5].map(i=>Number.parseInt(createBrandPalette("#214E72","#C65D21").surface.slice(i,i+2),16)).join(", ")})`);
       await capture(`planning-${width}`);
     }
     await page.setViewportSize({ width: 1920, height: 944 });

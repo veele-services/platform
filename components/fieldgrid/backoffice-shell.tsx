@@ -1,4 +1,5 @@
 "use client";
+import { PageHeading } from "./page-heading";
 import { TravelSettings } from "./travel-settings";
 import { TicketNavigation } from "./tickets/navigation";
 import { NotificationBell } from "./notifications/inbox";
@@ -100,7 +101,7 @@ function ActionForm({ action, children, className, success = "Opgeslagen", onSuc
 }
 
 function PageIntro({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children?: ReactNode }) {
-  return <header className="page-intro"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>{children}</header>;
+  return <PageHeading eyebrow={eyebrow} title={title} help={description} actions={children}/>;
 }
 
 function Empty({ children }: { children: ReactNode }) { return <div className="workspace-empty"><PackageCheck size={28}/><p>{children}</p></div>; }

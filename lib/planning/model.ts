@@ -15,6 +15,7 @@ export type Crew = {
   end: string;
   status: string;
   version: number;
+  actualStart?: string | null; actualEnd?: string | null; timeBudgetMinutes?: number; workMinutes?: number; overrun?: boolean;
   qualifications: Array<{ code: string; hard: boolean }>;
   travel: Array<{
     direction: string;
