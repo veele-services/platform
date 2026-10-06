@@ -10,6 +10,7 @@
 @import 'tw-animate-css';
 @import '../vendor/shadcn-tailwind-4.13.0.css';
 @import './dashboard-typography.css';
+@import './workspace-modals.css';
 [data-account-fence] { display: none; }
 html[data-account-blocked] body > :not([data-account-fence]) { visibility: hidden !important; }
 html[data-account-blocked] [data-account-fence] { display: grid; place-items: center; position: fixed; inset: 0; z-index: 2147483647; padding: 24px; background: #f5f7f9; color: #222c35; }

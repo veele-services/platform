@@ -160,24 +160,14 @@
 .resource-more-content[data-tenant-theme] button {padding:10px;font-size:calc(.8125rem * var(--dashboard-font-scale, 1));font-weight:500;color:var(--brand-ink);}
 .resource-more-content[data-tenant-theme] button:hover {background:var(--brand-surface);}
 
-/* Radix portals escape the shell. Existing CSS roles remain, but every frame
- * now has one fixed outer size and an internally scrolling content area. */
+/* Radix portals escape the shell. The shared workspace modal stylesheet
+ * owns content flow; only the tenant theme and frame sizing live here. */
 :is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme] {
   width:min(860px,calc(100vw - 32px))!important;max-width:calc(100vw - 32px)!important;
   height:90dvh!important;max-height:90dvh!important;display:flex!important;flex-direction:column;
-  padding:0!important;gap:0!important;overflow:hidden;border-radius:18px!important;
+  padding:0!important;gap:0!important;overflow:hidden;border-radius:20px!important;
   background:#fff;color:var(--brand-ink,#1a2632);border-color:var(--brand-border,#e4e9ec);
 }
-:is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme]>header {
-  position:static;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
-  flex:0 0 auto;padding:24px 28px 20px;border-bottom:1px solid var(--brand-border,#e4e9ec);background:#fff;
-}
-:is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme]>header h2 {font-size:calc(1.2rem * var(--dashboard-font-scale, 1));line-height:1.4;font-weight:600;margin:5px 0 0;overflow-wrap:anywhere;}
-:is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme] :is(.dossier-form,.commercial-form,.wo-form) {min-height:0;flex:1;overflow:hidden;display:flex;flex-direction:column;}
-:is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme] :is(.dossier-form-fields,.commercial-dialog-body,.wo-dialog-body,.ticket-dialog-body,.nt-dialog-body,.resource-modal-body,.dossier-history) {
-  min-height:0;flex:1;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:24px 28px;
-}
-:is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme] :is(footer,.wizard-footer,.ticket-dialog-footer) {flex:0 0 auto;padding:16px 28px;border-top:1px solid var(--brand-border,#e4e9ec);background:#fff;}
 :is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme] :is(input,textarea,select):not([type=checkbox]):not([type=radio]) {border-color:var(--brand-border,#e4e9ec);border-radius:9px;color:var(--brand-ink,#1a2632);font-size:calc(.875rem * var(--dashboard-font-scale, 1));}
 :is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme] :is(button,a,input,textarea,select):focus-visible {outline:3px solid var(--brand-focus,#368341);outline-offset:3px;}
 :is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme] .primary-button {background:var(--brand-action,#368341);color:var(--brand-action-foreground,#fff);box-shadow:none;}
@@ -270,8 +260,5 @@
   :is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme] {
     width:100vw!important;max-width:100vw!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important;border:0;
   }
-  :is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme]>header {padding:calc(21px + env(safe-area-inset-top)) 20px 18px;}
-  :is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme] :is(.dossier-form-fields,.commercial-dialog-body,.wo-dialog-body,.ticket-dialog-body,.nt-dialog-body,.resource-modal-body,.dossier-history) {padding:21px 20px;}
-  :is(.dossier-dialog,.commercial-dialog,.ticket-dialog,.nt-dialog,.resource-modal)[data-slot=dialog-content][data-tenant-theme] :is(footer,.wizard-footer,.ticket-dialog-footer) {padding:16px 20px calc(16px + env(safe-area-inset-bottom));}
 }
 @media(prefers-reduced-motion:reduce) {.workspace-shell .workspace-sidebar {transition:none;}}
