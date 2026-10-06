@@ -3761,3 +3761,8 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* Contextual help stays beside each existing title; descriptions and page order stay in place. */
+.personnel-app .ps-page-title-row {display:flex;align-items:center;gap:6px;}
+.personnel-app .ps-page-title-row h1 {min-width:0;}
+.personnel-app .ps-page-title-row .help-tip-trigger {margin:0;width:28px;height:28px;}

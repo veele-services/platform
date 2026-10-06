@@ -241,7 +241,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         </div>
       </header>
       <main className="ps-content">
-        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid", "instellingen"].includes(moreView)) && <header className="ps-page-heading"><div><h1>{title}</h1><p>{view === "nieuws" ? "Het laatste van jouw organisatie." : moreView === "menu" ? "Personeelszaken en jouw instellingen." : moreView === "documenten" ? "Alles wat je nodig hebt voor je werk." : "Jouw contactgegevens en vervoer."}</p></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
+        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid", "instellingen"].includes(moreView)) && <header className="ps-page-heading"><div><div className="ps-page-title-row"><h1>{title}</h1><HelpTip label={`Informatie over ${title}`}>{view === "nieuws" ? "Berichten komen van je organisatie. Markeer een bericht als gelezen nadat je het hebt bekeken." : moreView === "menu" ? "Je personeelsgegevens, verlof, beschikbaarheid en voorkeuren vind je hier. De beschikbare acties volgen de instellingen van je organisatie." : moreView === "documenten" ? "Hier staan de documenten die je organisatie met jou heeft gedeeld." : "Werk je contact- en vervoersgegevens bij voor je organisatie."}</HelpTip></div><p>{view === "nieuws" ? "Het laatste van jouw organisatie." : moreView === "menu" ? "Personeelszaken en jouw instellingen." : moreView === "documenten" ? "Alles wat je nodig hebt voor je werk." : "Jouw contactgegevens en vervoer."}</p></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
         {view === "planning" && (tenant.enabledServices.includes("planning") ? <PlanningScreen orders={assigned} assignments={assignments} data={data} timezone={tenant.timezone} onOpen={openOrder} onHours={() => navigate("uren")} onNews={() => navigate("nieuws")}/> : <Empty icon={CalendarDays} title="Planning niet ingeschakeld">Vraag je beheerder om de module Planning te activeren.</Empty>)}
         {view === "nieuws" && <NewsScreen data={data} onRead={(id) => run(() => markAnnouncementRead(id), "Gemarkeerd als gelezen")}/>}
         {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run}/>}
@@ -391,7 +391,7 @@ function HoursScreen({ data, personnelId, timezone, pending, run }: { data: Staf
     else setChooseCorrection(true);
   };
   return <>
-    <header className="ps-page-heading ps-hours-heading"><div><h1>Mijn uren</h1><p>Je volledige werkdag, met reistijd apart geregistreerd.</p></div><button className="ps-secondary" disabled={pending || !canClose} title={closeHint} onClick={() => runDayCommand(`close:${selectedDay}`, { command: "close", workDay: selectedDay, note: null }, "Werkdag afgesloten")}><Square/>{closed ? "Werkdag afgesloten" : "Werkdag afsluiten"}</button></header>
+    <header className="ps-page-heading ps-hours-heading"><div><div className="ps-page-title-row"><h1>Mijn uren</h1><HelpTip label="Informatie over Mijn uren">Werk, reistijd en overige werktijd blijven apart zichtbaar. Pauzes tellen niet mee in het totaal.</HelpTip></div><p>Je volledige werkdag, met reistijd apart geregistreerd.</p></div><button className="ps-secondary" disabled={pending || !canClose} title={closeHint} onClick={() => runDayCommand(`close:${selectedDay}`, { command: "close", workDay: selectedDay, note: null }, "Werkdag afgesloten")}><Square/>{closed ? "Werkdag afgesloten" : "Werkdag afsluiten"}</button></header>
     <div className="ps-hours-metrics" aria-label="Geregistreerde dagtotalen">
       <section className="ps-panel"><span>Werkdag</span><strong>{staffDuration(totals.paid)}</strong><small>{rows[0] ? `Vanaf ${staffClock(rows[0].starts_at, timezone)}${running ? " tot nu" : " · geregistreerde tijd"}` : "Nog geen geregistreerde tijd"}</small></section>
       <section className="ps-panel"><span>Op locatie</span><strong>{staffDuration(totals.work)}</strong><small>Uit je werkbonnen</small></section>
@@ -541,7 +541,7 @@ function LeaveScreen({ requests, entitlements, timezone, pending, run }: { reque
   const dateLabel = (day: string) => new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`));
   const requestYears = new Set(requests.flatMap(request => [request.starts_on.slice(0, 4), request.ends_on.slice(0, 4)]));
   return <div className="ps-leave-screen">
-    <header className="ps-page-heading"><div><h1>Verlof</h1><p>Even tijd voor jezelf. Regel je aanvraag hier.</p></div><button className="ps-primary" onClick={() => setOpen(true)}><Plus/>Verlof aanvragen</button></header>
+    <header className="ps-page-heading"><div><div className="ps-page-title-row"><h1>Verlof</h1><HelpTip label="Informatie over Verlof">Een aanvraag reserveert nog geen verlof. Je ontvangt een melding wanneer je manager een besluit neemt.</HelpTip></div><p>Even tijd voor jezelf. Regel je aanvraag hier.</p></div><button className="ps-primary" onClick={() => setOpen(true)}><Plus/>Verlof aanvragen</button></header>
     <div className="ps-stat-grid" aria-label="Verlofoverzicht"><div><small>Beschikbaar saldo</small><strong>{availableMinutes === null ? "Nog niet ingesteld" : leaveDuration(Math.max(0, availableMinutes))}</strong><small>{year}</small></div><div><small>Goedgekeurd</small><strong>{leaveDuration(approvedMinutes)}</strong><small>Dit kalenderjaar</small></div><div><small>In afwachting</small><strong>{pendingCount}</strong><small>{pendingCount === 1 ? "Aanvraag" : "Aanvragen"}</small></div></div>
     <section className="ps-panel ps-leave-list" aria-labelledby="ps-leave-list-title">
       <div className="ps-panel-heading"><h2 id="ps-leave-list-title">Mijn aanvragen</h2><span className="ps-leave-year">{requestYears.size > 1 ? "Alle jaren" : [...requestYears][0] ?? year}</span></div>
@@ -594,7 +594,7 @@ function AvailabilityScreen({ profile, pending, run, onLeave }: { profile: Staff
     }, "Beschikbaarheid opgeslagen");
   };
   return <div className="ps-availability-screen">
-    <header className="ps-page-heading"><div><h1>Beschikbaarheid</h1><p>Geef aan wanneer je doorgaans kunt werken.</p></div></header>
+    <header className="ps-page-heading"><div><div className="ps-page-title-row"><h1>Beschikbaarheid</h1><HelpTip label="Informatie over Beschikbaarheid">Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan.</HelpTip></div><p>Geef aan wanneer je doorgaans kunt werken.</p></div></header>
     <div className="ps-availability-grid">
       <section className="ps-panel ps-availability-week" aria-labelledby="ps-availability-title"><form onSubmit={submit}>
         <div className="ps-panel-heading"><h2 id="ps-availability-title">Mijn vaste week</h2><span className="ps-status" data-status={enabled ? "approved" : "managed"}>{enabled ? "Bewerken toegestaan" : "Beheerd door planning"}</span></div>
@@ -711,7 +711,7 @@ function SettingsScreen({ profile, email, tenantName, notificationPreferences, p
     }, "Meldingsvoorkeuren opgeslagen");
   };
   return <div className="ps-settings-screen">
-    <header className="ps-page-heading"><div><h1>Instellingen</h1><p>Jouw gegevens en voorkeuren.</p></div></header>
+    <header className="ps-page-heading"><div><div className="ps-page-title-row"><h1>Instellingen</h1><HelpTip label="Informatie over Instellingen">Beheer je persoonlijke voorkeuren. Je e-mailadres wordt beheerd door personeelszaken.</HelpTip></div><p>Jouw gegevens en voorkeuren.</p></div></header>
     <div className="ps-settings-layout">
       <nav className="ps-settings-nav" aria-label="Instellingenonderdelen">
         {([["profile", "Mijn profiel"], ["notifications", "Meldingen"], ["account", "Account & toegang"]] as const).map(([key, label]) => <button type="button" key={key} aria-current={section === key ? "page" : undefined} onClick={() => setSection(key)}>{label}</button>)}
