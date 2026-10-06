@@ -7,8 +7,9 @@ import type { TenantContext } from "@/lib/auth/context";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import "./work-orders.css";
 
-export function WorkOrderDialog({ title, description, tenant, onClose, children, dirty = false, busy = false }: {
+export function WorkOrderDialog({ title, description, tenant, eyebrow = "WERKBON", onClose, children, dirty = false, busy = false }: {
   title: string;
+  eyebrow?: string;
   description: string;
   tenant: Pick<TenantContext, "primaryColor" | "accentColor">;
   onClose: () => void;
@@ -28,7 +29,7 @@ export function WorkOrderDialog({ title, description, tenant, onClose, children,
   return <Dialog open onOpenChange={(open) => { if (!open) close(); }}>
     <DialogContent className="commercial-dialog wo-dialog" showCloseButton={false} style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
       <header>
-        <div><span className="eyebrow">WERKBON</span><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></div>
+        <div><span className="eyebrow">{eyebrow}</span><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></div>
         <button type="button" className="icon-button" aria-label="Sluiten" disabled={busy} onClick={close}><X size={20}/></button>
       </header>
       {children}

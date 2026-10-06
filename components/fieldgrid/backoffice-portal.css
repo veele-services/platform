@@ -262,3 +262,12 @@
   }
 }
 @media(prefers-reduced-motion:reduce) {.workspace-shell .workspace-sidebar {transition:none;}}
+
+/* Settings fields follow their content, without stretching to the preview. */
+.tenant-house-style .workspace-form,.tenant-house-style fieldset{align-items:start;align-content:start}
+.tenant-house-style .workspace-form label{align-content:start}
+.tenant-house-style .tenant-color-control{align-items:center}
+.tenant-house-style .tenant-color-control input{height:43px;align-self:start}
+.tenant-house-style .tenant-branding-colors{grid-column:1/-1}
+.tenant-house-style-layout{grid-template-columns:minmax(0,1fr) minmax(260px,.7fr)}
+@media(max-width:1000px){.tenant-house-style-layout{grid-template-columns:minmax(0,1fr)}}

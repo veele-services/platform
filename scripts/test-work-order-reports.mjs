@@ -74,6 +74,11 @@ test("Work-order reports: individual time, immutable versions, signing and direc
    assert.ok(timers.find(e=>e.personnel_id===people[0]).ends_at);assert.equal(timers.find(e=>e.personnel_id===people[1]).ends_at,null);
    assert.equal((await db.query("select status from public.work_orders where id=$1",[order])).rows[0].status,"in_progress");
   });
+  await t.test("completed employees cannot change contributions while a colleague continues",async()=>{
+   await assert.rejects(call("select public.staff_work_order_cost_command($1,'add_material',$2,$3)",[tenant,{workOrderId:order,description:"Late material",quantity:1,unit:"piece",unitPriceCents:100,customerVisible:true},randomUUID()]),e=>["42501","23514"].includes(e.code));
+   await assert.rejects(call("select public.complete_work_order_task($1,true,null)",[task]),e=>e.code==="42501");
+   assert.equal((await panel()).isDeliveryOwner,true);
+  });
   await t.test("pause/resume are own idempotent time segments",async()=>{
    const key=randomUUID();const first=(await call("select to_jsonb(public.transition_work_order($1,'pause',$2,$3)) data",[order,await version(),key],coworker))[0].data;
    const retried=(await call("select to_jsonb(public.transition_work_order($1,'pause',1,$2)) data",[order,key],coworker))[0].data;

@@ -18,6 +18,7 @@ test("personeelsnummering is instelbaar, automatisch en per medewerker aanpasbaa
     await page.setViewportSize({ width: 1440, height: 900 });
     await authenticateWorkspace(page, "platform-admin@fieldgrid.test", "/app/instellingen");
     await page.waitForURL("**/app/instellingen");
+    await page.getByRole("tab", { name: "Personeelsnummering", exact: true }).click();
     const settings = page.getByRole("region", { name: "Personeelsnummering" });
     await settings.getByLabel("Voorvoegsel (prefix)").fill("MW-");
     await settings.getByRole("spinbutton", { name: /^Startnummer/ }).fill("100");
@@ -31,6 +32,7 @@ test("personeelsnummering is instelbaar, automatisch en per medewerker aanpasbaa
     await settings.getByRole("button", { name: "Nummering opslaan" }).click();
     await expect(page.locator('[data-sonner-toast]').getByText("Nummering opslaan", { exact: true })).toBeVisible();
     await page.reload();
+    await page.getByRole("tab", { name: "Personeelsnummering", exact: true }).click();
     await expect(settings.getByLabel("Voorvoegsel (prefix)")).toHaveValue(prefix);
     await expect(settings.getByRole("spinbutton", { name: /^Startnummer/ })).toHaveValue("100");
     await page.getByRole("link", { name: "Personeel", exact: true }).click();

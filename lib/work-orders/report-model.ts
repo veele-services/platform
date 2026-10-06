@@ -19,7 +19,7 @@ export type ReportActivity = { id: string; at: string; title: string; descriptio
 export type WorkOrderReport = { isDeliveryOwner?: boolean; draftSnapshot?: ReportSnapshot | null; activity?: ReportActivity[]; orderId: string; orderVersion: number; number: string; state: string; policy: SignaturePolicy; canReview: boolean; canSubmit: boolean; canCapture: boolean; canWaive?: boolean; canEditPolicy?:boolean;configuredMode?:"inherit"|SignaturePolicy["mode"];employeeSignatureRequired?:boolean; legacy: boolean; checklists:import("./model").ChecklistInstance[]; versions: ReportVersion[]; historicalSignatures: Array<{ id: string; name: string; version: number; signedAt: string }> };
 export const reportStateLabels: Record<string,string> = {draft:"Concept",waiting_signature:"Wacht op handtekening",review:"Ter controle",correction:"Correctie gevraagd",approved:"Goedgekeurd",superseded:"Vervangen door nieuwe versie"};
 export const signatureModeLabels = { none:"Niet nodig",optional:"Optioneel",required:"Verplicht" };
-export const signatureSourceLabels: Record<string,string> = {work_order:"Werkbon",object:"Object 360",template:"Werkbontemplate",tenant:"Tenantstandaard",historical:"Bestaande afspraak"};
+export const signatureSourceLabels: Record<string,string> = {task:"Taakafspraak",work_order:"Werkbon",object:"Object 360",template:"Werkbontemplate",tenant:"Tenantstandaard",historical:"Bestaande afspraak"};
 
 const reportSnapshotSchema = z.object({
   schema: z.literal(1),
