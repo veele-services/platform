@@ -581,6 +581,11 @@
       "version": "20261006084000",
       "name": "hybrid_inline_dossier",
       "sha256": "1045956349f329ddc711fd33df002fa7b50db486041d050fecf43452a5d582bc"
+    },
+    {
+      "version": "20261006085000",
+      "name": "live_planning_preserve_untouched_orders",
+      "sha256": "85d60086df56cde2d30bd6055309add93faead8a2282425a1952aec2a351e053"
     }
   ]
 }

@@ -27,6 +27,16 @@ test('live personnel planning: actual times, free extensions, reflow and urgent 
   await db.query("update public.work_orders set status='in_progress',actual_start_at=now()-interval '61 minutes' where id=$1",[order]);
   await db.query("insert into public.work_order_tasks(id,tenant_id,work_order_id,task_code,task_name,duration_minutes,unit,unit_price_cents,vat_basis_points) values($1,$2,$3,'LIVE','Fictitious task',60,'task',10000,2100)",[task,tenant,order]);
   await t.test('running intervals grow and overrun is individual',async()=>{await db.query('select private.refresh_live_planning($1)',[tenant]);const w=await row();assert.equal(w.assignments.length,2);assert.ok(w.assignments.every(a=>a.overrun));assert.ok(Date.parse(w.end)>Date.now());});
+  await t.test('refresh preserves deliberate order bounds when individual assignments have not started or shifted',async()=>{
+   await db.query('savepoint untouched_case');try{
+    const untouched=randomUUID(),unstarted=randomUUID();
+    await db.query("insert into public.personnel(id,tenant_id,full_name) values($1,$2,'Fictitious future employee')",[unstarted,tenant]);
+    await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at,created_by) values($1,$2,$3,$4,$5,'Onderhoud','planned',now()+interval '2 days',now()+interval '2 days 3 hours',now()+interval '2 days',now()+interval '2 days 3 hours',$6)",[untouched,tenant,customer,object,`W-${untouched}`,manager]);
+    await db.query("insert into public.work_order_assignments(tenant_id,work_order_id,personnel_id,planned_start_at,planned_end_at,projected_start_at,projected_end_at) values($1,$2,$3,now()+interval '2 days 24 minutes',now()+interval '2 days 150 minutes',now()+interval '2 days 24 minutes',now()+interval '2 days 150 minutes')",[tenant,untouched,unstarted]);
+    const bounds=async()=> (await db.query('select planned_start_at,planned_end_at,projected_start_at,projected_end_at from public.work_orders where id=$1',[untouched])).rows[0];
+    const before=await bounds();await db.query('select private.refresh_live_planning($1)',[tenant]);assert.deepEqual(await bounds(),before);
+   }finally{await db.query('rollback to savepoint untouched_case');await db.query('release savepoint untouched_case');}
+  });
   await t.test('future work moves forward with known travel and repeated refresh does not pull it back',async()=>{
    await db.query('savepoint travel_case');try{
     const next=randomUUID(),nextAssignment=randomUUID(),destination=randomUUID();
@@ -37,6 +47,7 @@ test('live personnel planning: actual times, free extensions, reflow and urgent 
     await db.query('select private.refresh_live_planning($1)',[tenant]);
     const times=(await db.query("select a.projected_start_at start,a.planned_start_at planned,extract(epoch from(a.projected_start_at-b.projected_end_at))/60 margin from public.work_order_assignments a join public.work_order_assignments b on b.id=$2 where a.id=$1",[nextAssignment,otherAssignment])).rows[0];
     assert.equal(Number(times.margin),25);assert.ok(times.start>times.planned);
+    assert.equal((await db.query('select projected_start_at from public.work_orders where id=$1',[next])).rows[0].projected_start_at.toISOString(),times.start.toISOString());
     await db.query('select private.refresh_live_planning($1)',[tenant]);assert.equal((await db.query('select projected_start_at from public.work_order_assignments where id=$1',[nextAssignment])).rows[0].projected_start_at.toISOString(),times.start.toISOString());
    }finally{await db.query('rollback to savepoint travel_case');await db.query('release savepoint travel_case');}
   });
