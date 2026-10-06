@@ -14,7 +14,7 @@ test("Work-order reports: individual time, immutable versions, signing and direc
  const stop=async actor=>call("select public.transition_work_order($1,'stop',$2,$3)",[order,await version(),randomUUID()],actor);
  const panel=async(actor=staff)=>(await call("select public.work_order_report($1) data",[order],actor))[0].data;
  const submit=async(summary,key=randomUUID())=>(await call("select public.submit_work_order_report($1,$2,$3,$4) data",[order,await version(),summary,key]))[0].data;
- let report,oldSignature;
+ let report,oldSignature,submissionKey;
  try{
   for(const user of users){await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())",[user,`${user}@report.test`]);await db.query("insert into auth.sessions(id,user_id,created_at,updated_at) values($1,$2,now(),now())",[sessions[user],user]);}
   await db.query("insert into public.tenants(id,slug,name) values($1,$2,'Fictitious reporting tenant')",[tenant,`reports-${tenant}`]);
@@ -88,6 +88,10 @@ test("Work-order reports: individual time, immutable versions, signing and direc
    }
    assert.equal((await db.query("select count(*) from public.time_entries where assignment_id=$1 and kind='break'",[assignments[1]])).rows[0].count,"1");
    await call("select public.transition_work_order($1,'resume',$2,$3)",[order,await version(),randomUUID()],coworker);await stop(coworker);
+   const pendingDelivery=(await db.query("select status,report_state,attention_reason from public.work_orders where id=$1",[order])).rows[0];
+   assert.deepEqual(pendingDelivery,{status:'in_progress',report_state:'draft',attention_reason:'report_pending'},'Stopped crew must still submit the customer delivery');
+   await db.query("update public.work_orders set status='completed' where id=$1",[order]);
+   assert.equal((await db.query("select status from public.work_orders where id=$1",[order])).rows[0].status,'in_progress','Even a privileged direct write cannot invent a completed delivery');
   });
   await t.test("unassigned and management cannot enter execution/signing context",async()=>{
    await assert.rejects(panel(outsider),e=>e.code==="42501");
@@ -117,7 +121,10 @@ test("Work-order reports: individual time, immutable versions, signing and direc
    const exception=randomUUID();await db.query("insert into public.work_order_exceptions(id,tenant_id,work_order_id,kind,description,blocking,created_by) values($1,$2,$3,'unsafe','Fictitious unresolved hazard',true,$4)",[exception,tenant,order,staff]);
    await assert.rejects(submit("Fictitious completed work"),e=>e.code==="23514"&&e.message.includes("blokkerende"));
    await db.query("update public.work_order_exceptions set state='resolved',resolution='Fictitious resolved hazard' where id=$1",[exception]);
-   const key=randomUUID();report=await submit("Fictitious completed work",key);const retry=await submit("Fictitious completed work",key);assert.equal(report.id,retry.id);assert.equal(report.state,"waiting_signature");
+   const key=randomUUID();submissionKey=key;report=await submit("Fictitious completed work",key);const retry=await submit("Fictitious completed work",key);assert.equal(report.id,retry.id);assert.equal(report.state,"waiting_signature");
+   assert.equal((await panel()).canSubmit,false);assert.equal((await panel()).canCapture,true);
+   await assert.rejects(submit('Duplicate waiting-signature report'),e=>e.code==='23514');
+   assert.equal((await db.query("select status from public.work_orders where id=$1",[order])).rows[0].status,'in_progress','A frozen report still needs its required signature');
    assert.equal((await db.query("select count(*) from public.time_entries where assignment_id=any($1) and ends_at is null",[assignments])).rows[0].count,"0");
    await assert.rejects(call("select public.review_work_order($1,'approved',null)",[order],manager),e=>e.code==="23514");
    await assert.rejects(call("update public.work_orders set status='invoice_ready' where id=$1",[order],manager),e=>["23514","42501"].includes(e.code));
@@ -162,7 +169,18 @@ test("Work-order reports: individual time, immutable versions, signing and direc
    const expired=await call("select * from public.expired_work_order_signature_uploads()",[],undefined,"service_role");assert.ok(expired.some(i=>i.id===revokedIntent));
    await assert.rejects(call("select * from public.expired_work_order_signature_uploads()"),e=>e.code==="42501");
    oldSignature=await sign(current);assert.equal((await panel()).versions[0].state,"review");
+   assert.equal((await db.query("select status from public.work_orders where id=$1",[order])).rows[0].status,'completed','Only the final required signature completes the submitted delivery');
+   await db.query("savepoint current_report_version");
+   await db.query("update public.work_orders set report_version=report_version+1 where id=$1",[order]);
+   assert.equal((await db.query("select status from public.work_orders where id=$1",[order])).rows[0].status,'in_progress','A signature for a different report version cannot complete the current delivery');
+   await db.query("rollback to savepoint current_report_version");await db.query("release savepoint current_report_version");
    assert.equal((await db.query("select count(*) from public.signatures where report_id=$1",[current.id])).rows[0].count,"1");
+   assert.equal((await panel()).canSubmit,false);assert.equal((await panel()).canCapture,false);
+   await assert.rejects(submit('Duplicate delivered report'),e=>e.code==='23514');
+   assert.equal((await submit('Fictitious completed work',submissionKey)).id,current.id,'An authorized submission retry returns the existing immutable delivery');
+   await assert.rejects(call("select public.prepare_work_order_signature($1,$2,$3,'Late signer','Contact','employee',$4)",[order,current.id,current.contentHash,randomUUID()]),e=>e.code==='23514');
+   const intentRetry=(await call("select public.prepare_work_order_signature($1,$2,$3,'Fictitious signer','Contact op locatie','customer',$4) data",[order,current.id,current.contentHash,oldSignature]))[0].data;assert.equal(intentRetry.consumed,true);
+   await assert.rejects(call('select public.finalize_work_order_signature($1,$2)',[revokedIntent,'b'.repeat(64)],undefined,'service_role'),e=>e.code==='40001');
    await assert.rejects(call("update public.signatures set signer_name='Changed' where id=$1",[oldSignature],manager),e=>e.code==="42501");
    await db.query("update public.personnel set full_name='Changed after signing' where id=$1",[people[0]]);assert.equal((await panel()).versions[0].signatures[0].capturedBy,"Fictitious employee 1");
   });
@@ -180,6 +198,21 @@ test("Work-order reports: individual time, immutable versions, signing and direc
    await assert.rejects(call("select public.waive_work_order_signature($1,'Customer absent today')",[current.id],manager),e=>e.code==="42501");
    await db.query("insert into public.object_customer_bindings(tenant_id,object_id,user_id,active,created_by)values($1,$2,$3,true,$4)",[tenant,object,reportCustomer,manager]);
    await sign(current);await call("select public.review_work_order($1,'approved',null)",[order],manager);assert.equal((await panel()).versions[0].state,"approved");
+  });
+  await t.test("approved execution appears automatically as a read-only invoice concept with live finance guards",async()=>{
+   const concepts=(actor=manager,target=tenant,role="authenticated")=>call("select public.execution_invoice_concepts($1,$2) data",[target,order],actor,role).then(rows=>rows[0].data);
+   const before=(await db.query("select count(*) from public.invoices where tenant_id=$1",[tenant])).rows[0].count;
+   const values=await concepts();assert.equal(values.length,1);assert.equal(values[0].id,order);assert.equal(values[0].lines.length,1);assert.equal(values[0].lines[0].taskId,task);
+   assert.equal(values[0].subtotalCents,123456789);assert.equal(values[0].vatCents,Math.round(123456789*.21));assert.equal(values[0].totalCents,values[0].subtotalCents+values[0].vatCents);
+   assert.equal((await db.query("select count(*) from public.invoices where tenant_id=$1",[tenant])).rows[0].count,before);
+   assert.equal(JSON.stringify(values).includes('CANARY'),false);
+   for(const actor of [staff,coworker,planner,outsider])await assert.rejects(concepts(actor),e=>e.code==='42501');
+   await assert.rejects(concepts(manager,randomUUID()),e=>e.code==='42501');
+   for(const role of ['anon','service_role'])await assert.rejects(concepts(manager,tenant,role),e=>e.code==='42501');
+   await db.query('savepoint concept_guard');try{
+    await db.query("update public.work_orders set status='in_progress',report_state='correction' where id=$1",[order]);assert.deepEqual(await concepts(),[]);
+    await db.query("update public.tenant_memberships set status='suspended' where tenant_id=$1 and user_id=$2",[tenant,manager]);await assert.rejects(concepts(),e=>e.code==='42501');
+   }finally{await db.query('rollback to savepoint concept_guard');await db.query('release savepoint concept_guard');}
   });
   await t.test("approved report notifies its frozen customer audience once through the central worker",async()=>{
    const current=(await panel()).versions[0],account=(await db.query("select id from public.customer_portal_accounts where tenant_id=$1 and user_id=$2",[tenant,reportCustomer])).rows[0].id;
@@ -273,8 +306,11 @@ test("Work-order reports: individual time, immutable versions, signing and direc
    assert.deepEqual(await list(),[]);
    await db.query("insert into public.tenant_branding(tenant_id) values($1) on conflict do nothing",[tenant]);
    await db.query("update public.work_orders set status='invoice_ready' where id=$1",[order]);
+   const concept=(await call("select public.execution_invoice_concepts($1,$2) data",[tenant,order],manager))[0].data[0];
    const inv=(await call("select (public.create_execution_invoice($1,$2,$3)).*",[tenant,randomUUID(),JSON.stringify([{taskId:task,quantity:1}])],manager))[0];
    const path=`${tenant}/${inv.id}/fictitious.pdf`,hash="a".repeat(64);
+   assert.equal(Number(inv.subtotal_cents),concept.subtotalCents);assert.equal(Number(inv.vat_cents),concept.vatCents);assert.equal(Number(inv.total_cents),concept.totalCents);
+   assert.deepEqual((await call("select public.execution_invoice_concepts($1,$2) data",[tenant,order],manager))[0].data,[]);
    await call("select public.attach_invoice_pdf($1,$2,$3)",[inv.id,path,hash],manager);
    await call("update public.invoices set status='sent',sent_at=now() where id=$1",[inv.id],manager);
    const visible=await list();assert.equal(visible.length,1);assert.equal(visible[0].total,Number(inv.total_cents));assert.equal(visible[0].balance,Number(inv.total_cents));assert.equal(visible[0].paymentPending,false);assert.deepEqual(visible[0].objectIds,[object]);

@@ -43,7 +43,7 @@ export function CustomerOnboarding({workspace,draft,preferenceVersion,save,refre
    else if(result.completed&&result.objectId)complete(result.objectId);else changeStep(Math.min(step+1,3));
   }catch{setError("Opslaan kon niet worden bevestigd. Probeer dezelfde stap opnieuw; je invoer blijft staan.");}});
  };
- return <CustomerDialog title="Je klantomgeving instellen" kicker="Welkom" close={close} busy={pending} dirty={dirty}
+ return <CustomerDialog guideKey="feature.account-setup" title="Je klantomgeving instellen" kicker="Welkom" close={close} busy={pending} dirty={dirty}
   footer={<><button className="button" type="button" disabled={pending} onClick={()=>{if(!dirty||window.confirm("Je laatste wijzigingen zijn nog niet opgeslagen. Toch sluiten?"))close();}}>Later verder</button>
    {step>0&&<button className="button" type="button" disabled={pending} onClick={()=>changeStep(step-1)}>Vorige</button>}
    <button className="button primary" form={formId} disabled={pending||!!review}>{pending?"Opslaan…":step===3?"Afronden en naar cockpit":"Opslaan en verder"}</button></>}>

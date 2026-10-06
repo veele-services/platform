@@ -11,6 +11,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env/server";
 import { renderInvoicePdf } from "@/lib/pdf/invoice";
+import { invoiceLogo } from "@/lib/pdf/invoice-brand";
+import { invoiceConceptSchema } from "@/lib/finance/invoice-concepts";
 import { sendEmail } from "@/lib/providers/sendgrid";
 import type { ActionResult } from "@/lib/actions/result";
 import { message } from "@/lib/actions/result";
@@ -47,13 +49,11 @@ export async function createInvoice(formData: FormData): Promise<ActionResult<{ 
     }
     if (!finalized) {
       const ids = z.string().min(1).parse(formData.get("workOrderIds")).split(",").map(id => z.uuid().parse(id));
-      const { data: tasks, error: tasksError } = await supabase.from("work_order_tasks").select("*").eq("tenant_id", context.tenant.id).in("work_order_id", ids);
-      const { data: allocated, error: allocationError } = await supabase.from("invoice_lines").select("work_order_task_id,work_order_id,source_snapshot,quantity").eq("tenant_id", context.tenant.id).in("work_order_id", ids);
-      if (tasksError || allocationError) throw new Error("Factureerbare bronnen konden niet worden geladen");
-      const sources = tasks.filter(t => t.completed_at && t.unit_price_cents > 0 && !["week","month"].includes(String((t.commercial_snapshot as Record<string,unknown>).price_basis||"")) && (!t.is_extra_work || t.extra_work_status === "approved")).map(t => ({
-        taskId: t.id,
-        quantity: Number(t.executed_quantity ?? t.quantity) - (allocated ?? []).filter(l => l.work_order_id===t.work_order_id && (l.work_order_task_id || (l.source_snapshot as Record<string,unknown>).work_order_task_id)===t.id).reduce((n,l) => n + Number(l.quantity), 0),
-      })).filter(t => t.quantity > 0);
+      const candidates = await supabase.rpc("execution_invoice_concepts", { target_tenant: context.tenant.id });
+      if (candidates.error) throw new Error("Factureerbare bronnen konden niet worden geladen");
+      const concepts = invoiceConceptSchema.array().parse(candidates.data).filter(item => ids.includes(item.id));
+      if (new Set(concepts.map(item => item.id)).size !== new Set(ids).size) throw new Error("Selecteer actuele goedgekeurde concepten");
+      const sources = concepts.flatMap(item => item.lines.map(line => ({ taskId: line.taskId, quantity: line.quantity })));
       if (!sources.length) throw new Error("Er zijn geen gecontroleerde, nog factureerbare hoeveelheden");
       const { data, error } = await supabase.rpc("create_execution_invoice", { target_tenant: context.tenant.id, request_id: requestId!, sources });
       if (error) throw new Error("Factuur niet aangemaakt. Controleer de rapportcontrole, akkoorden en nog factureerbare hoeveelheden.");
@@ -70,9 +70,12 @@ export async function createInvoice(formData: FormData): Promise<ActionResult<{ 
       tenantName: String(branding.tenant_name ?? context.tenant.name), customerName: String(customer.name ?? "Klant"),
       billingAddress: (customer.billing_address ?? {}) as Record<string, unknown>,
       reference: String(billing.reference || ""), costCenter: String(billing.costCenter || ""),
-      lines: lines.map((line) => ({ description: line.description, quantity: line.quantity, unitPriceCents: line.unit_price_cents, vatBasisPoints: line.vat_basis_points, totalCents: line.total_cents })),
+      lines: lines.map((line) => ({ description: line.description, quantity: line.quantity, unit: line.unit, unitPriceCents: line.unit_price_cents, vatBasisPoints: line.vat_basis_points, subtotalCents: line.subtotal_cents, vatCents: line.vat_cents, totalCents: line.total_cents })),
       subtotalCents: finalized.subtotal_cents, vatCents: finalized.vat_cents, totalCents: finalized.total_cents,
-      accentColor: String(branding.accent_color ?? "#41ac42"), footer: typeof branding.pdf_footer === "string" ? branding.pdf_footer : null,
+      primaryColor: typeof branding.primary_color === "string" ? branding.primary_color : undefined,
+      accentColor: typeof branding.accent_color === "string" ? branding.accent_color : undefined,
+      logo: await invoiceLogo(context.tenant.id, branding), senderEmail: typeof branding.sender_email === "string" ? branding.sender_email : undefined,
+      footer: typeof branding.pdf_footer === "string" ? branding.pdf_footer : null,
     });
 
     const path = `${context.tenant.id}/${finalized.id}/${finalized.invoice_number}.pdf`;

@@ -43,6 +43,6 @@ function Question({ checklist, question, editable, attachments }: { checklist: C
 export function ChecklistPanel({ orderId, checklists, editable, attachments }: { orderId: string; checklists: ChecklistInstance[]; editable: boolean; attachments: Photo[] }) {
   return <div className="wo-list" data-order={orderId}>
     {!checklists.length && <p>Geen checklists aan deze werkbon gekoppeld.</p>}
-    {checklists.map(c => <section className="wo-card" key={c.id} aria-label={c.name}><h3>{c.name} <small>Versie {c.version}</small></h3>{c.questions.filter(q => checklistQuestionState(c,q).visible).map(q => <Question key={`${q.id}:${c.answers.find(a => a.questionId === q.id)?.version ?? 0}`} checklist={c} question={q} editable={editable} attachments={attachments}/>)}</section>)}
+    {checklists.map(c => <section className="wo-checklist-instance" key={c.id} aria-label={c.name}><header><h3>{c.name}</h3><span className="dossier-status">Versie {c.version}</span></header>{c.questions.filter(q => checklistQuestionState(c,q).visible).map(q => <Question key={`${q.id}:${c.answers.find(a => a.questionId === q.id)?.version ?? 0}`} checklist={c} question={q} editable={editable} attachments={attachments}/>)}</section>)}
   </div>;
 }

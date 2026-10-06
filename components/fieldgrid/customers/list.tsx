@@ -1,5 +1,6 @@
 "use client";
-import { HelpTip } from "../help-tip";
+import { PageHeading } from "../page-heading";
+import { ListPagination } from "../list-pagination";
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -60,11 +61,6 @@ export function CustomersList({
   const remember = () => rememberCustomerScroll(key, window.scrollY);
   const href = (id: string, edit = false) =>
     `/app/klanten/${id}?return=${encodeURIComponent(back)}${edit ? "&edit=1" : ""}`;
-  const page = (next: number) => {
-    const p = new URLSearchParams(params);
-    p.set("page", String(next));
-    router.push(`${path}?${p}`, { scroll: false });
-  };
   const remove = (c: CustomerList["rows"][number], archive: boolean) => {
     if (
       !confirm(
@@ -91,24 +87,12 @@ export function CustomersList({
     ["tenant_admin", "management"].includes(r),
   );
   const activeFilters = Object.entries(filters).filter(
-    ([k, v]) => !["page", "sort"].includes(k) && v,
+    ([k, v]) => !["page", "pageSize", "sort"].includes(k) && v,
   );
   const active = activeFilters.length > 0;
   return (
     <div className="customer-workspace">
-      <header className="commercial-heading page-intro resource-intro">
-        <div>
-          <span className="eyebrow">RELATIES<HelpTip>Relaties, contactpersonen en opvolging. Open een klant voor het volledige dossier.</HelpTip></span>
-          <h1>Klanten</h1>
-
-        </div>
-        <button className="primary-button" onClick={() => setWizard(true)}>
-          <Plus size={17} />
-          Nieuwe klant
-        </button>
-      </header>
-      <div className="compact-filter-bar">
-        <span className="compact-filter-result">{data.total} {data.total === 1 ? "klant" : "klanten"}</span>
+      <PageHeading eyebrow="RELATIES" title="Klanten" help="Relaties, contactpersonen en opvolging. Open een klant voor het volledige dossier." actions={<>
         <CompactFilterMenu activeCount={activeFilters.length} contentClassName="customer-filter-popover">
       <form
         className="customer-toolbar"
@@ -116,6 +100,7 @@ export function CustomersList({
         onSubmit={(e) => {
           e.preventDefault();
           const p = new URLSearchParams();
+          p.set("pageSize", String(filters.pageSize));
           new FormData(e.currentTarget).forEach((v, k) => {
             if (v) p.set(k, String(v));
           });
@@ -209,7 +194,8 @@ export function CustomersList({
         </div>
       </form>
         </CompactFilterMenu>
-      </div>
+        <button className="primary-button" onClick={() => setWizard(true)}><Plus size={17}/>Nieuwe klant</button>
+      </>}/>
       <section className="panel resource-table-panel" aria-label="Klantenlijst">
         <div className="table-scroll">
           <table className="resource-table customer-table">
@@ -381,27 +367,8 @@ export function CustomersList({
             </span>
           </div>
         )}
-        <footer className="object-pagination">
-          <span>
-            {data.total} {data.total === 1 ? "klant" : "klanten"} · pagina{" "}
-            {data.page} van {Math.max(1, Math.ceil(data.total / 25))}
-          </span>
-          <button
-            className="resource-action"
-            disabled={data.page <= 1}
-            onClick={() => page(data.page - 1)}
-          >
-            Vorige
-          </button>
-          <button
-            className="resource-action"
-            disabled={data.page * 25 >= data.total}
-            onClick={() => page(data.page + 1)}
-          >
-            Volgende
-          </button>
-        </footer>
       </section>
+      <ListPagination total={data.total} page={data.page} pageSize={data.pageSize ?? filters.pageSize} noun="klanten" preferenceKey={`backoffice:${tenant.id}:customers`} href={back}/>
       {wizard && (
         <CustomerWizard
           tenant={tenant}

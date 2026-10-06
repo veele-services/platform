@@ -69,7 +69,7 @@ test("backoffice toont echte tenantdata en blijft bruikbaar over alle doelbreedt
   await expect(page.getByRole("heading", { name: /Demo Organisatie/ })).toBeVisible();
   await expect(page.getByRole("img", { name: "Logo van Demo Organisatie" })).toBeVisible();
   await expect(page.locator(".workspace-brand").getByText("Demo Organisatie", { exact: true })).toHaveCount(0);
-  await expect(page.locator(".workspace-sidebar").getByText("Powered by Fieldgrid", { exact: true })).toBeVisible();
+  await expect(page.locator(".workspace-sidebar:visible").getByText("Powered by Fieldgrid", { exact: true })).toBeVisible();
   await expect(page.getByText("LOGO", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Actuele tenantdata", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Planning", exact: true })).toHaveCount(0);
@@ -84,7 +84,7 @@ test("backoffice toont echte tenantdata en blijft bruikbaar over alle doelbreedt
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("link", { name: "Aanvragen & offertes" }).click();
   const palette = createBrandPalette("#214E72", "#C65D21");
-  await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(palette.sidebar));
+  await expect(page.locator(".workspace-sidebar:visible")).toHaveCSS("background-color", rgb(palette.sidebar));
   await expect(page.locator(".view-aanvragen .page-intro h1")).toHaveCSS("color", rgb(palette.ink));
   await expect(page.locator(".view-aanvragen .primary-button").first()).toHaveCSS("background-color", rgb(palette.action));
   await expect(page).toHaveScreenshot("tenant-themed-request-page-1440.png", { fullPage: true });
@@ -99,20 +99,20 @@ test("afgeleide kleurenpaletten zijn rustig, consistent en live zichtbaar zonder
   await expect(hero).toHaveCSS("background-image", "none");
   expect(await hero.evaluate((element) => getComputedStyle(element, "::after").display)).toBe("none");
   // Exercise the screenshot's blue/turquoise family without changing stored branding.
-  const workspace = page.locator(".workspace-shell");
+  const workspace = page.locator(".workspace-shell:visible");
   const previewPalette = createBrandPalette("#315794", "#52B3B7");
   await page.waitForLoadState("networkidle");
   await workspace.evaluate((element, styles) => {
     for (const [name, value] of Object.entries(styles)) (element as HTMLElement).style.setProperty(name, String(value));
   }, brandThemeStyle("#315794", "#52B3B7"));
   await expect.poll(() => workspace.evaluate((element) => getComputedStyle(element).getPropertyValue("--brand-primary").trim())).toBe("#315794");
-  await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(previewPalette.sidebar));
+  await expect(page.locator(".workspace-sidebar:visible")).toHaveCSS("background-color", rgb(previewPalette.sidebar));
   await expect(hero.locator("h1")).toHaveCSS("color", rgb(previewPalette.ink));
   await expect(page.locator(".metric").first()).toHaveCSS("border-color", rgb(previewPalette.border));
   for (const path of ["aanvragen", "taken", "klanten", "objecten", "personeel", "rapporten", "facturen", "instellingen"]) {
     await page.goto(`/app/${path}`);
-    await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(tenantPalette.sidebar));
-    await expect(page.locator(".page-intro h1")).toHaveCSS("color", rgb(tenantPalette.ink));
+    await expect(page.locator(".workspace-sidebar:visible")).toHaveCSS("background-color", rgb(tenantPalette.sidebar));
+    await expect(page.locator(".page-intro h1:visible")).toHaveCSS("color", rgb(tenantPalette.ink));
   }
   const palettePreview = page.getByRole("region", { name: "Afgeleid kleurenpalet" });
   await expect(palettePreview).toBeVisible();
@@ -121,7 +121,7 @@ test("afgeleide kleurenpaletten zijn rustig, consistent en live zichtbaar zonder
   const draft = createBrandPalette("#ffffff", "#ffff00");
   await expect(palettePreview.getByText(draft.action.toUpperCase(), { exact: true })).toBeVisible();
   await expect(page.locator(".tenant-branding-preview-button")).toHaveCSS("background-color", rgb(draft.action));
-  await expect(page.locator(".workspace-sidebar")).toHaveCSS("background-color", rgb(tenantPalette.sidebar));
+  await expect(page.locator(".workspace-sidebar:visible")).toHaveCSS("background-color", rgb(tenantPalette.sidebar));
   await page.reload();
   await expect(page.getByLabel("Primaire kleur", { exact: true })).toHaveValue("#214e72");
   await expect(page.getByLabel("Secundaire kleur", { exact: true })).toHaveValue("#c65d21");
@@ -220,21 +220,21 @@ test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare v
   await page.getByRole("link", { name: "Facturen" }).click();
   await expect(page).toHaveURL(/\/app\/facturen$/);
   await page.getByRole("button", { name: /^Zoeken en filteren/ }).click();
-  for (const [value, status] of [["new", "Nieuw"], ["submitted", "Ingediend"], ["open", "Openstaand"], ["paid", "Betaald"], ["late", "Te laat"]]) {
+  for (const [value, status] of [["new", "Concept"], ["submitted", "Definitief"], ["open", "Openstaand"], ["paid", "Betaald"], ["late", "Te laat"]]) {
     await expect(page.locator(`.compact-filter-popover option[value="${value}"]`)).toHaveText(status);
   }
 
   await page.getByRole("link", { name: "Planbord" }).click();
   await expect(page).toHaveURL(/\/app\/planning$/);
   await expect(page.getByRole("heading", { name: "Planbord", exact: true })).toBeVisible();
-  await page.getByLabel("Planningsdag").fill("2030-01-15");
-  await expect(page.locator("[data-order-id]")).toHaveCount(1);
+  await page.getByRole("main").getByLabel("Planningsdag").fill("2030-01-15");
+  await expect(page.getByRole("main").locator("[data-order-id]")).toHaveCount(1);
   await expect(page.getByRole("status").filter({ hasText: /Gegevens vernieuwen/ })).toHaveCount(0);
   await expect(page.getByText("Reistijd berekenen", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Werkbon plannen", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Bestaande planning exact aanpassen", { exact: true })).toHaveCount(0);
-  await expect(page.locator(".planboard-viewport")).toBeVisible();
-  await expect.poll(() => page.locator(".planboard-viewport").evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(600);
+  await expect(page.locator(".planboard-viewport:visible")).toBeVisible();
+  await expect.poll(() => page.locator(".planboard-viewport:visible").evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(600);
   await expect(page).toHaveScreenshot("planboard-full-1440.png", { fullPage: true });
 });
 
@@ -245,7 +245,7 @@ test("Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel", asy
     await page.setViewportSize({ width, height: 900 });
     for (const view of ["klanten", "objecten", "personeel"]) {
       await page.goto(`/app/${view}`);
-      const table = page.locator(".resource-table-panel .table-scroll");
+      const table = page.locator(".resource-table-panel .table-scroll:visible");
       const trigger = table.getByRole("button", { name: "Meer", exact: true }).last();
       await trigger.scrollIntoViewIfNeeded();
       const scrollHeight = await table.evaluate((element) => element.scrollHeight);
@@ -279,7 +279,7 @@ test("Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel", asy
         await expect(page.getByRole("dialog").getByRole("heading", { name: "Functie en kwalificatie" })).toBeVisible();
         await page.getByRole("button", { name: "Sluiten", exact: true }).click();
       } else {
-        await page.locator(".page-intro h1").click();
+        await page.locator(".page-intro h1:visible").click();
         await expect(overlay).toBeHidden();
       }
     }
@@ -292,7 +292,7 @@ test("klantdossier opent elf volledige paginaonderdelen en bewaart contacten, no
   await login(page,"platform-admin@fieldgrid.test","/app/klanten");
   await page.getByRole("row").filter({hasText:"Noordhaven Vastgoed"}).getByRole("link",{name:"Bekijk",exact:true}).click();
   await expect(page).toHaveURL(/\/app\/klanten\/[a-f0-9-]+/);
-  const dossier=page.locator(".customer-dossier");
+  const dossier=page.locator(".customer-dossier:visible");
   const nav=dossier.getByRole("navigation",{name:"Klantdossier"});
   await expect(nav.getByRole("link")).toHaveText(["Overzicht","Klantgegevens","Contactpersonen","Objecten","Contracten & diensten","Afspraken & opdrachten","Offertes & meerwerk","Facturen & betalingen","Kwaliteit & meldingen","Documenten","Communicatie & tijdlijn"]);
   await expect(dossier.getByRole("heading",{name:"Aandacht & opvolging"})).toBeVisible();
@@ -615,9 +615,9 @@ test("planningwijziging verschijnt realtime bij personeel zonder paginareload", 
     await staff.evaluate((value) => Reflect.set(window, "__fieldgridRealtimeSentinel", value), sentinel);
 
     await login(planner, "platform-admin@fieldgrid.test", "/app/planning");
-    await expect(planner.getByLabel("Dagplanning", { exact: true })).toHaveAttribute("aria-busy", "false");
-    await planner.getByLabel("Planningsdag").fill("2030-01-15");
-    await expect(planner.getByLabel("Planningsdag")).toHaveValue("2030-01-15");
+    await expect(planner.getByRole("main").getByLabel("Dagplanning", { exact: true })).toHaveAttribute("aria-busy", "false");
+    await planner.getByRole("main").getByLabel("Planningsdag").fill("2030-01-15");
+    await expect(planner.getByRole("main").getByLabel("Planningsdag")).toHaveValue("2030-01-15");
     await expect(planner).toHaveURL(url => url.searchParams.get("day") === "2030-01-15");
     await expect(planner.locator(`[data-order-id="${orderId}"]`)).toContainText("10:00–10:30");
 

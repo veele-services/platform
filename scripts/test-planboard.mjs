@@ -582,6 +582,9 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
           required: 2,
           instructions: "Eenmalige daginstructie",
         });
+        // This fixture agrees no signature before execution starts. Completion
+        // still requires an actual submitted, immutable customer report.
+        await admin.query("update public.work_orders set signature_mode='none' where id=$1", [id]);
         await admin.query(
           "insert into public.work_order_tasks(tenant_id,work_order_id,task_code,task_name,duration_minutes,unit,unit_price_cents,vat_basis_points) values($1,$2,'PLAN-TASK','Controle',90,'task',2500,2100)",
           [tenant, id],
@@ -661,6 +664,18 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
         assert.equal(w.status, "in_progress");
         assert.equal(w.actual_end_at, null);
         await step("stop", secondPlanner);
+        await expectCrew(["completed", "completed"], "in_progress");
+        assert.deepEqual((await admin.query(
+          "select status,report_state,attention_reason from public.work_orders where id=$1", [id],
+        )).rows[0], { status: "in_progress", report_state: "draft", attention_reason: "report_pending" });
+        const deliveryActor = (await admin.query(
+          "select user_id from public.personnel where id=private.delivery_personnel($1,$2)", [tenant, id],
+        )).rows[0].user_id;
+        const submission = [id, await version(id), "De gezamenlijke controle is uitgevoerd.", randomUUID()];
+        const report = (await call("select public.submit_work_order_report($1,$2,$3,$4) as result", submission, deliveryActor))[0].result;
+        assert.equal(report.state, "review");
+        assert.deepEqual((await call("select public.submit_work_order_report($1,$2,$3,$4) as result", submission, deliveryActor))[0].result, report);
+        assert.equal((await admin.query("select count(*)::int n from public.work_order_report_versions where work_order_id=$1", [id])).rows[0].n, 1);
         await expectCrew(["completed", "completed"], "completed");
         w = (
           await admin.query(
@@ -748,6 +763,17 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
         "delete from public.audit_events where tenant_id=any($1)",
         [[tenant, otherTenant]],
       );
+      // Remove only this isolated test's immutable frozen report fixtures.
+      localWorkOrderTestUrl();
+      await admin.query("begin");
+      try {
+        await admin.query("set local session_replication_role='replica'");
+        await admin.query("delete from public.work_order_report_versions where tenant_id=any($1)", [[tenant, otherTenant]]);
+        await admin.query("commit");
+      } catch (error) {
+        await admin.query("rollback");
+        throw error;
+      }
       await admin.query(
         "delete from public.work_orders where tenant_id=any($1)",
         [[tenant, otherTenant]],

@@ -596,6 +596,36 @@
       "version": "20261006161000",
       "name": "task_categories_and_management",
       "sha256": "3ee87811d46c1a555eb604396a96964fd77bb42c1de907eac7860392d639bc21"
+    },
+    {
+      "version": "20261006195000",
+      "name": "dossier_presentation_and_checklists",
+      "sha256": "98e4557ae37a2d909483e50a19209ee01452dfd47d46d72e0e79744a409a1b92"
+    },
+    {
+      "version": "20261006200000",
+      "name": "completion_report_invariant",
+      "sha256": "068d94d1a69c2a76e9c440df64f1b7d572a29834bbbd9cc7db81c28047caf25e"
+    },
+    {
+      "version": "20261006210000",
+      "name": "list_pagination_preferences",
+      "sha256": "5ea06a479064a9067766458d46d4da79616df5e6ff8c148f4475bfa8870952a3"
+    },
+    {
+      "version": "20261006220000",
+      "name": "execution_invoice_concepts",
+      "sha256": "63313c495a6ab128ef6e4dabe560d7cfdf8c722aea1cabffce3459d55805d530"
+    },
+    {
+      "version": "20261006223000",
+      "name": "internal_dossier_authors",
+      "sha256": "1ec2a38d2113ab09283fb928213a052292138df905389235641d03e14a4e5442"
+    },
+    {
+      "version": "20261006230000",
+      "name": "account_function_guides",
+      "sha256": "6dbde403f4c18f748e76bd95b6e88b9a92b754e919d77c2c9b2a7b7288bd13ba"
     }
   ]
 }

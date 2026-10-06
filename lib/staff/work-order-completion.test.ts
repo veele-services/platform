@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   externalMapsUrl,
   staffOrderPermissions,
+  staffExecutionLabel,
   staffTaskBlocksCompletion,
   staffTaskIsChecked,
   staffTaskOwnQuantity,
@@ -27,6 +28,12 @@ describe("staff work-order completion helpers", () => {
     expect(staffOrderPermissions("completed", "waiting_signature", true)).toEqual({ editable: false, canFinishDelivery: true });
     expect(staffOrderPermissions("in_progress", "draft", false).editable).toBe(true);
     expect(staffOrderPermissions("in_progress", "review", false).editable).toBe(false);
+  });
+  it("does not label a stopped assignment as a submitted report", () => {
+    expect(staffExecutionLabel("completed", "draft")).toBe("Werkzaamheden afgerond");
+    expect(staffExecutionLabel("completed", "waiting_signature")).toBe("Wacht op ondertekening");
+    expect(staffExecutionLabel("completed", "review")).toBe("Gereedgemeld");
+    expect(staffExecutionLabel("seen", "draft")).toBe("Gezien");
   });
   it("checks only a genuinely completed execution", () => {
     expect(staffTaskIsChecked(task({ execution_state: "completed", completed_at: "2026-10-05T10:00:00Z" }))).toBe(true);

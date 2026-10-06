@@ -34,6 +34,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_guide_dismissals: {
+        Row: {
+          dismissed_at: string
+          guide_key: string
+          user_id: string
+        }
+        Insert: {
+          dismissed_at?: string
+          guide_key: string
+          user_id: string
+        }
+        Update: {
+          dismissed_at?: string
+          guide_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       announcement_reads: {
         Row: {
           announcement_id: string
@@ -7780,6 +7798,7 @@ export type Database = {
         Args: { target_proposal: string; target_tenant: string }
         Returns: undefined
       }
+      account_guide_state: { Args: never; Returns: string[] }
       acknowledge_object_instruction: {
         Args: {
           expected_version: number
@@ -7931,6 +7950,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      attach_work_order_checklist: {
+        Args: { input: Json; target_tenant: string }
+        Returns: Json
       }
       bind_object_customer: {
         Args: {
@@ -8610,6 +8633,7 @@ export type Database = {
         Args: { target_account: string; target_tenant: string }
         Returns: Json
       }
+      dismiss_account_guide: { Args: { guide_key: string }; Returns: undefined }
       dispatch_work_order: {
         Args: {
           expected_version: number
@@ -8701,6 +8725,10 @@ export type Database = {
       email_provider_event: { Args: { input: Json }; Returns: boolean }
       email_transport: {
         Args: { input: Json; operation: string }
+        Returns: Json
+      }
+      execution_invoice_concepts: {
+        Args: { target_order?: string; target_tenant: string }
         Returns: Json
       }
       expired_work_order_signature_uploads: {

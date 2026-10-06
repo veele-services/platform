@@ -13,19 +13,19 @@ een expliciete voltooide status en bewijsverwijzing. Operationele
 stagingvoorwaarden blijven NO-GO totdat de uiteindelijke SHA is uitgerold en
 geaccepteerd.
 
-De structurele CI-inventaris `authorization-surfaces.json` beschrijft **983**
-ingangen/resources uit de huidige bron en een schone database met 109 migraties:
+De structurele CI-inventaris `authorization-surfaces.json` beschrijft **1019**
+ingangen/resources uit de huidige bron en een schone database met 125 migraties:
 
 | Soort | Aantal | Wat de registratie bewijst |
 | --- | ---: | --- |
-| Server-actionmodules | 42 | Exportnamen, waargenomen helpers en letterlijke tabel/RPC-afhankelijkheden |
-| Routes en RSC-pagina's/layouts | 102 | Bestaande ingangen, inclusief publieke schermen zonder datahelper |
-| Overige data-accessmodules | 55 | Gevonden queries/RPC's, indirecte autorisatiehelpers, servercomponenten, browser-/Realtimeclients en privileged-clientaanmaak |
-| Operationele releasepaden | 56 | Inhoudshashes van alle ontdekte workflows/deploybestanden plus package/lock/config, serviceworker, migratiemanifest en runtime-/backup-/migratiescripts, inclusief de vier stagingmigratie-trust-boundaries, de releasegebonden ClamAV-preflight en de publieke OTP-redirectcontrole |
-| Public/private tabellen | 188 | RLS/FORCE en effectieve basisgrants |
-| Public RPC's | 216 | Signatuur, definerstatus en executegrants |
-| Private functies | 213 | Signatuur, definerstatus en executegrants |
-| Triggerfuncties | 111 | Apart van rechtstreeks aanroepbare RPC's geclassificeerd |
+| Server-actionmodules | 45 | Exportnamen, waargenomen helpers en letterlijke tabel/RPC-afhankelijkheden |
+| Routes en RSC-pagina's/layouts | 104 | Bestaande ingangen, inclusief publieke schermen zonder datahelper |
+| Overige data-accessmodules | 57 | Gevonden queries/RPC's, indirecte autorisatiehelpers, servercomponenten, browser-/Realtimeclients en privileged-clientaanmaak |
+| Operationele releasepaden | 61 | Inhoudshashes van alle ontdekte workflows/deploybestanden plus package/lock/config, serviceworker, migratiemanifest en runtime-/backup-/migratiescripts, inclusief de vier stagingmigratie-trust-boundaries, de releasegebonden ClamAV-preflight en de publieke OTP-redirectcontrole |
+| Public/private tabellen | 192 | RLS/FORCE en effectieve basisgrants |
+| Public RPC's | 225 | Signatuur, definerstatus en executegrants |
+| Private functies | 221 | Signatuur, definerstatus en executegrants |
+| Triggerfuncties | 114 | Apart van rechtstreeks aanroepbare RPC's geclassificeerd |
 
 `scripts/check-security-surface.mjs` laat CI falen bij toegevoegde/verwijderde
 ingangen, gewijzigde resources of grants. Een reviewer moet de wijziging,
@@ -37,7 +37,7 @@ inhoudelijke dekking of de verplichte actor/resource-tests.
 De inventaris omvat nu ook `components` met serverdata, browserclients en
 helpermodules die alleen een indirecte auth/provider-/bestandscontrole uitvoeren;
 deze paden konden eerder buiten de structurele diffgate blijven.
-`authorization-review.json` koppelt ieder van de 983 IDs aan een expliciete
+`authorization-review.json` koppelt ieder van de 1019 IDs aan een expliciete
 status en bewijsset. `scripts/check-authorization-review.mjs` faalt bij een
 ontbrekend, dubbel, verouderd, onbewezen, `pending` of `blocked` item. De
 `--capture`-stand neemt bestaande beoordelingen over maar zet iedere nieuw
@@ -45,6 +45,10 @@ ontdekte ingang bewust op `pending`; een snapshotvernieuwing kan haar dus niet
 automatisch goedkeuren. Iedere code-, SQL-functie-, policyset- en operationele
 review is aan de actuele SHA-256-vingerafdruk gebonden; alleen een snapshot
 bijwerken kan een inhoudswijziging daardoor niet als eerder beoordeeld laten gelden.
+
+### Dashboard, oplevering, facturen en accountuitleg — 6 oktober 2026
+
+35 nieuwe of gewijzigde oppervlakken zijn op bron, actor/resourcegrens en actuele grants beoordeeld. De delta heeft 27 keer `controlled` en 8 keer `corrected-and-rechecked`; de opleverstatuscorrecties behouden canonieke rapporten, handtekeningen en factuurhistorie. [De inhoudelijke controle](dashboard-release-verification-2026-10-06.md) benoemt per functie de actuele grenzen en de concrete database-, PDF- en browserregressies. De accountbrede uitlegregistratie heeft geen bedrijfsbevoegdheden en is alleen door de eigen actuele sessie leesbaar.
 
 ### Klantportaal, universele OTP en huisstijl — 5 oktober 2026
 

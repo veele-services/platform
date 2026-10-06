@@ -69,12 +69,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid #d8e2e7;
-  border-radius: 10px;
-  background: white;
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: #526475;
   font-size: calc(12px * var(--dashboard-font-scale, 1));
   font-weight: 600;
@@ -89,9 +89,7 @@
   outline: 2px solid var(--brand-accent, #328640);
   outline-offset: 3px;
 }
-.pb-legend-trigger[data-state="open"] > svg:last-child {
-  transform: rotate(180deg);
-}
+@media (pointer: coarse) { .pb-legend-trigger { width: 44px; min-height: 44px; } }
 .pb-status-legend[data-slot="popover-content"] {
   width: min(360px, calc(100vw - 32px));
   max-height: min(620px, var(--radix-popover-content-available-height));
@@ -1209,3 +1207,5 @@
     transition: none !important;
   }
 }
+
+@media(max-width:600px){.pb-legend-trigger{width:44px;min-width:44px;height:44px;min-height:44px}}

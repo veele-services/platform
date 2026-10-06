@@ -103,6 +103,7 @@ export const customerFilters = z.object({
     ])
     .catch("name"),
   page: z.coerce.number().int().min(1).max(100000).catch(1),
+  pageSize: z.coerce.number().int().min(10).max(100).catch(25),
 });
 export type CustomerFilters = z.infer<typeof customerFilters>;
 export type Owner = { id: string; label: string; commercial: boolean };
@@ -129,6 +130,7 @@ export type CustomerList = {
   >;
   total: number;
   page: number;
+  pageSize: number;
   finance: boolean;
 };
 export type CustomerObject = Pick<

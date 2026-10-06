@@ -14,7 +14,7 @@ export function CustomerServiceRequestForm({workspace,services,service,objectId,
  const [draft,setDraft]=useState(initial),[error,setError]=useState(""),[pending,start]=useTransition();
  const dirty=JSON.stringify(draft)!==JSON.stringify(initial),cancel=()=>{if(!pending&&(!dirty||window.confirm("Je aanvraag is nog niet verstuurd. Toch sluiten?")))close();};
  const today=new Intl.DateTimeFormat("en-CA",{timeZone:workspace.tenant.timezone,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
- return <CustomerDialog title={workspace.objects.length?"Dienst aanvragen":"Voeg eerst een object toe"} kicker="Diensten & aanvragen" close={close} busy={pending} dirty={dirty}
+ return <CustomerDialog guideKey="feature.customer-request" title={workspace.objects.length?"Dienst aanvragen":"Voeg eerst een object toe"} kicker="Diensten & aanvragen" close={close} busy={pending} dirty={dirty}
   footer={workspace.objects.length?<><button className="button" type="button" disabled={pending} onClick={cancel}>Annuleren</button><button className="button primary" form={formId} disabled={pending}>{pending?"Versturen…":"Aanvraag versturen"}</button></>:<button className="button" type="button" onClick={close}>Sluiten</button>}>
   {!workspace.objects.length?<div className="empty"><h3>Voor welke locatie kunnen we helpen?</h3><p>Maak een object aan om een dienst aan te vragen.</p>{workspace.account.canCreateObjects&&<button className="button primary" type="button" onClick={newObject}>Object toevoegen</button>}</div>:<>
    <p className="form-intro">Vertel ons wat je nodig hebt. Je accountmanager beoordeelt je aanvraag en neemt contact met je op.</p>{error&&<p className="form-error" role="alert">{error}</p>}
@@ -33,7 +33,7 @@ export function CustomerServiceRequestForm({workspace,services,service,objectId,
 }
 
 export function CustomerRequestDetail({request,workspace,close,question,openPart}:{request:CustomerRequest;workspace:CustomerWorkspace;close:()=>void;question:()=>void;openPart:(id:string)=>void}){
- return <CustomerDialog title={request.subject} kicker="Mijn aanvragen" close={close} footer={<><button className="button" type="button" onClick={close}>Sluiten</button>{workspace.tenant.tickets&&<button className="button primary" type="button" onClick={question}><Ticket/>Stel een vraag</button>}</>}>
+ return <CustomerDialog guideKey="feature.customer-request" title={request.subject} kicker="Mijn aanvragen" close={close} footer={<><button className="button" type="button" onClick={close}>Sluiten</button>{workspace.tenant.tickets&&<button className="button primary" type="button" onClick={question}><Ticket/>Stel een vraag</button>}</>}>
   <div className="row"><span className="meta">{request.number}</span><span className="chip gray">{request.status==="mixed"?"Verschillende statussen":requestLabels[request.status]??request.status}</span></div>
   <div className="details section-gap"><div><small>Objecten</small><strong>{request.objectIds.map(id=>workspace.objects.find(object=>object.id===id)?.name).filter(Boolean).join(", ")||"Locatie nog vaststellen"}</strong></div><div><small>Frequentie</small><strong>{request.frequency}</strong></div><div><small>Voorkeursdatum</small><strong>{request.preferredOn?customerDate(request.preferredOn,workspace.tenant.timezone,true):"In overleg"}</strong></div><div><small>Behandelaar</small><strong>{workspace.tenant.name}</strong></div></div>
   <hr className="divider"/><h3>Je aanvraag</h3><p className="section-gap preserved">{request.description}</p>

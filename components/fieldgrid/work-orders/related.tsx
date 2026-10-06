@@ -11,6 +11,10 @@ import { tenantToday } from "@/lib/planning/time";
 import { readWorkOrderRelated, createRelatedWorkOrder, changeWorkOrderSeries, recordWorkOrderMaterial } from "@/app/app/work-order-related-actions";
 import { ObjectForm } from "@/components/fieldgrid/objects/forms";
 import { WorkOrderDialog } from "./dialog";
+import { ContentSection } from "../content-section";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronDown, Plus } from "lucide-react";
+import { financialMoney } from "@/lib/work-orders/financial-summary";
 
 type Theme = Pick<TenantContext, "timezone" | "primaryColor" | "accentColor">;
 type RelatedKind = "split" | "followup" | "duplicate";
@@ -26,20 +30,21 @@ export function WorkOrderRelatedActions({ orderId, tenant }: { orderId: string; 
     return () => { active = false; };
   }, [orderId, revision]);
   const refresh = () => { setMode(null); setEditingSeries(null); setRevision(value => value + 1); };
-  if (error) return <section className="dossier-card"><p role="alert">{error}</p><button className="secondary-button" onClick={() => setRevision(value => value + 1)}>Opnieuw laden</button></section>;
+  if (error) return <ContentSection title="Gekoppelde werkzaamheden"><p role="alert">{error}</p><button className="secondary-button" onClick={() => setRevision(value => value + 1)}>Opnieuw laden</button></ContentSection>;
   if (!data) return <p role="status">Gekoppelde werkzaamheden laden…</p>;
-  return <section className="dossier-card">
-    <h3>Gekoppelde werkzaamheden</h3>
-    {data.canManage && <div className="object-actions">{(["split", "followup", "duplicate"] as const).map(kind => <button className="secondary-button" key={kind} disabled={kind === "split" && !data.canSplit} onClick={() => setMode(kind)}>{names[kind]}</button>)}<button className="secondary-button" onClick={() => setMode("series")}>Terugkerend werk</button></div>}
-    {data.relations.length ? <ul>{data.relations.map(relation => <li key={`${relation.id}-${relation.kind}`}><Link className="text-link" href={`/app/werkbonnen/${relation.id}`}>{relation.number} · {relation.title}</Link> · {relation.direction === "source" ? "Bron" : "Vervolg"} · {relation.kind === "split" ? "Deelbon" : relation.kind === "duplicate" ? "Duplicaat" : relation.kind === "recurrence" ? "Reeks" : followupReasons[relation.reason as keyof typeof followupReasons] || "Opvolgbon"}</li>)}</ul> : <p className="dossier-muted">Geen gekoppelde werkbonnen.</p>}
-    {data.transfers.length > 0 && <><h4>Overgedragen scope</h4><ul>{data.transfers.map(transfer => <li key={transfer.id}>{transfer.sourceTask}: {transfer.quantity} {transfer.unit} naar <Link className="text-link" href={`/app/werkbonnen/${transfer.targetOrder}`}>{transfer.targetNumber}</Link></li>)}</ul></>}
-    {data.series.map(series => <SeriesCard key={series.id} series={series} canManage={data.canManage} onRefresh={refresh} onEdit={() => { setEditingSeries(series); setMode("series"); }}/>) }
-    <div className="object-section-title"><h4>Materiaalverbruik</h4>{data.canManage && <button className="secondary-button" onClick={() => setMode("material")}>Verbruik toevoegen</button>}</div>
-    {data.materials.length ? <ul>{data.materials.map(material => <li key={material.id}>{material.description} · {material.quantity} {material.unit}{data.canFinance && material.unitPriceCents != null && ` · € ${(material.unitPriceCents / 100).toFixed(2)} per ${material.unit}`}</li>)}</ul> : <p className="dossier-muted">Nog geen materiaalverbruik geregistreerd.</p>}
+  return <>
+    <ContentSection className="wo-section" title="Gekoppelde werkzaamheden" help="Maak een navolgbare deelbon, opvolgbon of reeks. De oorspronkelijke prijsafspraak en reeds vastgelegde werkzaamheden blijven behouden." actions={data.canManage && <Popover><PopoverTrigger asChild><button className="primary-button"><Plus size={15}/>Voeg toe<ChevronDown size={14}/></button></PopoverTrigger><PopoverContent className="resource-more-content" align="end">{(["split", "followup", "duplicate"] as const).map(kind => <button key={kind} disabled={kind === "split" && !data.canSplit} onClick={() => setMode(kind)}>{names[kind]}</button>)}<button onClick={() => setMode("series")}>Terugkerend werk</button></PopoverContent></Popover>}>
+      <div className="wo-finance-rows">{data.relations.map(relation => <article key={`${relation.id}-${relation.kind}`}><div><Link className="text-link" href={`/app/werkbonnen/${relation.id}`}><strong>{relation.title}</strong></Link><small>{relation.number} · {relation.direction === "source" ? "Bron" : "Vervolg"} · {relation.kind === "split" ? "Deelbon" : relation.kind === "duplicate" ? "Duplicaat" : relation.kind === "recurrence" ? "Reeks" : followupReasons[relation.reason as keyof typeof followupReasons] || "Opvolgbon"}</small></div><Link className="resource-action" href={`/app/werkbonnen/${relation.id}`}>Bekijk werkbon</Link></article>)}</div>{!data.relations.length && <p className="dossier-muted">Geen gekoppelde werkbonnen.</p>}
+      {data.transfers.length > 0 && <details className="wo-history-assignments"><summary>Overgedragen werkzaamheden<ChevronDown size={16}/></summary><div className="wo-finance-rows">{data.transfers.map(transfer => <article key={transfer.id}><div><strong>{transfer.sourceTask}</strong><small>{transfer.quantity} {transfer.unit} overgedragen</small></div><Link className="text-link" href={`/app/werkbonnen/${transfer.targetOrder}`}>{transfer.targetNumber}</Link></article>)}</div></details>}
+    </ContentSection>
+    {data.series.length > 0 && <ContentSection className="wo-section" title="Terugkerend werk">{data.series.map(series => <SeriesCard key={series.id} series={series} canManage={data.canManage} onRefresh={refresh} onEdit={() => { setEditingSeries(series); setMode("series"); }}/>)}</ContentSection>}
+    <ContentSection className="wo-section" title="Materiaalverbruik" actions={data.canManage && <button className="primary-button" onClick={() => setMode("material")}><Plus size={15}/>Verbruik toevoegen</button>}>
+      <div className="wo-finance-rows">{data.materials.map(material => <article key={material.id}><div><strong>{material.description}</strong><small>{material.quantity} {material.unit} · {material.customerVisible ? "Klantzichtbaar" : "Intern"}</small></div>{data.canFinance && material.unitPriceCents != null && <strong>{financialMoney(Math.round(material.quantity * material.unitPriceCents))}</strong>}</article>)}</div>{!data.materials.length && <p className="dossier-muted">Nog geen materiaalverbruik geregistreerd.</p>}
+    </ContentSection>
     {mode && ["split", "followup", "duplicate"].includes(mode) && <RelatedWizard kind={mode as RelatedKind} data={data} tenant={tenant} onClose={refresh}/>}
     {mode === "series" && <SeriesEditor data={data} tenant={tenant} series={editingSeries} onClose={refresh}/>}
     {mode === "material" && <MaterialEditor data={data} tenant={tenant} onClose={refresh}/>}
-  </section>;
+  </>;
 }
 
 function RelatedWizard({ kind, data, tenant, onClose }: { kind: RelatedKind; data: RelatedContext; tenant: Theme; onClose: () => void }) {

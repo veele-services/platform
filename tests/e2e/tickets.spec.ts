@@ -140,7 +140,7 @@ test("personeelsmelding met echte scan, private notitie, bewuste escalatie en on
   const subject = `Technische hulp ${fixture.slice(0, 8)}`;
   const note = `TENANT-PRIVATE-${fixture}`, platformNote = `PLATFORM-PRIVATE-${fixture}`;
   await login(page, "worker", `/staff?workOrder=${orderId}`);
-  await page.getByRole("link", { name: "Probleem melden", exact: true }).click();
+  await page.getByRole("link", { name: "Ticket toevoegen", exact: true }).click();
   const form = page.getByRole("dialog", { name: "Nieuwe melding", exact: true });
   await form.getByLabel("Onderwerp", { exact: true }).fill(subject);
   await form.getByLabel("Categorie", { exact: true }).selectOption(categoryId);

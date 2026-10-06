@@ -96,9 +96,9 @@ export function reportDocumentLines(report: ReportVersion): string[] {
   for(const task of s.tasks.filter(task=>task.extraWork&&task.extraUnitPriceCents!=null))lines.push(`Meerwerk ${task.name}: ${currency(Math.round(task.extraUnitPriceCents!*task.executedQuantity))}`);
   lines.push(`Totaal extra kosten: ${currency(reportExtraTotal(s))}`);
   if(s.attachments.length)lines.push("Bijlagen",...s.attachments.map(a=>a.name));
-  lines.push(`Inhoudskenmerk: ${report.contentHash}`);
+
   if(report.waiver)lines.push(`Klantondertekening vrijgesteld: ${report.waiver.reason}`);
-  for(const sig of report.signatures){lines.push(`${sig.kind==="customer"?"Klant":"Medewerker"}: ${sig.name} · ${sig.capacity}`);if(sig.capturedBy)lines.push(`Vastgelegd door ${sig.capturedBy} in de personeelsapp op locatie`);lines.push(new Intl.DateTimeFormat("nl-NL",{dateStyle:"short",timeStyle:"short",timeZone:s.timezone}).format(new Date(sig.signedAt)));}
+  for(const sig of report.signatures){lines.push(`${sig.kind==="customer"?"Klant":"Medewerker"}: ${sig.name} · ${sig.capacity}`);if(sig.capturedBy && report.projection!=="customer_copy")lines.push(`Vastgelegd door ${sig.capturedBy} in de personeelsapp op locatie`);lines.push(new Intl.DateTimeFormat("nl-NL",{dateStyle:"short",timeStyle:"short",timeZone:s.timezone}).format(new Date(sig.signedAt)));}
   if(!report.signatures.length&&!report.waiver)lines.push(report.policy.mode==="required"?"Wacht op handtekening — vast te leggen in de personeelsapp":"Geen klantondertekening vastgelegd");
   if(report.employeeVerified&&!report.signatures.some(signature=>signature.kind==="employee"))lines.push("Medewerkerondertekening is vastgelegd; persoonlijke bewijsgegevens zijn afgeschermd.");
   else if(report.policy.employeeRequired&&!report.signatures.some(signature=>signature.kind==="employee"))lines.push("Wacht op de afzonderlijke medewerkerondertekening in de personeelsapp");

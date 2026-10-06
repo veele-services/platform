@@ -20,7 +20,8 @@ test.beforeAll(async()=>{
  await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,signature_mode,lead_personnel_id,planned_start_at,planned_end_at,projected_start_at,projected_end_at,actual_start_at,created_by) values($1,$2,$3,$4,'WB-CHAIN','Onderhoud','in_progress','none',$6,now()-interval '30 minutes',now()+interval '30 minutes',now()-interval '30 minutes',now()+interval '30 minutes',now()-interval '30 minutes',$5)",[order,tenant,customer,object,manager,person]);
  await db.query("insert into public.work_order_assignments(id,tenant_id,work_order_id,personnel_id,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at,actual_start_at) select $1,tenant_id,id,$2,'in_progress',planned_start_at,planned_end_at,projected_start_at,projected_end_at,actual_start_at from public.work_orders where id=$3",[assignment,person,order]);
  await db.query("insert into public.dispatches(tenant_id,work_order_id,assignment_id,dispatched_by,idempotency_key) values($1,$2,$3,$4,$5)",[tenant,order,assignment,manager,randomUUID()]);
- await db.query("insert into public.time_entries(tenant_id,personnel_id,assignment_id,kind,starts_at) values($1,$2,$3,'work',now()-interval '30 minutes')",[tenant,person,assignment]);
+  await db.query("insert into public.time_entries(tenant_id,personnel_id,assignment_id,kind,starts_at) values($1,$2,$3,'work',now()-interval '30 minutes')",[tenant,person,assignment]);
+  await db.query("insert into public.report_entries(tenant_id,work_order_id,author_user_id,body,customer_visible) values($1,$2,$3,'FICTITIOUS interne managementcontrole',false),($1,$2,$3,'FICTITIOUS gedeelde uitvoeringsnotitie',true)",[tenant,order,manager]);
 });
 test.afterAll(async()=>{if(!db)return;try{
  const docs=(await db.query("select storage_path from public.customer_documents where customer_id=$1",[customer])).rows;
@@ -55,11 +56,11 @@ async function stopAndSubmitStaffReport(){
  }finally{await staff.auth.signOut({scope:"local"});}
 }
 
-test("Dossier 360: customer agreement, object programme, partial execution and linked invoice",async({page})=>{
+test("Dossier 360: customer agreement, object programme, partial execution and linked invoice",async({page,request})=>{
  test.setTimeout(180000);
  await authenticateWorkspace(page,"platform-admin@fieldgrid.test",`/app/klanten?record=${customer}`);
  await page.waitForURL(url=>url.pathname===`/app/klanten/${customer}`,{timeout:30000});
- const dossier=page.locator(".customer-dossier");await expect(dossier).toBeVisible();
+ const dossier=page.locator(".customer-dossier:visible");await expect(dossier).toBeVisible();
  await dossier.getByRole("navigation",{name:"Klantdossier"}).getByRole("link",{name:"Documenten",exact:true}).click();await expect(page).toHaveURL(/tab=documenten/);
  await dossier.getByRole("button",{name:"Document uploaden",exact:true}).click();
  const upload=page.getByRole("dialog",{name:"Document uploaden",exact:true});
@@ -75,17 +76,32 @@ test("Dossier 360: customer agreement, object programme, partial execution and l
  await db.query("insert into public.work_order_tasks(id,tenant_id,work_order_id,task_revision_id,task_code,task_name,duration_minutes,quantity,unit,unit_price_cents,vat_basis_points) values($1,$2,$3,$4,'CHAIN','Ketenproef uitvoering',30,3,'task',4500,2100)",[task,tenant,order,revision]);
  expect((await db.query("select unit_price_cents,agreement_line_id from public.work_order_tasks where id=$1",[task])).rows[0]).toMatchObject({unit_price_cents:"1200"});
  await page.goto(`/app/werkbonnen/${order}`);await page.getByRole("navigation",{name:"Onderdelen werkbondossier"}).getByRole("link",{name:"Taken & checklists",exact:true}).click();
- const execution=page.locator("article").filter({has:page.getByRole("heading",{name:"Ketenproef uitvoering",exact:true})});
+ const execution=page.locator("details.wo-task-detail").filter({hasText:"Ketenproef uitvoering"});await execution.locator("summary").click();
  await execution.getByRole("button",{name:"Resultaat / deeluitvoering",exact:true}).click();await execution.getByLabel("Uitvoeringsresultaat").selectOption("partial");await execution.getByLabel("Werkelijk uitgevoerde hoeveelheid").fill("2");await execution.getByLabel("Resultaat en resterend werk").fill("Twee klaar; derde volgt bij volgende overeengekomen afspraak.");await execution.getByRole("button",{name:"Opslaan",exact:true}).click();await expect(execution.getByText("Uitgevoerd: 2 van 3 task eigen werk.",{exact:true})).toBeVisible();
  await stopAndSubmitStaffReport();
  await page.getByRole("navigation",{name:"Onderdelen werkbondossier"}).getByRole("link",{name:"Rapport & handtekening",exact:true}).click();
- const review=page.getByRole("region",{name:"Rapport en handtekening",exact:true});await expect(review.getByRole("heading",{name:"Rapportversie 1",exact:true})).toBeVisible();
- await expect(review.getByText("Twee eenheden uitgevoerd. De derde volgt bij de volgende overeengekomen afspraak.",{exact:true})).toBeVisible();await expect(review.locator("canvas")).toHaveCount(0);await review.getByRole("button",{name:"Keur goed",exact:true}).click();
+ const review=page.getByRole("region",{name:"Rapport en handtekening",exact:true});await expect(review.getByRole("heading",{name:"Oplevering",exact:true})).toBeVisible();await expect(review.getByRole("tab",{name:"Notities & acties",exact:true})).toBeVisible();
+ await page.goto("/app/rapporten");await page.getByRole("row").filter({hasText:"WB-CHAIN"}).getByRole("button",{name:"Bekijk",exact:true}).click();
+ await expect(page.getByRole("dialog",{name:"Rapport WB-CHAIN",exact:true})).toBeVisible();
+ await expect(review.getByRole("tabpanel",{name:"Overzicht",exact:true}).getByText("Twee eenheden uitgevoerd. De derde volgt bij de volgende overeengekomen afspraak.",{exact:true})).toBeVisible();await expect(review.locator("canvas")).toHaveCount(0);
+ for(const title of ["Taken & checklists","Notities & acties","Foto’s & documenten","Handtekeningen","Kosten","Klantrapport"]){
+  await review.getByRole("tab",{name:title,exact:true}).click();
+  const panel=review.getByRole("tabpanel",{name:title,exact:true});await expect(panel).toBeVisible();
+  if(title==="Notities & acties")await expect(panel.locator(".review-note-list").getByText("FICTITIOUS interne managementcontrole",{exact:true})).toBeVisible();
+  if(title==="Klantrapport"){await expect(panel.getByText("FICTITIOUS interne managementcontrole",{exact:true})).toHaveCount(0);await expect(panel.getByText("FICTITIOUS gedeelde uitvoeringsnotitie",{exact:true})).toBeVisible();}
+ }
+ await review.getByRole("tab",{name:"Overzicht",exact:true}).click();
+ for(const width of [1440,390]){await page.setViewportSize({width,height:950});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await expect.poll(async()=>{const bounds=(await page.getByRole("dialog",{name:"Rapport WB-CHAIN",exact:true}).boundingBox())!;return bounds.x>=0&&bounds.x+bounds.width<=width&&bounds.y>=0&&bounds.y+bounds.height<=950;}).toBe(true);await page.screenshot({path:`test-results/management-report-review-${width}.png`,fullPage:true});}
+ await page.setViewportSize({width:1440,height:950});
+ await review.getByRole("button",{name:"Keur goed",exact:true}).click();
  await expect.poll(async()=>(await db.query("select status from public.work_orders where id=$1",[order])).rows[0].status).toBe("invoice_ready");
  expect((await db.query("select state,approved_by from public.work_order_report_versions where work_order_id=$1",[order])).rows).toEqual([{state:"approved",approved_by:manager}]);
- await page.goto("/app/facturen");await page.getByRole("button",{name:"Nieuwe factuur",exact:true}).click();const invoice=page.getByRole("dialog",{name:"Nieuwe factuur"});await invoice.locator("form").filter({hasText:"Dossier Ketenproef"}).getByRole("button",{name:"Factuur maken"}).click();await expect(invoice).toBeHidden();
+ await page.goto("/app/facturen");const conceptRow=page.getByRole("row").filter({hasText:"WB-CHAIN"});await expect(conceptRow).toContainText("Concept");await conceptRow.getByRole("button",{name:"Bekijk",exact:true}).click();const preview=page.getByRole("dialog",{name:"Concept WB-CHAIN"});await expect(preview.locator("iframe")).toHaveAttribute("src",`/api/files/invoice-concept/${order}`);await page.screenshot({path:"test-results/invoice-concept-preview.png",fullPage:true});const draftPdf=await page.request.get(`/api/files/invoice-concept/${order}`);expect(draftPdf.status()).toBe(200);expect(draftPdf.headers()["content-type"]).toContain("application/pdf");await preview.getByRole("button",{name:"Sluiten",exact:true}).click();await conceptRow.getByRole("checkbox").check();await expect(page.getByRole("region",{name:"Geselecteerde facturen"})).toContainText("1 geselecteerd");await page.getByRole("button",{name:"Concepten definitief maken",exact:true}).click();const invoice=page.getByRole("dialog",{name:"Conceptfactuur definitief maken"});await invoice.getByRole("button",{name:"Definitief maken",exact:true}).click();await expect(invoice).toBeHidden();
+ const finalInvoice=(await db.query("select i.id,i.pdf_sha256 from public.invoices i join public.invoice_lines l on l.invoice_id=i.id where l.work_order_task_id=$1",[task])).rows[0];
+ const savedPdf=await page.request.get(`/api/files/invoice/${finalInvoice.id}?preview=1`);expect(savedPdf.status()).toBe(200);expect(savedPdf.headers()["content-disposition"]).toContain("inline");expect(savedPdf.headers()["cache-control"]).toBe("private, no-store");
+ expect((await request.get(`/api/files/invoice/${finalInvoice.id}`)).status()).toBe(404);expect((await request.get(`/api/files/invoice-concept/${order}`)).status()).toBe(404);
  const lines=(await db.query("select quantity,unit_price_cents,source_snapshot from public.invoice_lines where work_order_task_id=$1",[task])).rows;expect(lines).toHaveLength(1);expect(lines[0].quantity).toBe("2.000");expect(lines[0].unit_price_cents).toBe("1200");expect(lines[0].source_snapshot.agreement.version).toBe(1);
- await page.goto(`/app/klanten?record=${customer}&tab=finance`);await expect(page.locator(".customer-dossier").getByRole("link",{name:"Bekijk",exact:true})).toBeVisible();
+ await page.goto(`/app/klanten?record=${customer}&tab=finance`);await expect(page.locator(".customer-dossier:visible").getByRole("link",{name:"Bekijk",exact:true})).toBeVisible();
  for(const width of [1440,768,390]){await page.setViewportSize({width,height:950});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
  await page.goto("/app/opvolging");await expect(page.getByRole("heading",{name:"Gezamenlijke opvolging"})).toBeVisible();
 });

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { reportRpc } from "./report-rpc";
+import { getWorkOrderDossier } from "./data";
+import type { WorkOrderDossier } from "./model";
 import type { WorkOrderReport } from "./report-model";
 import type { ActionResult } from "@/lib/actions/result";
 import { message } from "@/lib/actions/result";
@@ -12,6 +14,9 @@ async function context(){const actor=await getAuthContext();if(!actor.tenant||!a
 function refresh(){revalidatePath("/app","layout");revalidatePath("/staff","layout");revalidatePath("/klant","layout");}
 export async function loadWorkOrderReport(orderId:string):Promise<ActionResult<{data:WorkOrderReport}>>{
  try{await context();const db=await createClient();const data=await reportRpc(db,"work_order_report",{target_work_order_id:z.uuid().parse(orderId)});return {ok:true,data:data as WorkOrderReport};}catch(e){return {ok:false,error:message(e)};}
+}
+export async function loadReportReviewDossier(orderId:string):Promise<ActionResult<{data:WorkOrderDossier}>>{
+ try{const actor=await context();if(!actor.tenant?.roles.some(role=>["tenant_admin","management","finance"].includes(role)))throw new Error("Geen rapportcontrolerecht");const data=await getWorkOrderDossier(actor.tenant.id,z.uuid().parse(orderId));if(!data?.canReview)throw new Error("Geen actuele rapportcontrolerecht");return {ok:true,data};}catch(e){return {ok:false,error:message(e)};}
 }
 export async function submitWorkOrderReport(input:{orderId:string;version:number;summary:string;idempotencyKey:string}):Promise<ActionResult>{
  try{const actor=await context();if(!actor.tenant?.roles.includes("staff"))throw new Error("Personeelsuitvoering vereist");const v=z.object({orderId:z.uuid(),version:z.number().int().positive(),summary:z.string().trim().min(3).max(5000),idempotencyKey:z.uuid()}).parse(input);

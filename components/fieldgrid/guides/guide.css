@@ -1,0 +1,20 @@
+.fg-guide.fg-guide {
+  position:relative; display:flex; align-items:flex-start; gap:12px; min-width:0;
+  padding:17px 56px 17px 18px; border:1px solid #e9dca9; border-radius:14px;
+  background:#fffae6; color:#51472c; text-align:left; flex-shrink:0;
+}
+.fg-guide .fg-guide-icon { margin-top:2px; color:#8b7429; flex-shrink:0; }
+.fg-guide .fg-guide-copy { min-width:0; }
+.fg-guide .fg-guide-copy strong { display:block; font-size:14px; font-weight:600; line-height:1.5; color:#51472c; }
+.fg-guide .fg-guide-copy p { margin:4px 0 0; font-size:13px; line-height:1.65; color:#665b3c; overflow-wrap:anywhere; }
+.fg-guide .fg-guide-copy [role=alert] { color:#8d2921; }
+.fg-guide button.fg-guide-dismiss {
+  position:absolute; top:5px; right:5px; display:grid; place-items:center;
+  width:44px; height:44px; min-height:44px; padding:0; margin:0;
+  border:0; border-radius:10px; background:transparent; color:#776738; cursor:pointer;
+}
+.fg-guide button.fg-guide-dismiss:hover { background:#f5edcd; }
+.fg-guide button.fg-guide-dismiss:focus-visible { outline:2px solid #8b7429; outline-offset:-3px; }
+.fg-guide button.fg-guide-dismiss:disabled { opacity:.45; cursor:wait; }
+.fg-guide-modal { margin:20px 24px 0; }
+@media(max-width:600px){.fg-guide.fg-guide{padding:15px 50px 15px 14px;gap:9px}.fg-guide-modal{margin:16px 16px 0}}

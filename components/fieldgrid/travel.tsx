@@ -465,7 +465,6 @@ export function TravelOrderPanel({
   const travel = useTravelDay(day, personnelId);
   return (
     <section className="travel-list">
-      <h3>Reisplanning</h3>
       {travel.loading && !travel.data && (
         <p role="status">Reistijd berekenen…</p>
       )}

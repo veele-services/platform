@@ -1,12 +1,13 @@
 "use client";
+import { GuideBanner, GuideForTitle } from "@/components/fieldgrid/guides/guide";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 /** Native top-layer dialog keeps the rest of the page inert, including keyboard
  * focus. Its dimensions/scrolling mirror the supplied fixed-frame prototype. */
-export function CustomerDialog({ title, kicker, description, children, footer, close, dirty=false, busy=false }: {
- title:string;kicker:string;description?:string;children:ReactNode;footer?:ReactNode;close:()=>void;dirty?:boolean;busy?:boolean;
+export function CustomerDialog({ title, kicker, description, children, footer, close, dirty=false, busy=false, guideKey }: {
+ guideKey?:string;title:string;kicker:string;description?:string;children:ReactNode;footer?:ReactNode;close:()=>void;dirty?:boolean;busy?:boolean;
 }) {
  const dialog=useRef<HTMLDialogElement>(null),titleId=useId(),descriptionId=useId();
  const dismiss=()=>{if(!busy&&(!dirty||window.confirm("Je wijzigingen zijn nog niet opgeslagen. Wil je het venster toch sluiten?")))close();};
@@ -28,7 +29,7 @@ export function CustomerDialog({ title, kicker, description, children, footer, c
    if(event.clientX<bounds.left||event.clientX>bounds.right||event.clientY<bounds.top||event.clientY>bounds.bottom)dismiss();}}>
   <div className="modal-shell"><header className="modal-head"><div><span className="eyebrow">{kicker}</span><h2 id={titleId}>{title}</h2>
    {description&&<p id={descriptionId}>{description}</p>}</div><button className="icon-btn" type="button" aria-label="Sluiten" disabled={busy} onClick={dismiss}><X/></button></header>
-   <div className="modal-body">{children}</div>{footer&&<footer className="modal-footer">{footer}</footer>}
+   <div className="modal-body">{guideKey?<GuideBanner guideKey={guideKey}/>:<GuideForTitle title={title}/>}{children}</div>{footer&&<footer className="modal-footer">{footer}</footer>}
   </div>
  </dialog>;
 }

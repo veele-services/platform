@@ -67,7 +67,7 @@ test("Object 360: customer request applies to exactly one visit and reaches back
  const ownFile=(await fileLink.getAttribute("href"))!;expect((await page.request.get(ownFile)).status()).toBe(200);expect((await page.request.get(ownFile.replace(order,secondOrder))).status()).toBe(404);
  await page.goto(`/klant?object=${object}&order=${secondOrder}`);await page.getByRole("tab",{name:/^Instructies/}).click();await expect(page.getByText("Toiletten vandaag extra aandacht")).toHaveCount(0);
  const context=await browser.newContext();const backoffice=await context.newPage();
- try{await login(backoffice,`/app/objecten/${object}?tab=instructies`);await expect(backoffice.getByRole("heading",{name:"Toiletten vandaag extra aandacht"})).toBeVisible();await expect(backoffice.getByText("Beoordeling nodig: Het verzoek is gewijzigd;",{exact:false})).toBeVisible();}finally{await context.close();}
+ try{await login(backoffice,`/app/objecten/${object}?tab=instructies`);await expect(backoffice.getByRole("heading",{name:"Toiletten vandaag extra aandacht"})).toBeVisible();await expect(backoffice.getByRole("main").getByText("Beoordeling nodig: Het verzoek is gewijzigd;",{exact:false})).toBeVisible();}finally{await context.close();}
 });
 test("Object 360: branded OTP mail, no-store secure value, blur and revocation",async({page,request})=>{
  test.setTimeout(90000);await login(page,`/app/objecten/${object}?tab=toegang`);

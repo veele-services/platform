@@ -89,12 +89,12 @@ test.afterAll(async () => {
 async function expectPlanboardReady(page: Page) {
   // The initial server projection may be followed by preference hydration and
   // travel loading. Wait for the actual UI state, not an arbitrary delay.
-  await expect(page.locator(".pb-board")).toHaveAttribute("aria-busy", "false");
-  await expect(page.locator(".pb-state")).toHaveText(
+  await expect(page.locator(".pb-board:visible")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".pb-state:visible")).toHaveText(
     /^2 medewerkers · .*Europe\/Amsterdam$/,
   );
   await page.evaluate(async () => { await document.fonts.ready; });
-  await expect(page.locator(".pb-board")).toHaveAttribute("aria-busy", "false");
+  await expect(page.locator(".pb-board:visible")).toHaveAttribute("aria-busy", "false");
   await expect(page.locator(".pb-alert")).toHaveCount(0);
 }
 async function open(page: Page) {
@@ -102,8 +102,8 @@ async function open(page: Page) {
   await expect(
     page.getByRole("heading", { name: "Planbord", exact: true }),
   ).toBeVisible();
-  await page.getByLabel("Planningsdag").fill(day);
-  await expect(page.locator(`[data-order-id="${orders[0]}"]`)).toBeVisible();
+  await page.getByRole("main").getByLabel("Planningsdag").fill(day);
+  await expect(page.getByRole("main").locator(`[data-order-id="${orders[0]}"]`)).toBeVisible();
   await expectPlanboardReady(page);
 }
 test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bonacties", async ({
@@ -112,7 +112,7 @@ test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bon
   test.setTimeout(90000);
   await page.setViewportSize({ width: 1280, height: 900 });
   await open(page);
-  const board = page.locator(".pb-board"),
+  const board = page.locator(".pb-board:visible"),
     avatar = page.getByRole("button", { name: "Personeel: Ada Planbord" });
   const before = await avatar.boundingBox();
   await board.evaluate((el) => {
@@ -151,7 +151,7 @@ test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bon
         }),
       )
       .toBe(true);
-    await expect(page.getByLabel("Bonnenweergave")).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Bonnenweergave", exact: true })).toBeVisible();
     expect((await board.boundingBox())!.height).toBeGreaterThan(240);
     await board.evaluate((el) => {
       el.scrollLeft = innerWidth < 768 ? 174 : 0;
@@ -162,7 +162,7 @@ test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bon
       fullPage: true,
     });
   }
-  const list = page.locator(".pb-list"),
+  const list = page.locator(".pb-list:visible"),
     old = (await list.boundingBox())!.height;
   await page.getByRole("separator", { name: "Hoogte bonnenlijst" }).focus();
   await page.keyboard.press("ArrowUp");
@@ -177,20 +177,20 @@ test("bonnenweergave en filters zijn onafhankelijk en tellen de juiste resultate
   page,
 }) => {
   await open(page);
-  await page.getByLabel("Bonnenweergave").selectOption("all");
+  await page.getByRole("combobox", { name: "Bonnenweergave", exact: true }).selectOption("all");
   const filters = page.getByRole("button", { name: /^Zoeken en filteren/ });
   await expect(filters).toHaveAccessibleName("Zoeken en filteren");
   await filters.click();
   const pop = page.locator(".pb-filter-popover");
   await expect(pop.locator("select")).toHaveCount(1);
   await pop.getByLabel("Zoeken", { exact: true }).fill("PB-90");
-  await expect(page.locator(".pb-count")).toHaveText("2 bonnen");
+  await expect(page.locator(".pb-count:visible")).toHaveText("2 bonnen");
   await expect(filters).toHaveAccessibleName("Zoeken en filteren, 1 actief");
   await pop.getByLabel("Uitvoeringsstatus").selectOption("completed");
-  await expect(page.locator(".pb-count")).toHaveText("0 bonnen");
+  await expect(page.locator(".pb-count:visible")).toHaveText("0 bonnen");
   await expect(filters).toHaveAccessibleName("Zoeken en filteren, 2 actief");
   await pop.getByRole("button", { name: "Wis filters" }).click();
-  await expect(page.getByLabel("Bonnenweergave")).toHaveValue("all");
+  await expect(page.getByRole("combobox", { name: "Bonnenweergave", exact: true })).toHaveValue("all");
   await expect(filters).toHaveAccessibleName("Zoeken en filteren");
   await pop.getByLabel("Zoeken", { exact: true }).fill("PB-90-2");
   await expect(
@@ -200,8 +200,8 @@ test("bonnenweergave en filters zijn onafhankelijk en tellen de juiste resultate
   await expect(pop).toHaveCount(0);
   await expect(filters).toHaveAccessibleName("Zoeken en filteren, 1 actief");
   await page.reload();
-  await expect(page.getByLabel("Bonnenweergave")).toHaveValue("all");
-  await expect(page.locator(".pb-count")).toHaveText("2 bonnen");
+  await expect(page.getByRole("combobox", { name: "Bonnenweergave", exact: true })).toHaveValue("all");
+  await expect(page.locator(".pb-count:visible")).toHaveText("2 bonnen");
   await expect(filters).toHaveAccessibleName("Zoeken en filteren");
 });
 test("minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebruiken dezelfde uitvoering", async ({
@@ -210,13 +210,13 @@ test("minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebrui
   test.setTimeout(90000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
-  const card = page.locator(`[data-order-id="${orders[0]}"]`);
+  const card = page.getByRole("main").locator(`[data-order-id="${orders[0]}"]`);
   let rect = (await card.boundingBox())!;
   const ppm = rect.width / 90;
   await page.mouse.move(rect.x + 18, rect.y + 28);
   await page.mouse.down();
   await page.mouse.move(rect.x + 18 + 124 * ppm, rect.y + 28, { steps: 10 });
-  await expect(page.locator(".pb-drag-preview").first()).toContainText(
+  await expect(page.locator(".pb-drag-preview:visible").first()).toContainText(
     "10:07–11:37",
   );
   await page.keyboard.press("Escape");
@@ -233,7 +233,7 @@ test("minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebrui
   await page.getByRole("button", { name: "Ongedaan maken" }).click();
   await expect(card).toContainText("08:03–09:33");
   await page.setViewportSize({ width: 375, height: 900 });
-  await page.getByLabel("Bonnenweergave").selectOption("unassigned");
+  await page.getByRole("combobox", { name: "Bonnenweergave", exact: true }).selectOption("unassigned");
   await page
     .getByRole("row")
     .filter({ hasText: "PB-90-2" })
@@ -257,7 +257,7 @@ test("minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebrui
   await expect(confirmation).toContainText("08:03");
   await confirmation.getByRole("button", { name: "Plan toch" }).click();
   await expect(panel).toHaveCount(0);
-  await expect(page.locator(`[data-order-id="${orders[1]}"]`)).toContainText(
+  await expect(page.getByRole("main").locator(`[data-order-id="${orders[1]}"]`)).toContainText(
     "08:03–09:33",
   );
   expect(
@@ -276,7 +276,7 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
   test.setTimeout(90000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await open(page);
-  const card = page.locator(`[data-order-id="${orders[0]}"]`);
+  const card = page.getByRole("main").locator(`[data-order-id="${orders[0]}"]`);
   let rect = (await card.boundingBox())!;
   const ppm = rect.width / 90;
   const dragTo = async (x: number, y: number) => {
@@ -289,7 +289,7 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
   await dragTo(rect.x + 18 + 124 * ppm, rect.y + 28);
   await expect(card).toContainText("10:07–11:37");
   rect = (await card.boundingBox())!;
-  const rowHeight = (await page.locator(".pb-person-row").first().boundingBox())!.height;
+  const rowHeight = (await page.locator(".pb-person-row:visible").first().boundingBox())!.height;
   await dragTo(rect.x + 18, rect.y + 28 + rowHeight);
   await expect
     .poll(async () => (await card.boundingBox())?.y ?? -1)
@@ -319,7 +319,7 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
   await page.mouse.up();
   await expect(card).toContainText("10:07–11:44");
 
-  const list = (await page.locator(".pb-list").boundingBox())!;
+  const list = (await page.locator(".pb-list:visible").boundingBox())!;
   await dragTo(list.x + 180, list.y + 90);
   const confirmation = page.getByRole("dialog", {
     name: "Controleer de afwijking",
@@ -327,11 +327,11 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
   await expect(confirmation).toBeVisible();
   await confirmation.getByRole("button", { name: "Plan toch" }).click();
   await expect(card).toHaveCount(0);
-  await page.getByLabel("Bonnenweergave").selectOption("unassigned");
+  await page.getByRole("combobox", { name: "Bonnenweergave", exact: true }).selectOption("unassigned");
   const grip = page.getByRole("button", { name: "Sleep PB-90-1", exact: true });
   await grip.scrollIntoViewIfNeeded();
   const origin = (await grip.boundingBox())!;
-  const board = (await page.locator(".pb-board").boundingBox())!;
+  const board = (await page.locator(".pb-board:visible").boundingBox())!;
   await page.mouse.move(
     origin.x + origin.width / 2,
     origin.y + origin.height / 2,
@@ -369,8 +369,8 @@ test.describe("status per medewerker", () => {
     }
     await page.setViewportSize({ width: 1440, height: 900 });
     await open(page);
-    const first = page.locator(`[data-assignment-id="${assignments[0]}"]`);
-    const second = page.locator(`[data-assignment-id="${assignments[1]}"]`);
+    const first = page.getByRole("main").locator(`[data-assignment-id="${assignments[0]}"]`);
+    const second = page.getByRole("main").locator(`[data-assignment-id="${assignments[1]}"]`);
     await expect(first).toHaveAttribute("data-status", "travelling");
     await expect(first).toHaveAccessibleName(/Ada Planbord.*Onderweg/);
     await expect(second).toHaveAttribute("data-status", "released");
@@ -416,7 +416,7 @@ test.describe("status per medewerker", () => {
       expect(rect.x).toBeGreaterThanOrEqual(0);
       expect(rect.x + rect.width).toBeLessThanOrEqual(width);
       expect(rect.y + rect.height).toBeLessThanOrEqual(900);
-      expect((await trigger.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      expect((await trigger.boundingBox())!.height).toBeGreaterThanOrEqual(width <= 600 ? 44 : 28);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight)).toBe(true);
       await page.keyboard.press("Escape");
       await expect(legend).not.toBeVisible();

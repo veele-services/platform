@@ -12,7 +12,7 @@ import { renderTenantEmailHtml } from "@/lib/communications/email";
 import { getNotificationActor } from "@/lib/notifications/auth";
 import { notificationRpc } from "@/lib/notifications/rpc";
 import { notificationCommandPayload } from "@/lib/notifications/commands";
-import { getNotificationAccess, getNotificationInbox, getNotificationRecipients, getNotificationCampaign, getNotificationTemplate, getNotificationExplanation } from "@/lib/notifications/data";
+import { getNotificationAccess, getNotificationDetail, getNotificationInbox, getNotificationRecipients, getNotificationCampaign, getNotificationTemplate, getNotificationExplanation } from "@/lib/notifications/data";
 import { record } from "@/lib/notifications/projection";
 import { notificationPaths, type NotificationChannel, type NotificationCommand, type NotificationQuery, type NotificationWorkspace, type RecipientCriteria } from "@/lib/notifications/model";
 
@@ -23,6 +23,7 @@ function failure(error: unknown) {
 }
 export async function loadNotificationAccess(workspace: NotificationWorkspace) { try { return { ok: true as const, data: await getNotificationAccess(workspace) }; } catch (error) { return failure(error); } }
 export async function loadNotificationInbox(workspace: NotificationWorkspace, query: NotificationQuery) { try { return { ok: true as const, data: await getNotificationInbox(workspace, query) }; } catch (error) { return failure(error); } }
+export async function loadNotificationDetail(workspace: NotificationWorkspace, id: string) { try { const data = await getNotificationDetail(workspace, z.uuid().parse(id)); return data ? { ok: true as const, data } : { ok: false as const, error: "Deze notificatie is niet meer beschikbaar." }; } catch (error) { return failure(error); } }
 export async function loadNotificationRecipients(workspace: NotificationWorkspace, criteria: RecipientCriteria, search = "", channels?: NotificationChannel[]) { try { return { ok: true as const, data: await getNotificationRecipients(workspace, criteria, search, channels) }; } catch (error) { return failure(error); } }
 export async function loadNotificationCampaign(workspace: NotificationWorkspace, id: string) { try { return { ok: true as const, data: await getNotificationCampaign(workspace, id) }; } catch (error) { return failure(error); } }
 export async function loadNotificationTemplate(workspace: NotificationWorkspace, id: string) { try { return { ok: true as const, data: await getNotificationTemplate(workspace, id) }; } catch (error) { return failure(error); } }

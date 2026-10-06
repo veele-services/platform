@@ -60,6 +60,7 @@ import {
 } from "@/lib/planning/time";
 import { PlanningDetail } from "./detail-panel";
 import { StatusLegend } from "./status-legend";
+import { PageHeading } from "../page-heading";
 import { assignmentStatus, assignmentStatusStyle } from "@/lib/planning/assignment-status";
 import {
   HEADER_HEIGHT,
@@ -562,11 +563,7 @@ export function DayPlanboard({
   const targetPreview = drag.preview;
   return (
     <div className="pb-root planboard-viewport" ref={root}>
-      <header className="pb-toolbar">
-        <div className="pb-title-group">
-          <div><span className="eyebrow">PLANNING</span><h1>Planbord</h1></div>
-          <StatusLegend />
-        </div>
+      <PageHeading eyebrow="PLANNING" title="Planbord" titleAccessory={<StatusLegend/>} className="pb-page-heading" actions={<div className="pb-toolbar">
         <div className="pb-date">
           <button
             className="pb-icon"
@@ -633,7 +630,7 @@ export function DayPlanboard({
           <Undo2 size={16} />
           <span>Ongedaan maken</span>
         </button>
-      </header>
+      </div>}/>
       {(windowError || loadError || lastError) && (
         <div className="pb-alert" role="alert">
           <span>{windowError || loadError || lastError?.message}</span>

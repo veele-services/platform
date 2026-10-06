@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type ReactNode } from "react";
+import { GuideForTitle } from "../guides/guide";
 import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import type { TenantContext } from "@/lib/auth/context";
@@ -32,6 +33,7 @@ export function WorkOrderDialog({ title, description, tenant, eyebrow = "WERKBON
         <div><span className="eyebrow">{eyebrow}</span><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></div>
         <button type="button" className="icon-button" aria-label="Sluiten" disabled={busy} onClick={close}><X size={20}/></button>
       </header>
+      <GuideForTitle title={title} className="fg-guide-modal"/>
       {children}
     </DialogContent>
   </Dialog>;

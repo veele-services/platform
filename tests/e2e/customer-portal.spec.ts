@@ -8,7 +8,7 @@ import {requireLocalDatabaseUrl} from "./local-target";
 import {authenticateWorkspace} from "./login-auth";
 
 test.use({trace:"off",screenshot:"off",video:"off"});
-test("customer portal: five responsive widths, real persistence, dialogs, downloads and revocation",async({page})=>{
+test("customer portal: five responsive widths, real persistence, dialogs, downloads and revocation",async({page,browser})=>{
  test.setTimeout(240000);
  const db=new pg.Client({connectionString:requireLocalDatabaseUrl().href});await db.connect();
  const admin=createClient<Database>(process.env.SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}});
@@ -31,6 +31,9 @@ test("customer portal: five responsive widths, real persistence, dialogs, downlo
   await page.context().addCookies([{name:"fieldgrid_tenant_id",value:tenant,url:"http://127.0.0.1:3000"}]);
   await authenticateWorkspace(page,email,`/klant?account=${account}`);
   await expect(page.getByRole("heading",{name:"Welkom terug, Robin."})).toBeVisible();
+  const overviewGuide=page.locator('[data-guide-key="customer.dashboard"]');await expect(overviewGuide).toBeVisible();await overviewGuide.getByRole("button").click();await expect(overviewGuide).toHaveCount(0);await page.reload();await expect(overviewGuide).toHaveCount(0);
+  expect((await db.query("select count(*)::int total from public.account_guide_dismissals where user_id=$1 and guide_key='customer.dashboard'",[userId])).rows[0].total).toBe(1);
+  const otherDevice=await browser.newContext({viewport:{width:390,height:960}});try{await otherDevice.addCookies([{name:"fieldgrid_tenant_id",value:tenant,url:"http://127.0.0.1:3000"}]);const otherPage=await otherDevice.newPage();await authenticateWorkspace(otherPage,email,`/klant?account=${account}`);await expect(otherPage.getByRole("heading",{name:"Welkom terug, Robin."})).toBeVisible();await expect(otherPage.locator('[data-guide-key="customer.dashboard"]')).toHaveCount(0);}finally{await otherDevice.close();}
   for(const width of [1440,1024,768,390,320]){
    await page.setViewportSize({width,height:960});await expect(page.getByRole("heading",{name:"Welkom terug, Robin."})).toBeVisible();await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
    await expect(page.getByRole("heading",{name:"Fictieve hoofdlocatie",exact:true})).toBeVisible();

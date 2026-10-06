@@ -200,6 +200,26 @@
       ]
     },
     {
+      "id": "code:app/api/files/invoice-concept/[id]/route.ts",
+      "surfaceFingerprint": "b4ecf5f0a05bf8be75d17e6074bcb7cbefa36964ed0286f93f14493e46ee3010",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Exact hostname tenant, live finance role/module and canonical source before/after I/O; scanned namespace and immutable issued ledger/PDF retained.",
+        "scripts/test-work-order-reports.mjs: approved concepts read without ledger mutation, actual create parity, foreign tenant/role/session rejection; tests/e2e/dossier-alignment.spec.ts: real concept/issued PDF, finalize and anonymous byte rejection."
+      ]
+    },
+    {
+      "id": "code:app/api/files/invoice/[id]/route.ts",
+      "surfaceFingerprint": "a1b8c723c5980803e272b4f04d066aaa4e0afae253731cad8cbf0567dcc4c447",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Exact hostname tenant, live finance role/module and canonical source before/after I/O; scanned namespace and immutable issued ledger/PDF retained.",
+        "scripts/test-work-order-reports.mjs: approved concepts read without ledger mutation, actual create parity, foreign tenant/role/session rejection; tests/e2e/dossier-alignment.spec.ts: real concept/issued PDF, finalize and anonymous byte rejection."
+      ]
+    },
+    {
       "id": "code:app/api/files/object-document/[id]/route.ts",
       "surfaceFingerprint": "47e3fbf502e7ef2a0c50a22c682cc5bd4e852ee42118d886dad427a8cab72892",
       "status": "controlled",
@@ -429,15 +449,12 @@
     },
     {
       "id": "code:app/app/finance-actions.ts",
-      "surfaceFingerprint": "9f22747569843a5604d9909436706a4ea74478f5d46dab71a231099f13ee9279",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "b0b0c90facb4be622ed19ff3271b497ffb87a559397cf197b5472079bf2e7dee",
+      "status": "controlled",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Exact hostname tenant, live finance role/module and canonical source before/after I/O; scanned namespace and immutable issued ledger/PDF retained.",
+        "scripts/test-work-order-reports.mjs: approved concepts read without ledger mutation, actual create parity, foreign tenant/role/session rejection; tests/e2e/dossier-alignment.spec.ts: real concept/issued PDF, finalize and anonymous byte rejection."
       ]
     },
     {
@@ -614,18 +631,17 @@
         "tests/e2e/personnel-invitation.spec.ts#existing-accounts-keep-their-password-and-roles-when-invited-to-the-personnel-portal",
         "tests/e2e/personnel-invitation.spec.ts#failed-invitation-can-be-resent-without-duplicating-personnel-and-revoked-access-cannot-activate",
         "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-v\u00f3\u00f3r-deployment--5-oktober-2026"
       ]
     },
     {
       "id": "code:app/app/opvolging/page.tsx",
-      "surfaceFingerprint": "36d329ed19ba10149fed46b02ab11f014b0eacb319ae65eb4963babb1a7bf61b",
+      "surfaceFingerprint": "84d55ed6276234861dbedc3fdf9fc10ce0e2f62db35a1e35919e205c67d599ae",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed unchanged live workspace/RPC actor boundaries and tenant data sources; presentation, real existing commands and fixed account guide keys only. No new privileged client, membership or general customer role.",
+        "tests/e2e/planboard.spec.ts; tests/e2e/staff-popups.spec.ts; tests/e2e/list-consistency.spec.ts; tests/e2e/account-guides.spec.ts; lib/staff/work-order-completion.test.ts."
       ]
     },
     {
@@ -857,7 +873,7 @@
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
         "docs/security/otp-activity-verification-2026-10-05.md",
-        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-v\u00f3\u00f3r-deployment--5-oktober-2026"
       ]
     },
     {
@@ -1025,14 +1041,12 @@
     },
     {
       "id": "code:app/layout.tsx",
-      "surfaceFingerprint": "c6de2c68d135a211c3bffe66c0acf1316793877350e775b5b2fdb9167112b590",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "05c29a61bbc3cc7db4276114a2eb958e615705d6e0bfecc4fe7f2525264d872b",
+      "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs",
-        "docs/security/session-loading-verification-2026-10-06.md"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed own auth.uid live-session preference only, 65 constrained keys, RLS/FORCE and authenticated-only read/command grants; no business capability or caller account/tenant parameter. Existing verified account boundary retained.",
+        "scripts/test-account-guides.mjs: independent account/device sessions, idempotence, own-only RLS, direct DML/anonymous/service/expired/banned/revoked rejection; tests/e2e/account-guides.spec.ts and tests/e2e/customer-portal.spec.ts: persistence, transport retry and independent devices."
       ]
     },
     {
@@ -1063,15 +1077,12 @@
     },
     {
       "id": "code:app/notifications/actions.ts",
-      "surfaceFingerprint": "6f901a43ce03d4d0634887bebd4529c10df40436e851ed64e41d381589689d15",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "ca3b8f82ad3daf2b2493b92a34f50a6d4a942a038b8a22874fd9e5ba6a4b313a",
+      "status": "controlled",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed same workspace actor/detail UUID RPC and allowed actions; compact modal/direct canonical route retain current notification authorization, filters and inbox semantics. Customer explanation grants no new customer capability.",
+        "tests/e2e/notifications.spec.ts; scripts/test-notifications.mjs and scripts/test-notification-boundaries.mjs."
       ]
     },
     {
@@ -1422,62 +1433,52 @@
     },
     {
       "id": "code:components/fieldgrid/notifications/routes.tsx",
-      "surfaceFingerprint": "4912e12eefffe7098019e2218c2f843d939b4517d3fcc44e1c19d613c25afe58",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "cabe507352d0bd708317cf5e1345f946bce11c63cbcf31c70602fd43222a9caf",
+      "status": "controlled",
       "evidence": [
-        "docs/implementation/2026-10-06-work-order-management.md",
-        "tests/e2e/notifications.spec.ts"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed same workspace actor/detail UUID RPC and allowed actions; compact modal/direct canonical route retain current notification authorization, filters and inbox semantics. Customer explanation grants no new customer capability.",
+        "tests/e2e/notifications.spec.ts; scripts/test-notifications.mjs and scripts/test-notification-boundaries.mjs."
       ]
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
-      "surfaceFingerprint": "04565bdc8843a937fc99cdd9abdb910743835b0d7ee6e13beca488d14af9816f",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "e260d02b02f90ddeae1467744e5835b088ec5853501a8a452576f5b9490f436d",
+      "status": "controlled",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed unchanged live workspace/RPC actor boundaries and tenant data sources; presentation, real existing commands and fixed account guide keys only. No new privileged client, membership or general customer role.",
+        "tests/e2e/planboard.spec.ts; tests/e2e/staff-popups.spec.ts; tests/e2e/list-consistency.spec.ts; tests/e2e/account-guides.spec.ts; lib/staff/work-order-completion.test.ts."
       ]
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
-      "surfaceFingerprint": "3a6b2304e3ce51db15221ccd43d32508552220a8b6056dea383c4c0e2aff2ddc",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "e10c6b1b247012c04fe636814e3aacb471836740342a6b655df2fa8409d8d97b",
+      "status": "controlled",
       "evidence": [
-        "docs/implementation/2026-10-06-work-order-management.md",
-        "scripts/test-work-order-reports.mjs",
-        "lib/staff/work-order-completion.test.ts"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed unchanged live workspace/RPC actor boundaries and tenant data sources; presentation, real existing commands and fixed account guide keys only. No new privileged client, membership or general customer role.",
+        "tests/e2e/planboard.spec.ts; tests/e2e/staff-popups.spec.ts; tests/e2e/list-consistency.spec.ts; tests/e2e/account-guides.spec.ts; lib/staff/work-order-completion.test.ts."
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "1e8be3e4ed0b0f320a48af92db27904f626f8089f2018dd8aa9532ce47a5f803",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "5fe363e6223f66e89b835da43482489b09a120f0b0d727c6d115c65ae961fd3e",
+      "status": "controlled",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs",
-        "tests/e2e/fieldgrid.spec.ts",
-        "tests/e2e/staff-appearance.spec.ts"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed unchanged live workspace/RPC actor boundaries and tenant data sources; presentation, real existing commands and fixed account guide keys only. No new privileged client, membership or general customer role.",
+        "tests/e2e/planboard.spec.ts; tests/e2e/staff-popups.spec.ts; tests/e2e/list-consistency.spec.ts; tests/e2e/account-guides.spec.ts; lib/staff/work-order-completion.test.ts."
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
-      "surfaceFingerprint": "8426852128be09c4118198e0e9030bd0d49c81f361e8f96054930f59c40d5a89",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "e75fd40943f5005c1bb1d906139ca161d004e69e9ca0fd587b86ddf4cb38ece7",
+      "status": "controlled",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed unchanged live workspace/RPC actor boundaries and tenant data sources; presentation, real existing commands and fixed account guide keys only. No new privileged client, membership or general customer role.",
+        "tests/e2e/planboard.spec.ts; tests/e2e/staff-popups.spec.ts; tests/e2e/list-consistency.spec.ts; tests/e2e/account-guides.spec.ts; lib/staff/work-order-completion.test.ts."
       ]
     },
     {
@@ -1762,14 +1763,12 @@
     },
     {
       "id": "code:lib/data/workspace.ts",
-      "surfaceFingerprint": "4b588615a12936af6353d9840365e8da729afe1c21bf6e223e3404223c6806ab",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "b3ef24a77f3ea169f5c54f823e50362ad20a3531845cac129658afffe2d8b2d5",
+      "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "lib/staff/workspace.test.ts",
-        "scripts/test-personnel-privacy.mjs",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "docs/implementation/staff-personnel-app-traceability.md#toegangs--en-privacycontract"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed bounded page size/offset with retained actor, tenant, filter and stable order predicates; full authorized collections use existing RLS client with stable id ties. Concepts additionally require actual same tenant and finance permission.",
+        "scripts/test-list-pagination.mjs: 37 real rows, complete nonduplicate traversal, empty results/100 limit, foreign tenant and staff rejection; tests/e2e/list-consistency.spec.ts: 35 real rows and persisted page-size preference."
       ]
     },
     {
@@ -1827,6 +1826,16 @@
         "manual-completion-audit:2026-10-01",
         "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
         "scripts/check-security-surface.mjs"
+      ]
+    },
+    {
+      "id": "code:lib/guides/actions.ts",
+      "surfaceFingerprint": "0fa89799e7b3cae44a42124185dad8ae1df876c16873f5338d507ad8650b5c08",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed own auth.uid live-session preference only, 65 constrained keys, RLS/FORCE and authenticated-only read/command grants; no business capability or caller account/tenant parameter. Existing verified account boundary retained.",
+        "scripts/test-account-guides.mjs: independent account/device sessions, idempotence, own-only RLS, direct DML/anonymous/service/expired/banned/revoked rejection; tests/e2e/account-guides.spec.ts and tests/e2e/customer-portal.spec.ts: persistence, transport retry and independent devices."
       ]
     },
     {
@@ -1948,6 +1957,16 @@
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
         "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:lib/pdf/invoice-brand.ts",
+      "surfaceFingerprint": "ff05b262e8e846745dd2aa90364ae807e2d8a2e2fc928ee5e33af58f99e462c9",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Exact hostname tenant, live finance role/module and canonical source before/after I/O; scanned namespace and immutable issued ledger/PDF retained.",
+        "scripts/test-work-order-reports.mjs: approved concepts read without ledger mutation, actual create parity, foreign tenant/role/session rejection; tests/e2e/dossier-alignment.spec.ts: real concept/issued PDF, finalize and anonymous byte rejection."
       ]
     },
     {
@@ -2140,6 +2159,16 @@
       ]
     },
     {
+      "id": "code:lib/work-orders/checklist-actions.ts",
+      "surfaceFingerprint": "030abbdd14902c1431af4d441b41b0f7debbe8a45504fd26bd85ca9e6192135a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed repeated live tenant/role/planning/reportage guard, published same-tenant snapshot, locked version CAS and actor/payload-bound idempotency; no change to frozen delivery.",
+        "scripts/test-work-orders.mjs: real published definition, repeated exact request, changed payload/version, cross-tenant and unsupported role rejection."
+      ]
+    },
+    {
       "id": "code:lib/work-orders/data.ts",
       "surfaceFingerprint": "c9af8e9c614fc742f83c19ac3656798784ef30baf29eaca47b905ded012de190",
       "status": "controlled",
@@ -2152,13 +2181,12 @@
     },
     {
       "id": "code:lib/work-orders/report-actions.ts",
-      "surfaceFingerprint": "53866bf6662807ecf736d9639453a26a3c6bfbd79e9ac77aefa43f2d446a9bdd",
+      "surfaceFingerprint": "ea74d8c8c89326168b587ab69cfdf879d66773eb692ca7ad59a8e592303a13ae",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed management/finance-only review loader, actual tenant and reporting permission plus dossier RPC canReview; operational backoffice dossier guard retained, financial redaction preserved, no staff/customer access to internal dossier. Names and visibility use already authorized sources.",
+        "scripts/test-work-order-reports.mjs; lib/work-orders/report-pdf.test.ts; lib/work-orders/financial-summary.test.ts; tests/e2e/dossier-alignment.spec.ts."
       ]
     },
     {
@@ -2952,6 +2980,16 @@
         "scripts/test-work-order-reports.mjs",
         "scripts/test-release-security.mjs",
         "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:public.account_guide_dismissals",
+      "surfaceFingerprint": "887408156d068944ef23867a7e21d4854172e4417f9936a122d5fa0bbc7bf3ff",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed own auth.uid live-session preference only, 65 constrained keys, RLS/FORCE and authenticated-only read/command grants; no business capability or caller account/tenant parameter. Existing verified account boundary retained.",
+        "scripts/test-account-guides.mjs: independent account/device sessions, idempotence, own-only RLS, direct DML/anonymous/service/expired/banned/revoked rejection; tests/e2e/account-guides.spec.ts and tests/e2e/customer-portal.spec.ts: persistence, transport retry and independent devices."
       ]
     },
     {
@@ -4303,11 +4341,12 @@
     },
     {
       "id": "db:public.work_orders",
-      "surfaceFingerprint": "6e33091c12e6a3b11f36ccc75212ff014e54912e86d7990b9c9fd16e012784d3",
-      "status": "controlled",
+      "surfaceFingerprint": "f2417090b9f07c52c87d1b736f486f645d620472fad77bb0a2e546e065ae7607",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Corrected overall completion: current frozen report readiness, effective signatures, all assignments stopped and no open clocks. Reviewed every writer trigger, session/actor/order lock/version guards and exact idempotent replay; preserved immutable historic signatures and approved/invoiced records.",
+        "scripts/test-work-order-reports.mjs; scripts/test-work-orders.mjs; scripts/test-work-order-rpc-guards.mjs; tests/e2e/staff-popups.spec.ts and tests/e2e/dossier-alignment.spec.ts."
       ]
     },
     {
@@ -4558,11 +4597,12 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "c5f4f213a9632a6f22f1ea4a1fc2b8aa9e081da58985978ce1bede7535341591",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "4d40431589142d8e6c632e2a58e41922b05eb54a79e8cef313eed090ba2af8bb",
+      "status": "controlled",
       "evidence": [
-        "docs/implementation/2026-10-06-work-order-management.md",
-        "scripts/test-task-catalogue.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed required DB test additions without bypass/removal; clean 125-migration replay preserves every pre-existing committed statement hash. Staging runtime, config isolation and promotion/deploy contracts unchanged.",
+        "pnpm db:verify-manifest; scripts/test-account-guides.mjs and scripts/test-list-pagination.mjs; .github/workflows/_verify.yml retains full release gates."
       ]
     },
     {
@@ -4814,11 +4854,12 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "d3d761f7db0faa05be99e65c91ef855ce30dcddd5e79ab8c344401b83988abfe",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "88efa7a373936c558f30a2e1df88e356cd7097fa2b9be0a22239321666f232e0",
+      "status": "controlled",
       "evidence": [
-        "docs/implementation/2026-10-06-work-order-management.md",
-        "scripts/verify-local-migration-manifest.ts"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed required DB test additions without bypass/removal; clean 125-migration replay preserves every pre-existing committed statement hash. Staging runtime, config isolation and promotion/deploy contracts unchanged.",
+        "pnpm db:verify-manifest; scripts/test-account-guides.mjs and scripts/test-list-pagination.mjs; .github/workflows/_verify.yml retains full release gates."
       ]
     },
     {
@@ -5887,6 +5928,16 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:private.enforce_work_order_delivery_completion()",
+      "surfaceFingerprint": "d54074d85eb9866f53f8fdd1c57cc4daf268048e5499004bbf6c3bdfdf20d445",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Corrected overall completion: current frozen report readiness, effective signatures, all assignments stopped and no open clocks. Reviewed every writer trigger, session/actor/order lock/version guards and exact idempotent replay; preserved immutable historic signatures and approved/invoiced records.",
+        "scripts/test-work-order-reports.mjs; scripts/test-work-orders.mjs; scripts/test-work-order-rpc-guards.mjs; tests/e2e/staff-popups.spec.ts and tests/e2e/dossier-alignment.spec.ts."
       ]
     },
     {
@@ -8411,6 +8462,16 @@
       ]
     },
     {
+      "id": "rpc:private.work_order_delivery_complete(w work_orders)",
+      "surfaceFingerprint": "7a6ba0b0fa57e57fd0de84bd13b434a5ffab19a709e856e010fdadec875c3388",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Corrected overall completion: current frozen report readiness, effective signatures, all assignments stopped and no open clocks. Reviewed every writer trigger, session/actor/order lock/version guards and exact idempotent replay; preserved immutable historic signatures and approved/invoiced records.",
+        "scripts/test-work-order-reports.mjs; scripts/test-work-orders.mjs; scripts/test-work-order-rpc-guards.mjs; tests/e2e/staff-popups.spec.ts and tests/e2e/dossier-alignment.spec.ts."
+      ]
+    },
+    {
       "id": "rpc:private.work_order_execution_actor(t uuid, w uuid, u uuid, s uuid)",
       "surfaceFingerprint": "8cc7ffdd1e5883f4d7f5fa840531dda02d2beb926289a9b038510bd76cca4590",
       "status": "controlled",
@@ -8637,6 +8698,16 @@
       ]
     },
     {
+      "id": "rpc:public.account_guide_state()",
+      "surfaceFingerprint": "21ddb99e7512d633918397d929bfbd260c4dd52863a4b483c2b54282c267395e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed own auth.uid live-session preference only, 65 constrained keys, RLS/FORCE and authenticated-only read/command grants; no business capability or caller account/tenant parameter. Existing verified account boundary retained.",
+        "scripts/test-account-guides.mjs: independent account/device sessions, idempotence, own-only RLS, direct DML/anonymous/service/expired/banned/revoked rejection; tests/e2e/account-guides.spec.ts and tests/e2e/customer-portal.spec.ts: persistence, transport retry and independent devices."
+      ]
+    },
+    {
       "id": "rpc:public.acknowledge_object_instruction(target_tenant uuid, target_order uuid, target_record uuid, expected_version bigint)",
       "surfaceFingerprint": "96b71764a8159ecf28b63d561293c3a6895cfc94994a66df46f628fb7d9833a8",
       "status": "controlled",
@@ -8711,6 +8782,16 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:public.attach_work_order_checklist(target_tenant uuid, input jsonb)",
+      "surfaceFingerprint": "6b4a2e39440e2174559a2c09a283f39313f7b1a9361edd4e16dcae9f0ade5f05",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed repeated live tenant/role/planning/reportage guard, published same-tenant snapshot, locked version CAS and actor/payload-bound idempotency; no change to frozen delivery.",
+        "scripts/test-work-orders.mjs: real published definition, repeated exact request, changed payload/version, cross-tenant and unsupported role rejection."
       ]
     },
     {
@@ -8896,13 +8977,12 @@
     },
     {
       "id": "rpc:public.commercial_list(target_tenant uuid, filters jsonb)",
-      "surfaceFingerprint": "624338358b4e8b152425c44206aeeece98b1f711199121a0e6a4800bd9439e67",
+      "surfaceFingerprint": "aaa60839d05e0f59c248bcb681caf247d444c5771952cd7c240c2e3e0546fb46",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed bounded page size/offset with retained actor, tenant, filter and stable order predicates; full authorized collections use existing RLS client with stable id ties. Concepts additionally require actual same tenant and finance permission.",
+        "scripts/test-list-pagination.mjs: 37 real rows, complete nonduplicate traversal, empty results/100 limit, foreign tenant and staff rejection; tests/e2e/list-consistency.spec.ts: 35 real rows and persisted page-size preference."
       ]
     },
     {
@@ -9136,13 +9216,12 @@
     },
     {
       "id": "rpc:public.customer_list(target_tenant uuid, filters jsonb)",
-      "surfaceFingerprint": "ffc8c627dbd42c8ddd144e973b99d3c28073713373cfe0f3ce1cc3baa5cec66b",
+      "surfaceFingerprint": "67453c4a5951b2f08845c56effe354c7d0dfaf8c10cad0c196f90086245d6165",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed bounded page size/offset with retained actor, tenant, filter and stable order predicates; full authorized collections use existing RLS client with stable id ties. Concepts additionally require actual same tenant and finance permission.",
+        "scripts/test-list-pagination.mjs: 37 real rows, complete nonduplicate traversal, empty results/100 limit, foreign tenant and staff rejection; tests/e2e/list-consistency.spec.ts: 35 real rows and persisted page-size preference."
       ]
     },
     {
@@ -9444,6 +9523,16 @@
       ]
     },
     {
+      "id": "rpc:public.dismiss_account_guide(guide_key text)",
+      "surfaceFingerprint": "0ddeee497633c3a4298e26073c74f3afb1cbcd07edef77488dff75d3b97a486b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed own auth.uid live-session preference only, 65 constrained keys, RLS/FORCE and authenticated-only read/command grants; no business capability or caller account/tenant parameter. Existing verified account boundary retained.",
+        "scripts/test-account-guides.mjs: independent account/device sessions, idempotence, own-only RLS, direct DML/anonymous/service/expired/banned/revoked rejection; tests/e2e/account-guides.spec.ts and tests/e2e/customer-portal.spec.ts: persistence, transport retry and independent devices."
+      ]
+    },
+    {
       "id": "rpc:public.dispatch_work_order(target_work_order_id uuid, target_personnel_id uuid, expected_version bigint, idempotency_key text)",
       "surfaceFingerprint": "183df685c59afe2143bca2791c1854cc35eb40ca33340e8fb7cf424ed736d778",
       "status": "controlled",
@@ -9506,6 +9595,16 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:public.execution_invoice_concepts(target_tenant uuid, target_order uuid)",
+      "surfaceFingerprint": "d5600419faa4b6179e9aea8d57c3c33bbc927dc3d5b215615d3a1c04d411f780",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Exact hostname tenant, live finance role/module and canonical source before/after I/O; scanned namespace and immutable issued ledger/PDF retained.",
+        "scripts/test-work-order-reports.mjs: approved concepts read without ledger mutation, actual create parity, foreign tenant/role/session rejection; tests/e2e/dossier-alignment.spec.ts: real concept/issued PDF, finalize and anonymous byte rejection."
       ]
     },
     {
@@ -9589,15 +9688,12 @@
     },
     {
       "id": "rpc:public.finalize_work_order_signature(target_intent uuid, image_hash text)",
-      "surfaceFingerprint": "19f2baccf7bb96fedccb9080edb6033c92edf5fb2735d61164d52896eb35ca26",
+      "surfaceFingerprint": "8bab9f822ff56cad7e70180ac3aa7a70ec299c3c99bf1135ce8c65aeb34a151e",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Corrected overall completion: current frozen report readiness, effective signatures, all assignments stopped and no open clocks. Reviewed every writer trigger, session/actor/order lock/version guards and exact idempotent replay; preserved immutable historic signatures and approved/invoiced records.",
+        "scripts/test-work-order-reports.mjs; scripts/test-work-orders.mjs; scripts/test-work-order-rpc-guards.mjs; tests/e2e/staff-popups.spec.ts and tests/e2e/dossier-alignment.spec.ts."
       ]
     },
     {
@@ -10039,15 +10135,12 @@
     },
     {
       "id": "rpc:public.prepare_work_order_signature(target_work_order_id uuid, target_report_id uuid, expected_hash text, signer_name text, signer_capacity text, signature_kind text, idempotency_key uuid)",
-      "surfaceFingerprint": "a496c2131b894310f890874ec9bf194300d67b267cd3dc2f0788736e224deea6",
+      "surfaceFingerprint": "ddf2ce8aa1902fa3ed33c172050ce8d397a141c189f6370c7fcf1401a400ba68",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Corrected overall completion: current frozen report readiness, effective signatures, all assignments stopped and no open clocks. Reviewed every writer trigger, session/actor/order lock/version guards and exact idempotent replay; preserved immutable historic signatures and approved/invoiced records.",
+        "scripts/test-work-order-reports.mjs; scripts/test-work-orders.mjs; scripts/test-work-order-rpc-guards.mjs; tests/e2e/staff-popups.spec.ts and tests/e2e/dossier-alignment.spec.ts."
       ]
     },
     {
@@ -10583,15 +10676,12 @@
     },
     {
       "id": "rpc:public.submit_work_order_report(target_work_order_id uuid, expected_version bigint, summary text, idempotency_key uuid)",
-      "surfaceFingerprint": "9883778b1e8d66dd3a62467a2d501139c827d005ba341751df544df4c1b54c7d",
+      "surfaceFingerprint": "4eeaa9f4defb0d136479a9bd949ca34cb74bb7e68c967db66e4ed214695622c9",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Corrected overall completion: current frozen report readiness, effective signatures, all assignments stopped and no open clocks. Reviewed every writer trigger, session/actor/order lock/version guards and exact idempotent replay; preserved immutable historic signatures and approved/invoiced records.",
+        "scripts/test-work-order-reports.mjs; scripts/test-work-orders.mjs; scripts/test-work-order-rpc-guards.mjs; tests/e2e/staff-popups.spec.ts and tests/e2e/dossier-alignment.spec.ts."
       ]
     },
     {
@@ -10785,15 +10875,12 @@
     },
     {
       "id": "rpc:public.transition_work_order(target_work_order_id uuid, action text, expected_version bigint, idempotency_key text, reason_code text, note text)",
-      "surfaceFingerprint": "ac6760371f33a83126b16f85e7265b1276a244e604677fcfc411cba5dc971550",
+      "surfaceFingerprint": "cf36e1aff4cd41818b66ee763e9c0337f84139a184fca46d9d606100e8d98f3b",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Corrected overall completion: current frozen report readiness, effective signatures, all assignments stopped and no open clocks. Reviewed every writer trigger, session/actor/order lock/version guards and exact idempotent replay; preserved immutable historic signatures and approved/invoiced records.",
+        "scripts/test-work-order-reports.mjs; scripts/test-work-orders.mjs; scripts/test-work-order-rpc-guards.mjs; tests/e2e/staff-popups.spec.ts and tests/e2e/dossier-alignment.spec.ts."
       ]
     },
     {
@@ -10875,13 +10962,12 @@
     },
     {
       "id": "rpc:public.work_order_dossier(target_tenant uuid, target_order uuid)",
-      "surfaceFingerprint": "aca718995ba7a190a6ccf0da3a8a35307fc1ba00c9bbff71b15a8ded3327035e",
+      "surfaceFingerprint": "9665b3923d9305f68e388551b4f8833c062ced30382492132c9ca11ebd8b720b",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed management/finance-only review loader, actual tenant and reporting permission plus dossier RPC canReview; operational backoffice dossier guard retained, financial redaction preserved, no staff/customer access to internal dossier. Names and visibility use already authorized sources.",
+        "scripts/test-work-order-reports.mjs; lib/work-orders/report-pdf.test.ts; lib/work-orders/financial-summary.test.ts; tests/e2e/dossier-alignment.spec.ts."
       ]
     },
     {
@@ -10908,13 +10994,12 @@
     },
     {
       "id": "rpc:public.work_order_list(target_tenant uuid, filters jsonb)",
-      "surfaceFingerprint": "9a1fd44a3b359052fe81b9d051692fc1cd89a9e6fa640a1fdc9754542224dd09",
+      "surfaceFingerprint": "6b98923db3a46b72bd76ae36279dcd148b8c634ef60c8170e6677b93e271d4ee",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Reviewed bounded page size/offset with retained actor, tenant, filter and stable order predicates; full authorized collections use existing RLS client with stable id ties. Concepts additionally require actual same tenant and finance permission.",
+        "scripts/test-list-pagination.mjs: 37 real rows, complete nonduplicate traversal, empty results/100 limit, foreign tenant and staff rejection; tests/e2e/list-consistency.spec.ts: 35 real rows and persisted page-size preference."
       ]
     },
     {
@@ -10983,15 +11068,12 @@
     },
     {
       "id": "rpc:public.work_order_report(target_work_order_id uuid)",
-      "surfaceFingerprint": "5e916c236cb2bc9339f62028e6d13cfd6229dc3ef516272069b724e36100506a",
+      "surfaceFingerprint": "d2bc8016bfcbf7fbff17e043929381ceee66a225b0ab7979ea3d82beabfc897f",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/dashboard-release-verification-2026-10-06.md",
+        "Corrected overall completion: current frozen report readiness, effective signatures, all assignments stopped and no open clocks. Reviewed every writer trigger, session/actor/order lock/version guards and exact idempotent replay; preserved immutable historic signatures and approved/invoiced records.",
+        "scripts/test-work-order-reports.mjs; scripts/test-work-orders.mjs; scripts/test-work-order-rpc-guards.mjs; tests/e2e/staff-popups.spec.ts and tests/e2e/dossier-alignment.spec.ts."
       ]
     },
     {
