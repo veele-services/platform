@@ -6339,7 +6339,7 @@
     {
       "id": "operation:pnpm-lock.yaml",
       "classification": "operation",
-      "source_sha256": "f193b4215b71282c139a8033e36197488c0fc0bff1461c5e6a9010662608e902"
+      "source_sha256": "0877ba7ce05ad7c3c4c8fc8baa86a5ac54505c45456ce3199760032c33d69d33"
     },
     {
       "id": "operation:pnpm-workspace.yaml",

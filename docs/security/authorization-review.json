@@ -4523,14 +4523,15 @@
     },
     {
       "id": "operation:pnpm-lock.yaml",
-      "surfaceFingerprint": "8e58a406a54f49168be59732925091ed869472d317a2a83c065bb1d4d77728e7",
+      "surfaceFingerprint": "9022f67aa33917f84990cc69b1a328ac7813a8ebcefff3d42b2fa6c0411f9c49",
       "status": "corrected-and-rechecked",
       "evidence": [
         "manual-staging-migration-client-review:2026-10-02",
         "Frozen lockfile installs both exact CLI packages from pinned integrity hashes and passes repository supply-chain policy.",
         "Supabase CLI 2.109.1 applied the exact isolated 35-to-55 forward plan and preserved all 55 statement-history hashes.",
         "docs/deployment/staging-runbook.md",
-        "Patched braces resolution is content-hashed in the lockfile and verified by frozen install plus lib/operations/dependency-security.test.ts (2026-10-03)."
+        "Patched braces resolution is content-hashed in the lockfile and verified by frozen install plus lib/operations/dependency-security.test.ts (2026-10-03).",
+        "docs/security/source-map-js-update-2026-10-06.md"
       ]
     },
     {
