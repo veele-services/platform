@@ -1,4 +1,6 @@
 "use server";
+
+import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
 import { readScannedFile, uploadScannedFile } from "@/lib/files/scanned-storage";
 
 import { createHash, randomBytes } from "node:crypto";
@@ -158,14 +160,14 @@ export async function sendInvoice(formData: FormData): Promise<ActionResult<{ pa
     const plain = renderPlainEmail({ subject: storedTemplate.subject, body: storedTemplate.body, values, targetUrl: paymentUrl, targetLabel: "Veilig betalen" });
     const logoUrl = savedSnapshot.success ? null : await freezeEmailLogo(admin,context.tenant.id,context.tenant.slug,typeof brandingSnapshot.logo_path === "string" ? brandingSnapshot.logo_path : null);
     const html = renderTenantEmailHtml({
-      brand: {
+      brand: await withTenantEmailBrand(context.tenant.id, {
         company: values.bedrijfsnaam!,
         domain: new URL(tenantAppUrl(context.tenant.slug)).hostname,
         primary: String(brandingSnapshot.primary_color ?? context.tenant.primaryColor),
         accent: String(brandingSnapshot.accent_color ?? context.tenant.accentColor),
         senderEmail: fromEmail,
         emailLogoUrl: logoUrl,
-      },
+      }),
       kind: "invoice",
       message: { subject: storedTemplate.subject, body: storedTemplate.body },
       values,

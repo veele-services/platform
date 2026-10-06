@@ -1,4 +1,5 @@
 "use client";
+import { HelpTip } from "../help-tip";
 import {useCallback,useEffect,useRef,useState,useTransition} from "react";
 import Link from "next/link";
 import {useSearchParams} from "next/navigation";
@@ -40,7 +41,7 @@ export function CommercialPage({tenant,userId,initial,options:initialOptions}:{t
  const isQuote=filters.tab==="quotes";const rows=list?.rows??[];
  const wizard=editor||(params.get("new")==="request"?{kind:"request" as const}:params.get("new")==="quote"?{kind:"quote" as const}:null);
  return <div className="commercial-page">
- <header className="page-intro resource-intro"><div><span className="eyebrow">COMMERCIEEL</span><h1>Aanvragen & Offertes</h1><p>Van klantvraag naar akkoord en geplande uitvoering.</p></div><button className="primary-button" onClick={()=>setEditor({kind:isQuote?"quote":"request"})}><Plus size={16}/>{isQuote?"Nieuwe offerte":"Nieuwe aanvraag"}</button></header>
+ <header className="page-intro resource-intro"><div><span className="eyebrow">COMMERCIEEL<HelpTip>Van klantvraag naar akkoord en geplande uitvoering.</HelpTip></span><h1>Aanvragen & Offertes</h1></div><button className="primary-button" onClick={()=>setEditor({kind:isQuote?"quote":"request"})}><Plus size={16}/>{isQuote?"Nieuwe offerte":"Nieuwe aanvraag"}</button></header>
  {params.get("return")?.startsWith("/app/")&&!params.get("return")?.includes("//")&&<Link className="text-link" href={params.get("return")!}>← Terug naar dossier</Link>}
  <div className="commercial-counters" aria-label="Opvolging">{([['new','Nieuwe aanvragen','requests'],['followup','Offertes opvolgen','quotes'],['expiring','Vervalt binnenkort','quotes'],['convert','Akkoord → opdracht maken','quotes']]as const).map(([key,label,tab])=><button key={key} className={filters.attention===key?"active":""} onClick={()=>update({tab,attention:key,status:null,operation:null})}><span>{label}</span><strong>{list?.counts[key]??"—"}</strong></button>)}</div>
  <div className="compact-filter-bar"><div className="compact-filter-bar-main"><Tabs value={filters.tab} onValueChange={tab=>update({tab,status:null,attention:null,operation:null})}><TabsList className="commercial-tabs" aria-label="Commerciële lijsten"><TabsTrigger value="requests">Aanvragen</TabsTrigger><TabsTrigger value="quotes">Offertes</TabsTrigger></TabsList></Tabs></div><CompactFilterMenu activeCount={active.length} contentClassName="commercial-filter-popover">

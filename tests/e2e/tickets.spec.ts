@@ -194,8 +194,8 @@ test("personeelsmelding met echte scan, private notitie, bewuste escalatie en on
   expect(await colleagueResponse.text()).not.toContain(subject);
   expect((await coworker.request.get(staffFileUrl!)).status()).toBe(404);
 
-  await manager.getByRole("button", { name: "Doorsturen naar Fieldgrid", exact: true }).click();
-  const share = manager.getByRole("dialog", { name: "Doorsturen naar Fieldgrid", exact: true });
+  await manager.getByRole("button", { name: "Doorsturen naar support", exact: true }).click();
+  const share = manager.getByRole("dialog", { name: "Doorsturen naar support", exact: true });
   await share.getByLabel("Onderwerp voor Fieldgrid").fill(`Gedeeld technisch probleem ${fixture.slice(0, 8)}`);
   await share.getByLabel("Supportcategorie").selectOption({ label: "Technische storing" });
   await share.getByLabel("Betrokken module").selectOption("werkbonnen");

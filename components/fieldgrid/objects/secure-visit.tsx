@@ -33,8 +33,8 @@ export function SecureObjectVisit({ objectId, orderId, timezone }: { objectId: s
   }, [call]);
   useEffect(() => {
     const lifecycle = epoch;
-    const hide = () => clear();
-    const visibility = () => { if (document.hidden) clear(); };
+    const hide = () => { if (grant.current) clear(); else setCode(""); };
+    const visibility = () => { if (document.hidden) hide(); };
     window.addEventListener("blur", hide); window.addEventListener("offline", hide); window.addEventListener("pagehide", hide);
     document.addEventListener("visibilitychange", visibility);
     return () => { window.removeEventListener("blur", hide); window.removeEventListener("offline", hide); window.removeEventListener("pagehide", hide); document.removeEventListener("visibilitychange", visibility); lifecycle.current++; if (grant.current) void call("hide", { grantId: grant.current }); grant.current = ""; };

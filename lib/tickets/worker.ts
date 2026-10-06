@@ -1,3 +1,4 @@
+import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
 import "server-only";
 import webpush from "web-push";
 import { z } from "zod";
@@ -45,15 +46,16 @@ export async function processTicketDeliveryClaims(input: Array<{ id: string; lea
       const target = delivery.context === "platform" ? new URL(delivery.path, env.APP_URL).href : tenantAppUrl(delivery.slug, delivery.path);
       if (delivery.channel === "email") {
         if (!env.SENDGRID_API_KEY || !env.SENDGRID_FROM_EMAIL) throw new Error("Mailconfiguratie ontbreekt");
-        // Support is always Fieldgrid communication, never a tenant sender or
-        // tenant-controlled template. Internal personnel mail is tenant branded.
+        // The support message is centrally controlled; tenant recipients still receive
+        // their organization identity, while platform recipients retain the platform brand.
         const platform = delivery.route === "platform_support";
         const brand = platform
           ? { company: "Fieldgrid", domain: new URL(env.APP_URL).hostname, primary: FIELDGRID_PRIMARY, accent: FIELDGRID_SECONDARY, senderEmail: env.SENDGRID_FROM_EMAIL }
           : { company: delivery.brand.company, domain: new URL(target).hostname, primary: delivery.brand.primary ?? FIELDGRID_PRIMARY, accent: delivery.brand.accent ?? FIELDGRID_SECONDARY, senderEmail: env.SENDGRID_FROM_EMAIL, emailLogoUrl: await freezeEmailLogo(admin,delivery.tenantId,delivery.slug,delivery.brand.logoPath) };
-        const html = renderTenantEmailHtml({ brand, kind: "ticket_event", message: { subject: title, body }, targetUrl: target, allowLocalLinks: env.DEPLOY_TARGET === "local" });
+        const emailBrand = await withTenantEmailBrand(delivery.context === "platform" ? null : delivery.tenantId,brand);
+        const html = renderTenantEmailHtml({ brand: emailBrand, kind: "ticket_event", message: { subject: title, body }, targetUrl: target, allowLocalLinks: env.DEPLOY_TARGET === "local" });
         submitted = true;
-        const result = await sendEmail({ to: delivery.recipient, fromEmail: env.SENDGRID_FROM_EMAIL, fromName: brand.company, subject: title, text: `${body}\n\n${target}`, html, deliveryKey: `ticket-${delivery.id}`, disableTracking: true, policy:{kind:"notification",tenantId:delivery.tenantId,type:"ticket.changed",context:delivery.context==="tenant"||delivery.context==="support"?"backoffice":delivery.context,recipientUserId:delivery.recipientUserId,sourceId:delivery.id,sourceKind:"ticket"} });
+        const result = await sendEmail({ to: delivery.recipient, fromEmail: env.SENDGRID_FROM_EMAIL, fromName: emailBrand.company, subject: title, text: `${body}\n\n${target}`, html, deliveryKey: `ticket-${delivery.id}`, disableTracking: true, policy:{kind:"notification",tenantId:delivery.tenantId,type:"ticket.changed",context:delivery.context==="tenant"||delivery.context==="support"?"backoffice":delivery.context,recipientUserId:delivery.recipientUserId,sourceId:delivery.id,sourceKind:"ticket"} });
         await finish("sent", result.id); sent++;
       } else {
         if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY || !env.VAPID_SUBJECT || !delivery.subscription) throw new Error("Pushconfiguratie ontbreekt");

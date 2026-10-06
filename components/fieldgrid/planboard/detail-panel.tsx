@@ -207,11 +207,9 @@ export function PlanningDetail({
           <ObjectVisitSignals orderId={order.id}/><CommercialOrderContext orderId={order.id} timezone={timezone}/>
           <dl className="pb-facts">
             <div>
-              <dt>Uitvoeringsduur</dt>
+              <dt>Werktijd</dt>
               <dd>
-                {order.durationMinutes
-                  ? `${order.durationMinutes} minuten`
-                  : "Nog invullen"}
+                {order.assignments.length ? order.assignments.map(a => <div key={a.id}><strong>{people.find(p => p.id===a.personnelId)?.name ?? "Medewerker"}</strong><br/>{localDateTime(a.actualStart ?? a.start, timezone).replace("T"," ")} – {a.actualEnd ? localDateTime(a.actualEnd,timezone).replace("T"," ") : a.actualStart ? "Nu bezig" : localDateTime(a.end,timezone).replace("T"," ")}{a.timeBudgetMinutes != null && <small> · {a.timeBudgetMinutes} min verwacht{a.overrun ? " · loopt uit" : ""}</small>}</div>) : `Nog in te plannen${order.durationMinutes != null ? ` · Verwacht ${Math.ceil(order.durationMinutes)} minuten` : ""}`}
               </dd>
             </div>
             <div>

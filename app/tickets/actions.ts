@@ -1,5 +1,7 @@
 "use server";
 
+import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
+
 import { randomInt } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -101,7 +103,7 @@ export async function requestTicketVerification(workspace: TicketWorkspace, comm
       const text = `Je verificatiecode is ${code}.\n\nJe hebt een wijziging van meldings- of supportrechten aangevraagd. Vul deze code alleen in het geopende bevestigingsscherm in, nadat je de ontvanger en het gegevensbereik hebt gecontroleerd. De code is maximaal vijf minuten geldig en werkt uitsluitend voor deze wijziging.\n\nHeb je dit niet aangevraagd? Deel de code niet en neem contact op met je beheerder.`;
       const tenant = actor.tenant;
       const targetUrl = tenant ? tenantAppUrl(tenant.slug, ticketPaths[workspace]) : `${env.APP_URL}/platform/support`;
-      const html = renderTenantEmailHtml({ brand: { company: tenant?.name ?? "Fieldgrid", domain: new URL(targetUrl).host, primary: tenant?.primaryColor ?? "#222C35", accent: tenant?.accentColor ?? "#41AC42", senderEmail: env.SENDGRID_FROM_EMAIL, emailLogoUrl: tenant?.logoPath ? `${env.APP_URL}/api/branding/${tenant.id}/email-logo` : null }, kind: "ticket_otp", message: { subject, body: text }, targetUrl, allowLocalLinks: env.DEPLOY_TARGET === "local" });
+      const html = renderTenantEmailHtml({ brand: await withTenantEmailBrand(tenant?.id ?? null, { company: tenant?.name ?? "Fieldgrid", domain: new URL(targetUrl).host, primary: tenant?.primaryColor ?? "#222C35", accent: tenant?.accentColor ?? "#41AC42", senderEmail: env.SENDGRID_FROM_EMAIL, emailLogoUrl: tenant?.logoPath ? `${env.APP_URL}/api/branding/${tenant.id}/email-logo` : null }), kind: "ticket_otp", message: { subject, body: text }, targetUrl, allowLocalLinks: env.DEPLOY_TARGET === "local" });
       await sendEmail({ fromEmail: env.SENDGRID_FROM_EMAIL, fromName: tenant?.name ?? env.SENDGRID_FROM_NAME, to: z.email().parse(challenge.email), subject, text, html, deliveryKey: `ticket-verification:${challengeId}`, disableTracking: true, policy: { kind: "security", flow: "permissions_otp", tenantId: actor.tenantId } });
       await call("delivered", { challenge_id: challengeId, delivered: true });
       return { ok: true, data: { challengeId, expiresAt: z.string().parse(challenge.expires_at) } };

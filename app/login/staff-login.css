@@ -18,15 +18,15 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 54px;
-  background: #222c35;
+  background: var(--brand-sidebar, #222c35);
   color: white;
 }
 
 .staff-login .staff-login-identity .product-brand { color: white; font-size: 28px; }
-.staff-login .product-brand::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 1px; background: #41ac42; }
+.staff-login .product-brand::after { content: ""; display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 1px; background: var(--brand-focus, #41ac42); }
 .staff-login-identity > div > span { color: #8da499; font-size: .75rem; font-weight: 600; letter-spacing: .1em; }
 .staff-login-identity h2 { max-width: 460px; margin: 40px 0 22px; font-family: Poppins, Inter, sans-serif; font-size: 3rem; font-weight: 600; line-height: 1.25; letter-spacing: -.05em; }
-.staff-login-identity h2 em { color: #79cf7b; font-style: normal; }
+.staff-login-identity h2 em { color: var(--brand-hero-accent, #79cf7b); font-style: normal; }
 .staff-login-identity p { max-width: 420px; color: #a8b6c1; }
 .staff-login-identity > small { color: #8e9fab; font-size: .8125rem; }
 .staff-login-features { display: flex; gap: 30px; margin: 45px 0; border-top: 1px solid rgb(255 255 255 / 8%); padding-top: 25px; }
@@ -49,10 +49,10 @@
 .staff-login .auth-form label { color: #4b5969; font-size: .875rem; font-weight: 500; }
 .staff-login .auth-input { min-height: 50px; border-color: #dce3e7; border-radius: 10px; background: #fcfdfd; }
 .staff-login .auth-input input { min-width: 0; font-size: 1rem; color: #1a2632; }
-.staff-login .auth-input:focus-within { border-color: #368341; box-shadow: 0 0 0 3px rgb(65 172 66 / 9%); }
-.staff-login .auth-form .primary-button { min-height: 46px; border-radius: 10px; background: #368341; color: white; font-size: .875rem; font-weight: 600; }
-.staff-login .auth-form :where(a, .auth-text-button) { min-height: 44px; display: grid; align-items: center; color: #368341; font-size: .875rem; font-weight: 600; }
-.staff-login .auth-form :where(a, button, input):focus-visible { outline: 3px solid #41ac42; outline-offset: 3px; }
+.staff-login .auth-input:focus-within { border-color: var(--brand-focus, #368341); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-focus, #41ac42) 9%, transparent); }
+.staff-login .auth-form .primary-button { min-height: 46px; border-radius: 10px; background: var(--brand-action, #368341); color: white; font-size: .875rem; font-weight: 600; }
+.staff-login .auth-form :where(a, .auth-text-button) { min-height: 44px; display: grid; align-items: center; color: var(--brand-action, #368341); font-size: .875rem; font-weight: 600; }
+.staff-login .auth-form :where(a, button, input):focus-visible { outline: 3px solid var(--brand-focus, #41ac42); outline-offset: 3px; }
 .staff-login .auth-card :where(.fieldgrid-brand, .product-brand) { margin-bottom: 26px; }
 .staff-login .brand-copy strong { color: #1a2632; }
 .staff-login .auth-message { font-size: .8125rem; line-height: 1.6; }

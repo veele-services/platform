@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mock = vi.hoisted(() => ({ rpc: vi.fn(), push: vi.fn(), permit: vi.fn(), vapid: vi.fn(), mail: vi.fn(), render: vi.fn() }));
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({}) }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { white_label_enabled: false }, error: null }) }) }) }) }) }));
 vi.mock("@/lib/env/server", () => ({ getServerEnv: () => ({ VAPID_PUBLIC_KEY: "fixture-public", VAPID_PRIVATE_KEY: "fixture-private", VAPID_SUBJECT: "mailto:fixture@example.invalid", SENDGRID_API_KEY: "fixture-mail-key", SENDGRID_FROM_EMAIL: "sender@example.invalid" }) }));
 vi.mock("@/lib/providers/sendgrid", () => ({ sendEmail: mock.mail, SendGridDeliveryError: class extends Error {} }));
 vi.mock("@/lib/communications/email", () => ({ renderTenantEmailHtml: mock.render }));

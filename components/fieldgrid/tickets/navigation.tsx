@@ -20,7 +20,7 @@ export function TicketNavigation({ workspace, current, actorKey, card = false }:
     window.addEventListener("focus", load);
     return () => { live = false; window.removeEventListener("focus", load); };
   }, [workspace, actorKey]);
-  const links = workspace === "staff" ? [{ workspace: "staff" as const, name: "Mijn meldingen", view: "meldingen" }] : workspace === "platform" ? [{ workspace: "platform" as const, name: "Supportdesk", view: "support" }] : [{ workspace: "tenant" as const, name: "Meldingen", view: "meldingen" }, { workspace: "support" as const, name: "Fieldgrid-support", view: "support" }];
+  const links = workspace === "staff" ? [{ workspace: "staff" as const, name: "Mijn meldingen", view: "meldingen" }] : workspace === "platform" ? [{ workspace: "platform" as const, name: "Supportdesk", view: "support" }] : [{ workspace: "tenant" as const, name: "Meldingen", view: "meldingen" }, { workspace: "support" as const, name: "Technische ondersteuning", view: "support" }];
   const visible = links.filter(link => available.includes(link.workspace));
   if (!visible.length) return null;
   const content = visible.map(link => <Link aria-label={link.name} title={link.name} key={link.workspace} href={ticketPaths[link.workspace]} prefetch={false} className={`ticket-nav-link${current === link.view ? " active" : ""}`} aria-current={current === link.view ? "page" : undefined}>{link.workspace === "support" || link.workspace === "platform" ? <Headset size={18}/> : <MessageSquareText size={18}/>}<span>{link.name}</span></Link>);

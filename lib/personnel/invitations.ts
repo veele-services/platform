@@ -1,3 +1,4 @@
+import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
 import "server-only";
 
 import { randomUUID } from "node:crypto";
@@ -54,12 +55,12 @@ export async function deliverPersonnelInvitation(input: {
     url.hash = new URLSearchParams({ token_hash: input.tokenHash }).toString();
   }
   let mail = renderPersonnelInvitation({
-    brand: {
+    brand: await withTenantEmailBrand(input.tenant.id, {
       company: input.tenant.name, domain: new URL(tenantAppUrl(input.tenant.slug)).hostname,
       primary: branding.primary_color, accent: branding.accent_color,
       senderEmail: env.SENDGRID_FROM_EMAIL,
       emailLogoUrl: branding.logo_path ? `${env.APP_URL}/api/branding/${input.tenant.id}/email-logo` : null,
-    },
+    }),
     name: input.person.full_name, employeeNumber: input.person.employee_number,
     targetUrl: url.href, existingAccount: !input.tokenHash, allowLocalLinks: env.DEPLOY_TARGET === "local",
   });
@@ -80,7 +81,7 @@ export async function deliverPersonnelInvitation(input: {
       const values={bedrijfsnaam:input.tenant.name,medewerkernaam:input.person.full_name,personeelsnummer:input.person.employee_number};
       const subject=renderNotificationMailText(template.title,template.variables,values),body=renderNotificationMailText(template.body,template.variables,values);
       const logo=await freezeEmailLogo(admin,input.tenant.id,input.tenant.slug,branding.logo_path);
-      const html=renderTenantEmailHtml({kind:"personnel_invitation",existingAccount:true,brand:{company:input.tenant.name,domain:new URL(tenantAppUrl(input.tenant.slug)).hostname,primary:branding.primary_color,accent:branding.accent_color,senderEmail:env.SENDGRID_FROM_EMAIL,emailLogoUrl:logo},message:{subject,body},targetUrl:url.href,targetLabel:template.cta_label,allowLocalLinks:env.DEPLOY_TARGET==="local"});
+      const html=renderTenantEmailHtml({kind:"personnel_invitation",existingAccount:true,brand:await withTenantEmailBrand(input.tenant.id, {company:input.tenant.name,domain:new URL(tenantAppUrl(input.tenant.slug)).hostname,primary:branding.primary_color,accent:branding.accent_color,senderEmail:env.SENDGRID_FROM_EMAIL,emailLogoUrl:logo}),message:{subject,body},targetUrl:url.href,targetLabel:template.cta_label,allowLocalLinks:env.DEPLOY_TARGET==="local"});
       const frozen=await freezeMailSnapshot(admin,input.tenant.id,delivery!.id,{fromEmail:env.SENDGRID_FROM_EMAIL,fromName:branding.sender_name||input.tenant.name,to:input.person.email,subject,text:`${body}\n\n${url.href}`,html,targetUrl:url.href,templateRevision:template.revision,templateVersionId:template.version_id,templateBaseVersionId:template.base_version_id,attachmentPath:null,attachmentFilename:null});
       mail={subject:frozen.subject,text:frozen.text,html:frozen.html};
     }

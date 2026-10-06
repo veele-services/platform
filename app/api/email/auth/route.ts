@@ -1,3 +1,4 @@
+import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { getServerEnv } from "@/lib/env/server";
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     for (const [index, message] of messages.entries()) {
       const html = renderTenantEmailHtml({
         kind: message.otp ? "auth_otp" : "auth_event", message,
-        brand: { company: context.company, domain: new URL(destination.origin).host, primary: context.primary, accent: context.accent, senderEmail: env.SENDGRID_FROM_EMAIL, emailLogoUrl: context.logo ? `${env.APP_URL}/api/branding/${context.tenant_id}/email-logo` : null },
+        brand: await withTenantEmailBrand(context.tenant_id, { company: context.company, domain: new URL(destination.origin).host, primary: context.primary, accent: context.accent, senderEmail: env.SENDGRID_FROM_EMAIL, emailLogoUrl: context.logo ? `${env.APP_URL}/api/branding/${context.tenant_id}/email-logo` : null }),
         targetUrl: message.targetUrl, targetLabel: message.label, allowLocalLinks: env.DEPLOY_TARGET === "local",
       });
       sendStarted = true;

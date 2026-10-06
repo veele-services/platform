@@ -1,4 +1,5 @@
 "use client";
+import { HelpTip } from "../help-tip";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LockKeyhole, ShieldCheck, EyeOff } from "lucide-react";
 
@@ -15,9 +16,9 @@ export function VaultCard({objectId,orderId=null,nodes=[],assignments=[],dossier
  const load=useCallback(async()=>{const r=await request("metadata",{},null);if(r.ok){setItems(r.items??[]);setCanManage(Boolean(r.canManage));setEmail(r.email??"");}else setMessage(r.error??"Toegang niet beschikbaar.");},[request]);
  useEffect(()=>{const lifetime=generation;let active=true;request("metadata",{},null).then(r=>{if(!active)return;if(r.ok){setItems(r.items??[]);setCanManage(Boolean(r.canManage));setEmail(r.email??"");}else setMessage(r.error??"Toegang niet beschikbaar.");});return()=>{active=false;lifetime.current++;};},[objectId,orderId,request]);
  useEffect(()=>{
-  const hide=()=>{clear();};const visibility=()=>{if(document.hidden)hide();};window.addEventListener("blur",hide);window.addEventListener("offline",hide);window.addEventListener("pagehide",hide);document.addEventListener("visibilitychange",visibility);
+  const hide=()=>{if(grant)clear();else setCode("");};const visibility=()=>{if(document.hidden)hide();};window.addEventListener("blur",hide);window.addEventListener("offline",hide);window.addEventListener("pagehide",hide);document.addEventListener("visibilitychange",visibility);
   return()=>{window.removeEventListener("blur",hide);window.removeEventListener("offline",hide);window.removeEventListener("pagehide",hide);document.removeEventListener("visibilitychange",visibility);};
- },[clear]);
+ },[clear,grant]);
  useEffect(()=>{
   if(!grant||!expires)return;
   const tick=()=>{const seconds=Math.max(0,Math.ceil((Date.parse(expires)-Date.now())/1000));setRemaining(seconds);if(!seconds)clear();};
@@ -33,8 +34,8 @@ export function VaultCard({objectId,orderId=null,nodes=[],assignments=[],dossier
   return()=>{active=false;};
  },[dossierAccess,selected,request]);
  const current=items.find(i=>i.id===selected);
- return <section className="dossier-card object-vault" aria-label="Beveiligde objectgegevens"><div className="object-section-title"><LockKeyhole size={23}/><div><h2>Beveiligde gegevens</h2><p>Alleen online, voor je huidige sessie en toegestane werkzaamheden.</p></div></div>
- <p className="dossier-notice">Sluit het gebouw af en plaats sleutels terug vóór je de werkbon definitief afrondt. Geen code ontvangen? Neem contact op met je leidinggevende; gebruik geen gewone berichten voor alarm- of kluiscodes.</p>
+ return <section className="dossier-card object-vault" aria-label="Beveiligde objectgegevens"><div className="object-section-title"><div className="heading-with-help"><LockKeyhole size={23}/><div className="heading-with-help"><h2>Beveiligde gegevens</h2><HelpTip>Alleen online, voor je huidige sessie en toegestane werkzaamheden. Sluit het gebouw af en plaats sleutels terug vóór je de werkbon definitief afrondt. Gebruik geen gewone berichten voor alarm- of kluiscodes.</HelpTip></div></div></div>
+
  <div className="dossier-form-fields"><label>Gegeven<select aria-label="Gegeven" value={selected} onChange={e=>{clear();setSelected(e.target.value);}}><option value="">{canManage?"Nieuw beveiligd gegeven":"Kies een toegestaan gegeven"}</option>{items.map(i=><option key={i.id} value={i.id}>{i.name} · versie {i.version}</option>)}</select></label><div className="object-vault-context"><ShieldCheck size={18}/><span>{email?`Verificatie per e-mail: ${email}`:"Alleen expliciet toegewezen gegevens zijn beschikbaar binnen je uitvoeringsvenster."}</span></div></div>
  {!canManage&&!items.length&&<p className="dossier-empty">Momenteel geen gegevens beschikbaar. Controleer je toewijzing, het tijdvenster en de vrijgave met je leidinggevende.</p>}
  {!grant&&(canManage||selected)&&<div className="object-vault-actions"><button type="button" className="secondary-button" disabled={busy} onClick={()=>void run(async()=>{const epoch=generation.current;const r=await request("request");if(epoch!==generation.current)return;if(!r.ok){setMessage(r.error!);return;}setChallenge(r.challengeId!);setCode("");setMessage("Je ontvangt een e-mail met een eenmalige verificatiecode. Deze is maximaal twee minuten geldig.");})}>{busy?"Bezig…":challenge?"Nieuwe code aanvragen":"Verificatiecode aanvragen"}</button>

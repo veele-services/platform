@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { FieldgridBrand } from "../brand";
+import { TenantThemeProvider } from "../tenant-theme";
+import { HelpTip } from "../help-tip";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
@@ -196,12 +199,12 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
     if (assignment?.status === "released" && tenant.enabledServices.includes("rapportage")) run(() => transitionWorkOrder({ workOrderId: order.id, action: "open", version: order.version, idempotencyKey: `open-${assignment.id}-${assignment.version}` }), "Werkbon geopend");
   };
 
-  if (!profile) return <StaffProfileRecovery/>;
+  if (!profile) return <StaffProfileRecovery tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/>;
 
   const title = view === "planning" ? "Planning" : view === "nieuws" ? "Nieuws" : view === "uren" ? "Mijn uren" : moreView === "menu" ? "Meer" : ({ verlof: "Verlof", beschikbaarheid: "Beschikbaarheid", documenten: "Documenten", instellingen: "Instellingen", profiel: "Profiel" } as Record<MoreView, string>)[moreView];
-  return <div className={`personnel-app${view === "planning" ? " ps-planning-screen" : ""}`} style={personnelThemeStyle()}>
+  return <TenantThemeProvider primary={tenant.primaryColor} accent={tenant.accentColor}><div className={`personnel-app${view === "planning" ? " ps-planning-screen" : ""}`} style={personnelThemeStyle(tenant.primaryColor, tenant.accentColor)}>
     <aside className="ps-sidebar">
-      <div className="ps-sidebar-brand"><div className="ps-sidebar-logo">Fieldgrid</div><small>PERSONEELSAPP</small></div>
+      <div className="ps-sidebar-brand"><div className="ps-sidebar-logo"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><small>PERSONEELSAPP</small></div>
       <nav className="ps-nav" aria-label="Hoofdnavigatie">
         <button className={`ps-nav-button${view === "planning" ? " active" : ""}`} onClick={() => navigate("planning")}><CalendarDays/><span>Dagplanning</span></button>
         <button className={`ps-nav-button${view === "nieuws" ? " active" : ""}`} onClick={() => navigate("nieuws")}><Newspaper/><span>Nieuws</span>{unreadNews > 0 && <b>{unreadNews}</b>}</button>
@@ -215,12 +218,13 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
       </nav>
       <footer className="ps-sidebar-footer">
         <div className="ps-sidebar-person"><span>{initials(profile.preferred_name || profile.full_name)}</span><span><strong>{profile.preferred_name || profile.full_name}</strong><small>Medewerker</small></span></div>
+        {!tenant.whiteLabelEnabled && <small className="ps-powered">Powered by Fieldgrid</small>}
       </footer>
     </aside>
     <div className="ps-workspace">
       <header className="ps-topbar">
         <div className="ps-topbar-leading">
-          <div className="ps-mobile-brand"><strong>Fieldgrid</strong></div>
+          <div className="ps-mobile-brand"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div>
           <div className={`ps-sync ${sync}`} role="status" aria-label={sync === "current" ? "Alles bijgewerkt" : sync === "offline" ? "Offline" : sync === "syncing" ? "Synchroniseren" : "Verbinden"}><i/><span>{sync === "current" ? "Bijgewerkt" : sync === "offline" ? "Offline" : sync === "syncing" ? "Synchroniseren" : "Verbinden"}</span></div>
           <div className="ps-breadcrumb"><span>Mijn werkplek</span><span aria-hidden="true">/</span><strong>{view === "planning" ? "Dagplanning" : title}</strong></div>
         </div>
@@ -254,7 +258,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
     {selected && <StaffOrderSheet reportingEnabled={tenant.enabledServices.includes("rapportage")} order={selected} data={data} timezone={tenant.timezone} pending={pending} close={() => setSelectedId(null)} run={run}/>}
     {profile.onboarding_completed_at === null && <Onboarding profile={profile} depots={data.staffDepots} email={context.user.email ?? profile.email ?? ""} notificationPreferences={notificationPreferences} pending={pending} run={run}/>}
     <Toaster richColors position="top-center"/>
-  </div>;
+  </div></TenantThemeProvider>;
 }
 
 function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, onNews }: { orders: StaffOrder[]; assignments: Assignment[]; data: StaffWorkspaceData; timezone: string; onOpen: (order: StaffOrder) => void; onHours: () => void; onNews: () => void }) {
@@ -318,7 +322,7 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
     <aside className="ps-planning-aside">
       <section className="ps-panel ps-next-panel"><div className="ps-panel-heading"><span>EERSTVOLGENDE AFSPRAAK</span><CalendarDays/></div>{next && nextAssignment ? <><h2>{nextObject?.name ?? next.title}</h2><p>{objectAddress(nextObject?.address)}</p>{nextContact?.phone && <p className="ps-next-phone"><Phone/>{nextContact.phone}</p>}<strong className="ps-next-time">{assignmentInterval(nextAssignment, timezone).start}</strong><p>Verwachte start{nextTravel?.estimated_minutes != null ? ` · ${nextTravel.estimated_minutes} min reistijd` : ""}</p><button className="ps-primary ps-full" onClick={() => onOpen(next)}><Eye/>Open werkbon</button></> : <p>Er staat niets gepland.</p>}</section>
       <section className="ps-panel"><div className="ps-panel-heading"><h2>Jouw werkdag</h2><Clock3/></div><div className="ps-metric-row"><span>Werkbonnen afgerond</span><strong>{completedCount} / {visible.length}</strong></div><div className="ps-progress"><span style={{ width: `${visible.length ? completedCount / visible.length * 100 : 0}%` }}/></div><div className="ps-metric-row"><span>Geregistreerd vanaf</span><strong>{firstEntry ? staffClock(firstEntry.starts_at, timezone) : "–"}</strong></div><div className="ps-metric-row"><span>Werkdag tot nu toe</span><strong>{staffDuration(totals.paid)}</strong></div><button className="ps-text-button" onClick={onHours}>Bekijk mijn uren</button></section>
-      {data.announcements.length > 0 && <section className="ps-panel"><div className="ps-panel-heading"><h2>Goed om te weten</h2><Newspaper/></div>{data.announcements.slice(0, 2).map((announcement) => <button className="ps-mini-news" key={announcement.id} onClick={onNews}><small>Teamnieuws</small><strong>{announcement.title}</strong></button>)}</section>}
+      {data.announcements.length > 0 && <section className="ps-panel"><div className="ps-panel-heading"><div className="heading-with-help"><h2>Goed om te weten</h2><HelpTip>Nieuws en belangrijke berichten van je organisatie. Alle berichten vind je op de pagina Nieuws.</HelpTip></div><Newspaper/></div>{data.announcements.slice(0, 2).map((announcement) => <button className="ps-mini-news" key={announcement.id} onClick={onNews}><small>Teamnieuws</small><strong>{announcement.title}</strong></button>)}</section>}
     </aside>
   </div>;
 }
@@ -609,7 +613,7 @@ function AvailabilityScreen({ profile, pending, run, onLeave }: { profile: Staff
         </details>
       </form></section>
       <aside className="ps-availability-aside" aria-label="Over beschikbaarheid">
-        <section className="ps-panel"><h2>Goed om te weten</h2><p>Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan.</p></section>
+        <section className="ps-panel"><div className="heading-with-help"><h2>Goed om te weten</h2><HelpTip>Je beschikbaarheid ondersteunt de planning; bestaande afspraken veranderen alleen na controle door de planner.</HelpTip></div><p>Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan.</p></section>
         <section className="ps-panel"><h2>Tijdelijk afwezig?</h2><p>Voor vakantie of een vrije dag dien je een verlofaanvraag in.</p><button type="button" className="ps-text-button" onClick={onLeave}>Naar mijn verlof</button></section>
       </aside>
     </div>

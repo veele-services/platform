@@ -564,7 +564,7 @@ export function DayPlanboard({
     <div className="pb-root planboard-viewport" ref={root}>
       <header className="pb-toolbar">
         <div className="pb-title-group">
-          <h1>Planbord</h1>
+          <div><span className="eyebrow">PLANNING</span><h1>Planbord</h1></div>
           <StatusLegend />
         </div>
         <div className="pb-date">
@@ -848,7 +848,7 @@ export function DayPlanboard({
                       );
                     if (right <= left) return null;
                     const attention = assignment.qualifications.length > 0;
-                    const status = assignmentStatus(assignment.status);
+                    const status = assignmentStatus(assignment.overrun ? "overrun" : assignment.status);
                     const editable = canPlan(order) && !busy;
                     return (
                       <div

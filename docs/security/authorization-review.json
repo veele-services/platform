@@ -133,11 +133,15 @@
     },
     {
       "id": "code:app/api/email/auth/route.ts",
-      "surfaceFingerprint": "92dfc7746ff7c178c2eb5931803931eab01ae3b28c99e35645c75b6011c27bb7",
+      "surfaceFingerprint": "77f16149d70b8fd0dee136b9f29073595ca5c8e936d1e83757cd8cfb1ee9c677",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/auth-mail-verification-2026-10-05.md",
-        "app/api/email/auth/route.test.ts"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -265,13 +269,15 @@
     },
     {
       "id": "code:app/api/objects/vault/route.ts",
-      "surfaceFingerprint": "e2df6bfbdd2045347b7a36153a057701d547f32d4cf7882d4709c779b561e8e7",
-      "status": "controlled",
+      "surfaceFingerprint": "63ebafbeb890cc5d5ede7a6d59a5da11cf6fc9a2226f64269e84a4362116b46e",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -342,13 +348,15 @@
     },
     {
       "id": "code:app/api/worker/route.ts",
-      "surfaceFingerprint": "56c155d852a1c12e8acd6a7a10c4428482e03377040fde8747cf3a8e9565e15b",
-      "status": "controlled",
+      "surfaceFingerprint": "91e9e5cf9b3328b30a72320b6fa043b04c98d06d22f0ee3aefbdb81650d35a7c",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -397,13 +405,15 @@
     },
     {
       "id": "code:app/app/commercial-delivery-actions.ts",
-      "surfaceFingerprint": "170c0fbf0ef83d6e24f2edb9fb3547e59ddb48b34d71dc20b650aae771dbeb9c",
-      "status": "controlled",
+      "surfaceFingerprint": "c1a0a34ef23c0f7f25dc76a1ee3957917fefbb8de6eb84fc13b8b3555ab0fd23",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -419,13 +429,15 @@
     },
     {
       "id": "code:app/app/finance-actions.ts",
-      "surfaceFingerprint": "25dd8e299a60c6e57f9dec620d88931158fae2be3ed315298d983cf99cd4fdf9",
-      "status": "controlled",
+      "surfaceFingerprint": "9f22747569843a5604d9909436706a4ea74478f5d46dab71a231099f13ee9279",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -1039,23 +1051,28 @@
     },
     {
       "id": "code:app/login/page.tsx",
-      "surfaceFingerprint": "187ed0e966ed31f8037f3c2ec0a56f818a046e0b52bea94095af2e958c76f1bd",
-      "status": "controlled",
+      "surfaceFingerprint": "da6cdb31bc3ddad7957fe117ade569e50552d3dbbbd5a87a48df096d82d02118",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/otp-activity-verification-2026-10-05.md",
-        "docs/security/release-security-inventory.md#personeelslogin-prototypevormgeving--6-oktober-2026"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "code:app/notifications/actions.ts",
-      "surfaceFingerprint": "d27267bcd3ac393dfcc792262ac9140b39d18bf45f92d875486c44df0305714e",
-      "status": "controlled",
+      "surfaceFingerprint": "6f901a43ce03d4d0634887bebd4529c10df40436e851ed64e41d381589689d15",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -1223,19 +1240,15 @@
     },
     {
       "id": "code:app/staff/actions.ts",
-      "surfaceFingerprint": "1a0e59bec63debc3a83e55e7d9ba4f198ece666ee9f37af5136e985e1083b7a4",
+      "surfaceFingerprint": "a4629fa45f0b712addbb31f59563a507c873293cc5d25482a17702cf6a89731e",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-personnel-app-authz-review:2026-10-05",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "supabase/tests/database/staff_direct_rpc_guards.sql",
-        "supabase/tests/database/staff_report_upload_finalize.sql",
-        "lib/staff/time-correction.test.ts",
-        "lib/staff/report-upload-action.test.ts",
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
         "scripts/test-release-security.mjs",
-        "docs/security/release-security-inventory.md#instellingencontactactie-review--5-oktober-2026",
-        "lib/staff/contact-action.test.ts",
-        "tests/e2e/staff-settings.spec.ts"
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -1352,13 +1365,15 @@
     },
     {
       "id": "code:app/staff/objecten/[objectId]/page.tsx",
-      "surfaceFingerprint": "458e2a40afaf52e625a7dd279c31be52801e8b6f32335208e7c914106a3dd9f2",
-      "status": "controlled",
+      "surfaceFingerprint": "0e9b80c3997f787e0c6b60cfba90705dcdef249c0d5c9aef453c843a0f9869cf",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -1377,13 +1392,15 @@
     },
     {
       "id": "code:app/tickets/actions.ts",
-      "surfaceFingerprint": "3584b09523dc21c656b9ca849ed65822a967d5e6e1a58a3c415670d0ae03d7df",
-      "status": "controlled",
+      "surfaceFingerprint": "7e712c2fd6878f4ebd9d521511ddbf66c9b0665fe6df68086d83548c247bbb53",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -1406,90 +1423,83 @@
     },
     {
       "id": "code:components/fieldgrid/notifications/routes.tsx",
-      "surfaceFingerprint": "13d48ee8257e4ffd90ca46d1c979ad51d87dc6727ffbccaa3d02446ecdecb853",
+      "surfaceFingerprint": "8d388181ad5dac46130bcec67a13fb8588b8b3f005e23ecc0ff14f741698d51c",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "tests/e2e/notifications.spec.ts",
-        "tests/e2e/tickets.spec.ts",
-        "tests/e2e/module-boundaries.spec.ts",
-        "docs/implementation/staff-realtime-and-release.md#clientgedrag",
-        "docs/security/release-security-inventory.md#personeelsapp-schermen-en-popupcontainers--6-oktober-2026"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
-      "surfaceFingerprint": "2030ad946bfe8706c7c9f8455499f9ac8d793888c970477c0c1a6f95efdc582b",
+      "surfaceFingerprint": "04565bdc8843a937fc99cdd9abdb910743835b0d7ee6e13beca488d14af9816f",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "scripts/test-planboard.mjs",
-        "tests/e2e/fieldgrid.spec.ts",
-        "docs/implementation/staff-realtime-and-release.md#realtimepad",
-        "tests/e2e/travel.spec.ts",
-        "tests/e2e/planboard.spec.ts"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
-      "surfaceFingerprint": "b79f5c5d20e6bdb484b0cc0e88b1b9d32d4960bd5f79d1830af19c17c6440acc",
+      "surfaceFingerprint": "a8606141e58f868fc2b0cf62f4295faf019c9c2b7df522ee7b4cd105138142d8",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-personnel-app-authz-review:2026-10-05",
-        "lib/staff/workspace.test.ts",
-        "lib/staff/time-correction.test.ts",
-        "lib/staff/work-order-completion.test.ts",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "tests/e2e/fieldgrid.spec.ts",
-        "docs/implementation/staff-personnel-app-traceability.md#toegangs--en-privacycontract",
-        "docs/security/release-security-inventory.md#personeelsapp-schermen-en-popupcontainers--6-oktober-2026"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/staff-popups.spec.ts"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "949b1bc0446e5e1e09e393df82782f6f478d49a48345cb242ef2ee0acd60adb0",
+      "surfaceFingerprint": "6b6eb46fd8f26e71a0490943126df76c8dbdad4fc600d6f809e4b637c1dd417d",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-personnel-app-authz-review:2026-10-05",
-        "lib/staff/workspace.test.ts",
-        "lib/staff/time-correction.test.ts",
-        "supabase/tests/database/staff_personnel_app.sql",
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs",
         "tests/e2e/fieldgrid.spec.ts",
-        "docs/implementation/staff-personnel-app-traceability.md#uren-en-personeelszaken",
-        "docs/security/release-security-inventory.md#instellingencontactactie-review--5-oktober-2026",
-        "lib/staff/contact-action.test.ts",
-        "tests/e2e/staff-settings.spec.ts",
-        "docs/security/release-security-inventory.md#personeelsapp-prototypevormgeving--6-oktober-2026",
-        "docs/security/release-security-inventory.md#personeelsapp-schermen-en-popupcontainers--6-oktober-2026"
+        "tests/e2e/staff-appearance.spec.ts"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
-      "surfaceFingerprint": "75950dd341b700489bcb9a30a6f270f79da7d76296b2209fb94578fceaec308e",
+      "surfaceFingerprint": "8426852128be09c4118198e0e9030bd0d49c81f361e8f96054930f59c40d5a89",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-release-storage-http.mjs",
-        "tests/e2e/fieldgrid.spec.ts",
-        "scripts/test-planboard.mjs",
-        "docs/implementation/staff-realtime-and-release.md#realtimepad",
-        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026",
-        "docs/security/release-security-inventory.md#personeelsapp-prototypevormgeving--6-oktober-2026"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell.tsx",
-      "surfaceFingerprint": "b52a95ba735dbb91bf455c014a7c8a87b54a861346e5c493e89ce52f0999bcb4",
+      "surfaceFingerprint": "d03aa9dbc3169df3c518319967597500cc516e9522cdd2c66dcd34c7ffb96145",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "lib/staff/route-boundaries.test.ts",
-        "tests/e2e/notifications.spec.ts",
-        "tests/e2e/tickets.spec.ts",
-        "tests/e2e/module-boundaries.spec.ts",
-        "docs/implementation/staff-realtime-and-release.md#clientgedrag",
-        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -1578,13 +1588,28 @@
     },
     {
       "id": "code:lib/commercial/mail.ts",
-      "surfaceFingerprint": "8d5c110928844c9497f3083436a0512a91e1095c4ed2f3e226f91a06678e1db3",
-      "status": "controlled",
+      "surfaceFingerprint": "2dbd3548989894d9948368922fa4c16c98da0f2bf35e3d357469b605aac5c4e3",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "code:lib/communications/tenant-email-brand.ts",
+      "surfaceFingerprint": "79f22404d6fa82af8371dc5584e6e127c1bc3189916ae1519bad10bf8b92e5d3",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -1881,13 +1906,15 @@
     },
     {
       "id": "code:lib/notifications/worker.ts",
-      "surfaceFingerprint": "59cda89889ab2e6e9423a278c84ed12c4611cf69efb36011a8bf6cbb3e81b8e6",
-      "status": "controlled",
+      "surfaceFingerprint": "dd13f463319e07cac320e171639f85bd37b8854e0a4bd67fcdcc906cfd83c40f",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -1946,14 +1973,15 @@
     },
     {
       "id": "code:lib/personnel/invitations.ts",
-      "surfaceFingerprint": "aeab06565b869dbf780bce4bfe258048578c69ad51527a81e5eca84a64457fcb",
+      "surfaceFingerprint": "29df53d895b61b646bb5ca285a81bdd5c337cd937f0e3f64226159717439e05a",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-personnel-app-authz-review:2026-10-05",
-        "tests/e2e/personnel-invitation.spec.ts#existing-accounts-keep-their-password-and-roles-when-invited-to-the-personnel-portal",
-        "lib/communications/personnel-invitation.test.ts",
-        "scripts/test-notification-delivery.mjs#delivery-ui-filters-preserve-snake-case-fields-and-frozen-template-revision",
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -2077,13 +2105,15 @@
     },
     {
       "id": "code:lib/tickets/worker.ts",
-      "surfaceFingerprint": "f32d811b9d9ce86625a2363813fc3e880fbfef9bbb1f6b4e836e9b2c086151d0",
-      "status": "controlled",
+      "surfaceFingerprint": "5281c86558ed42f2522142cb63c2202b3fd420ddadc7f717f534cacf5b89f7d5",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -2288,6 +2318,19 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "db:private.execution_activity_events",
+      "surfaceFingerprint": "24826fe2fb725843bd0a92305c1fcf657f3d4e382e8ba090585805b968d08402",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -2895,6 +2938,19 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "db:private.work_order_time_extensions",
+      "surfaceFingerprint": "dd4db73e81a566eca604239b69bc307fe3a24118c0135c4a368387c2c1af2685",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -3659,15 +3715,15 @@
     },
     {
       "id": "db:public.report_entries",
-      "surfaceFingerprint": "cf60d38adb2177ecabee5e7a550b853dfdb4602de140e3aa967e555a18b0ea67",
+      "surfaceFingerprint": "8b649b334301f895645edee1d4fdcbd51e85d2aa7336b220a19cd4b6e403107c",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_report_upload_finalize.sql",
-        "supabase/tests/database/staff_personnel_app.sql",
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
         "scripts/test-release-security.mjs",
-        "scripts/test-release-storage-http.mjs",
-        "docs/implementation/staff-realtime-and-release.md#rapportnotities-en-scannerbevestigde-bijlagen"
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -4103,24 +4159,28 @@
     },
     {
       "id": "db:public.work_order_expenses",
-      "surfaceFingerprint": "0022407123a3afd882c646cee68256d10fc83841e0b9c55c4a02e07ef1749662",
-      "status": "controlled",
+      "surfaceFingerprint": "f5e107c55f8b480bcc9f4f89b7b6d7307c49b17594d3934565d413d072a94465",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-security-catalog.mjs",
-        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "db:public.work_order_material_usage",
-      "surfaceFingerprint": "20d1d58a8d5883d320fce9e8f63f68718d249302e06a402f1b6cff5d2f5cd904",
+      "surfaceFingerprint": "dc99ccb10a1ddd50f1204f48af604e907b7a9b0cd8bef703ff109ee409679af7",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-work-order-lineage.mjs",
-        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -4206,15 +4266,15 @@
     },
     {
       "id": "db:public.work_order_tasks",
-      "surfaceFingerprint": "25fc11cad39656f691276c52f889bd1f1ca7956be7b451b0eeaae5dc74081072",
-      "status": "controlled",
+      "surfaceFingerprint": "7e6c39e3bb1bf6cda3ca2798715ec5390c91107e03958550c1ad6689478c68b4",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-security-catalog.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-planboard.mjs",
-        "docs/implementation/staff-realtime-and-release.md#brondekking"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -4496,10 +4556,15 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "7ff96cb042113942c3541da291ff00802df73557e14881cb8c7b7c927ee48c5e",
-      "status": "controlled",
+      "surfaceFingerprint": "9322a56cd28d889744615ee4c9a9b2fb270f0218b3ef7e78a3d84d9c5972b8d8",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -4751,14 +4816,16 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "7fddd8fecfa89cb9256e4131049c62f17024c8ba2332203da409b74ea8a3a7e8",
+      "surfaceFingerprint": "fcc6ce0f340defeee785fcc06a34ba155f8cbbf91c761acf8e0a58efc9488212",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/auth-mail-verification-2026-10-05.md",
-        "scripts/verify-local-migration-manifest.ts",
-        "docs/security/release-security-inventory.md#planningstatus-na-uitgestelde-indeling--5-oktober-2026",
-        "scripts/test-planboard.mjs",
-        "scripts/test-work-order-rpc-guards.mjs"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/work-order-preferences.spec.ts"
       ]
     },
     {
@@ -5012,6 +5079,32 @@
       ]
     },
     {
+      "id": "rpc:private.assignment_time_budget(t uuid, a uuid)",
+      "surfaceFingerprint": "76ff9bbdee1c386f4e3e8d6dddef5cf9fc7415ebfa0d4898cc043d1d38161a93",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.assignment_work_minutes(t uuid, a uuid)",
+      "surfaceFingerprint": "67cbed57f16a043d277b3fb5be2f9927132a2f7fa589b838daeb35c113d2ce43",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
       "id": "rpc:private.bump_staff_workspace_revision()",
       "surfaceFingerprint": "cb96e52cccc6c799f58650be11a404045f204b729f581442fb60de45cd168488",
       "status": "controlled",
@@ -5108,6 +5201,19 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:private.capture_execution_activity()",
+      "surfaceFingerprint": "bbce69e0a3e27f8025dd85f2bf0f3918ee7786dcf871f3f75f0ca36563ed2f40",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -5598,14 +5704,15 @@
     },
     {
       "id": "rpc:private.customer_signature_snapshot(snapshot jsonb)",
-      "surfaceFingerprint": "ab35c38ece18602d56527ed807e5e4ae00653430ca06eed23b252103bb6c7c6e",
-      "status": "controlled",
+      "surfaceFingerprint": "92c068aad1ef974aed4eb0dc57dfa778fdf31944fb2008fe94e77a94c4593064",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-security-catalog.mjs",
-        "docs/implementation/staff-personnel-app-traceability.md#rapportage-en-ondertekening"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -5697,6 +5804,19 @@
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
         "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "rpc:private.delivery_personnel(t uuid, w uuid)",
+      "surfaceFingerprint": "08414c25e5301370f2f128f7ba343cc8acf40e25620c92d10d41b0cbaae066a7",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -5799,6 +5919,19 @@
       ]
     },
     {
+      "id": "rpc:private.execution_activity(t uuid, w uuid, u uuid)",
+      "surfaceFingerprint": "fdc06ed61a4c84417405bc2bfed2fe59fe15003515df109c6ddc638bec5712eb",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
       "id": "rpc:private.file_is_scanned(object_id uuid, object_version text)",
       "surfaceFingerprint": "36ca2377c44c7ec3db11b1dc924681dc8dca4f2c7d7f49337cc5a1a7dd3b480d",
       "status": "controlled",
@@ -5895,6 +6028,19 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:private.is_delivery_owner(t uuid, w uuid, u uuid)",
+      "surfaceFingerprint": "212258c3d164e1ead43dea151c62b49c8c82415aba3d5f0ce9fc644119d32e86",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -6320,13 +6466,15 @@
     },
     {
       "id": "rpc:private.notification_domain_emit(t uuid, code text, entity_kind text, entity_id uuid, wo uuid, revision text, key text, recipients jsonb, details jsonb)",
-      "surfaceFingerprint": "8aee8dc52563ef779a5196507f2fb4b22bc817126ce546db6c876a717d7a8415",
-      "status": "controlled",
+      "surfaceFingerprint": "17d599e59103fe8e862a597f5c6443f42c90cee443e42df6ee84579c3f11c3eb",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -6366,15 +6514,15 @@
     },
     {
       "id": "rpc:private.notification_domain_source_before_customer_delivery(t uuid, code text, source uuid, revision text, recipient uuid, ctx text)",
-      "surfaceFingerprint": "d188bc448826f9b9e7c3017b2c5e87f7b9fb3945be28aefc3dad58d75b1f173e",
-      "status": "controlled",
+      "surfaceFingerprint": "d3aa3490fed9afa9d5f5799a6575fd6bf4aac26a777cd2cb5f2aa90938aaf594",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md",
-        "docs/security/branding-management-verification-2026-10-05.md",
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
         "scripts/test-work-order-reports.mjs",
-        "scripts/test-customer-payments.mjs",
-        "scripts/test-customer-activity.mjs"
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -6960,13 +7108,15 @@
     },
     {
       "id": "rpc:private.object_vault_context(t uuid, u uuid, s uuid, o uuid, w uuid, i uuid)",
-      "surfaceFingerprint": "60af72e01d3b9cf86753131908f3acc362cc17102c8407b27f64169bcad72f49",
-      "status": "controlled",
+      "surfaceFingerprint": "62bf7b9f59ebb3c136ecb1664b357e3590b6990ea2be249e4f28478aa05ad1fb",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -7068,13 +7218,15 @@
     },
     {
       "id": "rpc:private.planboard_row(w uuid)",
-      "surfaceFingerprint": "609c2a1e9587c10398ff8fc385d84c10c67212fb5a784f176efa63d26eaa0065",
-      "status": "controlled",
+      "surfaceFingerprint": "ab6e6d2116d94d0c5691f40692d6ce97bb29edbc6535629a2316954fb36ecadb",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -7133,6 +7285,19 @@
         "docs/security/release-security-inventory.md#planningstatus-na-uitgestelde-indeling--5-oktober-2026",
         "scripts/test-planboard.mjs",
         "scripts/test-work-order-rpc-guards.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.planning_window_signal(t uuid, a uuid, cause text)",
+      "surfaceFingerprint": "189da19f0a87b412fac108cf87848cca427eaf60796f26703bba466eb4156deb",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -7224,6 +7389,20 @@
       ]
     },
     {
+      "id": "rpc:private.refresh_live_planning(t uuid)",
+      "surfaceFingerprint": "8f8168b0cd1052f4727f2d6473aab2bff3ae025597cfe83e361a2afd39b426c1",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/work-order-preferences.spec.ts"
+      ]
+    },
+    {
       "id": "rpc:private.register_dossier_document()",
       "surfaceFingerprint": "47e2701ea32a3fe70fa9f0314d1cc22df92408ef497c13ebf5968b2ba1bbce0a",
       "status": "controlled",
@@ -7247,27 +7426,28 @@
     },
     {
       "id": "rpc:private.report_delivery(r work_order_report_versions)",
-      "surfaceFingerprint": "497a1ea00a5bc33ff12052b96767cdebb881465320b1dc7a1cfa44ef1d6e1d34",
-      "status": "controlled",
+      "surfaceFingerprint": "3b3f3b05bf3dd5a3aa35ddead173214f4a89d2a7bc9bc8f0d299fab2e1c82832",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "rpc:private.report_snapshot_for_actor(r work_order_report_versions)",
-      "surfaceFingerprint": "14b94d3edc9ea5c1f6d1cf88af231f6163f9ed8c6e26fb331e764faa255abb85",
+      "surfaceFingerprint": "2fcf06c680a3d3e2a58e3faed7654eaab62cc86522b46c7b14fb09b26d6410c8",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_report_upload_finalize.sql",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-work-order-lineage.mjs",
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
         "scripts/test-release-security.mjs",
-        "scripts/test-release-storage-http.mjs",
-        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -8325,16 +8505,15 @@
     },
     {
       "id": "rpc:private.work_order_report_snapshot(w work_orders, summary text)",
-      "surfaceFingerprint": "c4ed0854f70d2925ec108550eaddf515bde2c5d92f11a318f3dc512086c84256",
+      "surfaceFingerprint": "cc77790d40dc01f5ae6a46aaae57afda5e40d7e459e2bd94232e7c31d3b0886e",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_report_upload_finalize.sql",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-work-order-lineage.mjs",
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
         "scripts/test-release-security.mjs",
-        "scripts/test-release-storage-http.mjs",
-        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -8441,13 +8620,15 @@
     },
     {
       "id": "rpc:private.work_order_transition_legacy(target_work_order_id uuid, action text, expected_version bigint, idempotency_key text, reason_code text, note text)",
-      "surfaceFingerprint": "2a5d1a1797479711f93b6e0abfc49f0b4d8621c60ec90f9c0980b313c3485a6b",
-      "status": "controlled",
+      "surfaceFingerprint": "1b40a9fc4c228d8f8d9d49c160355d8aabb2157da27b584f571b833551982429",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -9356,6 +9537,19 @@
       ]
     },
     {
+      "id": "rpc:public.extend_staff_work_order(target_work_order uuid, expected_version bigint, idempotency_key uuid)",
+      "surfaceFingerprint": "44d9baf84631714b6bac173e951cc5b908c2f36287b777067ef5376d8e566203",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
       "id": "rpc:public.file_scan_attest(target_bucket text, target_path text, expected_id uuid, expected_version text, proof jsonb)",
       "surfaceFingerprint": "7dc8740329627d0ed9d16ec4f38c3bbce06e250bc0ef2df395ae2f28964c39fd",
       "status": "controlled",
@@ -9401,13 +9595,15 @@
     },
     {
       "id": "rpc:public.finalize_work_order_signature(target_intent uuid, image_hash text)",
-      "surfaceFingerprint": "287c8e6df770ecc31546e82445d52991bdc2086b436460589a46a0eb9e46f600",
-      "status": "controlled",
+      "surfaceFingerprint": "19f2baccf7bb96fedccb9080edb6033c92edf5fb2735d61164d52896eb35ca26",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -9423,24 +9619,28 @@
     },
     {
       "id": "rpc:public.get_planboard_order(target_tenant uuid, target_order uuid)",
-      "surfaceFingerprint": "c995a5b273b1830698e274cbe1f2ade8b547b6f7135bc9ae9236e2603c5134de",
-      "status": "controlled",
+      "surfaceFingerprint": "d9f270125dca39c8c319835ed36a3d42a6b858147445e37bb068cda1cf76f91c",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "rpc:public.get_planboard(target_tenant uuid, target_day date, list_view text, search_text text, status_filter text, page_number integer)",
-      "surfaceFingerprint": "5c2d38f4d024da3e90a0868b7908091023adc8e8c5023ba9ac6db9fa6023f7cb",
-      "status": "controlled",
+      "surfaceFingerprint": "d4cd9879075672548ed1f1add39888b7cdac63c21f7597b3362e7f34235460d2",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -9533,13 +9733,15 @@
     },
     {
       "id": "rpc:public.notification_delivery_prepare(request_id uuid)",
-      "surfaceFingerprint": "2bb08af255657c60de60f895c639255f024e436f8c67c55be911a4db3abb3a3a",
-      "status": "controlled",
+      "surfaceFingerprint": "71f3ebf817ccb5f9e661162b0febc9f57cbf24e2e98c83b4a68fe3bd92c2af61",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -9698,24 +9900,28 @@
     },
     {
       "id": "rpc:public.object_vault_operation(target_tenant uuid, actor uuid, session_id uuid, target_object uuid, target_order uuid, target_item uuid, operation text, input jsonb)",
-      "surfaceFingerprint": "a5cb447541588b934a726a8698569648f596ad4f5fc7606e7ccf862b2782584b",
-      "status": "controlled",
+      "surfaceFingerprint": "1f7ef9483865ce5e604cb596fb19fa5d2f046a08b8be7d4c06b8205105165f54",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "rpc:public.object_visit_context(target_tenant uuid, target_object uuid, target_order uuid)",
-      "surfaceFingerprint": "db6ce4a98859b20a06217a2d773f87d64344f2cb46fa2f88f6bd9ff01a0190d0",
-      "status": "controlled",
+      "surfaceFingerprint": "81c37ac0a3bfb60a01b75db0d44fc23856942996601eeab99a7b504aefd942b3",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -9829,16 +10035,15 @@
     },
     {
       "id": "rpc:public.prepare_work_order_signature(target_work_order_id uuid, target_report_id uuid, expected_hash text, signer_name text, signer_capacity text, signature_kind text, idempotency_key uuid)",
-      "surfaceFingerprint": "e98aa8a62887f822a74957a63b9af224ac4fe0ce3bd1225b251e31ef2a910e67",
+      "surfaceFingerprint": "a496c2131b894310f890874ec9bf194300d67b267cd3dc2f0788736e224deea6",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_report_upload_finalize.sql",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-work-order-lineage.mjs",
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
         "scripts/test-release-security.mjs",
-        "scripts/test-release-storage-http.mjs",
-        "docs/implementation/staff-realtime-and-release.md#rapport--hash--en-ondertekencontract"
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -9850,6 +10055,19 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:public.process_live_planning()",
+      "surfaceFingerprint": "0704486b41314942d9278b61f24c4dbefc914591c96372683ed5ac6a5a901211",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -10227,14 +10445,15 @@
     },
     {
       "id": "rpc:public.staff_report_signature_preview(target_tenant uuid, target_report uuid, expected_content_hash text)",
-      "surfaceFingerprint": "846b7101f609f9a91b5d284aaa28afa597a30096b6949b5293b6ee3b7de5ba15",
-      "status": "controlled",
+      "surfaceFingerprint": "ac33eacc41a0d4960f1a99e751d84c2fc149bf28f56ce1b860b392acc567d50f",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-security-catalog.mjs",
-        "docs/implementation/staff-personnel-app-traceability.md#rapportage-en-ondertekening"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -10360,13 +10579,15 @@
     },
     {
       "id": "rpc:public.submit_work_order_report(target_work_order_id uuid, expected_version bigint, summary text, idempotency_key uuid)",
-      "surfaceFingerprint": "0b2ae2a0a54701e8cfc09c8895ec4da6d04ab68c417f5d20a6ba5ff14ff82e1e",
-      "status": "controlled",
+      "surfaceFingerprint": "9883778b1e8d66dd3a62467a2d501139c827d005ba341751df544df4c1b54c7d",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -10541,13 +10762,15 @@
     },
     {
       "id": "rpc:public.transition_work_order(target_work_order_id uuid, action text, expected_version bigint, idempotency_key text, reason_code text, note text)",
-      "surfaceFingerprint": "c349fbce2c94b8abf5d5abfebddf9f61fdd8109e8576a59c8b9aaf687d2de0b2",
-      "status": "controlled",
+      "surfaceFingerprint": "ac6760371f33a83126b16f85e7265b1276a244e604677fcfc411cba5dc971550",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -10737,13 +10960,15 @@
     },
     {
       "id": "rpc:public.work_order_report(target_work_order_id uuid)",
-      "surfaceFingerprint": "a684f512cf522cad88e3e46f6040764b6b2c671a1e25fc002ee863693dee1b70",
-      "status": "controlled",
+      "surfaceFingerprint": "5e916c236cb2bc9339f62028e6d13cfd6229dc3ef516272069b724e36100506a",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
+        "scripts/test-object360.mjs",
+        "scripts/test-live-planning.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-release-security.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {

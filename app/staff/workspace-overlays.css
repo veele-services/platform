@@ -203,7 +203,7 @@ body:has(.staff-order-dialog, .ps-staff-dialog) [data-slot="dialog-overlay"] {
 .ps-staff-dialog .ticket-form { gap: 20px; }
 .ps-staff-dialog :is(button, a, input, select, textarea):focus-visible,
 .ps-staff-popover :is(button, a, input, select, textarea):focus-visible,
-.staff-order-dialog :is(button, a, input, select, textarea):focus-visible { outline: 3px solid #41ac42; outline-offset: 3px; }
+.staff-order-dialog :is(button, a, input, select, textarea):focus-visible { outline: 3px solid var(--brand-focus, #41ac42); outline-offset: 3px; }
 
 .ps-staff-dialog .ticket-form-footer,
 .staff-order-dialog > form > [data-slot="dialog-footer"] {

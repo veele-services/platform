@@ -28,6 +28,14 @@ describe("HTML e-mailrenderer", () => {
     expect(html).not.toContain(message.targetUrl);
   });
 
+  it("uses tenant identity and reserves product attribution for the small footer", () => {
+    const input = { brand: { ...brand, company: "Tenant organisatie" }, kind: "auth_otp" as const, message: { subject: "Verificatie", body: "Een code" }, targetUrl: "https://example.test/" };
+    const attributed = renderTenantEmailHtml(input);
+    expect(attributed).toContain("Tenant organisatie");
+    expect(attributed.match(/Fieldgrid/g)).toHaveLength(1);
+    expect(attributed).toContain("Powered by Fieldgrid");
+    expect(renderTenantEmailHtml({...input,brand:{...input.brand,whiteLabelEnabled:true}})).not.toContain("Fieldgrid");
+  });
   it("rendert een responsieve prijsopgave met veilige CTA en huisstijl", () => {
     const template = templateDefinition("quote");
     const html = renderTenantEmailHtml({

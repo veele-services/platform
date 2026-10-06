@@ -175,7 +175,7 @@
         "verifyAuthMailHook"
       ],
       "resources": [],
-      "source_sha256": "2691b5f15528d09a8ff6525aa971b46388656304fbaa6ff897355dd1d78dafe6"
+      "source_sha256": "da05bc8033176837e7dd82808902aefcba828f31b6e8fcc48f15e167f32045ea"
     },
     {
       "id": "code:app/api/email/events/route.ts",
@@ -326,7 +326,7 @@
         "from:tenant_branding",
         "rpc:object_vault_operation"
       ],
-      "source_sha256": "53c2ee09a2e09f26c2debccc700b786dee37bc46f7b9bd7395c3aeaa88c976d9"
+      "source_sha256": "d1917f2a28bb5f897069d73f2f9250ea90d6893497eb4ef100a82e4f3ce58741"
     },
     {
       "id": "code:app/api/payments/create/route.ts",
@@ -412,9 +412,10 @@
         "from:outbox_events",
         "rpc:claim_outbox",
         "rpc:process_customer_reminders",
+        "rpc:process_live_planning",
         "rpc:process_object_reminders"
       ],
-      "source_sha256": "d26e9fb168861e44f72b2fa25e53252dfff6f6f43d33dae176b1ffb8551b3b9b"
+      "source_sha256": "cc7a5103154f068255f1e1a4f334552ae89ae7c0389fe245111a78826ee09aa5"
     },
     {
       "id": "code:app/app/[view]/page.tsx",
@@ -509,7 +510,7 @@
         "rpc:commercial_quote_mail_claim",
         "rpc:commercial_quote_mail_finish"
       ],
-      "source_sha256": "989c9c3519b1ddcc14d2c6678f81f85bebc442b824fcf5096842157de8c9939f"
+      "source_sha256": "5ed40f8de9e1641fbe93e37d0980b52e89db547d6546d93177da4052febebbcb"
     },
     {
       "id": "code:app/app/dossier-actions.ts",
@@ -569,7 +570,7 @@
         "rpc:create_execution_invoice",
         "rpc:register_manual_payment"
       ],
-      "source_sha256": "6cbe6f4e0222f1bd500219a36ebd781dc95bd04b49d79cb260eb9ed73c259dc9"
+      "source_sha256": "f3bde8f9c007fb46b517fa6aa05430fb6612383175096221879765912d95e382"
     },
     {
       "id": "code:app/app/klanten/[customerId]/page.tsx",
@@ -1468,7 +1469,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "8f1014c674c259b873d2d35d6aae1203081d84e9c59f50dbc2f2198a3e2b103c"
+      "source_sha256": "b67e7064cc5bbedcdb5928363e8f04f70b110e072e0fc913315f632c4cc0c5f2"
     },
     {
       "id": "code:app/notifications/actions.ts",
@@ -1488,7 +1489,7 @@
         "createAdminClient"
       ],
       "resources": [],
-      "source_sha256": "b40ea9f3f0156a30d02815651972fc9cb67e4e9abba0809c4e9b9aedad2d5d6d"
+      "source_sha256": "0355c4a09b1cd3d591f0ada9065ac98d9aeebb9bb73c4f28129d1baa08831e0f"
     },
     {
       "id": "code:app/page.tsx",
@@ -1684,6 +1685,7 @@
         "addReportEntry",
         "captureSignature",
         "deleteReportEntry",
+        "extendStaffWorkOrder",
         "loadStaffSignaturePreview",
         "markAnnouncementRead",
         "reportStaffCustomerAbsent",
@@ -1717,11 +1719,12 @@
         "from:report_entries",
         "from:reports",
         "rpc:add_extra_work",
+        "rpc:extend_staff_work_order",
         "rpc:record_task_execution",
         "rpc:set_shift_interest",
         "rpc:transition_work_order"
       ],
-      "source_sha256": "890055d08f44c9f66279637343e0d059bf401d98d6799881c2bf3b37957a3f1b"
+      "source_sha256": "ef9d78e31960857545ef0c0dd1a713f82781382daa0fe512f328beef2379bd2c"
     },
     {
       "id": "code:app/staff/layout.tsx",
@@ -1831,10 +1834,9 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [
-        "from:tenant_branding",
-        "rpc:object_visit_context"
+        "from:tenant_branding"
       ],
-      "source_sha256": "945c1cf6e1e7c966b060cca18c4b1f89d362bc3e70c13dc9d0cbf125f267d16f"
+      "source_sha256": "5679b44c214e44ad10f22bc51689a63194788a1f0b49cd4582ed9cc6a02ecd46"
     },
     {
       "id": "code:app/staff/page.tsx",
@@ -1866,7 +1868,7 @@
         "createAdminClient"
       ],
       "resources": [],
-      "source_sha256": "77b5315dbab77b2fa2d34ff865a4e73e801dd82d574c40c87a0fe5ea41323e8a"
+      "source_sha256": "9dd5dc9deb0acc44550452d27c1abbfd591209208e509f8c175622f54aff81cf"
     },
     {
       "id": "code:components/fieldgrid/backoffice-live.tsx",
@@ -1906,7 +1908,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "9589c57fd389008a4285990fcd1d5cae8bc6e212334c71cef5da94dbdcc2fbfa"
+      "source_sha256": "1c9179889db18f986bd2eef1d1881cecb528d959298659d1d447ed70207bdbef"
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
@@ -1918,7 +1920,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "4a5bd31b7b50e503973ea89a5d925a760699188c430e1c1ed5c047d983e20f4a"
+      "source_sha256": "6dbe8339883a7704e3b0bc057864cf45940125fd8d0634118d45ab726b2afef2"
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
@@ -1931,7 +1933,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "6e4398c4f262a461292088859b552d35487d2405fdf76da861e14f808cddcf15"
+      "source_sha256": "fc81ee123c68026d184f35190801df80bb87f14069f91000d1cedf647283b7b3"
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
@@ -1943,7 +1945,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "9c9f22bb182f475fcbdd7929e88ef62c6f167d7168558926b44705a86485ea92"
+      "source_sha256": "8a9619761c63870f5e7c1ed813435edcfe8b1b329025566d27f2a00fad56616b"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
@@ -1955,7 +1957,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "fa41cdee512d6fb6f48a1ff5de6bb0b287279c7f81184cc0ba4e48c3857f79c7"
+      "source_sha256": "6fdf8a60b8e73eed788ceab3048b00a18a6bac7b499553853c6ac77561ed7259"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell.tsx",
@@ -1964,10 +1966,11 @@
       ],
       "classification": "data-access-module",
       "observedControls": [
+        "createClient",
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "bbdf69de4c37a2189b50727e8a5452f473f2808ba492708114b087c210a597c2"
+      "source_sha256": "b79e848f5239dfacd7cca3b6c32d1e75aff8bc6f554a02ad7f257b965f5d9c43"
     },
     {
       "id": "code:components/fieldgrid/tickets/routes.tsx",
@@ -2107,7 +2110,22 @@
         "from:mail_deliveries",
         "rpc:commercial_mail_claim"
       ],
-      "source_sha256": "d6b86b1efc811e325d620cf1c05ceccb29ea05a30f4935f4d5842d5181fb6145"
+      "source_sha256": "93fdc4dda2db932b2622451d187457867ef3728b8619f8896f68603328c06c26"
+    },
+    {
+      "id": "code:lib/communications/tenant-email-brand.ts",
+      "exports": [
+        "withTenantEmailBrand"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createAdminClient"
+      ],
+      "resources": [
+        "from:tenant_settings",
+        "from:tenants"
+      ],
+      "source_sha256": "d49d428e358a9fa7a26597087b419115c3fcb01e22ee3e02343be4ef21ab91cc"
     },
     {
       "id": "code:lib/customer-portal/activity-action.ts",
@@ -2593,7 +2611,7 @@
         "createAdminClient"
       ],
       "resources": [],
-      "source_sha256": "74cb50d0b29f1df4a9f9068e6cb88819178b33a116d646d28620f3abf4f7dec3"
+      "source_sha256": "80b2388dd183a8984959a6ea9e3e186e9b0f6dad7c6ad4be2e445bbd44662730"
     },
     {
       "id": "code:lib/objects/auth.ts",
@@ -2723,7 +2741,7 @@
         "from:mail_deliveries",
         "from:tenant_branding"
       ],
-      "source_sha256": "0e92980594ebae5e77f29151f98904fff9018d32e2e332e4a737d7e6dc70759a"
+      "source_sha256": "1515d557d1534b008a881814e972903436a3a45766b2eefde7514e647b3be963"
     },
     {
       "id": "code:lib/personnel/invite-tenant.ts",
@@ -2909,7 +2927,7 @@
         "createAdminClient"
       ],
       "resources": [],
-      "source_sha256": "3c4deacc6734547c49067e3815eafb68673aefdea16d836d5c9085211720e855"
+      "source_sha256": "77b8b24f4113707a0696f33d153c166a3d1935e04ca32307d76960de67a5d5f3"
     },
     {
       "id": "code:lib/travel/provider.ts",
@@ -3216,6 +3234,23 @@
     },
     {
       "id": "db:private.email_transports",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.execution_activity_events",
       "classification": "table",
       "rls": true,
       "force_rls": true,
@@ -4151,6 +4186,23 @@
     },
     {
       "id": "db:private.work_order_signature_intents",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.work_order_time_extensions",
       "classification": "table",
       "rls": true,
       "force_rls": true,
@@ -5337,7 +5389,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": false,
-      "authorization_sha256": "39d98d97360c9316933124b106d2288efed5d106ec5a107d1d58dffb6f0094bc"
+      "authorization_sha256": "7ec103f0ec3ad61484bda212589495552743e497e555f3178945921f19f32167"
     },
     {
       "id": "db:public.requests",
@@ -6000,7 +6052,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "f585278ed9ba3c8882dda95147a01374d5b1a240a8e7fad958b99afae1f8de40"
+      "authorization_sha256": "69ce9976437cf71db13ad5db5d714a4497692e032be5b5ffe8e4d8701e3a9ac0"
     },
     {
       "id": "db:public.work_order_material_usage",
@@ -6017,7 +6069,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "ce015ab461b36c7a9a872a6cf8a677454e887361699ae2a4c7eed9249d16187f"
+      "authorization_sha256": "1eb654ff37b94a4a39487bf4f40947ca2b1ca99c4305ef1bf235f92409541350"
     },
     {
       "id": "db:public.work_order_occurrences",
@@ -6153,7 +6205,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "5e021d7ab3156620cf0d646d9268769ec2a89c42f47eac943bdecf8cd770b980"
+      "authorization_sha256": "fa9992c6c12b694504b103253c7d9cb8bd519f21f30a5151a45be70c4e909aea"
     },
     {
       "id": "db:public.work_order_template_versions",
@@ -6324,7 +6376,7 @@
     {
       "id": "operation:package.json",
       "classification": "operation",
-      "source_sha256": "ab45dbff8044465929a2701582a7e19926257869da49f7d9547ca41e7a17adf0"
+      "source_sha256": "0ce6243e82b5c17fcb00272d18c2ba4024e94a92714fe7a454f9685785c888bb"
     },
     {
       "id": "operation:patches/braces@3.0.3.patch",
@@ -6444,7 +6496,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "c2eca33180b796eb4a18ad091d91d17ac2b3381de909fb37dd91b8a3ccf2fe3f"
+      "source_sha256": "947cce9ca8e13f764c28dfdb01e38ff8a6ba4b0e6e849a4127435fbd57de7afc"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -6602,6 +6654,24 @@
       "definition_sha256": "9cec6ee6f353d30917de9fa6a2cf1e9052a450ae97da4674557994a585172c6a"
     },
     {
+      "id": "rpc:private.assignment_time_budget(t uuid, a uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ab7d94138ba49de0085f2ba8ed571949f3a5687265ad3afb85f7316f623c558f"
+    },
+    {
+      "id": "rpc:private.assignment_work_minutes(t uuid, a uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "30a38ea879e08bd38f9f3d1ed024045e42467a74cba2e661cd797414104f1653"
+    },
+    {
       "id": "rpc:private.bump_staff_workspace_revision()",
       "classification": "trigger-function",
       "security_definer": true,
@@ -6681,6 +6751,15 @@
       "authenticated": true,
       "service": true,
       "definition_sha256": "b18f2d5c0934e621178dfc136a5a199e2f543c60193daa35d2261de56ab4eee3"
+    },
+    {
+      "id": "rpc:private.capture_execution_activity()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "148631d7a6509af9472bcaf9bd0d1af2739a4a0bbd260cff8c9323f458e0b03f"
     },
     {
       "id": "rpc:private.capture_report_ownership()",
@@ -7103,7 +7182,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "c567d78621a20a8aeecd009f957e95b080e5cd18061c021aae4586639aaeef30"
+      "definition_sha256": "acbe31584aa4a5f3b1418549e3d29ccd888839b1f2b414e6d5d233476c00fa1e"
     },
     {
       "id": "rpc:private.customer_ticket_access(tid uuid, actor uuid)",
@@ -7196,6 +7275,15 @@
       "definition_sha256": "245abb18e606a2730b0909a1ecc3f57a2001b3547d2cd9c3f52fdcb171672c63"
     },
     {
+      "id": "rpc:private.delivery_personnel(t uuid, w uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "eba44c299b3d587fe95f91fa7356497a084dc0ea7e394a27876013d9719c8381"
+    },
+    {
       "id": "rpc:private.document_path_matches(path text, scope text[])",
       "classification": "private-function",
       "security_definer": false,
@@ -7277,6 +7365,15 @@
       "definition_sha256": "d7b74af041217b383ee2065349e3295feb4610e0a053ca45c219af3d9d3dfcb2"
     },
     {
+      "id": "rpc:private.execution_activity(t uuid, w uuid, u uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c6f3b4b539c72ab72dd29e5754c2eb9ef1d31ee4fc6571bfff2a6d7703d3065d"
+    },
+    {
       "id": "rpc:private.file_is_scanned(object_id uuid, object_version text)",
       "classification": "private-function",
       "security_definer": true,
@@ -7356,6 +7453,15 @@
       "authenticated": false,
       "service": false,
       "definition_sha256": "14f173f0e9aebfaae7fe47ab6a79d590b258fec1597602d0ea1f19e0c24b5f45"
+    },
+    {
+      "id": "rpc:private.is_delivery_owner(t uuid, w uuid, u uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c0b5a5ffb7d72df2ada09c763a09eb9ea38ff7d71f2e11c6368fcb3b8b735dd2"
     },
     {
       "id": "rpc:private.is_member(target_tenant_id uuid)",
@@ -7706,7 +7812,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "2dd637178c9ea7a30e177d4c54d11f67c1545087319816a0feb6d8c216c2caf2"
+      "definition_sha256": "5a6fb41cf9c1e73a7e44ad45b5c83b1aa1e8e4fde69e83c08acf9986ce44a407"
     },
     {
       "id": "rpc:private.notification_domain_object_execution()",
@@ -7742,7 +7848,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "458f531b4d1a847257fd386596f36a8e88d9d05a208692aa5969dbd04803dff8"
+      "definition_sha256": "fabf904f34a9bb3109a014205034f55d6ec341e7ebfb38e450950a7016a3efa3"
     },
     {
       "id": "rpc:private.notification_domain_staff_time_correction()",
@@ -8228,7 +8334,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "67c02f46c4e254b0734256bd88d63efe1fc7741bfa2fab5c958759f608c8ff51"
+      "definition_sha256": "aaf2d22019f95c29ccfccaefb2943764b569df3b678632149d30691e9cb7b229"
     },
     {
       "id": "rpc:private.object_visit_access(t uuid, o uuid, w uuid)",
@@ -8318,7 +8424,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "aaafa6bc1d36c1a46f1b9316a3b2c7a2b0a995fe7ac7c9924fa6fa6c977deed4"
+      "definition_sha256": "c0a4f00308aeac1c66c9171bdada5c4f58e878d89f79af668094e794f5f67c50"
     },
     {
       "id": "rpc:private.planning_access(t uuid)",
@@ -8364,6 +8470,15 @@
       "authenticated": false,
       "service": false,
       "definition_sha256": "ae8b843b725300196faf015a571a912c40ac0dcc6b3ae0da963c2b6cabedb10e"
+    },
+    {
+      "id": "rpc:private.planning_window_signal(t uuid, a uuid, cause text)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "38140cb4792b1374b3f253a9d243522381e8a4488ba9f9e4eb55d6ac05fd7dcc"
     },
     {
       "id": "rpc:private.platform_invitation_identity()",
@@ -8438,6 +8553,15 @@
       "definition_sha256": "129b3a47abdec37005256ca13ea099e77d3da1a362961e4d409b69b3dd7814ca"
     },
     {
+      "id": "rpc:private.refresh_live_planning(t uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "dd8a92928edf2da345889b2a52b1c0103ba2542cd6311b2b56f43bd0813a8619"
+    },
+    {
       "id": "rpc:private.register_dossier_document()",
       "classification": "trigger-function",
       "security_definer": true,
@@ -8462,7 +8586,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "b4deaf176943225f8379873295e4eeacf4ffa0383d29750fba5d505540762449"
+      "definition_sha256": "a4bfe01edc74f07c2d91f629f1d532b311ab4b5145dafff6333f2416749bc792"
     },
     {
       "id": "rpc:private.report_snapshot_for_actor(r work_order_report_versions)",
@@ -8471,7 +8595,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "a9331fa3ab62d3ad8dea4632303430e41c38cca41afeae37be72cea56947da80"
+      "definition_sha256": "ec7dffc739a72e99b52fde6fb557cd0ac6a2fa8b4e34985e6fe3dd34fa306045"
     },
     {
       "id": "rpc:private.report_storage_frozen(bucket text, path text)",
@@ -9335,7 +9459,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "9f04ef5848416396e727046647ade56479dd06502e716c20e73d8034ac065658"
+      "definition_sha256": "3da4fb5401f85fbc01aa0cf6ba2af4651143f6247f56411ab6747475c4e3519e"
     },
     {
       "id": "rpc:private.work_order_report_source_guard()",
@@ -9425,7 +9549,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "fa05125d94afa33502a0734275127d4ee7096cdba18839941b6d9192f8fec534"
+      "definition_sha256": "8483e974cd7b246e0b2452ce8e581f51892532c4b8548aa3db12177a543948fa"
     },
     {
       "id": "rpc:public.accept_object_proposal(target_tenant uuid, target_proposal uuid)",
@@ -10211,6 +10335,15 @@
       "definition_sha256": "dc3456ae60b4323820161181d98b2b0cc3db20c7aa4d0a3e353a142ca200728d"
     },
     {
+      "id": "rpc:public.extend_staff_work_order(target_work_order uuid, expected_version bigint, idempotency_key uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "b8767cf247dc118472c48ce76b62163867d108c737425b349168993523c4ea8e"
+    },
+    {
       "id": "rpc:public.file_scan_attest(target_bucket text, target_path text, expected_id uuid, expected_version text, proof jsonb)",
       "classification": "public-rpc",
       "security_definer": true,
@@ -10253,7 +10386,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": true,
-      "definition_sha256": "626bb8c9a9a55d83b091526a35bb19379443b5870359b4200af6e29024906671"
+      "definition_sha256": "fbf7d49cfe82fdfd1f06b56bcda33e812b8df3225f9864162ca7527ad9bf79b8"
     },
     {
       "id": "rpc:public.get_object_document(target_tenant uuid, target_document uuid, target_order uuid)",
@@ -10271,7 +10404,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "aeb6fa63040ed0d156f575fde63acad677875c1b3cd0fc02cdcae8c9297e6627"
+      "definition_sha256": "b7169a5cb4d26cc1c93c215bcebdc6702b50272b3c06565593e034675fd49f7b"
     },
     {
       "id": "rpc:public.get_planboard(target_tenant uuid, target_day date, list_view text, search_text text, status_filter text, page_number integer)",
@@ -10280,7 +10413,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "fad630d2c76c5285199ffeb280cb6c02af44a78ca9f8990900d10a138d3bb67e"
+      "definition_sha256": "c6abf495fc985f18cd821d8639a5ee9f2119887540ca98a08336f683fa6e4150"
     },
     {
       "id": "rpc:public.mutate_work_order(target_tenant uuid, input jsonb)",
@@ -10361,7 +10494,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": true,
-      "definition_sha256": "89082ebae3a7004afb2b29ab2407899585853ae54f96473f38613c04118585ee"
+      "definition_sha256": "80ebacf078d62f5f2b744676b24a977789fd540e68e8b58819dd7fd22e93f090"
     },
     {
       "id": "rpc:public.notification_device_logout(actor_id uuid, session_id uuid)",
@@ -10496,7 +10629,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": true,
-      "definition_sha256": "3ed61cb6a72127aed6d570647fa4e19968fc29020959ad969c6a80afbb2318b6"
+      "definition_sha256": "e13dbfd43035fde0d2ef0f2fe6c462f18f1f824031ed3766ef6ec0a32a2debcd"
     },
     {
       "id": "rpc:public.object_visit_context(target_tenant uuid, target_object uuid, target_order uuid)",
@@ -10505,7 +10638,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "bd9a771d958cefab042ec92c8cde0c3e7c62e467702a7229d7571fda5373af7a"
+      "definition_sha256": "8aba1f47ad8dc6d022369f9ec7c3bc3fbb320abdc5a6e18e1b76aa3a4ddc14b9"
     },
     {
       "id": "rpc:public.object_visit_signals(target_tenant uuid, target_order uuid)",
@@ -10604,7 +10737,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "ef5c532d6556e39299b6afe284f8ac5fb1169a62455d763773f1f94515c7cb54"
+      "definition_sha256": "ba41bd29697340e32f5175ff2068aee5687addf6a343e6c182f00bb0778d2827"
     },
     {
       "id": "rpc:public.process_customer_reminders()",
@@ -10614,6 +10747,15 @@
       "authenticated": false,
       "service": true,
       "definition_sha256": "f607f26ff42e60beff9f7a2baeac0183eb87f68019c0a3809a76d08d6f51f5aa"
+    },
+    {
+      "id": "rpc:public.process_live_planning()",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "a0b289d1360a1e7161eb92a158a38696036483ff1283d2ec71ad3effbc015ac6"
     },
     {
       "id": "rpc:public.process_object_reminders()",
@@ -10919,7 +11061,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "75d43f7dea9967307baf9189c6a714614af66a372f907fa96015b0a5f1410766"
+      "definition_sha256": "8df4776f57e37bbb290b4df401900ee8c2e2ca140a2d521e61597e151e4e09f9"
     },
     {
       "id": "rpc:public.staff_report_upload_allowed(target_tenant uuid, target_order uuid, target_entry uuid, target_path text)",
@@ -11018,7 +11160,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "e22bb0f33a2fa49df6dd566191a35c1679e93fbf9c1343369701799589209a06"
+      "definition_sha256": "0e4771e9b0601a736ada2041128ecdc91875671e5b39f785b00b0958e9a91434"
     },
     {
       "id": "rpc:public.suggest_personnel_number(target_tenant_id uuid)",
@@ -11171,7 +11313,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "f9fd79b9b7f3f0107509d8ef124a6e4c7ebe36e2aee73f41d717e8da14c02d90"
+      "definition_sha256": "437c8f374c7945551439219035320b26fdff5def702d47d9b4550e90fd1461b3"
     },
     {
       "id": "rpc:public.travel_context(t uuid, u uuid, s uuid, d date, p uuid)",
@@ -11333,7 +11475,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "475bed4d94ba8b472c12f472c2c0c5553e5983288fcf1e10753ae98dac145239"
+      "definition_sha256": "4aa7242f7326e7379a55409ed09468f8cf09e28e991646bdc666a1774cdd1e63"
     },
     {
       "id": "rpc:public.work_order_series_command(target_tenant uuid, command_id uuid, command text, input jsonb)",

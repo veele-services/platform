@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { FieldgridBrand } from "../brand";
 import { useRouter } from "next/navigation";
 import {
   CalendarCheck, CalendarDays, ChevronRight, Clock3, FileText, LogOut,
@@ -25,6 +26,7 @@ function syncLabel(sync: SyncState, compact = false) {
 }
 
 export function StaffRouteShellClient({
+  tenantName, logoUrl, whiteLabel,
   active,
   actorKey,
   children,
@@ -33,6 +35,7 @@ export function StaffRouteShellClient({
   tenantId,
   ticketsEnabled,
 }: {
+  tenantName: string; logoUrl: string | null; whiteLabel: boolean;
   active: StaffRoute;
   actorKey: string;
   children: ReactNode;
@@ -173,7 +176,7 @@ export function StaffRouteShellClient({
 
   return <div className="personnel-app ps-route-shell" style={style}>
     <aside className="ps-sidebar">
-      <div className="ps-sidebar-brand"><div className="ps-sidebar-logo">Fieldgrid</div><small>PERSONEELSAPP</small></div>
+      <div className="ps-sidebar-brand"><div className="ps-sidebar-logo"><FieldgridBrand tenantName={tenantName} logoUrl={logoUrl}/></div><small>PERSONEELSAPP</small></div>
       <nav className="ps-nav" aria-label="Hoofdnavigatie">
         <Link className="ps-nav-button" href="/staff?tab=planning"><CalendarDays/><span>Dagplanning</span></Link>
         <Link className="ps-nav-button" href="/staff?tab=nieuws"><Newspaper/><span>Nieuws</span></Link>
@@ -185,11 +188,11 @@ export function StaffRouteShellClient({
         <Link className="ps-nav-button" href="/staff?tab=meer&section=documenten"><FileText/><span>Documenten</span></Link>
         <Link className="ps-nav-button" href="/staff?tab=meer&section=instellingen"><Settings/><span>Instellingen</span></Link>
       </nav>
-      <footer className="ps-sidebar-footer"><div className="ps-sidebar-person"><span>{initials(name)}</span><span><strong>{name}</strong><small>Medewerker</small></span></div></footer>
+      <footer className="ps-sidebar-footer"><div className="ps-sidebar-person"><span>{initials(name)}</span><span><strong>{name}</strong><small>Medewerker</small></span></div>{!whiteLabel && <small className="ps-powered">Powered by Fieldgrid</small>}</footer>
     </aside>
     <div className="ps-workspace">
       <header className="ps-topbar">
-        <div className="ps-topbar-leading"><div className="ps-mobile-brand"><strong>Fieldgrid</strong></div><div className={`ps-sync ${sync}`} role="status" aria-label={syncLabel(sync)}><i/><span>{syncLabel(sync, true)}</span></div><div className="ps-breadcrumb"><span>Mijn werkplek</span><span aria-hidden="true">/</span><strong>{title}</strong></div></div>
+        <div className="ps-topbar-leading"><div className="ps-mobile-brand"><FieldgridBrand tenantName={tenantName} logoUrl={logoUrl}/></div><div className={`ps-sync ${sync}`} role="status" aria-label={syncLabel(sync)}><i/><span>{syncLabel(sync, true)}</span></div><div className="ps-breadcrumb"><span>Mijn werkplek</span><span aria-hidden="true">/</span><strong>{title}</strong></div></div>
         <div className="ps-top-actions"><NotificationBell workspace="staff" actorKey={actorKey}/><div className="ps-profile-wrap" ref={profileMenuWrap}><button className="ps-profile-button" aria-label={`Profielmenu van ${name}`} aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={() => setProfileMenuOpen((open) => !open)}><span>{initials(name)}</span><small>{name}</small><ChevronRight/></button><form id="staff-route-signout" action="/auth/signout" method="post"/>{profileMenuOpen && <div className="ps-profile-menu" role="menu"><Link role="menuitem" href="/staff?tab=meer&section=profiel" onClick={() => setProfileMenuOpen(false)}><UserRound/>Profiel</Link><Link role="menuitem" href="/staff?tab=meer&section=instellingen" onClick={() => setProfileMenuOpen(false)}><Settings2/>Instellingen</Link><button role="menuitem" type="submit" form="staff-route-signout"><LogOut/>Uitloggen</button></div>}</div></div>
       </header>
       <main className="ps-content ps-route-content">{children}</main>
