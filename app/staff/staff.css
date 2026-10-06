@@ -3144,7 +3144,7 @@
 
   .personnel-app .ps-sidebar-logo::before {
     color: white;
-    content: "F";
+    content: none;
     font-family: Poppins, Inter, sans-serif;
     font-size: calc(28px * var(--dashboard-font-scale, 1));
     font-weight: 700;
@@ -3766,3 +3766,13 @@
 .personnel-app .ps-page-title-row {display:flex;align-items:center;gap:6px;}
 .personnel-app .ps-page-title-row h1 {min-width:0;}
 .personnel-app .ps-page-title-row .help-tip-trigger {margin:0;width:28px;height:28px;}
+
+/* Compact navigation shows the same tenant identity as the full sidebar. */
+.personnel-app .ps-sidebar-logo::before,
+.personnel-app .ps-sidebar-logo::after {content:none;}
+@media(min-width:701px) and (max-width:1000px) {
+  .personnel-app .ps-sidebar-brand .ps-sidebar-logo .fieldgrid-brand {max-width:60px;}
+  .personnel-app .ps-sidebar-brand .ps-sidebar-logo .brand-logo-image {width:60px;min-width:0;max-width:60px;height:36px;}
+  .personnel-app .ps-sidebar-brand .ps-sidebar-logo .brand-logo-image img {width:100%;height:auto;max-height:36px;object-fit:contain;}
+  .personnel-app .ps-sidebar-brand .ps-sidebar-logo .brand-name-fallback {max-width:60px;font-size:11px;}
+}
