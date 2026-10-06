@@ -1419,14 +1419,15 @@
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
-      "surfaceFingerprint": "9beadb5ea3738f1d9f3b2c1647445b213d042c3d866fa0f230dcc9418f8367bc",
+      "surfaceFingerprint": "2030ad946bfe8706c7c9f8455499f9ac8d793888c970477c0c1a6f95efdc582b",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
         "scripts/test-planboard.mjs",
         "tests/e2e/fieldgrid.spec.ts",
         "docs/implementation/staff-realtime-and-release.md#realtimepad",
-        "tests/e2e/travel.spec.ts"
+        "tests/e2e/travel.spec.ts",
+        "tests/e2e/planboard.spec.ts"
       ]
     },
     {

@@ -4,6 +4,9 @@ import pg from "pg";
 import { requireLocalDatabaseUrl } from "./local-target";
 import { authenticateWorkspace } from "./login-auth";
 
+// Fixture authentication must never end up in a browser trace or video.
+test.use({ trace: "off", screenshot: "off", video: "off" });
+
 // Only disposable fixtures in the isolated local Supabase project, never staging.
 const day = "2031-03-04",
   people = [randomUUID(), randomUUID()],
@@ -347,4 +350,76 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
       )
     ).rows[0].n,
   ).toBe(1);
+});
+
+test.describe("status per medewerker", () => {
+  test("eigen statuskleuren, live voortgang en toegankelijke legenda naast de titel", async ({ page }) => {
+    test.setTimeout(90000);
+    const orderId = randomUUID(), assignments = [randomUUID(), randomUUID()];
+    orders.push(orderId);
+    await db.query(
+      "insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,created_by,required_personnel,status,planning_state,planned_start_at,projected_start_at,planned_end_at,projected_end_at) select $1,tenant_id,customer_id,object_id,'PB-CREW-STATES',discipline,created_by,2,'travelling','final',$3,$3,$4,$4 from public.work_orders where id=$2",
+      [orderId, orders[0], `${day}T09:00Z`, `${day}T10:00Z`],
+    );
+    for (const [index, id] of assignments.entries()) {
+      await db.query(
+        "insert into public.work_order_assignments(id,tenant_id,work_order_id,personnel_id,status,planned_start_at,projected_start_at,planned_end_at,projected_end_at) values($1,$2,$3,$4,$5,$6,$6,$7,$7)",
+        [id, tenant, orderId, people[index], index ? "released" : "travelling", `${day}T09:00Z`, `${day}T10:00Z`],
+      );
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await open(page);
+    const first = page.locator(`[data-assignment-id="${assignments[0]}"]`);
+    const second = page.locator(`[data-assignment-id="${assignments[1]}"]`);
+    await expect(first).toHaveAttribute("data-status", "travelling");
+    await expect(first).toHaveAccessibleName(/Ada Planbord.*Onderweg/);
+    await expect(second).toHaveAttribute("data-status", "released");
+    await expect(second).toHaveAccessibleName(/Bram Planbord.*Nog niet gezien/);
+    await expect(first.locator("small")).toHaveText("Onderweg");
+    await expect(second.locator("small")).toHaveText("Nog niet gezien");
+    const colors = async (locator: typeof first) => locator.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { background: style.backgroundColor, border: style.borderLeftColor };
+    });
+    const firstColors = await colors(first);
+    expect(await colors(second)).not.toEqual(firstColors);
+    // Existing revision notifications must also refresh a colleague's status
+    // when the aggregate work order still says 'travelling'.
+    await db.query("update public.work_order_assignments set status='seen',seen_at=clock_timestamp() where id=$1", [assignments[1]]);
+    await expect(second).toHaveAttribute("data-status", "seen", { timeout: 30000 });
+    await expect(second.locator("small")).toHaveText("Gezien");
+    await expect(first).toHaveAttribute("data-status", "travelling");
+    expect(await colors(first)).toEqual(firstColors);
+    expect((await db.query("select status from public.work_orders where id=$1", [orderId])).rows[0].status).toBe("travelling");
+
+    const trigger = page.getByRole("button", { name: "Legenda statuskleuren" });
+    const legend = page.getByRole("dialog", { name: "Legenda statuskleuren" });
+    const titleRect = (await page.getByRole("heading", { name: "Planbord", exact: true }).boundingBox())!;
+    expect((await trigger.boundingBox())!.x).toBeGreaterThan(titleRect.x + titleRect.width);
+    await trigger.focus();
+    await page.keyboard.press("Enter");
+    await expect(legend).toBeVisible();
+    await expect(legend).toContainText("Iedere medewerker heeft een eigen voortgang");
+    for (const card of [first, second]) {
+      const status = await card.getAttribute("data-status");
+      expect(await colors(legend.locator(`.pb-legend-swatch[data-status="${status}"]`))).toEqual(await colors(card));
+    }
+    await expect(legend).toHaveScreenshot("planboard-status-legend.png");
+    await page.keyboard.press("Escape");
+    await expect(legend).not.toBeVisible();
+    await expect(trigger).toBeFocused();
+    for (const width of [320, 390, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await trigger.click();
+      await expect(legend).toBeVisible();
+      const rect = (await legend.boundingBox())!;
+      expect(rect.x).toBeGreaterThanOrEqual(0);
+      expect(rect.x + rect.width).toBeLessThanOrEqual(width);
+      expect(rect.y + rect.height).toBeLessThanOrEqual(900);
+      expect((await trigger.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+      await page.keyboard.press("Escape");
+      await expect(legend).not.toBeVisible();
+    }
+  });
 });
