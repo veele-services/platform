@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./first-visit";
 import { randomUUID } from "node:crypto";
 import pg from "pg";
 import { requireLocalDatabaseUrl } from "./local-target";
@@ -96,6 +97,7 @@ async function expectPlanboardReady(page: Page) {
   await page.evaluate(async () => { await document.fonts.ready; });
   await expect(page.locator(".pb-board:visible")).toHaveAttribute("aria-busy", "false");
   await expect(page.locator(".pb-alert")).toHaveCount(0);
+  await expect(page.locator("[data-account-guides-ready=true]")).toBeAttached();
 }
 async function open(page: Page) {
   await authenticateWorkspace(page, "platform-admin@fieldgrid.test", `/app/planning?day=${day}`);
@@ -105,6 +107,19 @@ async function open(page: Page) {
   await page.getByRole("main").getByLabel("Planningsdag").fill(day);
   await expect(page.getByRole("main").locator(`[data-order-id="${orders[0]}"]`)).toBeVisible();
   await expectPlanboardReady(page);
+  const guide = page.locator('[data-guide-key="backoffice.planning"]');
+  if (await guide.count()) {
+    const originalViewport = page.viewportSize()!;
+    // The first visit explains the board without squeezing its working area.
+    for (const width of [320, 390, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect.poll(async () => (await page.locator(".pb-board:visible").boundingBox())!.height).toBeGreaterThan(240);
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    }
+    await guide.getByRole("button").click();
+    await expect(guide).toHaveCount(0);
+    await page.setViewportSize(originalViewport);
+  }
 }
 test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bonacties", async ({
   page,
@@ -355,6 +370,7 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
 test.describe("status per medewerker", () => {
   test("eigen statuskleuren, live voortgang en toegankelijke legenda naast de titel", async ({ page }) => {
     test.setTimeout(90000);
+    await page.setViewportSize({ width: 1280, height: 900 });
     const orderId = randomUUID(), assignments = [randomUUID(), randomUUID()];
     orders.push(orderId);
     await db.query(

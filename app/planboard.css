@@ -28,7 +28,17 @@
   flex: 1;
   padding: 16px !important;
   display: flex;
+  flex-direction: column;
   max-width: none;
+}
+/* First-visit explanations scroll above a full-size planning area. Closing the
+   account guide restores the usual single viewport with two scroll regions. */
+.workspace-main:has(.pb-root) > .view-planning:has(> .fg-guide) {
+  overflow-y: auto;
+}
+.view-planning:has(> .fg-guide) > .pb-root {
+  flex: 1 0 auto;
+  min-height: calc(100dvh - 162px);
 }
 .workspace-main:has(.pb-root) .global-search {
   visibility: hidden;

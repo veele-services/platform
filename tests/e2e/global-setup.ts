@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { loadEnvConfig } from "@next/env";
 import sharp from "sharp";
+import pg from "pg";
+import { requireLocalDatabaseUrl } from "./local-target";
 import { readFileSync } from "node:fs";
 import type { Database } from "../../lib/database.types";
 
@@ -31,6 +33,12 @@ export default async function globalSetup() {
   const owner = await user(admin, ADMIN_EMAIL);
   const worker = await user(admin, STAFF_EMAIL);
   const onboardingWorker = await user(admin, ONBOARDING_EMAIL);
+  // Each run starts with genuinely unread explanations, just like a clean CI
+  // database. Never let an earlier local run's account receipts shape snapshots.
+  const preferences = new pg.Client({ connectionString: requireLocalDatabaseUrl().href });
+  await preferences.connect();
+  try { await preferences.query("delete from public.account_guide_dismissals where user_id=any($1::uuid[])", [[owner.id, worker.id, onboardingWorker.id]]); }
+  finally { await preferences.end(); }
   await admin.from("platform_admins").upsert({ user_id: owner.id });
   let { data: tenant } = await admin.from("tenants").select("id").eq("slug", "fieldgrid-e2e").maybeSingle();
   if (!tenant) {

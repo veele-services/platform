@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import { test } from "./first-visit";
 import { brandThemeStyle, createBrandPalette } from "../../lib/branding/palette";
 import { authenticateWorkspace } from "./login-auth";
 const rgb = (hex: string) => `rgb(${[1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16)).join(", ")})`;
@@ -67,6 +68,7 @@ test("platform backoffice beheert tenants, huisstijl en berichttemplates profess
 test("backoffice toont echte tenantdata en blijft bruikbaar over alle doelbreedtes", async ({ page }) => {
   await login(page, "platform-admin@fieldgrid.test");
   await expect(page.getByRole("heading", { name: /Demo Organisatie/ })).toBeVisible();
+  await expect(page.locator("[data-account-guides-ready=true]")).toBeAttached();
   await expect(page.getByRole("img", { name: "Logo van Demo Organisatie" })).toBeVisible();
   await expect(page.locator(".workspace-brand").getByText("Demo Organisatie", { exact: true })).toHaveCount(0);
   await expect(page.locator(".workspace-sidebar:visible").getByText("Powered by Fieldgrid", { exact: true })).toBeVisible();
