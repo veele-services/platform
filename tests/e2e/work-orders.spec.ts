@@ -244,6 +244,11 @@ test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzett
   expect(await pdfDownload.body()).toEqual(pdf);
 
   await page.goto(`/app/werkbonnen/${orderId}?tab=planning`);
+  // A slower RSC refresh must not allow the next management command to use stale data.
+  await page.route(url => url.pathname === `/app/werkbonnen/${orderId}` && url.searchParams.has("_rsc"), async route => {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    await route.continue();
+  });
   await page.getByRole("row").filter({ hasText: "Milan Werkbontest" }).getByRole("button", { name: "Verwijder", exact: true }).click();
   let management = page.getByRole("dialog", { name: "Medewerker van werkbon verwijderen", exact: true });
   await management.getByLabel("Reden", { exact: true }).fill("Medewerker wordt op een andere opdracht ingezet.");
@@ -261,7 +266,8 @@ test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzett
     await management.getByLabel("Nieuwe status", { exact: true }).selectOption(status);
     await management.getByLabel("Reden", { exact: true }).fill(`Gemotiveerde browsercontrole: ${status}.`);
     await management.getByRole("button", { name: "Status vastleggen", exact: true }).click();
-    await expect(management).toHaveCount(0);
+    try { await expect(management).toHaveCount(0); }
+    catch { throw new Error(`Status ${status}: ${await management.getByRole("alert").allTextContents()}`); }
     expect((await db.query("select status from public.work_orders where id=$1", [orderId])).rows[0].status).toBe(status);
   }
 });

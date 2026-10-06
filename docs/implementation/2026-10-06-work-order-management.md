@@ -35,6 +35,11 @@ return and the existing untouched-order bounds. Actual starts, completion and
 signature checks cannot be fabricated through the status selector. Frozen orders
 remain read-only. Actor/tenant/payload-bound mutation IDs make retries safe.
 
+After saving a management action or wizard change, dossier actions stay disabled
+through the RSC refresh. This prevents a rapid next action from submitting the
+previous order version. The browser regression delays refresh requests by 600 ms
+and performs removal, release, return and replanning in immediate succession.
+
 ## Task catalogue
 
 Taken, Categorieën, Meerwerk and Templates are separate tabs. The catalogue uses
