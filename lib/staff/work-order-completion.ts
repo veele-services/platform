@@ -10,6 +10,14 @@ export type StaffCompletionTask = {
 
 const quantityTolerance = 0.000_001;
 
+export function staffOrderPermissions(assignmentStatus: string | undefined, reportState: string, deliveryOwner: boolean) {
+  const contributionOpen = ["draft", "correction"].includes(reportState);
+  return {
+    editable: contributionOpen && ["seen", "travelling", "in_progress", "correction_required"].includes(assignmentStatus ?? ""),
+    canFinishDelivery: deliveryOwner && assignmentStatus === "completed" && ["draft", "correction", "waiting_signature"].includes(reportState),
+  };
+}
+
 export function staffTaskOwnQuantity(task: StaffCompletionTask) {
   // The database contract is numeric(12,3). Normalising at that boundary
   // prevents JavaScript subtraction (for example 0.3 - 0.1) from sending a

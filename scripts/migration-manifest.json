@@ -586,6 +586,11 @@
       "version": "20261006085000",
       "name": "live_planning_preserve_untouched_orders",
       "sha256": "85d60086df56cde2d30bd6055309add93faead8a2282425a1952aec2a351e053"
+    },
+    {
+      "version": "20261006160000",
+      "name": "completed_staff_contributions",
+      "sha256": "0cb2d82273202360771a7d7605782f441bd5552b0ee271400410a813b638cf7d"
     }
   ]
 }

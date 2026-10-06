@@ -1449,16 +1449,12 @@
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
-      "surfaceFingerprint": "a8606141e58f868fc2b0cf62f4295faf019c9c2b7df522ee7b4cd105138142d8",
+      "surfaceFingerprint": "3a6b2304e3ce51db15221ccd43d32508552220a8b6056dea383c4c0e2aff2ddc",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
+        "docs/implementation/2026-10-06-work-order-management.md",
         "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs",
-        "tests/e2e/staff-popups.spec.ts"
+        "lib/staff/work-order-completion.test.ts"
       ]
     },
     {
@@ -4816,16 +4812,12 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "fcc6ce0f340defeee785fcc06a34ba155f8cbbf91c761acf8e0a58efc9488212",
+      "surfaceFingerprint": "fd81ce3b8805849089e01c5e6397a6a75e8245eca97322417fba8569e0456b81",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
+        "docs/implementation/2026-10-06-work-order-management.md",
         "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs",
-        "tests/e2e/work-order-preferences.spec.ts"
+        "lib/staff/work-order-completion.test.ts"
       ]
     },
     {
@@ -7623,13 +7615,12 @@
     },
     {
       "id": "rpc:private.staff_report_editable(t uuid, w uuid)",
-      "surfaceFingerprint": "0e89fc99f865a021f8a3cd40283b837679838e634ed57856b6c5a1811c1e32fb",
-      "status": "controlled",
+      "surfaceFingerprint": "39e13667786f9e1d7ebedad7fac4969e19e0dbf48d9aa1db8b2db304e315be09",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/2026-10-06-work-order-management.md",
+        "scripts/test-work-order-reports.mjs",
+        "lib/staff/work-order-completion.test.ts"
       ]
     },
     {
@@ -7737,13 +7728,12 @@
     },
     {
       "id": "rpc:private.task_execution_allowed(task work_order_tasks)",
-      "surfaceFingerprint": "edb9a99c27c077ab59a0399ef2f8584e34efefd3dac9fa8b22d2ce5dcab434dc",
-      "status": "controlled",
+      "surfaceFingerprint": "e909c50370385fca2dfe134e345a7bd2cbcd367aeff9c9603c1cfde7a5ad2253",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/implementation/2026-10-06-work-order-management.md",
+        "scripts/test-work-order-reports.mjs",
+        "lib/staff/work-order-completion.test.ts"
       ]
     },
     {

@@ -1933,7 +1933,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "fc81ee123c68026d184f35190801df80bb87f14069f91000d1cedf647283b7b3"
+      "source_sha256": "08c768748d9eb36630c09135990b34f3eed56d980676de7d88780a98c1fabcf4"
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
@@ -6496,7 +6496,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "947cce9ca8e13f764c28dfdb01e38ff8a6ba4b0e6e849a4127435fbd57de7afc"
+      "source_sha256": "a997aa0dd0e7d405502e8e6c79678cff31446447c33414d202ff9783f3c595f4"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -8737,9 +8737,9 @@
       "classification": "private-function",
       "security_definer": true,
       "anonymous": false,
-      "authenticated": true,
+      "authenticated": false,
       "service": false,
-      "definition_sha256": "252e892ccc88090ac5d0efcc8294b6dc122b1d7a386b6e6cd5a2dab2a5003800"
+      "definition_sha256": "0278293793d44adb376dc7df5788b785649dddeb9f6ea5fbb1a316b2fba9c113"
     },
     {
       "id": "rpc:private.staff_task_dto(task work_order_tasks)",
@@ -8829,7 +8829,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "42f008e54263471f7e0fc7a92a68778b85a3111eddffc917902dae3318fff702"
+      "definition_sha256": "8329905d3cece546eda9d51eec897e32dd6d724765ef9edc37553f7edf3a5f57"
     },
     {
       "id": "rpc:private.task_execution_guard()",

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   externalMapsUrl,
+  staffOrderPermissions,
   staffTaskBlocksCompletion,
   staffTaskIsChecked,
   staffTaskOwnQuantity,
@@ -19,6 +20,14 @@ const task = (input: Partial<StaffCompletionTask> = {}): StaffCompletionTask => 
 });
 
 describe("staff work-order completion helpers", () => {
+  it("locks completed contributions and never resumes a submitted delivery", () => {
+    expect(staffOrderPermissions("completed", "review", true)).toEqual({ editable: false, canFinishDelivery: false });
+    expect(staffOrderPermissions("completed", "approved", true)).toEqual({ editable: false, canFinishDelivery: false });
+    expect(staffOrderPermissions("completed", "draft", false)).toEqual({ editable: false, canFinishDelivery: false });
+    expect(staffOrderPermissions("completed", "waiting_signature", true)).toEqual({ editable: false, canFinishDelivery: true });
+    expect(staffOrderPermissions("in_progress", "draft", false).editable).toBe(true);
+    expect(staffOrderPermissions("in_progress", "review", false).editable).toBe(false);
+  });
   it("checks only a genuinely completed execution", () => {
     expect(staffTaskIsChecked(task({ execution_state: "completed", completed_at: "2026-10-05T10:00:00Z" }))).toBe(true);
     expect(staffTaskIsChecked(task({ execution_state: "partial", completed_at: "2026-10-05T10:00:00Z" }))).toBe(false);

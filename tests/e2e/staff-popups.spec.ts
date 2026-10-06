@@ -172,3 +172,25 @@ test("actieve uitvoering toont meerwerk en afrondingscontrole zonder rapport of 
     await db.end();
   }
 });
+
+test("gereedgemelde werkbon toont geen hervatten of uitvoeringsacties",async({page})=>{
+ const db=new Client({connectionString:requireLocalDatabaseUrl().href});await db.connect();
+ const orderId="e6000000-0000-4000-8000-000000000001",assignmentId="e8000000-0000-4000-8000-000000000001";
+ const order=(await db.query('select status,report_state from public.work_orders where id=$1',[orderId])).rows[0];
+ const assignment=(await db.query('select status,actual_start_at,actual_end_at from public.work_order_assignments where id=$1',[assignmentId])).rows[0];
+ try{
+  // A local display fixture only; no real report or signature is changed.
+  await db.query("update public.work_order_assignments set status='completed',actual_start_at=now()-interval '1 hour',actual_end_at=now() where id=$1",[assignmentId]);
+  await db.query("update public.work_orders set status='completed',report_state='review' where id=$1",[orderId]);
+  await authenticateStaff(page,"field-worker@fieldgrid.test");await page.getByRole("button",{name:/WB-2030-001/}).click();
+  const sheet=page.getByRole("dialog",{name:"Werkbon WB-2030-001",exact:true});
+  await expect(sheet.getByRole("button",{name:/Hervatten|Gereedmelden hervatten|Oplevering afronden|Werk afronden|Pauzeren|Werkbon terugmelden/})).toHaveCount(0);
+  await sheet.getByRole("tab",{name:"Werkzaamheden",exact:true}).click();
+  for(const checkbox of await sheet.getByRole("checkbox").all())await expect(checkbox).toBeDisabled();
+  await expect(sheet.getByRole("button",{name:/15 minuten|Toevoegen|Materiaal|Onkosten/})).toHaveCount(0);
+  await sheet.getByRole("tab",{name:"Rapport",exact:true}).click();await expect(sheet.getByRole("button",{name:"Notitie",exact:true})).toHaveCount(0);
+ }finally{
+  await db.query('update public.work_order_assignments set status=$2,actual_start_at=$3,actual_end_at=$4 where id=$1',[assignmentId,assignment.status,assignment.actual_start_at,assignment.actual_end_at]);
+  await db.query('update public.work_orders set status=$2,report_state=$3 where id=$1',[orderId,order.status,order.report_state]);await db.end();
+ }
+});
