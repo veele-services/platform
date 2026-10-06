@@ -297,3 +297,21 @@ de gecontroleerde lokale database, bewaart/herstelt de oorspronkelijke status
 en dient geen rapport-, meerwerk- of tijdcommando in. Zie ook
 `docs/implementation/staff-prototype-visual-alignment.md` voor de visuele
 inventaris, de behouden functies en de precieze grenzen van de browserdekking.
+
+### Personeelslogin prototypevormgeving — 6 oktober 2026
+
+`app/login/page.tsx` verandert uitsluitend de presentatie voor een bestemming
+die al door `isStaffLoginDestination` wordt herkend. `getLoginBrand`, de
+hostgebonden tenantcontext, het universele `LoginForm` en de bestaande
+`loginOtp`-actie zijn ongewijzigd. Andere werkruimtes krijgen de bestaande
+loginpresentatie. Er is geen prototype-OTP, nieuwe accountaanmaak,
+authenticator, bypass, redirect of browseropslag toegevoegd. De aparte donkere
+identiteitskolom en groene formulieren gebruiken alleen publieke producttekst
+en dezelfde Fieldgrid-kleuren.
+
+`tests/e2e/staff-login.spec.ts` controleert het ongewijzigde OTP-formulier voor
+alle vier werkruimtes, personeel op 320/390/768/1440 px, de groene actieknop en
+zichtbare desktopidentiteit, gevolgd door een echte volledige achtcijferige
+lokale e-mailcode. Trace, screenshots en video blijven in die authproef uit.
+De productiebuild en typecontrole zijn geslaagd; zie het visuele overzicht
+voor de gerichte browserselectie en de bewust behouden real-data/authverschillen.

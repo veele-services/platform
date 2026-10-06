@@ -1038,11 +1038,12 @@
     },
     {
       "id": "code:app/login/page.tsx",
-      "surfaceFingerprint": "bd59d06af5c2a7e17743c095dcd6c5b12740b065fb5df9335878901ef35fb6c3",
+      "surfaceFingerprint": "187ed0e966ed31f8037f3c2ec0a56f818a046e0b52bea94095af2e958c76f1bd",
       "status": "controlled",
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/otp-activity-verification-2026-10-05.md"
+        "docs/security/otp-activity-verification-2026-10-05.md",
+        "docs/security/release-security-inventory.md#personeelslogin-prototypevormgeving--6-oktober-2026"
       ]
     },
     {
