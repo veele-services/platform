@@ -1,4 +1,6 @@
 "use client";
+import { TaskCatalogue } from "./tasks/catalogue";
+import { ContentTabs } from "./content-tabs";
 import { PageHeading } from "./page-heading";
 import { TravelSettings } from "./travel-settings";
 import { TicketNavigation } from "./tickets/navigation";
@@ -30,10 +32,9 @@ import { CustomersPage, InvoicesPage, ObjectsPage, PersonnelPage, ReportsPage } 
 import { switchTenant } from "@/app/app/actions";
 import {
   createAnnouncement,
-  createTask, dispatchWorkOrder,
+  dispatchWorkOrder,
   withdrawAnnouncement, updatePersonnelNumberSettings,
 
-  createExtraWorkRule, allowExtraWork,
 } from "@/app/app/operations-actions";
 
 export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging" | "meldingen" | "support" | "notificaties";
@@ -153,13 +154,7 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
       <div className="kanban">{["planned", "released", "in_progress", "under_review", "invoice_ready"].map((stage, index) => <section className="kanban-col" key={stage}><div className="kanban-top"><i className={`stage-${index}`}/><strong>{statusLabel[stage]}</strong><b>{visibleOrders.filter((item) => item.status === stage || (stage === "in_progress" && ["seen", "travelling", "completed"].includes(item.status))).length}</b></div>{visibleOrders.filter((item) => item.status === stage || (stage === "in_progress" && ["seen", "travelling", "completed"].includes(item.status))).map((order) => <article className="kanban-card" id={order.id} key={order.id}><div className="card-id"><span>{order.work_order_number}</span><Pill status={order.status}/></div><h3>{objectById.get(order.object_id)?.name}</h3><p>{customerById.get(order.customer_id)?.name} · {order.discipline}</p><div className="card-meta"><Clock3 size={13}/>{dateTime(order.projected_start_at, tenant.timezone)}</div>{order.status === "planned" && <ActionForm action={dispatchWorkOrder} className="kanban-action" success="Vrijgeven"><input type="hidden" name="workOrderId" value={order.id}/><input type="hidden" name="personnelId" value={data.assignments.find((item) => item.work_order_id === order.id)?.personnel_id ?? ""}/><input type="hidden" name="version" value={order.version}/></ActionForm>}</article>)}</section>)}</div>
     </>;
 
-    if (view === "taken") return <>
-      <PageIntro eyebrow="CATALOGUS" title="Taken & tarieven" description="Versievaste taakdefinities vormen de basis van planning en factuurregels." />
-      <section className="panel"><div className="section-heading"><div><h2>Werkbon- en checklisttemplates</h2><p>Leg taken, bezetting en controles vast in herbruikbare, versievaste templates.</p></div><Link className="secondary-button" href="/app/taken/templates">Templates beheren</Link></div></section>
-      <section className="panel"><div className="section-heading"><h2>Taak toevoegen</h2></div><ActionForm action={createTask} className="workspace-form" success="Taak toevoegen"><label>Code<input name="code" required placeholder="ONDR-01" /></label><label>Naam<input name="name" required /></label><label>Discipline<input name="discipline" required /></label><label>Duur (minuten)<input name="duration" type="number" min="1" defaultValue="60" required /></label><label>Prijs excl. btw<input name="price" type="number" step="0.01" min="0" required /></label><label>Btw %<input name="vat" type="number" min="0" max="100" defaultValue="21" required /></label></ActionForm></section>
-      <div className="workspace-split"><section className="panel"><div className="section-heading"><h2>Taak als meerwerk toestaan</h2></div><ActionForm action={createExtraWorkRule} className="workspace-form" success="Meerwerkoptie opslaan"><label className="wide">Actuele taakversie<select name="taskRevisionId" required defaultValue=""><option value="" disabled>Kies taak</option>{data.taskRevisions.filter((item) => !item.valid_until).map((revision) => <option key={revision.id} value={revision.id}>{data.tasks.find((task) => task.id === revision.task_id)?.code} · {data.tasks.find((task) => task.id === revision.task_id)?.name}</option>)}</select></label><label className="check wide"><input name="requiresPhoto" type="checkbox"/> Foto vereist als bewijs</label></ActionForm></section><section className="panel"><div className="section-heading"><h2>Meerwerkoptie op werkbon</h2></div><ActionForm action={allowExtraWork} className="workspace-form" success="Meerwerk koppelen"><label>Werkbon<select name="workOrderId" required defaultValue=""><option value="" disabled>Kies werkbon</option>{data.workOrders.filter((item) => !["invoice_ready", "invoiced", "cancelled"].includes(item.status)).map((item) => <option key={item.id} value={item.id}>{item.work_order_number}</option>)}</select></label><label>Optie<select name="ruleId" required defaultValue=""><option value="" disabled>Kies meerwerk</option>{data.extraWorkRules.map((rule) => { const revision = data.taskRevisions.find((item) => item.id === rule.task_revision_id); const task = data.tasks.find((item) => item.id === revision?.task_id); return <option key={rule.id} value={rule.id}>{task?.code} · {task?.name}</option>; })}</select></label></ActionForm></section></div>
-      <DataTable headers={["Code", "Taak", "Discipline", "Duur", "Tarief", "Status"]}>{data.tasks.map((task) => { const revision = data.taskRevisions.find((item) => item.task_id === task.id && !item.valid_until); return <tr key={task.id}><td><span className="code">{task.code}</span></td><td><strong>{task.name}</strong></td><td>{task.discipline}</td><td>{revision?.duration_minutes ?? 0} min</td><td>{typeof revision?.price_cents==="number"?money(revision.price_cents):"Afgeschermd"}</td><td><Pill status={task.active ? "active" : "inactive"}/></td></tr>; })}</DataTable>
-    </>;
+    if (view === "taken") return <TaskCatalogue tenant={tenant} workspace={data}/>;
 
     if (view === "klanten") return <CustomersPage data={data} timezone={tenant.timezone} roles={tenant.roles}/>;
     if (view === "objecten") return <ObjectsPage data={data} timezone={tenant.timezone}/>;
@@ -178,10 +173,13 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
 
     return <>
       <PageIntro eyebrow="BEHEER" title="Instellingen" description="Huisstijl, afzendergegevens en nummering voor jouw organisatie." />
-      <TenantBrandingSettings key={tenant.id} tenant={tenant} branding={data.branding} logoUrl={data.brandingLogoUrl}/>
-      {tenant.roles.some(r=>["tenant_admin","management"].includes(r))&&<TravelSettings/>}
-      {tenant.enabledServices.includes("personeel") && (context.isPlatformAdmin || tenant.roles.some((role) => ["tenant_admin", "management"].includes(role))) && <PersonnelNumberSettings key={`${tenant.id}:${data.settings?.personnel_number_prefix}:${data.settings?.personnel_number_start}`} settings={data.settings}/>}
-      {tenant.enabledServices.includes("planning") && tenant.roles.some(role => ["tenant_admin", "management"].includes(role)) && <WorkOrderSignatureSettings/>}
+      <ContentTabs label="Organisatie-instellingen" tabs={[
+        { id: "huisstijl", title: "Huisstijl & afzender", content: <TenantBrandingSettings key={tenant.id} tenant={tenant} branding={data.branding} logoUrl={data.brandingLogoUrl}/> },
+        ...(tenant.roles.some(r => ["tenant_admin", "management"].includes(r)) ? [{ id: "reizen", title: "Reizen", content: <TravelSettings/> }] : []),
+        ...(tenant.enabledServices.includes("personeel") && (context.isPlatformAdmin || tenant.roles.some(r => ["tenant_admin", "management"].includes(r))) ? [{ id: "nummering", title: "Personeelsnummering", content: <PersonnelNumberSettings key={`${tenant.id}:${data.settings?.personnel_number_prefix}:${data.settings?.personnel_number_start}`} settings={data.settings}/> }] : []),
+        ...(tenant.enabledServices.includes("planning") && tenant.roles.some(r => ["tenant_admin", "management"].includes(r)) ? [{ id: "ondertekening", title: "Ondertekening", content: <WorkOrderSignatureSettings/> }] : []),
+      ]}/>
+
     </>;
   })();
 
@@ -233,4 +231,3 @@ function PersonnelNumberSettings({ settings }: { settings: WorkspaceData["settin
 
 function Metric({ icon, label, value, tone }: { icon: ReactNode; label: string; value: string | number; tone: string }) { return <article className="metric"><span className={`metric-icon ${tone}`}>{icon}</span><div><span>{label}</span><strong>{value}</strong></div></article>; }
 function Pill({ status }: { status: string }) { const tone = ["paid", "accepted", "approved", "invoice_ready", "active"].includes(status) ? "green" : ["returned", "correction_required", "overdue", "urgent"].includes(status) ? "orange" : ["released", "seen", "travelling", "in_progress", "sent"].includes(status) ? "blue" : "neutral"; return <span className={`pill pill-${tone}`}>{statusLabel[status] ?? status.replaceAll("_", " ")}</span>; }
-function DataTable({ headers, children }: { headers: string[]; children: ReactNode }) { return <section className="panel table-panel"><div className="table-scroll"><table><thead><tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr></thead><tbody>{children}</tbody></table></div></section>; }

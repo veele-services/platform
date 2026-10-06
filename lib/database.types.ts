@@ -5114,6 +5114,7 @@ export type Database = {
       task_catalog: {
         Row: {
           active: boolean
+          category_id: string | null
           code: string
           created_at: string
           description: string | null
@@ -5122,9 +5123,11 @@ export type Database = {
           name: string
           tenant_id: string
           updated_at: string
+          version: number
         }
         Insert: {
           active?: boolean
+          category_id?: string | null
           code: string
           created_at?: string
           description?: string | null
@@ -5133,9 +5136,11 @@ export type Database = {
           name: string
           tenant_id: string
           updated_at?: string
+          version?: number
         }
         Update: {
           active?: boolean
+          category_id?: string | null
           code?: string
           created_at?: string
           description?: string | null
@@ -5144,10 +5149,62 @@ export type Database = {
           name?: string
           tenant_id?: string
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
+            foreignKeyName: "task_catalog_tenant_id_category_id_fkey"
+            columns: ["tenant_id", "category_id"]
+            isOneToOne: false
+            referencedRelation: "task_categories"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
             foreignKeyName: "task_catalog_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          next_number: number
+          prefix: string
+          tenant_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          next_number?: number
+          prefix: string
+          tenant_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          next_number?: number
+          prefix?: string
+          tenant_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_categories_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -5161,6 +5218,8 @@ export type Database = {
           duration_minutes: number
           id: string
           price_cents: number
+          requires_customer_signature: boolean
+          requires_photo: boolean
           revision: number
           task_id: string
           tenant_id: string
@@ -5174,6 +5233,8 @@ export type Database = {
           duration_minutes: number
           id?: string
           price_cents: number
+          requires_customer_signature?: boolean
+          requires_photo?: boolean
           revision: number
           task_id: string
           tenant_id: string
@@ -5187,6 +5248,8 @@ export type Database = {
           duration_minutes?: number
           id?: string
           price_cents?: number
+          requires_customer_signature?: boolean
+          requires_photo?: boolean
           revision?: number
           task_id?: string
           tenant_id?: string
@@ -8748,6 +8811,10 @@ export type Database = {
         Args: { target_order: string; target_tenant: string }
         Returns: Json
       }
+      manage_work_order: {
+        Args: { input: Json; target_tenant: string }
+        Returns: Json
+      }
       mutate_work_order: {
         Args: { input: Json; target_tenant: string }
         Returns: Json
@@ -9640,6 +9707,11 @@ export type Database = {
       suggest_personnel_number: {
         Args: { target_tenant_id: string }
         Returns: string
+      }
+      task_catalogue: { Args: { target_tenant: string }; Returns: Json }
+      task_catalogue_command: {
+        Args: { input: Json; target_tenant: string }
+        Returns: Json
       }
       ticket_command: {
         Args: {

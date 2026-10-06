@@ -10,6 +10,7 @@ import { FIELDGRID_PRIMARY,FIELDGRID_SECONDARY } from "@/lib/communications/temp
 import { brandThemeStyle,createBrandPalette } from "@/lib/branding/palette";
 import { BRANDING_LOGO_MAX_BYTES,tenantHouseStyleSchema } from "@/lib/branding/validation";
 import { saveTenantHouseStyle } from "@/lib/branding/house-style-actions";
+import { SectionHeader } from "./section-header";
 import { BrandPalettePreview } from "./brand-palette-preview";
 import { FieldgridBrand } from "./brand";
 
@@ -43,7 +44,7 @@ export function TenantBrandingSettings({tenant,branding,logoUrl}:{tenant:TenantC
   });
  };
  return <section className="panel tenant-house-style" aria-label="Huisstijl">
-  <div className="section-heading"><div><span className="eyebrow">Centrale tenantinstellingen</span><h2>Huisstijl</h2><p>Dezelfde uitstraling voor management, personeel, klanten en nieuwe documenten.</p></div></div>
+  <SectionHeader subtitle="ORGANISATIE" title="Huisstijl" help="Dezelfde uitstraling voor management, personeel, klanten en nieuwe documenten."/>
   {!allowed&&<p className="form-note">Je beheerder kan de huisstijl aanpassen. Je kunt hier het actuele voorbeeld bekijken.</p>}
   <div className="tenant-house-style-layout"><form className="workspace-form" onSubmit={event=>{event.preventDefault();submit();}}>
    <fieldset className="tenant-branding-colors wide" disabled={!allowed||pending}>

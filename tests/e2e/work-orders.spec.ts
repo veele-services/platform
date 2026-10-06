@@ -242,6 +242,28 @@ test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzett
   expect(pdfDownload.status()).toBe(200);
   expect(pdfDownload.headers()["content-type"]).toContain("application/pdf");
   expect(await pdfDownload.body()).toEqual(pdf);
+
+  await page.goto(`/app/werkbonnen/${orderId}?tab=planning`);
+  await page.getByRole("row").filter({ hasText: "Milan Werkbontest" }).getByRole("button", { name: "Verwijder", exact: true }).click();
+  let management = page.getByRole("dialog", { name: "Medewerker van werkbon verwijderen", exact: true });
+  await management.getByLabel("Reden", { exact: true }).fill("Medewerker wordt op een andere opdracht ingezet.");
+  for (const width of [320, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect.poll(() => management.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    await expect(management.getByRole("button", { name: "Medewerker verwijderen", exact: true })).toBeVisible();
+  }
+  await management.getByRole("button", { name: "Medewerker verwijderen", exact: true }).click();
+  await expect(management).toHaveCount(0);
+  expect((await db.query("select status from public.work_order_assignments where work_order_id=$1 and personnel_id=$2", [orderId, personId])).rows[0].status).toBe("returned");
+  for (const status of ["released", "returned", "planned"]) {
+    await page.getByRole("button", { name: "Status wijzigen", exact: true }).click();
+    management = page.getByRole("dialog", { name: "Status wijzigen", exact: true });
+    await management.getByLabel("Nieuwe status", { exact: true }).selectOption(status);
+    await management.getByLabel("Reden", { exact: true }).fill(`Gemotiveerde browsercontrole: ${status}.`);
+    await management.getByRole("button", { name: "Status vastleggen", exact: true }).click();
+    await expect(management).toHaveCount(0);
+    expect((await db.query("select status from public.work_orders where id=$1", [orderId])).rows[0].status).toBe(status);
+  }
 });
 
 test("checklistbeheer bewaart zes antwoordtypes en maakt een nieuwe versie na publicatie", async ({ page }) => {

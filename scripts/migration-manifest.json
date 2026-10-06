@@ -591,6 +591,11 @@
       "version": "20261006160000",
       "name": "completed_staff_contributions",
       "sha256": "0cb2d82273202360771a7d7605782f441bd5552b0ee271400410a813b638cf7d"
+    },
+    {
+      "version": "20261006161000",
+      "name": "task_categories_and_management",
+      "sha256": "3ee87811d46c1a555eb604396a96964fd77bb42c1de907eac7860392d639bc21"
     }
   ]
 }

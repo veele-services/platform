@@ -98,7 +98,7 @@ async function visual(page: Page, name: string, ready: () => Promise<void>) { fo
 
 test("notificatiewizard publiceert exacte selectie; personeel leest, bevestigt en archiveert los van bronstatus", async ({ page, browser }) => {
   test.setTimeout(180000); const title = `Fictieve teammelding ${fixture.slice(0, 8)}`;
-  await login(page, "manager", "/app/notificaties"); await expect(page.getByRole("heading", { name: "Communicatie / notificaties" })).toBeVisible();
+  await login(page, "manager", "/app/notificaties"); await expect(page.getByRole("heading", { name: "Notificaties", exact: true })).toBeVisible();
   await expect(page.locator(`.nt-inbox-item[href$='/${managerInboxId}']`)).toBeVisible();
   await page.getByRole("button", { name: "Nieuwe notificatie", exact: true }).click(); const form = page.getByRole("dialog", { name: "Nieuwe notificatie", exact: true });
   await form.getByLabel("Robin Notificatietest", { exact: true }).check(); await expect(form.getByText("1 ontvangers", { exact: true })).toBeVisible();
