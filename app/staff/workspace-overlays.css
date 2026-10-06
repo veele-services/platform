@@ -10,7 +10,7 @@
   --ps-soft: #edf6ed;
   color: var(--ps-ink);
   font-family: Inter, Arial, sans-serif;
-  font-size: 16px;
+  font-size: calc(16px * var(--dashboard-font-scale, 1));
   line-height: 1.5;
 }
 
@@ -25,7 +25,7 @@
 }
 
 .personnel-app :is(.ticket-intro, .nt-header) h1 {
-  font-size: 1.85rem;
+  font-size: calc(1.85rem * var(--dashboard-font-scale, 1));
   letter-spacing: -.045em;
   line-height: 1.35;
 }
@@ -38,7 +38,7 @@
 .personnel-app :is(.ticket-intro, .nt-header) p {
   margin-top: 6px;
   color: var(--ps-muted);
-  font-size: .9rem;
+  font-size: calc(.9rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app :is(.ticket-panel, .nt-panel) {
@@ -68,26 +68,26 @@
 
 .personnel-app .ticket-staff-card:last-child { border-bottom: 0; }
 .personnel-app .ticket-staff-card:hover { background: #fafcf9; }
-.personnel-app .ticket-staff-card strong { font-size: 1rem; font-weight: 600; }
-.personnel-app :is(.ticket-staff-card, .ticket-message) small { color: var(--ps-muted); font-size: .8125rem; }
-.personnel-app :is(.ticket-muted, .ticket-facts, .ticket-message p, .nt-muted) { font-size: .875rem; }
+.personnel-app .ticket-staff-card strong { font-size: calc(1rem * var(--dashboard-font-scale, 1)); font-weight: 600; }
+.personnel-app :is(.ticket-staff-card, .ticket-message) small { color: var(--ps-muted); font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
+.personnel-app :is(.ticket-muted, .ticket-facts, .ticket-message p, .nt-muted) { font-size: calc(.875rem * var(--dashboard-font-scale, 1)); }
 .personnel-app :is(.ticket-views, .nt-tabs) { gap: 8px; }
-.personnel-app :is(.ticket-views, .nt-tabs) a { min-height: 44px; padding: 11px 14px; font-size: .8125rem; }
+.personnel-app :is(.ticket-views, .nt-tabs) a { min-height: 44px; padding: 11px 14px; font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
 .personnel-app :is(.ticket-views, .nt-tabs) a[aria-current="page"] { background: var(--ps-soft); color: var(--ps-action) !important; }
-.personnel-app :is(.ticket-status, .nt-status) { border-radius: 5px; padding: 5px 9px; font-size: .75rem; }
-.personnel-app :is(.ticket-back, .nt-back) { display: inline-flex; min-height: 44px; align-items: center; gap: 8px; color: var(--ps-action); font-size: .875rem; }
+.personnel-app :is(.ticket-status, .nt-status) { border-radius: 5px; padding: 5px 9px; font-size: calc(.75rem * var(--dashboard-font-scale, 1)); }
+.personnel-app :is(.ticket-back, .nt-back) { display: inline-flex; min-height: 44px; align-items: center; gap: 8px; color: var(--ps-action); font-size: calc(.875rem * var(--dashboard-font-scale, 1)); }
 .personnel-app .ticket-message { border-color: var(--ps-line); border-radius: 12px; padding: 20px; }
-.personnel-app .ticket-message p { font-size: .875rem; line-height: 1.7; }
+.personnel-app .ticket-message p { font-size: calc(.875rem * var(--dashboard-font-scale, 1)); line-height: 1.7; }
 .personnel-app .ticket-composer { padding: 24px; }
 .personnel-app .nt-page { gap: 24px; }
 .personnel-app .nt-header { margin-bottom: 2px; }
 .personnel-app .nt-inbox-item { padding: 20px 0; border: 0; border-bottom: 1px solid var(--ps-line); border-radius: 0; }
 .personnel-app .nt-inbox-item:last-child { border-bottom: 0; }
 .personnel-app .nt-inbox-item.unread { background: transparent; }
-.personnel-app .nt-inbox-item strong { color: var(--ps-ink); font-size: 1rem; }
-.personnel-app .nt-inbox-item p { color: var(--ps-muted); font-size: .875rem; line-height: 1.6; }
-.personnel-app .nt-inbox-item small { color: var(--ps-muted); font-size: .8125rem; }
-.personnel-app .nt-prose { font-size: .9375rem; line-height: 1.75; }
+.personnel-app .nt-inbox-item strong { color: var(--ps-ink); font-size: calc(1rem * var(--dashboard-font-scale, 1)); }
+.personnel-app .nt-inbox-item p { color: var(--ps-muted); font-size: calc(.875rem * var(--dashboard-font-scale, 1)); line-height: 1.6; }
+.personnel-app .nt-inbox-item small { color: var(--ps-muted); font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
+.personnel-app .nt-prose { font-size: calc(.9375rem * var(--dashboard-font-scale, 1)); line-height: 1.75; }
 
 .personnel-app :is(.ticket-workspace, .nt-page) :is(.primary-button, .secondary-button),
 .ps-staff-dialog :is(.primary-button, .secondary-button),
@@ -100,7 +100,7 @@
   background: white;
   color: var(--ps-ink);
   font-family: inherit;
-  font-size: .875rem;
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
 }
 
@@ -150,7 +150,7 @@ body:has(.staff-order-dialog, .ps-staff-dialog) [data-slot="dialog-overlay"] {
   margin: 4px 0 2px;
   color: var(--ps-ink);
   font-family: Poppins, Inter, sans-serif;
-  font-size: 1.35rem;
+  font-size: calc(1.35rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -159,7 +159,7 @@ body:has(.staff-order-dialog, .ps-staff-dialog) [data-slot="dialog-overlay"] {
 .ps-staff-dialog > header p,
 .staff-order-dialog [data-slot="dialog-description"] {
   color: var(--ps-muted);
-  font-size: .875rem;
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
   line-height: 1.6;
 }
 
@@ -195,11 +195,11 @@ body:has(.staff-order-dialog, .ps-staff-dialog) [data-slot="dialog-overlay"] {
   background: #fcfdfd;
   color: var(--ps-ink);
   font-family: inherit;
-  font-size: 1rem;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
 }
 
 .ps-staff-dialog[role="dialog"] label,
-.staff-order-dialog label { color: #4b5969; font-size: .875rem; }
+.staff-order-dialog label { color: #4b5969; font-size: calc(.875rem * var(--dashboard-font-scale, 1)); }
 .ps-staff-dialog .ticket-form { gap: 20px; }
 .ps-staff-dialog :is(button, a, input, select, textarea):focus-visible,
 .ps-staff-popover :is(button, a, input, select, textarea):focus-visible,
@@ -241,8 +241,8 @@ body:has(.staff-order-dialog, .ps-staff-dialog) [data-slot="dialog-overlay"] {
 
 @media (max-width: 600px) {
   .personnel-app :is(.ticket-intro, .nt-header) { align-items: flex-start; gap: 12px; }
-  .personnel-app :is(.ticket-intro, .nt-header) h1 { font-size: 1.55rem; }
-  .personnel-app :is(.ticket-intro, .nt-header) p { font-size: .8125rem; }
+  .personnel-app :is(.ticket-intro, .nt-header) h1 { font-size: calc(1.55rem * var(--dashboard-font-scale, 1)); }
+  .personnel-app :is(.ticket-intro, .nt-header) p { font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
   .personnel-app :is(.ticket-panel, .nt-panel, .ticket-composer) { padding: 20px; }
   .personnel-app .ticket-staff-card { padding: 18px; }
   .personnel-app :is(.ticket-intro, .nt-header) > :is(.primary-button, .nt-actions) { flex-wrap: wrap; }
@@ -252,7 +252,7 @@ body:has(.staff-order-dialog, .ps-staff-dialog) [data-slot="dialog-overlay"] {
   .ps-staff-dialog > header,
   .staff-order-dialog > [data-slot="dialog-header"] { padding: calc(21px + env(safe-area-inset-top)) 20px 17px; }
   .ps-staff-dialog > header h2,
-  .staff-order-dialog [data-slot="dialog-title"] { font-size: 1.15rem; }
+  .staff-order-dialog [data-slot="dialog-title"] { font-size: calc(1.15rem * var(--dashboard-font-scale, 1)); }
   .ps-staff-dialog :is(.ticket-dialog-body, .nt-dialog-body),
   .staff-order-dialog > :is(.staff-dialog-scroll, form) { padding: 21px 20px; }
   .ps-staff-dialog .ticket-form-footer,

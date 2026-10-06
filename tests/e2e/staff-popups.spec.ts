@@ -18,7 +18,7 @@ async function inspectDialog(page: Page, dialog: Locator, info: TestInfo, name: 
   const frame = (await dialog.boundingBox())!;
   await expect.poll(() => dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   const input = dialog.locator('input:not([type="checkbox"]), select, textarea').first();
-  if (await input.count()) await expect(input).toHaveCSS("font-size", "16px");
+  if (await input.count()) await expect(input).toHaveCSS("font-size", viewport.width <= 600 ? "16px" : "12.8px");
   const scroll = dialog.locator(".staff-dialog-scroll").first();
   if (await scroll.count()) await expect(scroll).toHaveCSS("padding-left", viewport.width <= 600 ? "20px" : "28px");
   const footer = dialog.locator(".ps-modal-footer, [data-slot=dialog-footer], .ticket-form-footer").last();

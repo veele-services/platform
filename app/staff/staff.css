@@ -22,6 +22,11 @@
   font-display: swap;
 }
 
+.personnel-app .report-photo > span {
+  /* PDF thumbnails keep a legacy inline size on their link. */
+  font-size: calc(10px * var(--dashboard-font-scale, 1));
+}
+
 .personnel-app {
   --ps-brand: #41ac42;
   --ps-action: #368341;
@@ -44,7 +49,7 @@
   background: var(--ps-canvas);
   color: var(--ps-ink);
   font-family: Inter, Arial, sans-serif;
-  font-size: 16px;
+  font-size: calc(16px * var(--dashboard-font-scale, 1));
   line-height: 1.5;
   text-rendering: optimizeLegibility;
 }
@@ -134,7 +139,7 @@
   overflow: hidden;
   color: var(--ps-sidebar-text);
   font-family: Poppins, Inter, sans-serif;
-  font-size: 28px;
+  font-size: calc(28px * var(--dashboard-font-scale, 1));
   font-weight: 700;
   letter-spacing: -0.06em;
   line-height: 1.2;
@@ -156,7 +161,7 @@
   display: block;
   margin-top: 10px;
   color: var(--ps-sidebar-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   font-weight: 500;
   letter-spacing: 0.08em;
 }
@@ -169,7 +174,7 @@
 .personnel-app .ps-nav-section {
   padding: 16px 16px 12px;
   color: color-mix(in srgb, var(--ps-sidebar-muted) 72%, transparent);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -187,7 +192,7 @@
   padding: 12px 16px;
   background: transparent;
   color: var(--ps-sidebar-muted);
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--dashboard-font-scale, 1));
   font-weight: 500;
   text-align: left;
   text-decoration: none;
@@ -217,7 +222,7 @@
   padding: 1px 6px;
   background: #3a6640;
   color: #c9edcd;
-  font-size: 0.7rem;
+  font-size: calc(0.7rem * var(--dashboard-font-scale, 1));
   font-weight: 650;
   text-align: center;
 }
@@ -251,7 +256,7 @@
   border-radius: 50%;
   background: var(--ps-soft);
   color: var(--ps-action);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   font-weight: 650;
 }
 
@@ -272,13 +277,13 @@
 }
 
 .personnel-app .ps-sidebar-footer strong {
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   font-weight: 550;
 }
 
 .personnel-app .ps-sidebar-footer small {
   color: var(--ps-sidebar-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-workspace {
@@ -366,7 +371,7 @@
   align-items: center;
   gap: 12px;
   color: var(--ps-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-topbar .ps-breadcrumb strong {
@@ -383,7 +388,7 @@
   gap: 4px;
   color: var(--ps-ink);
   font-family: Poppins, Inter, sans-serif;
-  font-size: 24px;
+  font-size: calc(24px * var(--dashboard-font-scale, 1));
   font-weight: 700;
   letter-spacing: -0.06em;
 }
@@ -406,7 +411,7 @@
   align-items: center;
   gap: 8px;
   color: var(--ps-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   font-weight: 550;
   white-space: nowrap;
 }
@@ -518,7 +523,7 @@
   border-radius: 50%;
   background: var(--ps-soft);
   color: var(--ps-action);
-  font-size: 0.82rem;
+  font-size: calc(0.82rem * var(--dashboard-font-scale, 1));
   font-weight: 650;
 }
 
@@ -564,8 +569,8 @@
   background: white;
 }
 
-.personnel-app.ps-ticket-help h2 {font-size: 1.2rem;}
-.personnel-app.ps-ticket-help p {color: var(--ps-muted);font-size: .875rem;line-height: 1.65;}
+.personnel-app.ps-ticket-help h2 {font-size: calc(1.2rem * var(--dashboard-font-scale, 1));}
+.personnel-app.ps-ticket-help p {color: var(--ps-muted);font-size: calc(.875rem * var(--dashboard-font-scale, 1));line-height: 1.65;}
 .personnel-app.ps-ticket-help .ps-primary {justify-self: end;}
 
 .personnel-app .ps-profile-menu[hidden] {
@@ -584,13 +589,13 @@
 
 .personnel-app .ps-profile-menu > header strong {
   overflow-wrap: anywhere;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-profile-menu > header small {
   margin-top: 2px;
   color: var(--ps-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-profile-menu :where(button, a) {
@@ -604,7 +609,7 @@
   padding: 11px;
   background: transparent;
   color: var(--ps-ink);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   text-align: left;
   text-decoration: none;
 }
@@ -629,21 +634,21 @@
 }
 
 .personnel-app .ps-page-heading h1 {
-  font-size: 1.85rem;
+  font-size: calc(1.85rem * var(--dashboard-font-scale, 1));
   letter-spacing: -0.045em;
 }
 
 .personnel-app .ps-page-heading p {
   margin-top: 6px;
   color: var(--ps-muted);
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-page-kicker {
   display: block;
   margin-bottom: 6px;
   color: var(--ps-action);
-  font-size: 0.72rem;
+  font-size: calc(0.72rem * var(--dashboard-font-scale, 1));
   font-weight: 650;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -691,7 +696,7 @@
 .personnel-app .ps-week-navigation strong {
   overflow: hidden;
   color: var(--ps-ink);
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -741,11 +746,11 @@
 
 .personnel-app .ps-week-day > span {
   color: var(--ps-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-week-day > strong {
-  font-size: 1rem;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
 }
 
@@ -797,7 +802,7 @@
   padding: 7px 13px;
   background: transparent;
   color: var(--ps-muted);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-view-toggle button svg {
@@ -819,7 +824,7 @@
   gap: 12px;
   margin: 0 0 17px;
   color: var(--ps-muted);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-result-line > span {
@@ -893,7 +898,7 @@
   align-items: center;
   gap: 7px;
   color: var(--ps-ink);
-  font-size: 1rem;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
   font-variant-numeric: tabular-nums;
   font-weight: 750;
 }
@@ -943,7 +948,7 @@
   padding: 4px 9px;
   background: #eff2f4;
   color: #74808a;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1003,7 +1008,7 @@
   overflow-wrap: anywhere;
   color: var(--ps-ink);
   font-family: Inter, Arial, sans-serif;
-  font-size: 1rem;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
   font-weight: 650;
   line-height: 1.4;
 }
@@ -1015,7 +1020,7 @@
   gap: 7px;
   margin-top: 4px;
   color: var(--ps-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -1046,7 +1051,7 @@
   border-top: 1px solid #edf0f2;
   padding-top: 14px;
   color: var(--ps-muted);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-order-meta > :first-child {
@@ -1067,7 +1072,7 @@
   gap: 16px;
   min-height: 75px;
   color: var(--ps-muted);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-agenda-row > time {
@@ -1080,11 +1085,11 @@
 
 .personnel-app .ps-agenda-row > time strong {
   color: var(--ps-ink);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-agenda-row > time small {
-  font-size: 0.72rem;
+  font-size: calc(0.72rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-agenda-row > div {
@@ -1152,13 +1157,13 @@
 }
 
 .personnel-app .ps-panel-heading h2 {
-  font-size: 1rem;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-panel-heading p {
   margin-top: 4px;
   color: var(--ps-muted);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-next-panel {
@@ -1172,20 +1177,20 @@
 
 .personnel-app .ps-next-panel .ps-panel-heading > span {
   color: var(--ps-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   font-weight: 650;
   letter-spacing: 0.1em;
 }
 
 .personnel-app .ps-next-panel > h2 {
   margin-top: 2px;
-  font-size: 1.2rem;
+  font-size: calc(1.2rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-next-panel > p {
   margin-top: 5px;
   color: var(--ps-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-next-phone {
@@ -1203,7 +1208,7 @@
   display: block;
   margin: 18px 0 1px;
   font-family: Poppins, Inter, sans-serif;
-  font-size: 1.6rem;
+  font-size: calc(1.6rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
   letter-spacing: -0.05em;
 }
@@ -1221,7 +1226,7 @@
   border-top: 1px solid #dce6dc;
   padding-top: 18px;
   color: var(--ps-muted);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-mini-avatar {
@@ -1229,7 +1234,7 @@
   height: 30px;
   flex-basis: 30px;
   background: #dbe8d9;
-  font-size: 0.6875rem;
+  font-size: calc(0.6875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-metric-row {
@@ -1239,7 +1244,7 @@
   gap: 8px;
   margin: 14px 0;
   color: var(--ps-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-metric-row strong {
@@ -1266,7 +1271,7 @@
   padding: 8px 0;
   background: transparent;
   color: var(--ps-action);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
 }
 
@@ -1289,11 +1294,11 @@
 
 .personnel-app .ps-mini-news small {
   color: var(--ps-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-mini-news strong {
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   font-weight: 550;
 }
 
@@ -1316,14 +1321,14 @@
 .personnel-app .ps-stat-grid small {
   display: block;
   color: var(--ps-muted);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-stat-grid strong {
   display: block;
   margin: 8px 0 2px;
   font-family: Poppins, Inter, sans-serif;
-  font-size: 1.8rem;
+  font-size: calc(1.8rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
   letter-spacing: -0.05em;
 }
@@ -1352,12 +1357,12 @@
 .personnel-app .ps-empty h2,
 .personnel-app .ps-empty h3 {
   color: var(--ps-ink);
-  font-size: 1rem;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-empty p {
   max-width: 360px;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-card-list {
@@ -1400,12 +1405,12 @@
   padding: 5px 9px;
   background: #edf2f7;
   color: #647b91;
-  font-size: .8125rem;
+  font-size: calc(.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-news-read-link {
   color: var(--ps-action);
-  font-size: .875rem;
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
 }
 
@@ -1418,12 +1423,12 @@
 
 .personnel-app .ps-news-aside h2 {
   margin-bottom: 12px;
-  font-size: 1.2rem;
+  font-size: calc(1.2rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-news-aside p {
   color: var(--ps-muted);
-  font-size: .875rem;
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-documents .ps-list-row {
@@ -1435,7 +1440,7 @@
 }
 
 .personnel-app .ps-documents .ps-list-row strong {
-  font-size: .9375rem;
+  font-size: calc(.9375rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
 }
 
@@ -1464,13 +1469,13 @@
 .personnel-app .ps-news-card-title {
   display: block;
   margin: 13px 0 9px;
-  font-size: 1.15rem;
+  font-size: calc(1.15rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-news-card-summary {
   display: block;
   color: var(--ps-muted);
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--dashboard-font-scale, 1));
   line-height: 1.55;
 }
 
@@ -1492,8 +1497,8 @@
   padding: 22px;
 }
 
-.personnel-app .ps-hours-metrics :where(span, small) {color: var(--ps-muted);font-size: .8125rem;}
-.personnel-app .ps-hours-metrics strong {font-size: 1.85rem;letter-spacing: -.045em;line-height: 1.3;}
+.personnel-app .ps-hours-metrics :where(span, small) {color: var(--ps-muted);font-size: calc(.8125rem * var(--dashboard-font-scale, 1));}
+.personnel-app .ps-hours-metrics strong {font-size: calc(1.85rem * var(--dashboard-font-scale, 1));letter-spacing: -.045em;line-height: 1.3;}
 
 .personnel-app .ps-hours-grid {
   display: grid;
@@ -1505,9 +1510,9 @@
 
 .personnel-app :where(.ps-hours-main, .ps-hours-aside) {display: grid;min-width: 0;gap: 20px;}
 .personnel-app .ps-hours-day .ps-panel-heading {margin-bottom: 22px;}
-.personnel-app .ps-hours-day .ps-panel-heading h2 {font-size: 1rem;text-transform: capitalize;}
+.personnel-app .ps-hours-day .ps-panel-heading h2 {font-size: calc(1rem * var(--dashboard-font-scale, 1));text-transform: capitalize;}
 .personnel-app .ps-hours-day .ps-status[data-status="open"] {background: #e7efff;color: #4b72bd;}
-.personnel-app .ps-hours-empty {margin: 0;padding: 16px 0 22px;color: var(--ps-muted);font-size: .875rem;line-height: 1.6;}
+.personnel-app .ps-hours-empty {margin: 0;padding: 16px 0 22px;color: var(--ps-muted);font-size: calc(.875rem * var(--dashboard-font-scale, 1));line-height: 1.6;}
 
 .personnel-app .ps-hour-row {
   display: grid;
@@ -1516,7 +1521,7 @@
   align-items: start;
   border-bottom: 1px solid var(--ps-line);
   padding: 18px 0;
-  font-size: .875rem;
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-hour-row > :last-child {text-align: right;white-space: nowrap;}
@@ -1526,33 +1531,33 @@
 .personnel-app .ps-hour-detail[data-kind="travel"]::before {background: #9fb9e2;}
 .personnel-app .ps-hour-detail :where(strong, small) {display: block;}
 .personnel-app .ps-hour-detail strong {font-weight: 550;}
-.personnel-app .ps-hour-detail small {margin-top: 1px;color: var(--ps-muted);font-size: .8125rem;overflow-wrap: anywhere;}
-.personnel-app .ps-hours-break {display: flex;justify-content: space-between;gap: 16px;border-bottom: 1px solid var(--ps-line);padding: 18px 0;color: var(--ps-muted);font-size: .875rem;}
+.personnel-app .ps-hour-detail small {margin-top: 1px;color: var(--ps-muted);font-size: calc(.8125rem * var(--dashboard-font-scale, 1));overflow-wrap: anywhere;}
+.personnel-app .ps-hours-break {display: flex;justify-content: space-between;gap: 16px;border-bottom: 1px solid var(--ps-line);padding: 18px 0;color: var(--ps-muted);font-size: calc(.875rem * var(--dashboard-font-scale, 1));}
 .personnel-app .ps-hours-break strong {color: var(--ps-ink);font-weight: 500;}
-.personnel-app .ps-hours-break-detail {display: grid;gap: 4px;padding-block: 8px;color: var(--ps-muted);font-size: .8125rem;}
+.personnel-app .ps-hours-break-detail {display: grid;gap: 4px;padding-block: 8px;color: var(--ps-muted);font-size: calc(.8125rem * var(--dashboard-font-scale, 1));}
 .personnel-app .ps-hours-day-total {display: flex;align-items: center;justify-content: space-between;gap: 16px;padding: 20px 0 24px;}
-.personnel-app .ps-hours-day-total > :last-child {font-size: 1.2rem;}
+.personnel-app .ps-hours-day-total > :last-child {font-size: calc(1.2rem * var(--dashboard-font-scale, 1));}
 .personnel-app .ps-hours-day-actions {display: flex;flex-wrap: wrap;justify-content: space-between;gap: 12px;}
-.personnel-app .ps-hours-action-note {margin: 15px 0 0;color: var(--ps-muted);font-size: .8125rem;line-height: 1.5;}
-.personnel-app .ps-hours-info {display: flex;align-items: flex-start;gap: 12px;margin: 0;border: 1px solid #d9e6f8;border-radius: 12px;padding: 14px 17px;background: #edf4ff;color: #54749e;font-size: .875rem;line-height: 1.55;}
+.personnel-app .ps-hours-action-note {margin: 15px 0 0;color: var(--ps-muted);font-size: calc(.8125rem * var(--dashboard-font-scale, 1));line-height: 1.5;}
+.personnel-app .ps-hours-info {display: flex;align-items: flex-start;gap: 12px;margin: 0;border: 1px solid #d9e6f8;border-radius: 12px;padding: 14px 17px;background: #edf4ff;color: #54749e;font-size: calc(.875rem * var(--dashboard-font-scale, 1));line-height: 1.55;}
 .personnel-app .ps-hours-info svg {width: 19px;height: 19px;flex-shrink: 0;margin-top: 1px;}
 
 .personnel-app .ps-hours-week-panel {display: grid;gap: 0;}
 .personnel-app .ps-hours-week-toolbar {display: flex;align-items: center;justify-content: space-between;gap: 6px;margin-bottom: 8px;}
-.personnel-app .ps-hours-week-toolbar h2 {margin: 0;font-size: 1.2rem;}
+.personnel-app .ps-hours-week-toolbar h2 {margin: 0;font-size: calc(1.2rem * var(--dashboard-font-scale, 1));}
 .personnel-app .ps-hours-week-actions {display: flex;align-items: center;gap: 2px;}
 .personnel-app .ps-hours-week-actions .ps-week-arrow {width: 26px;height: 28px;}
 .personnel-app .ps-hours-week-actions svg {width: 15px;height: 15px;}
 .personnel-app .ps-hours-week-range {margin-bottom: 8px;color: var(--ps-muted);}
 .personnel-app .ps-hours-week-overview {display: grid;}
-.personnel-app .ps-hours-week-day {display: flex;min-width: 0;align-items: baseline;justify-content: space-between;gap: 12px;border: 0;border-radius: 6px;padding: 8px 0;background: transparent;color: var(--ps-muted);font-size: .875rem;text-align: left;text-transform: capitalize;}
+.personnel-app .ps-hours-week-day {display: flex;min-width: 0;align-items: baseline;justify-content: space-between;gap: 12px;border: 0;border-radius: 6px;padding: 8px 0;background: transparent;color: var(--ps-muted);font-size: calc(.875rem * var(--dashboard-font-scale, 1));text-align: left;text-transform: capitalize;}
 .personnel-app .ps-hours-week-day strong {color: var(--ps-ink);font-weight: 500;text-transform: none;}
 .personnel-app .ps-hours-week-day:hover {background: var(--ps-soft);}
-.personnel-app .ps-hours-week-total {display: flex;align-items: baseline;justify-content: space-between;gap: 12px;margin-top: 16px;border-top: 1px solid var(--ps-line);padding: 22px 0 12px;font-size: .875rem;}
+.personnel-app .ps-hours-week-total {display: flex;align-items: baseline;justify-content: space-between;gap: 12px;margin-top: 16px;border-top: 1px solid var(--ps-line);padding: 22px 0 12px;font-size: calc(.875rem * var(--dashboard-font-scale, 1));}
 .personnel-app .ps-hours-week-total span {color: var(--ps-muted);}
 .personnel-app .ps-hours-week-total strong {font-weight: 500;}
-.personnel-app .ps-hours-retention h2 {font-size: .75rem;font-weight: 600;letter-spacing: .08em;color: var(--ps-muted);}
-.personnel-app .ps-hours-retention p {margin: 16px 0 0;color: var(--ps-muted);font-size: .875rem;line-height: 1.55;}
+.personnel-app .ps-hours-retention h2 {font-size: calc(.75rem * var(--dashboard-font-scale, 1));font-weight: 600;letter-spacing: .08em;color: var(--ps-muted);}
+.personnel-app .ps-hours-retention p {margin: 16px 0 0;color: var(--ps-muted);font-size: calc(.875rem * var(--dashboard-font-scale, 1));line-height: 1.55;}
 .personnel-app .ps-hours-correction-options {display: grid;gap: 12px;margin-top: 20px;}
 .personnel-app .ps-hours-correction-options button {justify-content: space-between;text-align: left;}
 .personnel-app .ps-hours-correction-options button span {min-width: 0;white-space: normal;}
@@ -1564,40 +1569,40 @@
 .personnel-app .ps-availability-week {min-width: 0;}
 .personnel-app .ps-availability-week .ps-panel-heading {margin-bottom: 18px;}
 .personnel-app .ps-availability-week .ps-status[data-status="managed"] {background: #eef2f4;color: #74828e;}
-.personnel-app .ps-availability-managed {display: flex;align-items: flex-start;gap: 12px;margin: 0 0 20px;border: 1px solid #f4e4c7;border-radius: 11px;padding: 13px 17px;background: #fffaf0;color: #a17724;font-size: .875rem;line-height: 1.5;}
+.personnel-app .ps-availability-managed {display: flex;align-items: flex-start;gap: 12px;margin: 0 0 20px;border: 1px solid #f4e4c7;border-radius: 11px;padding: 13px 17px;background: #fffaf0;color: #a17724;font-size: calc(.875rem * var(--dashboard-font-scale, 1));line-height: 1.5;}
 .personnel-app .ps-availability-managed svg {flex-shrink: 0;margin-top: 1px;}
 .personnel-app .ps-availability-day {display: grid;grid-template-columns: 120px repeat(2, minmax(0, 1fr));gap: 16px;align-items: center;border-bottom: 1px solid var(--ps-line);padding: 12px 0;}
-.personnel-app .ps-availability-day input {width: 100%;min-width: 0;height: 49px;border: 1px solid #dce3e7;border-radius: 10px;padding: 12px 14px;background: #fcfdfd;color: var(--ps-ink);font-size: .875rem;}
+.personnel-app .ps-availability-day input {width: 100%;min-width: 0;height: 49px;border: 1px solid #dce3e7;border-radius: 10px;padding: 12px 14px;background: #fcfdfd;color: var(--ps-ink);font-size: calc(.875rem * var(--dashboard-font-scale, 1));}
 .personnel-app .ps-availability-day input:disabled {cursor: not-allowed;opacity: 1;-webkit-text-fill-color: var(--ps-ink);}
 .personnel-app .ps-availability-day input::placeholder {color: var(--ps-ink);opacity: 1;}
 .personnel-app .ps-availability-day input:focus {border-color: var(--ps-action);outline: 0;box-shadow: 0 0 0 3px rgb(65 172 66 / 9%);}
 .personnel-app .ps-availability-day input[aria-invalid="true"] {border-color: #c33e3e;}
-.personnel-app .ps-availability-help {margin: 15px 0 24px;color: var(--ps-muted);font-size: .8125rem;line-height: 1.5;}
-.personnel-app .ps-availability-error {margin: 0 0 16px;color: #b52f38;font-size: .875rem;}
+.personnel-app .ps-availability-help {margin: 15px 0 24px;color: var(--ps-muted);font-size: calc(.8125rem * var(--dashboard-font-scale, 1));line-height: 1.5;}
+.personnel-app .ps-availability-error {margin: 0 0 16px;color: #b52f38;font-size: calc(.875rem * var(--dashboard-font-scale, 1));}
 .personnel-app .ps-availability-preferences {margin-top: 24px;border-top: 1px solid var(--ps-line);padding-top: 16px;}
-.personnel-app .ps-availability-preferences summary {color: var(--ps-muted);font-size: .875rem;cursor: pointer;}
+.personnel-app .ps-availability-preferences summary {color: var(--ps-muted);font-size: calc(.875rem * var(--dashboard-font-scale, 1));cursor: pointer;}
 .personnel-app .ps-availability-preferences .ps-field {margin-top: 18px;}
 .personnel-app .ps-availability-aside {display: grid;gap: 20px;min-width: 0;}
-.personnel-app .ps-availability-aside h2 {margin: 0 0 12px;font-size: 1.2rem;letter-spacing: -.03em;}
-.personnel-app .ps-availability-aside p {margin: 0;color: var(--ps-muted);font-size: .875rem;line-height: 1.5;}
+.personnel-app .ps-availability-aside h2 {margin: 0 0 12px;font-size: calc(1.2rem * var(--dashboard-font-scale, 1));letter-spacing: -.03em;}
+.personnel-app .ps-availability-aside p {margin: 0;color: var(--ps-muted);font-size: calc(.875rem * var(--dashboard-font-scale, 1));line-height: 1.5;}
 .personnel-app .ps-availability-aside .ps-text-button {margin-top: 8px;padding-top: 0;}
 .personnel-app .ps-settings-screen {display: grid;gap: 28px;}
 .personnel-app .ps-settings-screen .ps-page-heading {margin-bottom: 0;}
 .personnel-app .ps-settings-layout {display: grid;grid-template-columns: 200px minmax(0, 700px);gap: 26px;max-width: 926px;}
 .personnel-app .ps-settings-nav {display: grid;grid-template-rows: repeat(3, minmax(0, 1fr));gap: 8px;}
-.personnel-app .ps-settings-nav button {min-width: 0;border: 0;border-radius: 11px;padding: 16px;background: transparent;color: var(--ps-muted);font-size: .875rem;text-align: left;}
+.personnel-app .ps-settings-nav button {min-width: 0;border: 0;border-radius: 11px;padding: 16px;background: transparent;color: var(--ps-muted);font-size: calc(.875rem * var(--dashboard-font-scale, 1));text-align: left;}
 .personnel-app .ps-settings-nav button[aria-current="page"] {background: white;color: var(--ps-action);box-shadow: 0 2px 5px rgb(39 60 80 / 2%);}
 .personnel-app .ps-settings-layout > .ps-panel {min-width: 0;}
-.personnel-app .ps-settings-layout h2 {margin: 0;font-size: 1.2rem;letter-spacing: -.03em;}
+.personnel-app .ps-settings-layout h2 {margin: 0;font-size: calc(1.2rem * var(--dashboard-font-scale, 1));letter-spacing: -.03em;}
 .personnel-app .ps-settings-identity {display: flex;align-items: center;gap: 11px;margin-bottom: 26px;}
-.personnel-app .ps-settings-identity > span {display: grid;width: 58px;height: 58px;flex-shrink: 0;place-items: center;border-radius: 50%;background: #e7f1e7;color: #427a46;font-size: 1rem;font-weight: 600;}
-.personnel-app .ps-settings-identity p {margin: 0;color: var(--ps-muted);font-size: .875rem;line-height: 1.5;}
+.personnel-app .ps-settings-identity > span {display: grid;width: 58px;height: 58px;flex-shrink: 0;place-items: center;border-radius: 50%;background: #e7f1e7;color: #427a46;font-size: calc(1rem * var(--dashboard-font-scale, 1));font-weight: 600;}
+.personnel-app .ps-settings-identity p {margin: 0;color: var(--ps-muted);font-size: calc(.875rem * var(--dashboard-font-scale, 1));line-height: 1.5;}
 .personnel-app .ps-settings-profile form {display: grid;gap: 20px;}
 .personnel-app .ps-settings-profile .ps-primary {justify-self: start;}
 .personnel-app .ps-settings-row {display: flex;min-height: 82px;align-items: center;justify-content: space-between;gap: 16px;border-bottom: 1px solid var(--ps-line);padding: 18px 0;}
 .personnel-app .ps-settings-row > div {min-width: 0;}
-.personnel-app .ps-settings-row strong {display: block;font-size: .875rem;font-weight: 550;}
-.personnel-app .ps-settings-row small {display: block;margin-top: 4px;color: var(--ps-muted);font-size: .8125rem;line-height: 1.5;}
+.personnel-app .ps-settings-row strong {display: block;font-size: calc(.875rem * var(--dashboard-font-scale, 1));font-weight: 550;}
+.personnel-app .ps-settings-row small {display: block;margin-top: 4px;color: var(--ps-muted);font-size: calc(.8125rem * var(--dashboard-font-scale, 1));line-height: 1.5;}
 .personnel-app .ps-settings-switch {position: relative;width: 42px;height: 24px;flex-shrink: 0;appearance: none;border: 0;border-radius: 20px;margin: 0;background: #dce3e8;cursor: pointer;transition: background 160ms ease;}
 .personnel-app .ps-settings-switch::before {position: absolute;top: 3px;left: 3px;width: 18px;height: 18px;border-radius: 50%;background: white;content: "";transition: transform 160ms ease;}
 .personnel-app .ps-settings-switch:checked {background: var(--ps-action);}
@@ -1608,26 +1613,26 @@
 .personnel-app .ps-settings-notification-actions {display: flex;flex-wrap: wrap;align-items: center;gap: 12px 16px;margin-top: 20px;}
 .personnel-app .ps-settings-account > .ps-secondary {margin-top: 24px;}
 .personnel-app .ps-settings-account > form {margin-top: 24px;}
-.personnel-app .ps-settings-account .ps-status {font-size: .75rem;}
+.personnel-app .ps-settings-account .ps-status {font-size: calc(.75rem * var(--dashboard-font-scale, 1));}
 .personnel-app .ps-settings-login-intro {line-height: 1.6;overflow-wrap: anywhere;}
 .personnel-app .ps-settings-login-steps {margin: 20px 0 0;padding-left: 22px;line-height: 1.7;}
 .personnel-app .ps-settings-login-steps li + li {margin-top: 10px;}
 .personnel-app .ps-leave-screen .ps-page-heading {margin-bottom: 0;}
 .personnel-app .ps-leave-screen .ps-stat-grid > div {display: grid;min-height: 142px;align-content: center;gap: 9px;box-shadow: 0 3px 8px rgb(39 60 80 / 2%);}
-.personnel-app .ps-leave-screen .ps-stat-grid strong {margin: 0;font-family: Inter, Arial, sans-serif;font-size: 1.8rem;line-height: 1.3;}
+.personnel-app .ps-leave-screen .ps-stat-grid strong {margin: 0;font-family: Inter, Arial, sans-serif;font-size: calc(1.8rem * var(--dashboard-font-scale, 1));line-height: 1.3;}
 .personnel-app .ps-leave-list .ps-panel-heading {margin-bottom: 20px;}
-.personnel-app .ps-leave-year {color: var(--ps-muted);font-size: .875rem;}
+.personnel-app .ps-leave-year {color: var(--ps-muted);font-size: calc(.875rem * var(--dashboard-font-scale, 1));}
 .personnel-app .ps-leave-request {border-bottom: 1px solid var(--ps-line);padding: 16px 0 18px;}
 .personnel-app .ps-leave-request-heading {display: flex;align-items: center;justify-content: space-between;gap: 14px;}
-.personnel-app .ps-leave-request-heading h3 {font-family: Inter, Arial, sans-serif;font-size: 1rem;}
-.personnel-app .ps-leave-request p {margin: 8px 0 0;color: var(--ps-muted);font-size: .8125rem;line-height: 1.5;overflow-wrap: anywhere;}
-.personnel-app .ps-leave-request .ps-leave-dates {font-size: .875rem;}
-.personnel-app .ps-leave-request .ps-secondary {min-height: 36px;padding: 7px 12px;font-size: .8125rem;}
+.personnel-app .ps-leave-request-heading h3 {font-family: Inter, Arial, sans-serif;font-size: calc(1rem * var(--dashboard-font-scale, 1));}
+.personnel-app .ps-leave-request p {margin: 8px 0 0;color: var(--ps-muted);font-size: calc(.8125rem * var(--dashboard-font-scale, 1));line-height: 1.5;overflow-wrap: anywhere;}
+.personnel-app .ps-leave-request .ps-leave-dates {font-size: calc(.875rem * var(--dashboard-font-scale, 1));}
+.personnel-app .ps-leave-request .ps-secondary {min-height: 36px;padding: 7px 12px;font-size: calc(.8125rem * var(--dashboard-font-scale, 1));}
 .personnel-app .ps-leave-request .ps-status[data-status="pending"] {background: #fff4d9;color: #a97713;}
 .personnel-app .ps-leave-empty {display: grid;min-height: 144px;place-items: center;align-content: center;gap: 10px;color: var(--ps-muted);text-align: center;}
 .personnel-app .ps-leave-empty svg {width: 28px;height: 28px;}
-.personnel-app .ps-leave-empty h3 {margin: 0;color: var(--ps-ink);font-size: 1rem;}
-.personnel-app .ps-leave-empty p {margin: 0;font-size: .875rem;}
+.personnel-app .ps-leave-empty h3 {margin: 0;color: var(--ps-ink);font-size: calc(1rem * var(--dashboard-font-scale, 1));}
+.personnel-app .ps-leave-empty p {margin: 0;font-size: calc(.875rem * var(--dashboard-font-scale, 1));}
 
 .personnel-app .ps-more-screen {
   display: grid;
@@ -1674,7 +1679,7 @@
 
 .personnel-app .ps-more-card strong {
   display: block;
-  font-size: 1rem;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
   font-weight: 650;
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -1684,13 +1689,13 @@
   display: block;
   margin-top: 7px;
   color: var(--ps-muted);
-  font-size: .875rem;
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
   line-height: 1.55;
 }
 
 .personnel-app .ps-open-shifts p {
   color: var(--ps-muted);
-  font-size: .875rem;
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-open-shifts .ps-list-row {
@@ -1743,20 +1748,20 @@
 
 .personnel-app .ps-profile-summary small {
   color: var(--ps-action);
-  font-size: 0.6875rem;
+  font-size: calc(0.6875rem * var(--dashboard-font-scale, 1));
   font-weight: 750;
   letter-spacing: 0.08em;
 }
 
 .personnel-app .ps-profile-summary h2 {
   margin-top: 3px;
-  font-size: 1rem;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-profile-summary p {
   margin-top: 2px;
   color: var(--ps-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-list-row {
@@ -1788,7 +1793,7 @@
 .personnel-app .ps-list-row small {
   margin-top: 4px;
   color: var(--ps-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
 }
 
 /* Forms and actions */
@@ -1813,7 +1818,7 @@
   gap: 7px;
   min-width: 0;
   color: #44515f;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   font-weight: 550;
 }
 
@@ -1825,7 +1830,7 @@
   padding: 12px 14px;
   background: #fcfdfd;
   color: var(--ps-ink);
-  font-size: 1rem;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
   font-weight: 400;
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
@@ -1851,7 +1856,7 @@
 
 .personnel-app .ps-field small {
   color: var(--ps-muted);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
   font-weight: 400;
   line-height: 1.45;
 }
@@ -1865,7 +1870,7 @@
   border-radius: 10px;
   padding: 12px;
   color: var(--ps-ink);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   cursor: pointer;
 }
 
@@ -1899,7 +1904,7 @@
   grid-column: 1 / -1;
   margin-bottom: 3px;
   color: #44515f;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
 }
 
@@ -1927,7 +1932,7 @@
   gap: 9px;
   border-radius: 10px;
   padding: 11px 17px;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
@@ -2029,13 +2034,13 @@
 
 .personnel-app .ps-modal-title {
   overflow-wrap: anywhere;
-  font-size: 1.35rem;
+  font-size: calc(1.35rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-modal-header p {
   margin-top: 4px;
   color: var(--ps-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-modal-tabs {
@@ -2056,7 +2061,7 @@
   padding: 15px 0;
   background: transparent;
   color: var(--ps-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   white-space: nowrap;
 }
 
@@ -2114,35 +2119,35 @@
 }
 
 .personnel-app .ps-order-header > div:first-child { min-width: 0; }
-.personnel-app .ps-order-header h2 { margin: 4px 0 2px; font-size: 1.35rem; overflow-wrap: anywhere; }
-.personnel-app .ps-order-header :where(small, p) { color: var(--ps-muted); font-size: .875rem; }
-.personnel-app .ps-order-header small { font-size: .8125rem; font-weight: 400; }
+.personnel-app .ps-order-header h2 { margin: 4px 0 2px; font-size: calc(1.35rem * var(--dashboard-font-scale, 1)); overflow-wrap: anywhere; }
+.personnel-app .ps-order-header :where(small, p) { color: var(--ps-muted); font-size: calc(.875rem * var(--dashboard-font-scale, 1)); }
+.personnel-app .ps-order-header small { font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); font-weight: 400; }
 .personnel-app .ps-order-header-actions { display: flex; flex: 0 0 auto; gap: 8px; }
 .personnel-app .ps-order-header-actions button { width: 44px; height: 44px; border: 1px solid var(--ps-line); border-radius: 12px; color: var(--ps-ink); }
 .personnel-app .order-tabs { gap: 22px; padding: 0 28px; border-color: var(--ps-line); }
-.personnel-app .order-tabs button { flex: 0 0 auto; min-width: 0; min-height: 50px; border-bottom-width: 2px; padding: 15px 0; color: var(--ps-muted); font-size: .875rem; font-weight: 400; }
+.personnel-app .order-tabs button { flex: 0 0 auto; min-width: 0; min-height: 50px; border-bottom-width: 2px; padding: 15px 0; color: var(--ps-muted); font-size: calc(.875rem * var(--dashboard-font-scale, 1)); font-weight: 400; }
 .personnel-app .order-tabs button.active { border-color: var(--ps-action); color: var(--ps-action); font-weight: 600; }
 .personnel-app .order-body { padding: 24px 28px; scrollbar-gutter: stable; overscroll-behavior: contain; }
 .personnel-app .order-sheet .primary-button { background: var(--ps-action); color: white; }
 .personnel-app .ps-order-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 24px; }
-.personnel-app .ps-order-summary h3 { font-size: 1.02rem; }
-.personnel-app .ps-order-summary p { color: var(--ps-muted); font-size: .875rem; }
+.personnel-app .ps-order-summary h3 { font-size: calc(1.02rem * var(--dashboard-font-scale, 1)); }
+.personnel-app .ps-order-summary p { color: var(--ps-muted); font-size: calc(.875rem * var(--dashboard-font-scale, 1)); }
 .personnel-app .ps-order-times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .personnel-app .ps-order-times > div { min-width: 0; border: 1px solid var(--ps-line); border-radius: 18px; padding: 19px 20px; }
-.personnel-app .ps-order-times small { display: block; color: var(--ps-muted); font-size: .8125rem; }
-.personnel-app .ps-order-times strong { display: block; margin: 8px 0 4px; font-family: Poppins, Inter, sans-serif; font-size: 1.25rem; letter-spacing: -.04em; }
-.personnel-app .ps-order-expectation { display: flex; gap: 8px; align-items: center; margin: 20px 0 24px; color: var(--ps-muted); font-size: .8125rem; }
+.personnel-app .ps-order-times small { display: block; color: var(--ps-muted); font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
+.personnel-app .ps-order-times strong { display: block; margin: 8px 0 4px; font-family: Poppins, Inter, sans-serif; font-size: calc(1.25rem * var(--dashboard-font-scale, 1)); letter-spacing: -.04em; }
+.personnel-app .ps-order-expectation { display: flex; gap: 8px; align-items: center; margin: 20px 0 24px; color: var(--ps-muted); font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
 .personnel-app .ps-order-expectation strong { color: var(--ps-ink); font-weight: 500; }
 .personnel-app .order-body .staff-panel { margin-bottom: 24px; border-color: var(--ps-line); border-radius: 14px; padding: 20px; }
-.personnel-app .order-body .staff-panel > h2 { font-size: 1.02rem; }
+.personnel-app .order-body .staff-panel > h2 { font-size: calc(1.02rem * var(--dashboard-font-scale, 1)); }
 .personnel-app .order-body :where(.task-check, .time-detail) { border-color: var(--ps-line); color: var(--ps-ink); }
 .personnel-app .order-body .task-check { min-height: 72px; }
 .personnel-app .order-body .task-check input { width: 18px; height: 18px; accent-color: var(--ps-action); }
-.personnel-app .order-body :where(.task-check, .time-detail) strong { color: var(--ps-ink); font-size: .875rem; }
-.personnel-app .order-body :where(.task-check, .time-detail) small { color: var(--ps-muted); font-size: .8125rem; }
-.personnel-app .order-body :where(.primary-button, .secondary-button) { min-height: 44px; border-radius: 10px; font-size: .875rem; }
+.personnel-app .order-body :where(.task-check, .time-detail) strong { color: var(--ps-ink); font-size: calc(.875rem * var(--dashboard-font-scale, 1)); }
+.personnel-app .order-body :where(.task-check, .time-detail) small { color: var(--ps-muted); font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
+.personnel-app .order-body :where(.primary-button, .secondary-button) { min-height: 44px; border-radius: 10px; font-size: calc(.875rem * var(--dashboard-font-scale, 1)); }
 .personnel-app .order-action { position: relative; flex-wrap: wrap; border-color: var(--ps-line); padding: 17px 28px; background: #fcfdfd; }
-.personnel-app .order-action > button { width: auto; min-width: 0; border-radius: 10px; font-size: .875rem; }
+.personnel-app .order-action > button { width: auto; min-width: 0; border-radius: 10px; font-size: calc(.875rem * var(--dashboard-font-scale, 1)); }
 
 /* Radix renders nested work-order dialogs in a body portal, so this unique
  * class cannot inherit the root selector. It intentionally shares the same
@@ -2235,7 +2240,7 @@
 
 .staff-contact-list small {
   color: #70848f;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
 }
 
 .staff-contact-list a {
@@ -2244,7 +2249,7 @@
   align-items: center;
   gap: 7px;
   color: #087f7d;
-  font-size: 0.82rem;
+  font-size: calc(0.82rem * var(--dashboard-font-scale, 1));
   text-decoration: none;
 }
 
@@ -2256,7 +2261,7 @@
   border-radius: 50%;
   background: #e8f5ed;
   color: #368341;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   font-weight: 700;
 }
 
@@ -2282,13 +2287,13 @@
 
 .staff-route-facts dt {
   color: #71848f;
-  font-size: 0.72rem;
+  font-size: calc(0.72rem * var(--dashboard-font-scale, 1));
 }
 
 .staff-route-facts dd {
   margin-top: 4px;
   color: #1b3341;
-  font-size: 0.88rem;
+  font-size: calc(0.88rem * var(--dashboard-font-scale, 1));
   font-weight: 650;
 }
 
@@ -2302,7 +2307,7 @@
   padding: 13px 14px;
   background: #f0f7f1;
   color: #405e4a;
-  font-size: 0.8rem;
+  font-size: calc(0.8rem * var(--dashboard-font-scale, 1));
   line-height: 1.5;
 }
 
@@ -2329,7 +2334,7 @@
   border-radius: 50%;
   background: #368341;
   color: #fff;
-  font-size: 0.78rem;
+  font-size: calc(0.78rem * var(--dashboard-font-scale, 1));
   font-weight: 750;
 }
 
@@ -2340,7 +2345,7 @@
 
 .completion-step small {
   color: #71848f;
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
 }
 
 .completion-summary {
@@ -2367,7 +2372,7 @@
 .completion-summary :where(p, small) {
   overflow-wrap: anywhere;
   color: #6d818c;
-  font-size: 0.78rem;
+  font-size: calc(0.78rem * var(--dashboard-font-scale, 1));
 }
 
 .completion-task-review {
@@ -2377,7 +2382,7 @@
 .completion-task-review h3,
 .completion-open-points h3 {
   margin: 0 0 9px;
-  font-size: 0.95rem;
+  font-size: calc(0.95rem * var(--dashboard-font-scale, 1));
 }
 
 .completion-task-review > div {
@@ -2412,12 +2417,12 @@
 
 .completion-task-review strong {
   overflow-wrap: anywhere;
-  font-size: 0.82rem;
+  font-size: calc(0.82rem * var(--dashboard-font-scale, 1));
 }
 
 .completion-task-review small {
   color: #71848f;
-  font-size: 0.72rem;
+  font-size: calc(0.72rem * var(--dashboard-font-scale, 1));
 }
 
 .completion-open-points {
@@ -2434,7 +2439,7 @@
   gap: 8px;
   margin-top: 8px;
   color: #685b37;
-  font-size: 0.79rem;
+  font-size: calc(0.79rem * var(--dashboard-font-scale, 1));
   line-height: 1.45;
 }
 
@@ -2497,12 +2502,12 @@
 .personnel-app .ps-detail-grid small {
   margin-bottom: 4px;
   color: var(--ps-muted);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-detail-grid strong {
   overflow-wrap: anywhere;
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--dashboard-font-scale, 1));
   font-weight: 550;
 }
 
@@ -2535,7 +2540,7 @@
 
 .personnel-app .ps-timeline p {
   color: var(--ps-ink);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   overflow-wrap: anywhere;
 }
 
@@ -2543,7 +2548,7 @@
 .personnel-app .ps-timeline time {
   display: block;
   color: var(--ps-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-task {
@@ -2574,14 +2579,14 @@
 }
 
 .personnel-app .ps-task strong {
-  font-size: 0.9rem;
+  font-size: calc(0.9rem * var(--dashboard-font-scale, 1));
   font-weight: 550;
 }
 
 .personnel-app .ps-task small {
   margin-top: 3px;
   color: var(--ps-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-task.done strong,
@@ -2657,7 +2662,7 @@
 .personnel-app .ps-onboarding-kicker {
   display: block;
   color: var(--ps-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   font-weight: 650;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2665,20 +2670,20 @@
 
 .personnel-app .ps-onboarding-header h1 {
   margin-top: 6px;
-  font-size: 1.35rem;
+  font-size: calc(1.35rem * var(--dashboard-font-scale, 1));
   letter-spacing: -0.03em;
 }
 
 .personnel-app .ps-onboarding-header p {
   margin-top: 4px;
   color: var(--ps-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-onboarding-header button {
   min-height: 36px;
   padding: 7px 12px;
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-onboarding-stepper {
@@ -2704,7 +2709,7 @@
   flex-direction: column;
   gap: 8px;
   color: var(--ps-muted);
-  font-size: 0.75rem;
+  font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   text-align: center;
 }
 
@@ -2720,7 +2725,7 @@
   border: 1px solid var(--ps-line);
   border-radius: 50%;
   background: white;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
 }
 
@@ -2774,30 +2779,30 @@
 }
 
 .personnel-app .ps-onboarding :where(h2) {
-  font-size: 1.2rem;
+  font-size: calc(1.2rem * var(--dashboard-font-scale, 1));
   letter-spacing: -0.025em;
 }
 
 .personnel-app .ps-onboarding :where(h3) {
   font-family: Inter, Arial, sans-serif;
-  font-size: 0.9375rem;
+  font-size: calc(0.9375rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-onboarding-step > div > p {
   margin-top: 7px;
   color: var(--ps-muted);
-  font-size: 0.9375rem;
+  font-size: calc(0.9375rem * var(--dashboard-font-scale, 1));
   line-height: 1.65;
 }
 
 .personnel-app .ps-onboarding-welcome h2 {
   margin: 12px 0;
-  font-size: 1.8rem;
+  font-size: calc(1.8rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-onboarding-welcome > div > p {
   max-width: 650px;
-  font-size: 1rem;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-onboarding-feature-grid,
@@ -2825,13 +2830,13 @@
 }
 
 .personnel-app .ps-onboarding-feature-grid strong {
-  font-size: 0.9375rem;
+  font-size: calc(0.9375rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-onboarding-feature-grid p {
   margin-top: 4px;
   color: var(--ps-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-onboarding-group {
@@ -2844,7 +2849,7 @@
 
 .personnel-app .ps-onboarding-group legend {
   padding: 0 7px;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
 }
 
@@ -2895,7 +2900,7 @@
 .personnel-app .ps-onboarding-push p {
   margin-top: 5px;
   color: var(--ps-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-onboarding-choice-row {
@@ -2913,7 +2918,7 @@
 
 .personnel-app .ps-onboarding-push .ps-onboarding-required {
   margin-top: 12px;
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-onboarding-topic-list,
@@ -2935,7 +2940,7 @@
 }
 
 .personnel-app .ps-onboarding-quiet summary {
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   font-weight: 600;
 }
 
@@ -2945,7 +2950,7 @@
 
 .personnel-app .ps-onboarding-muted {
   color: var(--ps-muted);
-  font-size: 0.8125rem;
+  font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-onboarding-review-card {
@@ -2966,7 +2971,7 @@
 .personnel-app .ps-onboarding-review-card p {
   overflow-wrap: anywhere;
   color: var(--ps-muted);
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   line-height: 1.55;
 }
 
@@ -2997,7 +3002,7 @@
   padding: 14px 16px;
   background: #eff5ff;
   color: #5375a2;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   line-height: 1.55;
   overflow-wrap: anywhere;
 }
@@ -3024,7 +3029,7 @@
 
 .personnel-app .ps-policy-information h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: calc(1rem * var(--dashboard-font-scale, 1));
 }
 
 .personnel-app .ps-policy-information p {
@@ -3045,7 +3050,7 @@
   background: #22352b;
   box-shadow: 0 6px 25px rgb(0 0 0 / 14%);
   color: white;
-  font-size: 0.875rem;
+  font-size: calc(0.875rem * var(--dashboard-font-scale, 1));
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 25px);
@@ -3141,7 +3146,7 @@
     color: white;
     content: "F";
     font-family: Poppins, Inter, sans-serif;
-    font-size: 28px;
+    font-size: calc(28px * var(--dashboard-font-scale, 1));
     font-weight: 700;
   }
 
@@ -3195,7 +3200,7 @@
   }
 
   .personnel-app .ps-page-heading h1 {
-    font-size: 1.6rem;
+    font-size: calc(1.6rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-planning-grid {
@@ -3211,7 +3216,7 @@
   .personnel-app .ps-availability-grid {grid-template-columns: minmax(0, 1fr);}
   .personnel-app .ps-settings-layout {grid-template-columns: minmax(0, 1fr);gap: 18px;}
   .personnel-app .ps-settings-nav {grid-template-columns: repeat(3, minmax(0, 1fr));grid-template-rows: auto;}
-  .personnel-app .ps-settings-nav button {min-height: 52px;padding: 12px;font-size: .8125rem;text-align: center;}
+  .personnel-app .ps-settings-nav button {min-height: 52px;padding: 12px;font-size: calc(.8125rem * var(--dashboard-font-scale, 1));text-align: center;}
   .personnel-app .ps-planning-grid,
   .personnel-app .ps-hours-grid,
   .personnel-app .ps-news-layout {
@@ -3242,13 +3247,13 @@
   }
 
   .personnel-app .order-sheet > .ps-order-header { padding: calc(21px + env(safe-area-inset-top)) 20px 17px; }
-  .personnel-app .ps-order-header h2 { font-size: 1.15rem; }
-  .personnel-app .ps-order-header :where(small, p) { font-size: .8125rem; }
+  .personnel-app .ps-order-header h2 { font-size: calc(1.15rem * var(--dashboard-font-scale, 1)); }
+  .personnel-app .ps-order-header :where(small, p) { font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
   .personnel-app .order-tabs { padding: 0 20px; }
-  .personnel-app .order-tabs button { font-size: .8125rem; }
+  .personnel-app .order-tabs button { font-size: calc(.8125rem * var(--dashboard-font-scale, 1)); }
   .personnel-app .order-body { padding: 21px 20px; }
   .personnel-app .ps-order-times > div { padding: 18px 14px; }
-  .personnel-app .ps-order-times strong { font-size: 1.1rem; }
+  .personnel-app .ps-order-times strong { font-size: calc(1.1rem * var(--dashboard-font-scale, 1)); }
   .personnel-app .order-action { padding: 14px 20px calc(14px + env(safe-area-inset-bottom)); }
 
   .personnel-app .ps-choice-group {
@@ -3284,7 +3289,7 @@
 
   .personnel-app .ps-mobile-brand {
     display: inline-flex;
-    font-size: 22px;
+    font-size: calc(22px * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-topbar .ps-breadcrumb {
@@ -3328,12 +3333,12 @@
   }
 
   .personnel-app .ps-page-heading h1 {
-    font-size: 1.55rem;
+    font-size: calc(1.55rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-page-heading p {
     margin-top: 4px;
-    font-size: 0.8125rem;
+    font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-week {
@@ -3351,21 +3356,21 @@
   }
 
   .personnel-app .ps-week-day > span {
-    font-size: 0.7rem;
+    font-size: calc(0.7rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-week-day > strong {
-    font-size: 0.9375rem;
+    font-size: calc(0.9375rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-view-toggle button {
     gap: 5px;
     padding: 7px 8px;
-    font-size: 0.75rem;
+    font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-result-line {
-    font-size: 0.75rem;
+    font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-order-card {
@@ -3387,23 +3392,23 @@
   }
 
   .personnel-app .ps-order-time {
-    font-size: 0.9375rem;
+    font-size: calc(0.9375rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-order-title {
-    font-size: 0.9375rem;
+    font-size: calc(0.9375rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-order-address,
   .personnel-app .ps-order-phone {
-    font-size: 0.8125rem;
+    font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-order-meta {
     justify-content: flex-start;
     margin-top: 15px;
     padding-top: 13px;
-    font-size: 0.75rem;
+    font-size: calc(0.75rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-order-meta time {
@@ -3434,12 +3439,12 @@
 
   .personnel-app .ps-stat-grid span,
   .personnel-app .ps-stat-grid small {
-    font-size: 0.7rem;
+    font-size: calc(0.7rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-stat-grid strong {
     margin: 6px 0 0;
-    font-size: 1.25rem;
+    font-size: calc(1.25rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-news-card {
@@ -3447,7 +3452,7 @@
   }
 
   .personnel-app .ps-news-card-title {
-    font-size: 1.05rem;
+    font-size: calc(1.05rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-more-grid {
@@ -3464,11 +3469,11 @@
   }
 
   .personnel-app .ps-more-card strong {
-    font-size: .875rem;
+    font-size: calc(.875rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-more-card small {
-    font-size: .8125rem;
+    font-size: calc(.8125rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-profile-summary {
@@ -3518,7 +3523,7 @@
     padding: 5px 0;
     background: transparent;
     color: #87939e;
-    font-size: 0.6875rem;
+    font-size: calc(0.6875rem * var(--dashboard-font-scale, 1));
     text-decoration: none;
   }
 
@@ -3557,11 +3562,11 @@
   }
 
   .personnel-app .ps-modal-title {
-    font-size: 1.15rem;
+    font-size: calc(1.15rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-modal-header p {
-    font-size: 0.8125rem;
+    font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-modal-tabs {
@@ -3570,7 +3575,7 @@
   }
 
   .personnel-app .ps-modal-tabs button {
-    font-size: 0.8125rem;
+    font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-modal-body {
@@ -3600,7 +3605,7 @@
   }
 
   .personnel-app .ps-onboarding-progress strong {
-    font-size: 0.625rem;
+    font-size: calc(0.625rem * var(--dashboard-font-scale, 1));
     overflow-wrap: anywhere;
   }
 
@@ -3614,7 +3619,7 @@
   }
 
   .personnel-app .ps-onboarding-welcome h2 {
-    font-size: 1.5rem;
+    font-size: calc(1.5rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-onboarding-group {
@@ -3628,7 +3633,7 @@
   .personnel-app .ps-onboarding-channels .ps-check {
     gap: 6px;
     padding: 10px 8px;
-    font-size: 0.8125rem;
+    font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-onboarding-actions {
@@ -3645,7 +3650,7 @@
   .personnel-app .ps-onboarding-back-actions > button {
     flex: 1;
     padding-inline: 10px;
-    font-size: 0.8125rem;
+    font-size: calc(0.8125rem * var(--dashboard-font-scale, 1));
   }
 
   .personnel-app .ps-onboarding-actions > .ps-primary {
@@ -3719,17 +3724,17 @@
   .personnel-app .ps-hours-heading {flex-wrap: wrap;gap: 16px;}
   .personnel-app .ps-availability-week .ps-panel-heading {align-items: flex-start;flex-wrap: wrap;}
   .personnel-app .ps-availability-day {grid-template-columns: repeat(2, minmax(0, 1fr));gap: 8px 12px;}
-  .personnel-app .ps-availability-day > span {grid-column: 1 / -1;font-size: .875rem;}
+  .personnel-app .ps-availability-day > span {grid-column: 1 / -1;font-size: calc(.875rem * var(--dashboard-font-scale, 1));}
   .personnel-app .ps-hours-metrics {grid-template-columns: minmax(0, 1fr);gap: 12px;}
   .personnel-app .ps-hours-metrics > .ps-panel {min-height: 112px;padding: 18px;}
   .personnel-app .ps-hour-row {grid-template-columns: minmax(0, 1fr) auto;gap: 6px 12px;}
-  .personnel-app .ps-hour-row > :first-child {grid-column: 1 / -1;color: var(--ps-muted);font-size: .8125rem;}
+  .personnel-app .ps-hour-row > :first-child {grid-column: 1 / -1;color: var(--ps-muted);font-size: calc(.8125rem * var(--dashboard-font-scale, 1));}
   .personnel-app .ps-hours-day-actions {flex-direction: column;}
   .personnel-app .ps-hours-day-actions button {width: 100%;}
   .personnel-app .ps-leave-screen .ps-page-heading {flex-wrap: wrap;gap: 16px;}
   .personnel-app .ps-leave-screen .ps-stat-grid {grid-template-columns: minmax(0, 1fr);gap: 12px;}
   .personnel-app .ps-leave-screen .ps-stat-grid > div {min-height: 112px;padding: 18px;}
-  .personnel-app .ps-leave-screen .ps-stat-grid strong {font-size: 1.6rem;}
+  .personnel-app .ps-leave-screen .ps-stat-grid strong {font-size: calc(1.6rem * var(--dashboard-font-scale, 1));}
   .personnel-app .ps-leave-request-heading {align-items: flex-start;}
 }
 

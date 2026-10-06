@@ -62,7 +62,7 @@
   gap: 7px;
   min-width: 140px;
   flex: 1;
-  font-size: 12px;
+  font-size: calc(12px * var(--dashboard-font-scale, 1));
   font-weight: 650;
 }
 .customer-toolbar .customer-search {
@@ -84,7 +84,7 @@
   background: var(--brand-surface, #fff);
   color: inherit;
   font: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--dashboard-font-scale, 1));
 }
 .customer-table {
   min-width: 1420px;
@@ -106,7 +106,7 @@
 .customer-tabs-wide a {
   padding: 11px 13px;
   color: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--dashboard-font-scale, 1));
   border-radius: 9px;
   text-decoration: none;
   white-space: nowrap;
@@ -136,7 +136,7 @@
   color: var(--brand-accent-text, #345d36);
 }
 .customer-overview-card strong {
-  font-size: 25px;
+  font-size: calc(25px * var(--dashboard-font-scale, 1));
 }
 .customer-overview-card small {
   color: var(--brand-muted, #637b8b);
@@ -152,14 +152,14 @@
   padding: 0 0 16px;
 }
 .customer-facts dt {
-  font-size: 12px;
+  font-size: calc(12px * var(--dashboard-font-scale, 1));
   color: var(--brand-muted, #637b8b);
   margin-bottom: 7px;
 }
 .customer-facts dd {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 14px;
+  font-size: calc(14px * var(--dashboard-font-scale, 1));
 }
 .customer-summary {
   display: grid;
@@ -212,7 +212,7 @@
 .customer-dossier .object-inline-facts {
   align-items: center;
   gap: 12px;
-  font-size: 12px;
+  font-size: calc(12px * var(--dashboard-font-scale, 1));
 }
 .customer-dossier .dossier-card {
   min-width: 0;
@@ -262,7 +262,7 @@
     padding: 12px;
     border: 1px solid var(--brand-border, #dce5e9);
     border-radius: 9px;
-    font-size: 14px;
+    font-size: calc(14px * var(--dashboard-font-scale, 1));
     background: white;
     color: inherit;
   }
@@ -296,7 +296,7 @@
     grid-template-columns: 1fr;
   }
   .customer-dossier .dossier-header h1 {
-    font-size: 27px;
+    font-size: calc(27px * var(--dashboard-font-scale, 1));
   }
   .customer-summary {
     grid-template-columns: 1fr;

@@ -1,0 +1,69 @@
+/* Match the preferred 80% browser-zoom typography without scaling the layout.
+ * Only font sizes use this factor; spacing, icons, frames and hit areas retain
+ * their existing dimensions. The fallback in shared styles leaves public pages
+ * and authentication at their own sizes. */
+:where(
+  .fg-console,
+  .workspace-shell,
+  .customer-portal,
+  .personnel-app,
+  .ticket-shell,
+  .ticket-staff-shell,
+  .nt-standalone,
+  .form-dialog,
+  .dossier-dialog,
+  .commercial-dialog,
+  .resource-modal,
+  .ticket-dialog,
+  .nt-dialog,
+  .travel-dialog,
+  .staff-order-dialog,
+  .ps-staff-dialog,
+  .ps-staff-popover,
+  .resource-more-content,
+  .compact-filter-popover,
+  .dossier-tab-menu,
+  .nt-bell-panel,
+  .pb-detail,
+  .pb-confirm,
+  .pb-filter-popover,
+  .pb-action-menu,
+  .pb-person-popover,
+  .address-suggestions
+) {
+  --dashboard-font-scale: .8;
+  /* Utility text in shared UI components follows the same scale. */
+  --text-xs: calc(.75rem * var(--dashboard-font-scale));
+  --text-sm: calc(.875rem * var(--dashboard-font-scale));
+  --text-base: calc(1rem * var(--dashboard-font-scale));
+  --text-lg: calc(1.125rem * var(--dashboard-font-scale));
+  --text-xl: calc(1.25rem * var(--dashboard-font-scale));
+  --text-2xl: calc(1.5rem * var(--dashboard-font-scale));
+  --text-3xl: calc(1.875rem * var(--dashboard-font-scale));
+  --text-4xl: calc(2.25rem * var(--dashboard-font-scale));
+  /* A portal cannot inherit its workspace's body text size. More specific
+   * staff/customer rules continue to supply their original 16px base. */
+  font-size: calc(var(--dashboard-font-base, 15px) * var(--dashboard-font-scale));
+}
+
+@media (max-width: 650px) {
+  body {
+    /* Shared body styles use 14px at this breakpoint. */
+    --dashboard-font-base: 14px;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Mobile text entry stays readable and avoids browser focus zoom. The
+   * priority also covers module-specific input rules loaded after this file. */
+  :where(
+    .fg-console, .workspace-shell, .customer-portal, .personnel-app,
+    .ticket-shell, .ticket-staff-shell, .nt-standalone,
+    .form-dialog, .dossier-dialog, .commercial-dialog, .resource-modal,
+    .ticket-dialog, .nt-dialog, .travel-dialog,
+    .staff-order-dialog, .ps-staff-dialog, .ps-staff-popover,
+    .compact-filter-popover, .pb-detail, .pb-filter-popover
+  ) :is(input, select, textarea):not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range]):not([type=color]):not([type=button]):not([type=submit]):not([type=reset]) {
+    font-size: 16px !important;
+  }
+}
