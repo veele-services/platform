@@ -10,7 +10,10 @@ export type InvoicePdfInput = {
   subtotalCents: number; vatCents: number; totalCents: number;
   primaryColor?: string; accentColor?: string; footer?: string | null; senderEmail?: string;
   logo?: Uint8Array; concept?: boolean;
+  sender?: InvoiceCompany;
+  recipient?: InvoiceCompany;
 };
+export type InvoiceCompany = { legalName?: string; address?: Record<string, unknown>; companyNumber?: string; vatNumber?: string; iban?: string; email?: string; phone?: string };
 const money = (cents: number) => new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(cents / 100);
 const color = (hex: string | undefined, fallback: string) => {
   const safe = /^#[0-9a-f]{6}$/i.test(hex ?? "") ? hex! : fallback;
@@ -27,7 +30,7 @@ export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Uint8Arr
   const safe = (text: string) => [...text.replace(/\t/g, " ")].map(c => { try { font.encodeText(c); return c; } catch { return "?"; } }).join("");
   const wrap = (value: string, size: number, max: number, face = font) => {
     const lines: string[] = [];
-    for (const paragraph of safe(value).split("\n")) {
+    for (const paragraph of value.split("\n").map(safe)) {
       let current = "";
       for (const word of paragraph.split(/\s+/)) {
         const proposed = current ? `${current} ${word}` : word;
@@ -81,17 +84,31 @@ export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Uint8Arr
   const next = (table = true) => { page = doc.addPage([595.28, 841.89]); brand(true); if (table) headings(); };
   brand();
   const date = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split("-").reverse().join("-") : value;
-  y = 711;
-  text("FACTUUR AAN", left, y, 8, bold, muted);
-  text("AFZENDER", 340, y, 8, bold, muted);
-  const recipient = [input.customerName, String(input.billingAddress.street ?? ""), [input.billingAddress.postal_code, input.billingAddress.city].filter(Boolean).join(" "), String(input.billingAddress.country ?? "")].filter(Boolean);
-  const sender = [input.tenantName, input.senderEmail].filter(Boolean) as string[];
-  const block = (values: string[], x: number, max: number) => {
-    let at = y - 21;
-    values.forEach((value, index) => wrap(value, index ? 9 : 11, max, index ? font : bold).forEach(part => { text(part, x, at, index ? 9 : 11, index ? font : bold); at -= 16; }));
-    return at;
+  y = Math.min(735, 746 - (wrap(input.invoiceNumber, 15, 255, bold).length - 1) * 18);
+  const companyRows = (name: string, company: InvoiceCompany, address: Record<string, unknown>) => {
+    const street = String(address.street ?? [address.street_name, address.house_number, address.house_letter, address.house_addition].filter(Boolean).join(" "));
+    const locality = [address.postal_code, address.city, address.country && address.country !== "NL" ? address.country : ""].filter(Boolean).join(" ");
+    const rows: Array<[string,string]> = [["Adres",[street,locality].filter(Boolean).join("\n")], ["KvK",company.companyNumber ?? ""], ["Btw",company.vatNumber ?? ""], ["IBAN",company.iban ?? ""], ["E-mail",company.email ?? ""], ["Telefoon",company.phone ?? ""]];
+    return { name:wrap(company.legalName || name,11,215,bold), rows:rows.map(([label,value])=>({label,lines:wrap(value,8.5,158)})) };
   };
-  y = Math.min(block(recipient, left, 265), block(sender, 340, 207)) - 16;
+  const sender = companyRows(input.tenantName,{email:input.senderEmail,...input.sender},input.sender?.address ?? {});
+  const recipient = companyRows(input.customerName,input.recipient ?? {},input.billingAddress);
+  const companyHeight = (company:ReturnType<typeof companyRows>) => 49 + company.name.length * 16 + company.rows.reduce((total,row)=>total+Math.max(1,row.lines.length)*13+5,0);
+  const blockHeight = Math.max(companyHeight(sender),companyHeight(recipient));
+  const block = (company:ReturnType<typeof companyRows>,x:number,label:string) => {
+    page.drawRectangle({x,y:y-blockHeight,width:239,height:blockHeight,color:soft});
+    text(label,x+12,y-20,7.5,bold,accent);
+    let at=y-42;
+    company.name.forEach(part=>{text(part,x+12,at,11,bold,primary);at-=16;});
+    at-=7;
+    company.rows.forEach(row=>{
+      text(row.label,x+12,at,8,font,muted);
+      row.lines.forEach((part,index)=>text(part,x+68,at-index*13,8.5));
+      at-=Math.max(1,row.lines.length)*13+5;
+    });
+  };
+  block(sender,left,"AFZENDER");block(recipient,left+260,"FACTUUR AAN");
+  y -= blockHeight+26;
   const meta: Array<[string, string]> = [["Factuurdatum", date(input.issuedOn)], ["Vervaldatum", date(input.dueOn)]];
   if (input.reference) meta.push(["Referentie", input.reference]);
   if (input.costCenter) meta.push(["Kostenplaats", input.costCenter]);
@@ -101,12 +118,12 @@ export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Uint8Arr
       const x = left + column * 270, values = wrap(value, 10, 225);
       text(label.toUpperCase(), x, y, 7.5, bold, muted);
       values.forEach((part, i) => text(part, x, y - 17 - i * 14, 10));
-      heights.push(34 + values.length * 14);
+      heights.push(20 + values.length * 14);
     }
     y -= Math.max(...heights);
     if (y < 180) next(false);
   }
-  y -= 5; headings();
+  y -= 20; headings();
   for (const item of input.lines) {
     const description = wrap(item.description, 9, 239), quantity = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 3 }).format(item.quantity);
     const rowHeight = description.length * 14 + (item.unit ? 13 : 0) + 16;
@@ -133,7 +150,7 @@ export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Uint8Arr
   text("Totaal incl. btw", 324, y - 10, 10, bold, rgb(1, 1, 1));
   alignRight(money(input.totalCents), right - 10, y - 10, 13, bold, rgb(1, 1, 1));
   y -= 65;
-  const paymentNote = input.concept ? "Concept ter controle. Maak de factuur definitief voor verzending en betaling." : "Vermeld het factuurnummer bij de betaling. De beveiligde betaallink staat in de factuurmail.";
+  const paymentNote = input.concept ? "Concept ter controle. Maak de factuur definitief voor verzending en betaling." : `Graag betalen vóór ${date(input.dueOn)}. Vermeld ${input.invoiceNumber} bij de betaling.`;
   for (const part of wrap(paymentNote, 8, width)) { if (y < 90) next(false); text(part, left, y, 8, font, muted); y -= 13; }
   doc.getPages().forEach((sheet, index) => {
     page = sheet;

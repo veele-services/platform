@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, Check, Archive, ExternalLink, RefreshCw } from "lucide-react";
+import { Bell, Check, CheckCheck, Archive, ExternalLink, RefreshCw, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -64,20 +64,19 @@ export function NotificationDetail({ access, data, onClose, onChanged, onRestore
     const result = await action.execute(command, { id: data.id, version: data.version });
     if (result?.ok) { if (onChanged) await onChanged(); router.refresh(); window.dispatchEvent(new Event("notifications-changed")); }
   };
-  return <Dialog open onOpenChange={open => { if (!open) close(); }}><DialogContent className="nt-dialog nt-detail-dialog" onCloseAutoFocus={event=>{if(onRestoreFocus){event.preventDefault();onRestoreFocus();}}} style={{...brandThemeStyle(access.tenant?.primaryColor, access.tenant?.accentColor), width:"min(620px, calc(100vw - 24px))",maxWidth:620}}>
-    <header className="nt-detail-heading"><span className="nt-detail-icon"><Bell size={20}/></span><div><DialogTitle>{data.title}</DialogTitle><DialogDescription>{data.senderName} · {notificationDate(data.createdAt, access.timezone)}</DialogDescription></div></header>
+  return <Dialog open onOpenChange={open => { if (!open) close(); }}><DialogContent showCloseButton={false} className="nt-dialog nt-detail-dialog" onCloseAutoFocus={event=>{if(onRestoreFocus){event.preventDefault();onRestoreFocus();}}} style={{...brandThemeStyle(access.tenant?.primaryColor, access.tenant?.accentColor), width:"min(620px, calc(100vw - 24px))",maxWidth:620}}>
+    <header className="nt-detail-heading"><span className="nt-detail-icon"><Bell size={20}/></span><div><DialogTitle>{data.title}</DialogTitle><DialogDescription>{data.senderName} · {notificationDate(data.createdAt, access.timezone)}</DialogDescription></div><button type="button" className="icon-button nt-detail-close" aria-label="Sluiten" onClick={close}><X size={18}/></button></header>
     <div className="nt-detail-body"><p className="nt-prose">{data.body || data.summary}</p>
       {!data.sourceAvailable && <p className="nt-notice">De oorspronkelijke inhoud is niet meer beschikbaar binnen je huidige toegang.</p>}
       <p className="nt-muted">{data.readAt ? `Gelezen op ${notificationDate(data.readAt, access.timezone)}.` : "Nog niet als gelezen gemarkeerd."} {data.acknowledgedAt ? `Ontvangst bevestigd op ${notificationDate(data.acknowledgedAt, access.timezone)}.` : ""}</p>
       {data.ackRequired && <p className="nt-notice">Ontvangst bevestigen is geen akkoord op een offerte, overeenkomst, werkbon of betaling.</p>}<ErrorMessage message={action.error}/>
     </div>
     <footer className="nt-detail-footer"><div className="nt-actions">
-      {data.allowedActions.includes(data.readAt ? "unread" : "read") && <button className="secondary-button" disabled={action.busy} onClick={() => { void mutate(data.readAt ? "inbox_unread" : "inbox_read"); }}><Check size={15}/>{data.readAt ? "Ongelezen markeren" : "Gelezen markeren"}</button>}
-      {data.allowedActions.includes(data.archivedAt ? "unarchive" : "archive") && <button className="secondary-button" disabled={action.busy} onClick={() => { void mutate(data.archivedAt ? "inbox_unarchive" : "inbox_archive"); }}><Archive size={15}/>{data.archivedAt ? "Terug naar inbox" : "Archiveren"}</button>}
+      {data.allowedActions.includes(data.readAt ? "unread" : "read") && <button className="secondary-button nt-detail-icon-action" aria-label={data.readAt ? "Ongelezen markeren" : "Gelezen markeren"} title={data.readAt ? "Ongelezen markeren" : "Gelezen markeren"} disabled={action.busy} onClick={() => { void mutate(data.readAt ? "inbox_unread" : "inbox_read"); }}><Check size={16}/></button>}
+      {data.allowedActions.includes(data.archivedAt ? "unarchive" : "archive") && <button className="secondary-button nt-detail-icon-action" aria-label={data.archivedAt ? "Terug naar inbox" : "Archiveren"} title={data.archivedAt ? "Terug naar inbox" : "Archiveren"} disabled={action.busy} onClick={() => { void mutate(data.archivedAt ? "inbox_unarchive" : "inbox_archive"); }}><Archive size={16}/></button>}
       <button className="secondary-button nt-detail-refresh" aria-label="Notificatie vernieuwen" disabled={action.busy} onClick={() => { if (onChanged) void onChanged(); else router.refresh(); }}><RefreshCw size={15}/></button>
+      {data.ackRequired && !data.acknowledgedAt && data.allowedActions.includes("ack") && <button className="primary-button nt-detail-icon-action" aria-label="Ontvangst bevestigen" title="Ontvangst bevestigen" disabled={action.busy} onClick={() => { void mutate("inbox_ack"); }}><CheckCheck size={16}/></button>}
     </div><div className="nt-actions nt-detail-primary">
-      <button className="secondary-button" onClick={close}>Sluiten</button>
-      {data.ackRequired && !data.acknowledgedAt && data.allowedActions.includes("ack") && <button className="primary-button" disabled={action.busy} onClick={() => { void mutate("inbox_ack"); }}>Ontvangst bevestigen</button>}
       {data.targetPath && data.sourceAvailable && <Link className="primary-button" href={data.targetPath} prefetch={false}><ExternalLink size={15}/>{data.actionLabel || "Bron openen"}</Link>}
     </div></footer>
   </DialogContent></Dialog>;

@@ -201,22 +201,24 @@
     },
     {
       "id": "code:app/api/files/invoice-concept/[id]/route.ts",
-      "surfaceFingerprint": "b4ecf5f0a05bf8be75d17e6074bcb7cbefa36964ed0286f93f14493e46ee3010",
-      "status": "controlled",
+      "surfaceFingerprint": "f727ff033c52c50370474d3839d7ccdcc82012184e479f2ee4932faa054e59ad",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Exact hostname tenant, live finance role/module and canonical source before/after I/O; scanned namespace and immutable issued ledger/PDF retained.",
-        "scripts/test-work-order-reports.mjs: approved concepts read without ledger mutation, actual create parity, foreign tenant/role/session rejection; tests/e2e/dossier-alignment.spec.ts: real concept/issued PDF, finalize and anonymous byte rejection."
+        "docs/security/dashboard-details-verification-2026-10-07.md",
+        "tests/e2e/dossier-alignment.spec.ts",
+        "lib/pdf/invoice-snapshot.test.ts",
+        "lib/pdf/invoice.test.ts"
       ]
     },
     {
       "id": "code:app/api/files/invoice/[id]/route.ts",
-      "surfaceFingerprint": "a1b8c723c5980803e272b4f04d066aaa4e0afae253731cad8cbf0567dcc4c447",
-      "status": "controlled",
+      "surfaceFingerprint": "30e1ef3abb2baba83d1e49dd0781dbde7eb6c3b295ebd25b87598590dd216936",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Exact hostname tenant, live finance role/module and canonical source before/after I/O; scanned namespace and immutable issued ledger/PDF retained.",
-        "scripts/test-work-order-reports.mjs: approved concepts read without ledger mutation, actual create parity, foreign tenant/role/session rejection; tests/e2e/dossier-alignment.spec.ts: real concept/issued PDF, finalize and anonymous byte rejection."
+        "docs/security/dashboard-details-verification-2026-10-07.md",
+        "tests/e2e/dossier-alignment.spec.ts",
+        "lib/pdf/invoice-snapshot.test.ts",
+        "lib/pdf/invoice.test.ts"
       ]
     },
     {
@@ -449,12 +451,13 @@
     },
     {
       "id": "code:app/app/finance-actions.ts",
-      "surfaceFingerprint": "b0b0c90facb4be622ed19ff3271b497ffb87a559397cf197b5472079bf2e7dee",
-      "status": "controlled",
+      "surfaceFingerprint": "904b95d11f9f39fa841ab6987d6cd8fd29c0eb0a9b872d3ba0f255e02addfe06",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Exact hostname tenant, live finance role/module and canonical source before/after I/O; scanned namespace and immutable issued ledger/PDF retained.",
-        "scripts/test-work-order-reports.mjs: approved concepts read without ledger mutation, actual create parity, foreign tenant/role/session rejection; tests/e2e/dossier-alignment.spec.ts: real concept/issued PDF, finalize and anonymous byte rejection."
+        "docs/security/dashboard-details-verification-2026-10-07.md",
+        "tests/e2e/dossier-alignment.spec.ts",
+        "lib/pdf/invoice-snapshot.test.ts",
+        "lib/pdf/invoice.test.ts"
       ]
     },
     {
@@ -631,7 +634,7 @@
         "tests/e2e/personnel-invitation.spec.ts#existing-accounts-keep-their-password-and-roles-when-invited-to-the-personnel-portal",
         "tests/e2e/personnel-invitation.spec.ts#failed-invitation-can-be-resent-without-duplicating-personnel-and-revoked-access-cannot-activate",
         "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "docs/security/release-security-inventory.md#portaalreeks-bronreview-v\u00f3\u00f3r-deployment--5-oktober-2026"
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
       ]
     },
     {
@@ -873,7 +876,7 @@
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
         "docs/security/otp-activity-verification-2026-10-05.md",
-        "docs/security/release-security-inventory.md#portaalreeks-bronreview-v\u00f3\u00f3r-deployment--5-oktober-2026"
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
       ]
     },
     {
@@ -2202,12 +2205,13 @@
     },
     {
       "id": "code:proxy.ts",
-      "surfaceFingerprint": "a303d9ed98f09d0bbdcf57191cb968aee5bf0f5aaded7cb1d1e11242e3460d3f",
+      "surfaceFingerprint": "08eaeea5b05991d3309dbd41960fa638b6a9d8685caf316d92ff9c2cd5898b10",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md",
-        "docs/security/session-loading-verification-2026-10-06.md"
+        "docs/security/dashboard-details-verification-2026-10-07.md",
+        "tests/e2e/dossier-alignment.spec.ts",
+        "lib/pdf/invoice-snapshot.test.ts",
+        "lib/pdf/invoice.test.ts"
       ]
     },
     {
@@ -4585,14 +4589,13 @@
     },
     {
       "id": "operation:next.config.ts",
-      "surfaceFingerprint": "86a5aa22a0d7a1e27ab78538dcb84980aa9a66de2298257d2a38325d7fea4dfe",
+      "surfaceFingerprint": "46161a32f2deaff23adeaa56ef44610dc4d2dd2a2ca95661ff930b07680eb1c9",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "lib/staff/report-upload-action.test.ts",
-        "supabase/tests/database/staff_report_upload_finalize.sql",
-        "scripts/test-release-storage-http.mjs",
-        "docs/implementation/staff-realtime-and-release.md#rapportnotities-en-scannerbevestigde-bijlagen"
+        "docs/security/dashboard-details-verification-2026-10-07.md",
+        "tests/e2e/dossier-alignment.spec.ts",
+        "lib/pdf/invoice-snapshot.test.ts",
+        "lib/pdf/invoice.test.ts"
       ]
     },
     {
@@ -4854,12 +4857,11 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "88efa7a373936c558f30a2e1df88e356cd7097fa2b9be0a22239321666f232e0",
-      "status": "controlled",
+      "surfaceFingerprint": "fd24435ed94445a5821ef33c7c9cb3a45b7e2bb95f90b63c753cb810d00e0306",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Reviewed required DB test additions without bypass/removal; clean 125-migration replay preserves every pre-existing committed statement hash. Staging runtime, config isolation and promotion/deploy contracts unchanged.",
-        "pnpm db:verify-manifest; scripts/test-account-guides.mjs and scripts/test-list-pagination.mjs; .github/workflows/_verify.yml retains full release gates."
+        "docs/security/dashboard-details-verification-2026-10-07.md",
+        "scripts/verify-local-migration-manifest.ts: clean local replay of 126 migrations; previous 125 statement hashes unchanged"
       ]
     },
     {
@@ -9235,13 +9237,11 @@
     },
     {
       "id": "rpc:public.customer_owners(target_tenant uuid)",
-      "surfaceFingerprint": "f3e9728217999661bdbd8762995ede9554b98cdd9d7d67859f6e659754675cee",
-      "status": "controlled",
+      "surfaceFingerprint": "b07103575a11f791068f40529ce0e08fe71996a9a9d607601f56d127cd49ac4a",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/dashboard-details-verification-2026-10-07.md",
+        "scripts/test-customer360.mjs"
       ]
     },
     {
@@ -9599,12 +9599,13 @@
     },
     {
       "id": "rpc:public.execution_invoice_concepts(target_tenant uuid, target_order uuid)",
-      "surfaceFingerprint": "d5600419faa4b6179e9aea8d57c3c33bbc927dc3d5b215615d3a1c04d411f780",
-      "status": "controlled",
+      "surfaceFingerprint": "5980df8ff0e3cd5568d5c342044624dffaa91cbf64f8452d669bb597fd3cd0b3",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Exact hostname tenant, live finance role/module and canonical source before/after I/O; scanned namespace and immutable issued ledger/PDF retained.",
-        "scripts/test-work-order-reports.mjs: approved concepts read without ledger mutation, actual create parity, foreign tenant/role/session rejection; tests/e2e/dossier-alignment.spec.ts: real concept/issued PDF, finalize and anonymous byte rejection."
+        "docs/security/dashboard-details-verification-2026-10-07.md",
+        "tests/e2e/dossier-alignment.spec.ts",
+        "lib/pdf/invoice-snapshot.test.ts",
+        "lib/pdf/invoice.test.ts"
       ]
     },
     {

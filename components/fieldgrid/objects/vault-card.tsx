@@ -1,7 +1,7 @@
 "use client";
-import { HelpTip } from "../help-tip";
+import { ContentSection } from "../content-section";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LockKeyhole, ShieldCheck, EyeOff } from "lucide-react";
+import { ShieldCheck, EyeOff } from "lucide-react";
 
 type Item={id:string;name:string;kind:string;version:number;nodeId:string|null};
 type Reply={ok:boolean;error?:string;items?:Item[];canManage?:boolean;email?:string;challengeId?:string;grantId?:string;expiresAt?:string;value?:string};
@@ -34,7 +34,7 @@ export function VaultCard({objectId,orderId=null,nodes=[],assignments=[],dossier
   return()=>{active=false;};
  },[dossierAccess,selected,request]);
  const current=items.find(i=>i.id===selected);
- return <section className="dossier-card object-vault" aria-label="Beveiligde objectgegevens"><div className="object-section-title"><div className="heading-with-help"><LockKeyhole size={23}/><div className="heading-with-help"><h2>Beveiligde gegevens</h2><HelpTip>Alleen online, voor je huidige sessie en toegestane werkzaamheden. Sluit het gebouw af en plaats sleutels terug vóór je de werkbon definitief afrondt. Gebruik geen gewone berichten voor alarm- of kluiscodes.</HelpTip></div></div></div>
+ return <ContentSection title={"Beveiligde gegevens"} ariaLabel="Beveiligde objectgegevens" help={<> Alleen online, voor je huidige sessie en toegestane werkzaamheden. Sluit het gebouw af en plaats sleutels terug vóór je de werkbon definitief afrondt. Gebruik geen gewone berichten voor alarm- of kluiscodes. </>} bodyClassName="dossier-section-body object-vault">
 
  <div className="dossier-form-fields"><label>Gegeven<select aria-label="Gegeven" value={selected} onChange={e=>{clear();setSelected(e.target.value);}}><option value="">{canManage?"Nieuw beveiligd gegeven":"Kies een toegestaan gegeven"}</option>{items.map(i=><option key={i.id} value={i.id}>{i.name} · versie {i.version}</option>)}</select></label><div className="object-vault-context"><ShieldCheck size={18}/><span>{email?`Verificatie per e-mail: ${email}`:"Alleen expliciet toegewezen gegevens zijn beschikbaar binnen je uitvoeringsvenster."}</span></div></div>
  {!canManage&&!items.length&&<p className="dossier-empty">Momenteel geen gegevens beschikbaar. Controleer je toewijzing, het tijdvenster en de vrijgave met je leidinggevende.</p>}
@@ -46,5 +46,5 @@ export function VaultCard({objectId,orderId=null,nodes=[],assignments=[],dossier
  </>}
  {message&&<p role="status" className="dossier-notice">{message}</p>}
  <small className="dossier-muted">E-mailverificatie is een extra bevestiging, geen onafhankelijke sterke MFA. Intrekken stopt nieuwe inzage; een al gelezen code vereist zo nodig fysieke codewijziging.</small>
- </section>;
+ </ContentSection>;
 }

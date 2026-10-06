@@ -55,7 +55,11 @@ export async function proxy(request: NextRequest) {
 
   const nextResponse = () => {
     const result = NextResponse.next({ request: { headers: requestHeaders } });
-    result.headers.set("content-security-policy", contentSecurityPolicy.value);
+    // Invoice route handlers supply a closed PDF policy after live authorization.
+    // Do not overwrite it with the page policy's frame-ancestors 'none'.
+    if (!/^\/api\/files\/(?:invoice|invoice-concept)\/[0-9a-f-]+$/i.test(request.nextUrl.pathname)) {
+      result.headers.set("content-security-policy", contentSecurityPolicy.value);
+    }
     return result;
   };
   let response = nextResponse();

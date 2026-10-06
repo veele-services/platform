@@ -100,6 +100,19 @@ test("notificatiewizard publiceert exacte selectie; personeel leest, bevestigt e
   test.setTimeout(180000); const title = `Fictieve teammelding ${fixture.slice(0, 8)}`;
   await login(page, "manager", "/app/notificaties"); await expect(page.getByRole("heading", { name: "Notificaties", exact: true })).toBeVisible();
   await expect(page.locator(`.nt-inbox-item[href$='/${managerInboxId}']`)).toBeVisible();
+  await page.locator(`.nt-inbox-item[href$='/${managerInboxId}']`).click();
+  const detail=page.locator(".nt-detail-dialog");
+  for(const width of [320,390,1440]) {
+    await page.setViewportSize({width,height:960});
+    const controls=[detail.getByRole("button",{name:"Gelezen markeren",exact:true}),detail.getByRole("button",{name:"Archiveren",exact:true}),detail.getByRole("button",{name:"Notificatie vernieuwen",exact:true})];
+    for(const control of controls){await expect(control).toBeVisible();await expect(control).toHaveText("");}
+    const bounds=await Promise.all(controls.map(control=>control.boundingBox()));
+    expect(Math.max(...bounds.map(bound=>bound!.y))-Math.min(...bounds.map(bound=>bound!.y))).toBeLessThan(2);
+    await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await page.screenshot({path:`test-results/notification-detail-icons-${width}.png`});
+  }
+  await detail.getByRole("button",{name:"Sluiten",exact:true}).click();
+  await page.setViewportSize({width:1440,height:960});
   await page.getByRole("button", { name: "Nieuwe notificatie", exact: true }).click(); const form = page.getByRole("dialog", { name: "Nieuwe notificatie", exact: true });
   await form.getByLabel("Robin Notificatietest", { exact: true }).check(); await expect(form.getByText("1 ontvangers", { exact: true })).toBeVisible();
   await form.getByRole("button", { name: "Volgende", exact: true }).click(); await form.getByLabel("Onderwerp", { exact: true }).fill(title); await form.getByLabel("Bericht", { exact: true }).fill("Fictieve privétekst uitsluitend voor Robin. Ontvangstbevestiging is geen zakelijk akkoord."); await form.getByLabel("Ontvangstbevestiging vragen").check();
@@ -241,6 +254,7 @@ test("een notificatie opent compact boven de inbox en behoudt de lijst bij sluit
     expect(bounds.width).toBeLessThanOrEqual(640);
     expect(bounds.x).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+    expect(await dialog.evaluate(element=>parseFloat(getComputedStyle(element).borderTopLeftRadius))).toBeGreaterThan(0);
     await expect(page.locator(".nt-page .list-pagination")).toBeAttached();
   }
   await page.keyboard.press("Escape");

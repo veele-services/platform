@@ -462,7 +462,7 @@ const rowTotal = (row: InvoiceRow) => row.kind === "concept" ? row.item.totalCen
 const rowNumber = (row: InvoiceRow) => row.kind === "concept" ? `Concept ${row.item.number}` : row.item.invoice_number ?? "Concept";
 const rowStage = (row: InvoiceRow) => row.kind === "concept" ? "new" : invoiceStage(row.item);
 const rowDate = (row: InvoiceRow) => row.kind === "concept" ? row.item.updatedAt : row.item.issued_on ?? row.item.created_at;
-const invoicePdfUrl = (row: InvoiceRow, download = false) => row.kind === "concept" ? `/api/files/invoice-concept/${row.item.id}${download ? "?download=1" : ""}` : `/api/files/invoice/${row.item.id}${download ? "" : "?preview=1"}`;
+const invoicePdfUrl = (row: InvoiceRow, download = false) => row.kind === "concept" ? `/api/files/invoice-concept/${row.item.id}${download ? "?download=1" : ""}` : `/api/files/invoice/${row.item.id}?presentation=1${download ? "" : "&preview=1"}`;
 
 export function InvoicesPage({ data }: { data: WorkspaceData }) {
   const customerById = useMemo(() => new Map(data.customers.map(item => [item.id, item])), [data.customers]);
