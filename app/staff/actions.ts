@@ -232,6 +232,18 @@ export async function transitionWorkOrder(input: { workOrderId: string; action: 
   } catch (error) { return { ok: false, error: message(error) }; }
 }
 
+export async function extendStaffWorkOrder(input: { workOrderId: string; version: number; idempotencyKey: string }): Promise<ActionResult> {
+  try {
+    await staffContext(["planning", "rapportage"]);
+    const parsed = z.object({ workOrderId: z.uuid(), version: z.number().int().positive(), idempotencyKey: z.uuid() }).strict().parse(input);
+    const db = await createClient();
+    const { error } = await db.rpc("extend_staff_work_order", { target_work_order: parsed.workOrderId, expected_version: parsed.version, idempotency_key: parsed.idempotencyKey });
+    if (error) throw error;
+    revalidatePath("/staff"); revalidatePath("/app/planning");
+    return { ok: true };
+  } catch (error) { return { ok: false, error: message(error) }; }
+}
+
 export async function setTaskCompletion(input: { taskId: string; version: number; quantity: number }): Promise<ActionResult> {
   try {
     const context = await staffContext(["planning", "rapportage"]);

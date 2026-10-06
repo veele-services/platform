@@ -3,6 +3,7 @@ import { executionLabels } from "../dossiers/status";
 
 // These are personnel assignment states, independent of the shared work order.
 export const assignmentStatuses = [
+  { status: "overrun", label: "Loopt uit", description: "De eigen werktijd overschrijdt de taakinschatting en toegevoegde kwartieren. Dit brengt geen automatische extra kosten mee.", background: "#fff1f2", border: "#dc2626", ink: "#991b1b" },
   { status: "planned", label: executionLabels.planned, description: "Ingepland, nog niet vrijgegeven aan deze medewerker.", background: "#f1f5f9", border: "#64748b", ink: "#334155" },
   { status: "released", label: "Nog niet gezien", description: "Vrijgegeven aan deze medewerker, nog niet geopend.", background: "#eff6ff", border: "#3b82f6", ink: "#1e40af" },
   { status: "seen", label: executionLabels.seen, description: "Deze medewerker heeft de werkbon geopend.", background: "#ecfeff", border: "#0891b2", ink: "#155e75" },

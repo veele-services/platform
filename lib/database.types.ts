@@ -8656,6 +8656,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      extend_staff_work_order: {
+        Args: {
+          expected_version: number
+          idempotency_key: string
+          target_work_order: string
+        }
+        Returns: Json
+      }
       file_scan_attest: {
         Args: {
           expected_id: string
@@ -9040,6 +9048,7 @@ export type Database = {
         Returns: Json
       }
       process_customer_reminders: { Args: never; Returns: number }
+      process_live_planning: { Args: never; Returns: number }
       process_object_reminders: { Args: never; Returns: number }
       process_ticket_deadlines: {
         Args: { target_tenant?: string }

@@ -237,6 +237,8 @@ test('release privacy boundaries use real authenticated principals', async t => 
       await db.query('savepoint report_audience');
       try{
         const report=randomUUID(),template=randomUUID(),revision=randomUUID(),checklist=randomUUID(),portal=randomUUID(),employeeSignature=randomUUID(),customerSignature=randomUUID();
+        // This principal is the secondary employee; only the first planned employee receives the combined customer copy.
+        await db.query("update public.work_order_assignments set created_at=now()+interval '10 seconds' where id=$1",[assignments[0]]);
         const definition={questions:[{id:'own',label:'Own answer',type:'text',customerVisible:true},{id:'colleague',label:'Other answer',type:'text',customerVisible:true}]};
         await db.query("insert into public.work_order_templates(id,tenant_id,name,kind,created_by) values($1,$2,'FICTITIOUS audience checklist','checklist',$3)",[template,tenant,manager]);
         await db.query("insert into public.work_order_template_versions(id,tenant_id,template_id,version,state,definition,created_by) values($1,$2,$3,1,'published',$4,$5)",[revision,tenant,template,definition,manager]);

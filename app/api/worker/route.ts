@@ -31,6 +31,7 @@ export async function POST(request:Request){
    await admin.from("outbox_events").update({status:dead?"dead_letter":"failed",last_error:"Verwerking mislukt; controleer de provider en actuele bron. Geen berichtinhoud opgeslagen.",locked_until:null,available_at:new Date(Date.now()+retry*1000).toISOString()}).eq("id",event.id);
   }
  }
+ const livePlanning=await admin.rpc("process_live_planning");if(livePlanning.error)throw new Error("Actuele planning kon niet worden bijgewerkt.");
  const dossier=await processDossierReminders();
  const objectReminders=await admin.rpc("process_object_reminders");if(objectReminders.error)throw new Error("Objectherinneringen konden niet worden verwerkt.");
  const customerReminders=await admin.rpc("process_customer_reminders");if(customerReminders.error)throw new Error("Klantherinneringen konden niet worden verwerkt.");
@@ -41,7 +42,7 @@ export async function POST(request:Request){
  const notificationDeliveries=await processNotificationDeliveries();
  const deferredMail=await processDeferredMail();
  const ticketScans=await processTicketScans();const expiredTicketUploads=await cleanupTicketUploads();
- const outcome={claimed:data?.length??0,sent,failed,dossier,objectReminders:objectReminders.data,customerReminders:customerReminders.data,expiredSignatureUploads,ticketDeadlines,ticketDeliveries,notificationDeliveries,deferredMail,ticketScans,expiredTicketUploads};
+ const outcome={claimed:data?.length??0,sent,failed,livePlanning:livePlanning.data,dossier,objectReminders:objectReminders.data,customerReminders:customerReminders.data,expiredSignatureUploads,ticketDeadlines,ticketDeliveries,notificationDeliveries,deferredMail,ticketScans,expiredTicketUploads};
  const healthy=ticketWorkerHealthy(outcome)&&notificationDeliveries.failed===0&&notificationDeliveries.uncertain===0&&deferredMail.failed===0;
  return NextResponse.json({status:healthy?"ok":"degraded",...outcome},{status:healthy?200:503,headers:{"cache-control":"no-store"}});
 }
