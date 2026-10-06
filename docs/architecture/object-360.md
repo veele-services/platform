@@ -65,7 +65,7 @@ short explicit expiry; no inactive identity, missing assignment or OTP bypass.
 Changes of planning, assignment, binding or secret version invalidate old grants.
 Alarm activation and key return precede definitive completion.
 
-Default OTP lifetime is 5 minutes; viewing is at most 10 minutes and never
+OTP lifetime is at most 2 minutes; viewing is at most 5 minutes and never
 beyond the assignment window. Reissuing invalidates the old challenge, not the
 cumulative attempt budget. Consumption is atomic and session/scope-bound.
 Email contains only the verification code, not an object secret. Email OTP is
@@ -115,11 +115,19 @@ the actual codebase. No new global roles or permissions editor is included.
    confirmation. The existing VPS worker timer must actually run successfully.
 
 The central tenant-settings policy is `settings.objectVault`: `beforeMinutes`
-(default 60, permitted 0–120), `otpMinutes` (5, 1–5), `viewMinutes` (10, 1–10).
+(default 60, permitted 0–120), `otpMinutes` (2, 1–2), `viewMinutes` (5, 1–5).
 It uses the existing settings JSON; this release does not add a rights editor.
 Every operation applies server time; datetime forms use the tenant timezone and
 reject ambiguous/nonexistent DST times. Identity budgets: five requests/hour,
 one/minute, ten failed verifications/hour, plus 100 requests/object/hour.
+
+Staff open the concrete visit inside their work-order dialog. Its dossier needs
+a session-bound email confirmation before any dossier content is returned, also
+when the standalone URL or RPC is called directly. A dossier grant has no item
+scope: each secret read still checks the exact active item/assignment scope and
+validity separately. It never grants management rights. Blur, hiding, logout,
+expiry and changes of assignment or object invalidate viewing. Dossier access
+is logged as metadata, without codes or secret content.
 
 Supabase Vault is an explicit migration prerequisite; staging does not need a new
 application encryption secret. Never expose its managed root key. Operators must
