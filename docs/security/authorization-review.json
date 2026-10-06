@@ -1238,14 +1238,15 @@
     },
     {
       "id": "code:app/staff/layout.tsx",
-      "surfaceFingerprint": "cedfab40fc7d3f02189488187fa0af1724c3fdbdc33e99d4e4b82cf1ff1f4f70",
-      "status": "not-applicable",
+      "surfaceFingerprint": "c03550eabea4c2d2aeec48abe3f868a4068c66432cbde1f27cd822a2b1e91d50",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
         "app/staff/page.tsx",
         "components/fieldgrid/staff/route-shell.tsx",
         "proxy.ts",
-        "tests/e2e/module-boundaries.spec.ts"
+        "tests/e2e/module-boundaries.spec.ts",
+        "docs/security/release-security-inventory.md#personeelsapp-schermen-en-popupcontainers--6-oktober-2026"
       ]
     },
     {
@@ -1403,14 +1404,15 @@
     },
     {
       "id": "code:components/fieldgrid/notifications/routes.tsx",
-      "surfaceFingerprint": "3f29cbedaaca4b794fbef8f43630a8f0aac5307074085c1fb3f6d403ddaf0a3b",
-      "status": "controlled",
+      "surfaceFingerprint": "13d48ee8257e4ffd90ca46d1c979ad51d87dc6727ffbccaa3d02446ecdecb853",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
         "tests/e2e/notifications.spec.ts",
         "tests/e2e/tickets.spec.ts",
         "tests/e2e/module-boundaries.spec.ts",
-        "docs/implementation/staff-realtime-and-release.md#clientgedrag"
+        "docs/implementation/staff-realtime-and-release.md#clientgedrag",
+        "docs/security/release-security-inventory.md#personeelsapp-schermen-en-popupcontainers--6-oktober-2026"
       ]
     },
     {
@@ -1426,7 +1428,7 @@
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
-      "surfaceFingerprint": "c696fef169abf3c92d83aeb1fe55f386b23b26d0034e9debda8786c69f628e95",
+      "surfaceFingerprint": "b79f5c5d20e6bdb484b0cc0e88b1b9d32d4960bd5f79d1830af19c17c6440acc",
       "status": "corrected-and-rechecked",
       "evidence": [
         "manual-personnel-app-authz-review:2026-10-05",
@@ -1435,12 +1437,13 @@
         "lib/staff/work-order-completion.test.ts",
         "supabase/tests/database/staff_personnel_app.sql",
         "tests/e2e/fieldgrid.spec.ts",
-        "docs/implementation/staff-personnel-app-traceability.md#toegangs--en-privacycontract"
+        "docs/implementation/staff-personnel-app-traceability.md#toegangs--en-privacycontract",
+        "docs/security/release-security-inventory.md#personeelsapp-schermen-en-popupcontainers--6-oktober-2026"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "9bfd8ffc275122906e8c2f6bbbe5b3dc08ed5856e54d6766da64572d3db6c741",
+      "surfaceFingerprint": "949b1bc0446e5e1e09e393df82782f6f478d49a48345cb242ef2ee0acd60adb0",
       "status": "corrected-and-rechecked",
       "evidence": [
         "manual-personnel-app-authz-review:2026-10-05",
@@ -1452,7 +1455,8 @@
         "docs/security/release-security-inventory.md#instellingencontactactie-review--5-oktober-2026",
         "lib/staff/contact-action.test.ts",
         "tests/e2e/staff-settings.spec.ts",
-        "docs/security/release-security-inventory.md#personeelsapp-prototypevormgeving--6-oktober-2026"
+        "docs/security/release-security-inventory.md#personeelsapp-prototypevormgeving--6-oktober-2026",
+        "docs/security/release-security-inventory.md#personeelsapp-schermen-en-popupcontainers--6-oktober-2026"
       ]
     },
     {

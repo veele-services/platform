@@ -617,7 +617,7 @@
   width: 100%;
   max-width: 1490px;
   margin: 0 auto;
-  padding: 42px 42px 50px;
+  padding: 34px 42px 50px;
 }
 
 .personnel-app .ps-page-heading {
@@ -653,7 +653,7 @@
 
 .personnel-app .ps-planning-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) 310px;
   gap: 26px;
   align-items: start;
 }
@@ -678,7 +678,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .personnel-app .ps-week-navigation {
@@ -1374,6 +1374,7 @@
   background: var(--ps-surface);
   color: var(--ps-ink);
   text-align: left;
+  box-shadow: 0 3px 8px rgb(39 60 80 / 1%);
 }
 
 .personnel-app .ps-news-card[data-read="true"],
@@ -1390,8 +1391,66 @@
 }
 
 .personnel-app .ps-news-card-meta {
-  justify-content: flex-start;
   color: var(--ps-muted);
+  flex-wrap: wrap;
+}
+
+.personnel-app .ps-news-label {
+  border-radius: 5px;
+  padding: 5px 9px;
+  background: #edf2f7;
+  color: #647b91;
+  font-size: .8125rem;
+}
+
+.personnel-app .ps-news-read-link {
+  color: var(--ps-action);
+  font-size: .875rem;
+  font-weight: 600;
+}
+
+.personnel-app .ps-news-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  align-items: start;
+  gap: 26px;
+}
+
+.personnel-app .ps-news-aside h2 {
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+}
+
+.personnel-app .ps-news-aside p {
+  color: var(--ps-muted);
+  font-size: .875rem;
+}
+
+.personnel-app .ps-documents .ps-list-row {
+  padding: 17px 0;
+}
+
+.personnel-app .ps-documents .ps-list-row:last-child {
+  border-bottom: 0;
+}
+
+.personnel-app .ps-documents .ps-list-row strong {
+  font-size: .9375rem;
+  font-weight: 600;
+}
+
+.personnel-app .ps-documents .ps-object-icon {
+  flex: 0 0 44px;
+}
+
+.personnel-app .ps-document-open {
+  display: grid;
+  width: 44px;
+  min-height: 44px;
+  flex: 0 0 44px !important;
+  place-items: center;
+  border: 1px solid var(--ps-line);
+  border-radius: 12px;
 }
 
 .personnel-app .ps-news-card-meta > i {
@@ -2037,9 +2096,53 @@
   max-width: 860px;
   transform: translateX(-50%);
   border-radius: 18px;
+  background: white;
   overflow: hidden;
   box-shadow: 0 26px 85px rgb(14 31 43 / 24%), 0 0 0 100vmax rgb(18 30 40 / 46%);
 }
+
+.personnel-app .order-sheet > .ps-order-header {
+  display: flex;
+  min-height: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--ps-line);
+  padding: 24px 28px 20px;
+  background: white;
+  color: var(--ps-ink);
+}
+
+.personnel-app .ps-order-header > div:first-child { min-width: 0; }
+.personnel-app .ps-order-header h2 { margin: 4px 0 2px; font-size: 1.35rem; overflow-wrap: anywhere; }
+.personnel-app .ps-order-header :where(small, p) { color: var(--ps-muted); font-size: .875rem; }
+.personnel-app .ps-order-header small { font-size: .8125rem; font-weight: 400; }
+.personnel-app .ps-order-header-actions { display: flex; flex: 0 0 auto; gap: 8px; }
+.personnel-app .ps-order-header-actions button { width: 44px; height: 44px; border: 1px solid var(--ps-line); border-radius: 12px; color: var(--ps-ink); }
+.personnel-app .order-tabs { gap: 22px; padding: 0 28px; border-color: var(--ps-line); }
+.personnel-app .order-tabs button { flex: 0 0 auto; min-width: 0; min-height: 50px; border-bottom-width: 2px; padding: 15px 0; color: var(--ps-muted); font-size: .875rem; font-weight: 400; }
+.personnel-app .order-tabs button.active { border-color: var(--ps-action); color: var(--ps-action); font-weight: 600; }
+.personnel-app .order-body { padding: 24px 28px; scrollbar-gutter: stable; overscroll-behavior: contain; }
+.personnel-app .order-sheet .primary-button { background: var(--ps-action); color: white; }
+.personnel-app .ps-order-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 24px; }
+.personnel-app .ps-order-summary h3 { font-size: 1.02rem; }
+.personnel-app .ps-order-summary p { color: var(--ps-muted); font-size: .875rem; }
+.personnel-app .ps-order-times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.personnel-app .ps-order-times > div { min-width: 0; border: 1px solid var(--ps-line); border-radius: 18px; padding: 19px 20px; }
+.personnel-app .ps-order-times small { display: block; color: var(--ps-muted); font-size: .8125rem; }
+.personnel-app .ps-order-times strong { display: block; margin: 8px 0 4px; font-family: Poppins, Inter, sans-serif; font-size: 1.25rem; letter-spacing: -.04em; }
+.personnel-app .ps-order-expectation { display: flex; gap: 8px; align-items: center; margin: 20px 0 24px; color: var(--ps-muted); font-size: .8125rem; }
+.personnel-app .ps-order-expectation strong { color: var(--ps-ink); font-weight: 500; }
+.personnel-app .order-body .staff-panel { margin-bottom: 24px; border-color: var(--ps-line); border-radius: 14px; padding: 20px; }
+.personnel-app .order-body .staff-panel > h2 { font-size: 1.02rem; }
+.personnel-app .order-body :where(.task-check, .time-detail) { border-color: var(--ps-line); color: var(--ps-ink); }
+.personnel-app .order-body .task-check { min-height: 72px; }
+.personnel-app .order-body .task-check input { width: 18px; height: 18px; accent-color: var(--ps-action); }
+.personnel-app .order-body :where(.task-check, .time-detail) strong { color: var(--ps-ink); font-size: .875rem; }
+.personnel-app .order-body :where(.task-check, .time-detail) small { color: var(--ps-muted); font-size: .8125rem; }
+.personnel-app .order-body :where(.primary-button, .secondary-button) { min-height: 44px; border-radius: 10px; font-size: .875rem; }
+.personnel-app .order-action { position: relative; flex-wrap: wrap; border-color: var(--ps-line); padding: 17px 28px; background: #fcfdfd; }
+.personnel-app .order-action > button { width: auto; min-width: 0; border-radius: 10px; font-size: .875rem; }
 
 /* Radix renders nested work-order dialogs in a body portal, so this unique
  * class cannot inherit the root selector. It intentionally shares the same
@@ -2972,6 +3075,11 @@
 
 /* Desktop compression */
 
+@media (min-width: 1500px) {
+  .personnel-app .ps-content { padding-top: 42px; }
+  .personnel-app :where(.ps-planning-grid, .ps-news-layout) { grid-template-columns: minmax(0, 1fr) 340px; }
+}
+
 @media (max-width: 1200px) {
   .personnel-app .ps-sidebar {
     width: 210px;
@@ -2990,6 +3098,11 @@
   }
 
   .personnel-app .ps-planning-grid {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 20px;
+  }
+
+  .personnel-app .ps-news-layout {
     grid-template-columns: minmax(0, 1fr) 280px;
     gap: 20px;
   }
@@ -3100,11 +3213,13 @@
   .personnel-app .ps-settings-nav {grid-template-columns: repeat(3, minmax(0, 1fr));grid-template-rows: auto;}
   .personnel-app .ps-settings-nav button {min-height: 52px;padding: 12px;font-size: .8125rem;text-align: center;}
   .personnel-app .ps-planning-grid,
-  .personnel-app .ps-hours-grid {
+  .personnel-app .ps-hours-grid,
+  .personnel-app .ps-news-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .personnel-app .ps-planning-aside {
+  .personnel-app .ps-planning-aside,
+  .personnel-app .ps-news-aside {
     display: none;
   }
 
@@ -3125,6 +3240,16 @@
     transform: none;
     border-radius: 0;
   }
+
+  .personnel-app .order-sheet > .ps-order-header { padding: calc(21px + env(safe-area-inset-top)) 20px 17px; }
+  .personnel-app .ps-order-header h2 { font-size: 1.15rem; }
+  .personnel-app .ps-order-header :where(small, p) { font-size: .8125rem; }
+  .personnel-app .order-tabs { padding: 0 20px; }
+  .personnel-app .order-tabs button { font-size: .8125rem; }
+  .personnel-app .order-body { padding: 21px 20px; }
+  .personnel-app .ps-order-times > div { padding: 18px 14px; }
+  .personnel-app .ps-order-times strong { font-size: 1.1rem; }
+  .personnel-app .order-action { padding: 14px 20px calc(14px + env(safe-area-inset-bottom)); }
 
   .personnel-app .ps-choice-group {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3537,6 +3662,7 @@
 }
 
 @media (max-width: 370px) {
+  .personnel-app .ps-order-times { grid-template-columns: minmax(0, 1fr); }
   .personnel-app .ps-content {
     padding-inline: 12px;
   }

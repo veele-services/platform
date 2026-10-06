@@ -270,3 +270,30 @@ behouden hun bestaande routes en toetsenbordbediening.
 Gerichte controle: `tests/e2e/staff-appearance.spec.ts` controleert de
 bereikbaarheid van alle Meer-acties, modulegrenzen, focusreturn, zichtbare
 offlinestatus, tap targets en overflow op 320, 390, 768 en 1440 px.
+
+### Personeelsapp schermen en popupcontainers — 6 oktober 2026
+
+De wijzigingen in `app/staff/layout.tsx`, `personnel-app.tsx`, `staff-app.tsx`
+en de gedeelde ticket-/notificatiecomponenten zijn afzonderlijk op bron
+beoordeeld. De staffklassen en kleuren zijn alleen presentatie. De ticket- en
+notificatieworkspace, opties, categorieën, uploadscan, versie-/idempotencykeys,
+busy-/dirtybeveiliging, acties en servervoorwaarden blijven dezelfde.
+`notifications/routes.tsx` behoudt alle context-, bevoegdheids-, ID- en
+eigendomscontroles vóór de pagina wordt gerenderd. De objecttoegang blijft een
+link naar de bestaande beveiligde bezoekroute; er komt geen toegangscode in
+het werkbonvenster terecht.
+
+De focushelper verplaatst uitsluitend DOM-focus bij openen/sluiten. De nieuwe
+staffwrapper houdt de bestaande Radix-focusval en sluitvoorwaarden. De
+herstelwijziging voor tabnavigatie past de URL alleen bij een gewijzigde query
+toe; datarefresh en het tenantgebonden `staff_workspace_revisions`-kanaal
+blijven actief. Broncontrols, exports en resources zijn onveranderd volgens de
+structurele codeparser; uitsluitend de inhoudshashes wijzigen.
+
+Gericht bewijs staat in `tests/e2e/staff-popups.spec.ts`,
+`tests/e2e/staff-appearance.spec.ts` en de bestaande personeels-, ticket- en
+notificatieflows. De aanvullende uitvoeringspopupfixture gebruikt uitsluitend
+de gecontroleerde lokale database, bewaart/herstelt de oorspronkelijke status
+en dient geen rapport-, meerwerk- of tijdcommando in. Zie ook
+`docs/implementation/staff-prototype-visual-alignment.md` voor de visuele
+inventaris, de behouden functies en de precieze grenzen van de browserdekking.

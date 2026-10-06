@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
-  List, LockKeyhole, LogOut, Megaphone, MoreHorizontal,
+  List, LockKeyhole, LogOut, MoreHorizontal,
   Info, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Settings2, Square, TicketCheck, Umbrella, UserRound,
   X,
 } from "lucide-react";
@@ -98,6 +98,8 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
   notificationPreferences: NotificationPreferences;
 }) {
   const router = useRouter();
+  const routeQuery = useSearchParams().toString();
+  const appliedRoute = useRef<string | null>(null);
   const [view, setView] = useState<MainView>("planning");
   const [moreView, setMoreView] = useState<MoreView>("menu");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -137,8 +139,10 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
   }, [data]);
 
   useEffect(() => {
+    if (appliedRoute.current === routeQuery) return;
     const timer = window.setTimeout(() => {
-      const query = new URLSearchParams(window.location.search);
+      appliedRoute.current = routeQuery;
+      const query = new URLSearchParams(routeQuery);
       const tab = query.get("tab");
       if (tab === "nieuws" || tab === "uren" || tab === "meer" || tab === "planning") setView(tab);
       const section = query.get("section");
@@ -147,7 +151,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
       if (workOrder && assignmentByOrder.has(workOrder)) setSelectedId(workOrder);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [assignmentByOrder]);
+  }, [assignmentByOrder, routeQuery]);
 
   useEffect(() => {
     if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/sw.js").catch(() => undefined);
@@ -322,7 +326,7 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
 function NewsScreen({ data, onRead }: { data: StaffWorkspaceData; onRead: (id: string) => void }) {
   const [selected, setSelected] = useState<StaffWorkspaceData["announcements"][number] | null>(null);
   const articles = [...data.announcements].filter((item) => item.published_at && !item.withdrawn_at).sort((a, b) => Date.parse(b.published_at!) - Date.parse(a.published_at!));
-  return <><div className="ps-card-list">{articles.map((item) => { const read = data.announcementReads.some((entry) => entry.announcement_id === item.id); return <button className={`ps-news-card${read ? " read" : ""}`} key={item.id} onClick={() => setSelected(item)}><span className="ps-news-card-meta"><Megaphone/><small>{new Intl.DateTimeFormat("nl-NL", { dateStyle: "long" }).format(new Date(item.published_at!))}</small>{!read && <i/>}</span><strong className="ps-news-card-title">{item.title}</strong><span className="ps-news-card-summary">{item.body.slice(0, 220)}</span><span className="ps-news-card-footer"><span>{read ? "Gelezen" : "Graag lezen"}</span><ChevronRight/></span></button>; })}</div>{!articles.length && <Empty icon={Megaphone} title="Geen nieuws">Nieuwe teamberichten verschijnen hier.</Empty>}
+  return <><div className="ps-news-layout"><div className="ps-card-list">{articles.map((item) => { const read = data.announcementReads.some((entry) => entry.announcement_id === item.id); return <button className="ps-news-card" key={item.id} onClick={() => setSelected(item)}><span className="ps-news-card-meta"><span className="ps-news-label">Teamnieuws</span><small>{new Intl.DateTimeFormat("nl-NL", { dateStyle: "long" }).format(new Date(item.published_at!))}</small></span><h2 className="ps-news-card-title">{item.title}</h2><span className="ps-news-card-summary">{item.body.slice(0, 220)}</span><span className="ps-news-card-footer"><span className="ps-news-read-link">Lees bericht</span><span className="ps-status" data-status={read ? "approved" : "pending"}>{read ? "Gelezen" : "Graag lezen"}</span></span></button>; })}{!articles.length && <Empty icon={Newspaper} title="Geen nieuws">Nieuwe teamberichten verschijnen hier.</Empty>}</div><aside className="ps-panel ps-news-aside"><h2>Op de hoogte</h2><p>Belangrijke updates herken je aan ‘Graag lezen’. Bevestig na het lezen dat je de informatie hebt gezien.</p></aside></div>
     {selected && <Dialog title={selected.title} kicker="TEAMNIEUWS" close={() => setSelected(null)}><p style={{ whiteSpace: "pre-wrap" }}>{selected.body}</p><div className="ps-toast-note">Gepubliceerd op {new Intl.DateTimeFormat("nl-NL", { dateStyle: "long", timeStyle: "short" }).format(new Date(selected.published_at!))}</div>{!data.announcementReads.some((entry) => entry.announcement_id === selected.id) && <button className="ps-primary" onClick={() => { onRead(selected.id); setSelected(null); }}><Check/>Markeer als gelezen</button>}</Dialog>}
   </>;
 }
@@ -614,7 +618,7 @@ function AvailabilityScreen({ profile, pending, run, onLeave }: { profile: Staff
 
 function DocumentsScreen({ data, profile }: { data: StaffWorkspaceData; profile: StaffPersonnel }) {
   const docs = data.personnelDocuments.filter((item) => item.personnel_id === profile.id && item.visible_to_employee);
-  return <div className="ps-card-list">{docs.map((item) => <a className="ps-list-row" href={`/api/files/personnel-document/${item.id}`} target="_blank" rel="noreferrer" key={item.id}><FileText/><span><strong>{item.title}</strong><small>{item.file_name ?? `Versie ${item.version}`}</small></span><ChevronRight/></a>)}{!docs.length && <Empty icon={FileText} title="Geen documenten">Documenten die HR met je deelt verschijnen hier.</Empty>}</div>;
+  return docs.length ? <section className="ps-panel ps-documents" aria-label="Mijn documenten">{docs.map((item) => <a className="ps-list-row" href={`/api/files/personnel-document/${item.id}`} target="_blank" rel="noreferrer" key={item.id}><span className="ps-object-icon"><FileText/></span><span><strong>{item.title}</strong><small>{item.file_name ?? `Versie ${item.version}`}</small></span><span className="ps-document-open" aria-hidden="true"><Eye/></span></a>)}</section> : <Empty icon={FileText} title="Geen documenten">Documenten die HR met je deelt verschijnen hier.</Empty>;
 }
 
 function ProfileScreen({ profile, depots, email, pending, run }: { profile: StaffPersonnel; depots: StaffWorkspaceData["staffDepots"]; email: string; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string) => void }) {

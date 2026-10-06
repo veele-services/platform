@@ -369,6 +369,8 @@ test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, ur
     await expectNoHorizontalOverflow(page);
   }
 
+  await expect(app.getByRole("button", { name: /^Notificaties/ })).toBeVisible();
+  await expect(app.locator(".ps-topbar-leading .ps-sync")).toHaveClass(/current/);
   const planningMasks = [
     app.locator(".ps-sync"),
     app.locator(".ps-week-navigation strong"),
@@ -376,15 +378,15 @@ test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, ur
     app.locator(".ps-order-meta time"),
     app.locator(".ps-metric-row strong"),
   ];
-  await expect(app).toHaveScreenshot("staff-planning-1440.png", { animations: "disabled", mask: planningMasks });
+  await expect(app).toHaveScreenshot("staff-planning-1440.png", { animations: "disabled", mask: planningMasks, stylePath: "tests/e2e/staff-screenshot.css" });
 
   await page.setViewportSize({ width: 768, height: 900 });
-  await expect(app).toHaveScreenshot("staff-planning-768.png", { animations: "disabled", mask: planningMasks });
+  await expect(app).toHaveScreenshot("staff-planning-768.png", { animations: "disabled", mask: planningMasks, stylePath: "tests/e2e/staff-screenshot.css" });
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(app.locator(".ps-mobile-brand")).toContainText("Fieldgrid");
   await expect(page.getByText("LOGO", { exact: true })).toHaveCount(0);
-  await expect(app).toHaveScreenshot("staff-planning-390.png", { animations: "disabled", mask: planningMasks });
+  await expect(app).toHaveScreenshot("staff-planning-390.png", { animations: "disabled", mask: planningMasks, stylePath: "tests/e2e/staff-screenshot.css" });
   await workOrder.click();
   const order = page.getByRole("dialog", { name: "Werkbon WB-2030-001" });
   const orderTabs = order.getByRole("tablist", { name: "Werkbononderdelen" });
@@ -399,6 +401,7 @@ test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, ur
   await expect(order).toHaveScreenshot("staff-work-order-overview-390.png", {
     animations: "disabled",
     mask: [order.locator("time")],
+    stylePath: "tests/e2e/staff-screenshot.css",
   });
   await order.getByRole("button", { name: "Route bekijken", exact: true }).click();
   const routeDialog = page.getByRole("dialog", { name: "Route naar locatie", exact: true });
