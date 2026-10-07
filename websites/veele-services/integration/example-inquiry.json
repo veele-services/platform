@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "mode": "submission",
+  "inquiryId": "57b61a8f-4ef5-4f51-9d30-343e2779675b",
+  "createdAt": "2026-10-05T10:00:00Z",
+  "locale": "nl-NL",
+  "source": "veele-website",
+  "services": [
+    "cleaning",
+    "facilities"
+  ],
+  "location": {
+    "type": "event",
+    "city": "Den Haag",
+    "country": "NL"
+  },
+  "tasks": {
+    "cleaning": {
+      "requestedTasks": [
+        "glass"
+      ],
+      "glassAccess": "unknown"
+    },
+    "facilities": {
+      "requestedTasks": [
+        "guest_reception",
+        "toilet_cleaning"
+      ],
+      "expectedVisitors": 150
+    }
+  },
+  "planning": {
+    "type": "event",
+    "startDate": "2026-11-14",
+    "timePreference": "evening"
+  },
+  "contact": {
+    "preferredChannel": "email",
+    "email": "aanvrager@example.com"
+  }
+}

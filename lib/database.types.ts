@@ -8165,6 +8165,10 @@ export type Database = {
         Args: { target_order: string; target_tenant: string }
         Returns: Json
       }
+      commercial_website_intake: {
+        Args: { target_tenant: string; request_id: string; input: Json; additional_notes: string; submission_metadata: Json; client_hash: string }
+        Returns: Json
+      }
       commercial_public_intake: {
         Args: {
           client_hash: string

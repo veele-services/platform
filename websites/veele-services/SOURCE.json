@@ -1,0 +1,13 @@
+{
+  "site": "Veele Services · Frame",
+  "liveUrl": "https://veele-frame.dgwebserv.chatgpt.site",
+  "siteId": "appgprj_6ac3a38e74988191b009e38de865a927",
+  "version": 5,
+  "commit": "18e8627e244d19d332127fc613eaa32744f04a13",
+  "packagedAt": "2026-10-07",
+  "purpose": "Gekozen publieke Veele-website; overdracht naar Codex voor productie en Fieldgrid-aanvraagkoppeling",
+  "snapshotUnmodified": true,
+  "currentFieldgridConnection": false,
+  "productionDomainMustBeConfirmed": true,
+  "prototypeNoindexPreservedInSnapshot": true
+}

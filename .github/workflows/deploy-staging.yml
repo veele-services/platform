@@ -337,3 +337,11 @@ jobs:
           SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
         run: node --test --test-concurrency=1 scripts/test-tickets.mjs scripts/test-ticket-delivery.mjs
+      - name: Verify public marketing and existing portal entry points
+        run: node scripts/verify-veele-website.mjs
+      - name: Verify website request read-back with rollback-only staging fixtures
+        env:
+          FIELDGRID_STAGING_SMOKE: "1"
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: node --test --test-concurrency=1 scripts/test-veele-marketing.mjs

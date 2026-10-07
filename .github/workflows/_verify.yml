@@ -99,13 +99,21 @@ jobs:
             docker stop fieldgrid-ticket-ci-scanner
             docker rm fieldgrid-ticket-ci-scanner
           fi
-      - name: Ensure no retired tenant or mail-provider naming
+      - name: Ensure product branding and providers remain Fieldgrid and SendGrid
         # Match names, not fragments of DOM API identifiers such as activeElement.
         # Operator evidence may name an existing VPS/runner/repository. Those
         # infrastructure identities are not product branding or provider code.
         # Git is already required by checkout; do not silently skip a missing rg.
         run: |
-          if git grep -n -i -E '\bv[e]ele\b|\br[e]send\b' -- app components lib public scripts; then
+          if git grep -n -i -E '\br[e]send\b' -- app components lib public scripts; then
+            exit 1
+          else
+            result=$?
+            test "$result" -eq 1
+          fi
+          # The explicitly requested public Veele website is tenant content.
+          # Its scoped routes/assets/adapter are not global product branding.
+          if git grep -n -i -E '\bv[e]ele\b' -- app components lib public scripts ':!app/api/veele-website/**' ':!lib/marketing/veele/**' ':!public/veele-services/**' ':!scripts/build-veele-marketing.mjs' ':!scripts/check-security-surface.mjs' ':!lib/operations/staging-smoke.test.ts' ':!scripts/verify-veele-website.mjs' ':!scripts/test-veele-marketing.mjs' ':!scripts/sql/veele-marketing-acceptance.sql'; then
             exit 1
           else
             result=$?

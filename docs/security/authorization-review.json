@@ -371,6 +371,18 @@
       ]
     },
     {
+      "id": "code:app/api/veele-website/requests/route.ts",
+      "surfaceFingerprint": "9dbefa4ff73822a2d0c6bd3d407e78c6f5b8647f3db0aa83e0c4a62fceb3c0de",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
+      ]
+    },
+    {
       "id": "code:app/api/worker/route.ts",
       "surfaceFingerprint": "91e9e5cf9b3328b30a72320b6fa043b04c98d06d22f0ee3aefbdb81650d35a7c",
       "status": "corrected-and-rechecked",
@@ -2227,13 +2239,14 @@
     },
     {
       "id": "code:proxy.ts",
-      "surfaceFingerprint": "08eaeea5b05991d3309dbd41960fa638b6a9d8685caf316d92ff9c2cd5898b10",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "9345c3410cbca38b67d10535afcd2f22b25230eedabed25b065c845b821021fc",
+      "status": "controlled",
       "evidence": [
-        "docs/security/dashboard-details-verification-2026-10-07.md",
-        "tests/e2e/dossier-alignment.spec.ts",
-        "lib/pdf/invoice-snapshot.test.ts",
-        "lib/pdf/invoice.test.ts"
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {
@@ -4400,12 +4413,14 @@
     },
     {
       "id": "operation:.github/workflows/_verify.yml",
-      "surfaceFingerprint": "048bf6cd7c28aec855c59b13cf34741a50b10b2bf9432ebb8fbc31dc89174f6e",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "27dd709be40d245305278198942fea4d880a1d178817751433f7f4a3ae0cfcca",
+      "status": "controlled",
       "evidence": [
-        "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
-        "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh.",
-        "The mandatory hosted verification now packages, extracts, starts and requests a static asset from the exact standalone artifact before browser tests (2026-10-02)."
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {
@@ -4430,19 +4445,14 @@
     },
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
-      "surfaceFingerprint": "144d81ca6714ca32c12d2f40b62a2ffd344dbe5ef47d4aa0b5ee5530efe76b46",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "0d55632df84d3cccb0286ad441778418c7050143af3facf2823463251143b708",
+      "status": "controlled",
       "evidence": [
-        "Root-only key/trust/runtime metadata and unprivileged runner denial checks split at the OS identity boundary (2026-10-01).",
-        "lib/tickets/runner-contract.test.ts and lib/tickets/runtime-contract.test.ts; real UID/GID/mode coverage in scripts/test-staging-contract-linux.sh.",
-        "Hosted staging preflight receives the canonical DEPLOY_ROOT, SERVICE_NAME and HEALTHCHECK_URL only from GitHub Environment staging; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-02).",
-        "A secret-free self-hosted host-preflight now proves runner separation, PostgreSQL archive compatibility and the installed worker timer before hosted backup or forward migrations can start (2026-10-02).",
-        "The exact staging artifact is extracted and booted with isolated non-secret smoke configuration before backup or forward migrations begin (2026-10-02).",
-        "Activation and retryable worker acceptance are separate jobs; the latter has no handoff download, broker call, secrets or service-management authority. Full reruns use attempt-scoped immutable handoffs selected by artifact ID; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-03).",
-        "Hosted acceptance receives only the canonical public APP_URL from GitHub Environment staging, restoring the existing fail-closed staging target guard without adding credentials or authority; regression coverage in lib/operations/deployment-broker.test.ts (2026-10-04).",
-        "Remote rollback-only fixtures run serially because their existing global notification-policy lock lives until rollback. All suites/assertions, staging/TLS guards and worker/exact-SHA prerequisites remain; lib/operations/staging-smoke.test.ts and docs/deployment/staging-smoke-serialization-2026-10-05.md (2026-10-05).",
-        "docs/security/staging-redirect-verification-2026-10-05.md",
-        "scripts/verify-public-auth-redirect.mjs"
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {
@@ -4644,23 +4654,26 @@
     },
     {
       "id": "operation:next.config.ts",
-      "surfaceFingerprint": "46161a32f2deaff23adeaa56ef44610dc4d2dd2a2ca95661ff930b07680eb1c9",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "c2c758bdd15070da0cbfd8f99567b526b54ac6b7acca493a376f39276c3d8ff0",
+      "status": "controlled",
       "evidence": [
-        "docs/security/dashboard-details-verification-2026-10-07.md",
-        "tests/e2e/dossier-alignment.spec.ts",
-        "lib/pdf/invoice-snapshot.test.ts",
-        "lib/pdf/invoice.test.ts"
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "4d40431589142d8e6c632e2a58e41922b05eb54a79e8cef313eed090ba2af8bb",
+      "surfaceFingerprint": "ea776047d22159bb5928321534192fdc852053de0c470999304a160c977f0e2b",
       "status": "controlled",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Reviewed required DB test additions without bypass/removal; clean 125-migration replay preserves every pre-existing committed statement hash. Staging runtime, config isolation and promotion/deploy contracts unchanged.",
-        "pnpm db:verify-manifest; scripts/test-account-guides.mjs and scripts/test-list-pagination.mjs; .github/workflows/_verify.yml retains full release gates."
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {
@@ -4747,6 +4760,18 @@
       ]
     },
     {
+      "id": "operation:scripts/build-veele-marketing.mjs",
+      "surfaceFingerprint": "af0b2a0ab6bc9ce1ef65204699efd22845bc926a7d49ec32d470768ac3569e95",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
+      ]
+    },
+    {
       "id": "operation:scripts/check-authorization-review.mjs",
       "surfaceFingerprint": "93260ec6df77cda05d40979957fcd196477225382164f471b58ac35ddbef636b",
       "status": "controlled",
@@ -4790,15 +4815,14 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "8bb9aaf0e4ea1e733f9eb1f520ca192c40b543b1caa2c6cb0202a4e68b43b874",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "098e8c04afe69ec70ac760b73541d1953c2f34d24b9ab07e3b5456de4ee0b9e4",
+      "status": "controlled",
       "evidence": [
-        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
-        "app/api/addresses/route.test.ts",
-        "lib/addresses/form.test.ts",
-        "scripts/test-customer-portal.mjs",
-        "tests/e2e/login-branding.spec.ts",
-        "tests/e2e/mollie-test-checkout.spec.ts"
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {
@@ -4915,14 +4939,14 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "4d4a06e62f878fabc0662e16934c7f3e505fef87c120a3b18a6cf2f8d6529759",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "787146b7deba9d74d614827d8fd606e695b6ceb61a7bca9f84d4066728f0e115",
+      "status": "controlled",
       "evidence": [
-        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
-        "app/api/addresses/route.test.ts",
-        "lib/addresses/form.test.ts",
-        "scripts/test-customer-portal.mjs",
-        "tests/e2e/login-branding.spec.ts"
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {
@@ -5015,6 +5039,18 @@
       ]
     },
     {
+      "id": "operation:scripts/test-veele-marketing.mjs",
+      "surfaceFingerprint": "bd1fc69228b34198b38bd708591721f786d068567afe48d302c95d233f3aa36b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
+      ]
+    },
+    {
       "id": "operation:scripts/verify-healthcheck.mjs",
       "surfaceFingerprint": "2de704c96ef25179d7f6f7d49ad3afb4d099a606c7e069381b0a497b879ccfa5",
       "status": "corrected-and-rechecked",
@@ -5053,6 +5089,18 @@
       "evidence": [
         "docs/security/staging-redirect-verification-2026-10-05.md",
         "scripts/verify-public-auth-redirect.mjs"
+      ]
+    },
+    {
+      "id": "operation:scripts/verify-veele-website.mjs",
+      "surfaceFingerprint": "f3a347e26362ce4a82ffb94f56d6c34d4e44f0cc4c159fec6619ccfc43f4e146",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {
@@ -5437,13 +5485,14 @@
     },
     {
       "id": "rpc:private.commercial_intake(t uuid, request_id uuid, input jsonb, source text, customer uuid, object uuid, actor uuid)",
-      "surfaceFingerprint": "dcf1ac414e478037470b3c54ea2374195f498a63d4c4693d5c24a318f177d8ff",
+      "surfaceFingerprint": "f620db2d422f68eb6467a44720234c57eea89c8951b52ed50d79809390cdf82e",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {
@@ -5481,13 +5530,14 @@
     },
     {
       "id": "rpc:private.commercial_rows(t uuid)",
-      "surfaceFingerprint": "3056460259d84e7de0521778bb9fcb4b811f2528950ba8f5e6fb15822100b504",
+      "surfaceFingerprint": "6a544a99507c3da4399bf3547df3d7b7a1174280e662ccd2183a0c0d0c03ae70",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {
@@ -9131,13 +9181,14 @@
     },
     {
       "id": "rpc:public.commercial_public_intake(target_tenant uuid, request_id uuid, input jsonb, client_hash text)",
-      "surfaceFingerprint": "e7df5101a38c85ff78450c5bdca2a3731424b1cb71aaef89fde3924f6ca5f978",
+      "surfaceFingerprint": "1df4d3e3fd3caa113e6d6d8dae97f1857260b6a5688343b1cd8031f697a2c5e7",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {
@@ -9182,6 +9233,18 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:public.commercial_website_intake(target_tenant uuid, request_id uuid, input jsonb, additional_notes text, submission_metadata jsonb, client_hash text)",
+      "surfaceFingerprint": "e9d283971b6aabc854310b8cd989cc5a96cba3d63b628a2a006a051d3d1867d8",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/veele-website-review.md",
+        "scripts/test-veele-marketing.mjs",
+        "app/api/veele-website/requests/route.test.ts",
+        "lib/marketing/veele/render.test.ts",
+        "tests/e2e/veele-marketing.spec.ts"
       ]
     },
     {

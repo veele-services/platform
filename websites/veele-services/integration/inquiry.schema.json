@@ -1,0 +1,947 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:veele-services:inquiry:1.0.0",
+  "title": "Veele Services neutral website inquiry v1.0.0",
+  "description": "First-party neutral proposal, not a Fieldgrid API contract. Mode submission means ready for delivery validation; it never implies successful delivery, acceptance, booking or a quote.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submission"
+      ]
+    },
+    "inquiryId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "locale": {
+      "const": "nl-NL"
+    },
+    "source": {
+      "const": "veele-website"
+    },
+    "services": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "cleaning",
+          "security",
+          "facilities"
+        ]
+      }
+    },
+    "location": {
+      "$ref": "#/$defs/location"
+    },
+    "tasks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cleaning": {
+          "$ref": "#/$defs/cleaning"
+        },
+        "security": {
+          "$ref": "#/$defs/security"
+        },
+        "facilities": {
+          "$ref": "#/$defs/facilities"
+        }
+      }
+    },
+    "planning": {
+      "$ref": "#/$defs/planning"
+    },
+    "contact": {
+      "$ref": "#/$defs/contact"
+    },
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "mode",
+    "inquiryId",
+    "createdAt",
+    "locale",
+    "source"
+  ],
+  "$defs": {
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "office",
+            "vve",
+            "shop",
+            "hospitality",
+            "event",
+            "home",
+            "other"
+          ]
+        },
+        "otherType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "city": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$",
+          "default": "NL"
+        },
+        "postalCode": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 12,
+          "pattern": "^[A-Za-z0-9 -]+$"
+        },
+        "street": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "houseNumber": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "venueName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        }
+      }
+    },
+    "cleaning": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requestedTasks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 9,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "office",
+              "common_areas",
+              "shop",
+              "home_handover",
+              "hospitality",
+              "glass",
+              "periodic_floor",
+              "other",
+              "discuss"
+            ]
+          }
+        },
+        "areaM2": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10000000
+        },
+        "floorCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300
+        },
+        "spaces": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 11,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "workspaces",
+              "meeting_rooms",
+              "entrance",
+              "stairs",
+              "lifts",
+              "galleries",
+              "kitchen",
+              "toilets",
+              "storage",
+              "waste_area",
+              "other"
+            ]
+          }
+        },
+        "glassAccess": {
+          "type": "string",
+          "enum": [
+            "ground_level",
+            "upper_floors",
+            "mixed",
+            "unknown"
+          ]
+        },
+        "otherTask": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1500
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "glassAccess"
+            ]
+          },
+          "then": {
+            "required": [
+              "requestedTasks"
+            ],
+            "properties": {
+              "requestedTasks": {
+                "contains": {
+                  "const": "glass"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "requestedTasks"
+            ],
+            "properties": {
+              "requestedTasks": {
+                "contains": {
+                  "const": "discuss"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requestedTasks": {
+                "maxItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requestedTasks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "object",
+              "mobile_patrol",
+              "event_security",
+              "retail",
+              "hospitality",
+              "reception",
+              "personal_protection",
+              "chauffeur",
+              "other",
+              "discuss"
+            ]
+          }
+        },
+        "expectedVisitors": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "coverage": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "access_control",
+              "patrol",
+              "visitor_guidance",
+              "reception",
+              "other"
+            ]
+          }
+        },
+        "staffEstimate": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "otherTask": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1500
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "requestedTasks"
+            ],
+            "properties": {
+              "requestedTasks": {
+                "contains": {
+                  "const": "discuss"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requestedTasks": {
+                "maxItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "facilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requestedTasks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 9,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "hospitality_support",
+              "event_staff",
+              "bar",
+              "guest_reception",
+              "setup_breakdown",
+              "catering_support",
+              "toilet_cleaning",
+              "other",
+              "discuss"
+            ]
+          }
+        },
+        "expectedVisitors": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "staffEstimate": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "toiletCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "otherTask": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1500
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "toiletCount"
+            ]
+          },
+          "then": {
+            "required": [
+              "requestedTasks"
+            ],
+            "properties": {
+              "requestedTasks": {
+                "contains": {
+                  "const": "toilet_cleaning"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "requestedTasks"
+            ],
+            "properties": {
+              "requestedTasks": {
+                "contains": {
+                  "const": "discuss"
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "requestedTasks": {
+                "maxItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "planning": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "once",
+            "recurring",
+            "event",
+            "discuss"
+          ]
+        },
+        "cadence": {
+          "type": "string",
+          "enum": [
+            "daily",
+            "weekly",
+            "fortnightly",
+            "monthly",
+            "quarterly",
+            "seasonal",
+            "discuss"
+          ]
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "preferredDays": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 7,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "monday",
+              "tuesday",
+              "wednesday",
+              "thursday",
+              "friday",
+              "saturday",
+              "sunday"
+            ]
+          }
+        },
+        "timePreference": {
+          "type": "string",
+          "enum": [
+            "daytime",
+            "evening",
+            "night",
+            "flexible"
+          ]
+        },
+        "timeZone": {
+          "const": "Europe/Amsterdam"
+        },
+        "windows": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/window"
+          }
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "cadence"
+            ]
+          },
+          "then": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "recurring"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "windows"
+            ]
+          },
+          "then": {
+            "required": [
+              "timeZone"
+            ]
+          }
+        }
+      ]
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date"
+        },
+        "startTime": {
+          "type": "string",
+          "pattern": "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "endTime": {
+          "type": "string",
+          "pattern": "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$"
+        }
+      },
+      "required": [
+        "date",
+        "startTime",
+        "endTime"
+      ]
+    },
+    "contact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "organization": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "phone": {
+          "type": "string",
+          "pattern": "^\\+?[0-9][0-9 ()-]{5,23}[0-9]$"
+        },
+        "preferredChannel": {
+          "type": "string",
+          "enum": [
+            "email",
+            "phone"
+          ]
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "submission"
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "required": [
+          "services",
+          "location",
+          "tasks",
+          "planning",
+          "contact"
+        ],
+        "properties": {
+          "location": {
+            "required": [
+              "type",
+              "city",
+              "country"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "other"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "otherType"
+                  ]
+                }
+              }
+            ]
+          },
+          "planning": {
+            "required": [
+              "type"
+            ]
+          },
+          "contact": {
+            "required": [
+              "preferredChannel"
+            ],
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "preferredChannel": {
+                      "const": "email"
+                    }
+                  },
+                  "required": [
+                    "preferredChannel"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "email"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "preferredChannel": {
+                      "const": "phone"
+                    }
+                  },
+                  "required": [
+                    "preferredChannel"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "phone"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "submission"
+          },
+          "services": {
+            "contains": {
+              "const": "cleaning"
+            }
+          }
+        },
+        "required": [
+          "mode",
+          "services"
+        ]
+      },
+      "then": {
+        "properties": {
+          "tasks": {
+            "required": [
+              "cleaning"
+            ],
+            "properties": {
+              "cleaning": {
+                "required": [
+                  "requestedTasks"
+                ],
+                "allOf": [
+                  {
+                    "if": {
+                      "required": [
+                        "requestedTasks"
+                      ],
+                      "properties": {
+                        "requestedTasks": {
+                          "contains": {
+                            "const": "other"
+                          }
+                        }
+                      }
+                    },
+                    "then": {
+                      "required": [
+                        "otherTask"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tasks": {
+            "required": [
+              "cleaning"
+            ]
+          }
+        },
+        "required": [
+          "tasks"
+        ]
+      },
+      "then": {
+        "required": [
+          "services"
+        ],
+        "properties": {
+          "services": {
+            "contains": {
+              "const": "cleaning"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "submission"
+          },
+          "services": {
+            "contains": {
+              "const": "security"
+            }
+          }
+        },
+        "required": [
+          "mode",
+          "services"
+        ]
+      },
+      "then": {
+        "properties": {
+          "tasks": {
+            "required": [
+              "security"
+            ],
+            "properties": {
+              "security": {
+                "required": [
+                  "requestedTasks"
+                ],
+                "allOf": [
+                  {
+                    "if": {
+                      "required": [
+                        "requestedTasks"
+                      ],
+                      "properties": {
+                        "requestedTasks": {
+                          "contains": {
+                            "const": "other"
+                          }
+                        }
+                      }
+                    },
+                    "then": {
+                      "required": [
+                        "otherTask"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tasks": {
+            "required": [
+              "security"
+            ]
+          }
+        },
+        "required": [
+          "tasks"
+        ]
+      },
+      "then": {
+        "required": [
+          "services"
+        ],
+        "properties": {
+          "services": {
+            "contains": {
+              "const": "security"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "submission"
+          },
+          "services": {
+            "contains": {
+              "const": "facilities"
+            }
+          }
+        },
+        "required": [
+          "mode",
+          "services"
+        ]
+      },
+      "then": {
+        "properties": {
+          "tasks": {
+            "required": [
+              "facilities"
+            ],
+            "properties": {
+              "facilities": {
+                "required": [
+                  "requestedTasks"
+                ],
+                "allOf": [
+                  {
+                    "if": {
+                      "required": [
+                        "requestedTasks"
+                      ],
+                      "properties": {
+                        "requestedTasks": {
+                          "contains": {
+                            "const": "other"
+                          }
+                        }
+                      }
+                    },
+                    "then": {
+                      "required": [
+                        "otherTask"
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tasks": {
+            "required": [
+              "facilities"
+            ]
+          }
+        },
+        "required": [
+          "tasks"
+        ]
+      },
+      "then": {
+        "required": [
+          "services"
+        ],
+        "properties": {
+          "services": {
+            "contains": {
+              "const": "facilities"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
