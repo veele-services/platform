@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { rootCertificates } from "node:tls";
 import { Client } from "pg";
-import { chromium, expect, type Page } from "@playwright/test";
+import { chromium, expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { stagingDatabaseUrl } from "../lib/env/staging-database";
@@ -22,8 +22,12 @@ async function confirmTestCheckout(page: Page) {
     }
     const radio=page.locator('input[type="radio"][value="paid"]');
     if(await radio.count()){await radio.first().check();await page.locator('button[type="submit"],input[type="submit"]').first().click();return;}
-    const paid=page.getByRole("button",{name:/^(Paid|Betaald|Pay|Betalen|Pay now)$/i});
+    const paid=page.getByRole("button",{name:/^(Paid|Betaald)$/i});
     if(await paid.count()){await paid.first().click();return;}
+    // A generic payment submit can open the test-status simulator; only the
+    // explicit Paid choice completes this helper's provider-confirmation step.
+    const pay=page.getByRole("button",{name:/^(Pay|Betalen|Pay now)$/i});
+    if(await pay.count()&&await pay.first().isEnabled()){await pay.first().click();await page.waitForTimeout(1000);continue;}
     const method=page.getByText(/^iDEAL$/i,{exact:true});
     if(await method.count()){await method.first().click();await page.waitForTimeout(1000);continue;}
     const bank=page.getByText(/^(Test bank|Testbank|ING)$/i,{exact:true});
@@ -46,8 +50,9 @@ async function main() {
   const api=process.env.SUPABASE_URL!,admin=createClient(api,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false}});
   const customer=randomUUID(),object=randomUUID(),contact=randomUUID(),email=`mollie-acceptance-${randomUUID()}@example.invalid`;
   let userId="",tenant="",account="";
-  const browser=await chromium.launch();
+  let browser:Browser|undefined,context:BrowserContext|undefined,failed=false;
   try {
+    browser=await chromium.launch();
     phase="tenant_and_merchant";
     const target=(await db.query("select t.id,c.public_config->>'profile_id' profile from public.tenants t join public.tenant_provider_connections c on c.tenant_id=t.id and c.provider='mollie' and c.active and c.verified_at is not null and c.mode='test' and c.secret_reference='MOLLIE_API_KEY' where t.slug=$1 and t.status='active'",[slug])).rows[0];
     if(!target)throw new Error("Geverifieerde tenanttestverbinding ontbreekt");tenant=target.id;
@@ -77,7 +82,7 @@ async function main() {
     const jar=new Map<string,string>();
     const auth=createServerClient(api,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{cookies:{getAll:()=>[...jar].map(([name,value])=>({name,value})),setAll:values=>{for(const {name,value}of values){if(value)jar.set(name,value);else jar.delete(name);}}}});
     const session=await auth.auth.verifyOtp({token_hash:link.data.properties.hashed_token,type:"magiclink"});if(session.error||!session.data.session)throw new Error("Testsessie mislukt");
-    const context=await browser.newContext({viewport:{width:390,height:960}});await context.addCookies([...jar].map(([name,value])=>({name,value,url:origin,secure:true,httpOnly:true,sameSite:"Lax" as const})));
+    context=await browser.newContext({viewport:{width:390,height:960}});await context.addCookies([...jar].map(([name,value])=>({name,value,url:origin,secure:true,httpOnly:false,sameSite:"Lax" as const})));
     const page=await context.newPage();
     for(const [index,selected]of [[invoices[0]],[invoices[1],invoices[2]]].entries()){
       phase=index===0?"single_invoice_selection":"bundle_selection";
@@ -88,7 +93,7 @@ async function main() {
       await page.getByRole("button",{name:"Betalen",exact:true}).click();const dialog=page.getByRole("dialog");await expect(dialog.getByRole("heading",{name:"Betaling controleren",exact:true})).toBeVisible();
       phase="create_real_test_checkout";
       await dialog.getByRole("button",{name:"Veilig verder naar Mollie",exact:true}).click();await page.waitForURL(url=>url.hostname.endsWith("mollie.com"),{timeout:20000});
-      const attempt=(await db.query("select p.id,p.provider_payment_id,p.amount_cents,p.provider_mode,p.merchant_profile_id from public.payment_attempts p join public.invoice_groups g on g.tenant_id=p.tenant_id and g.id=p.invoice_group_id where p.tenant_id=$1 and g.customer_id=$2 order by p.created_at desc limit 1",[tenant,customer])).rows[0];
+      const attempt=(await db.query("select p.id,p.provider_payment_id,p.amount_cents::int amount_cents,p.provider_mode,p.merchant_profile_id from public.payment_attempts p join public.invoice_groups g on g.tenant_id=p.tenant_id and g.id=p.invoice_group_id where p.tenant_id=$1 and g.customer_id=$2 order by p.created_at desc limit 1",[tenant,customer])).rows[0];
       const amount=selected.reduce((sum,invoice)=>sum+invoice.amount,0);if(!attempt||attempt.amount_cents!==amount||attempt.provider_mode!=="test"||attempt.merchant_profile_id!==target.profile)throw new Error("Onjuiste betaalontvanger of totaal");
       const provider=await fetch(`https://api.mollie.com/v2/payments/${attempt.provider_payment_id}`,{headers:{authorization:`Bearer ${process.env.MOLLIE_API_KEY}`},signal:AbortSignal.timeout(10000)}),payment=await provider.json();
       if(!provider.ok||payment.mode!=="test"||payment.profileId!==target.profile||payment.amount.value!==(amount/100).toFixed(2)||payment.redirectUrl!==`${origin}/klant?account=${account}&view=invoices&payment=return`||payment.webhookUrl!==`${platform}/api/mollie/webhook`)throw new Error("Providercontract wijkt af");
@@ -100,22 +105,39 @@ async function main() {
       phase="provider_webhook_settlement";
       await page.waitForURL(url=>url.origin===origin&&url.pathname==="/klant",{timeout:20000});
       await expect.poll(async()=>Number((await db.query("select sum(paid_cents)::int amount from public.invoices where tenant_id=$1 and id=any($2::uuid[])",[tenant,selected.map(i=>i.id)])).rows[0].amount),{timeout:60000}).toBe(amount);
-      const count=async()=>Number((await db.query("select count(*)::int total from public.payment_allocations where tenant_id=$1 and payment_attempt_id=$2",[tenant,attempt.id])).rows[0].total);
-      const allocations=await count();if(allocations!==selected.length)throw new Error("Factuurverdeling wijkt af");
+      const ledger=async()=>({
+        invoices:(await db.query("select id,status,paid_cents::int paid_cents,total_cents::int total_cents from public.invoices where tenant_id=$1 and id=any($2::uuid[]) order by id",[tenant,selected.map(i=>i.id)])).rows,
+        allocations:(await db.query("select invoice_id,amount_cents::int amount_cents from public.payment_allocations where tenant_id=$1 and payment_attempt_id=$2 order by invoice_id",[tenant,attempt.id])).rows,
+      });
+      const settled=await ledger();
+      if(settled.invoices.length!==selected.length||settled.allocations.length!==selected.length||selected.some(invoice=>{
+        const row=settled.invoices.find(item=>item.id===invoice.id),allocation=settled.allocations.find(item=>item.invoice_id===invoice.id);
+        return !row||row.status!=="paid"||row.paid_cents!==invoice.amount||row.total_cents!==invoice.amount||!allocation||allocation.amount_cents!==invoice.amount;
+      }))throw new Error("Factuurverdeling wijkt af");
       phase="duplicate_webhook";
-      for(let repeat=0;repeat<2;repeat++){const webhook=await fetch(`${platform}/api/mollie/webhook`,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({id:attempt.provider_payment_id}),signal:AbortSignal.timeout(10000)});if(webhook.status!==200)throw new Error("Webhook niet bevestigd");}
-      if(await count()!==allocations)throw new Error("Dubbele betaling verwerkt");
+      for(let repeat=0;repeat<2;repeat++){
+        const webhook=await fetch(`${platform}/api/mollie/webhook`,{method:"POST",headers:{"content-type":"application/x-www-form-urlencoded"},body:new URLSearchParams({id:attempt.provider_payment_id}),signal:AbortSignal.timeout(10000)});
+        if(webhook.status!==200)throw new Error("Webhook niet bevestigd");
+        if(JSON.stringify(await ledger())!==JSON.stringify(settled))throw new Error("Dubbele betaling verwerkt");
+      }
       console.log(JSON.stringify({check:"real_mollie_test_checkout",invoices:selected.length,amountCents:amount,viewport:index===0?"mobile":"desktop",providerConfirmed:true,returnDidNotSettle:true,webhookIdempotent:true}));
     }
-    await context.close();
-  }finally{
-    await browser.close();
-    if(account)await db.query("update public.customer_portal_accounts set active=false where tenant_id=$1 and id=$2",[tenant,account]);
-    if(userId&&tenant)await db.query("update public.object_customer_bindings set active=false where tenant_id=$1 and user_id=$2",[tenant,userId]);
-    if(tenant)await db.query("update public.customers set status='archived' where tenant_id=$1 and id=$2",[tenant,customer]);
-    if(userId)await admin.auth.admin.updateUserById(userId,{ban_duration:"876000h"});
-    await db.end();
-    console.log("Fictief testaccount afgesloten; gelabeld Mollie-testbewijs blijft controleerbaar.");
+  }catch(error){failed=true;throw error;}
+  finally{
+    // Attempt every independent revocation even when another one fails. Keep
+    // the original failing phase; cleanup details never expose provider data.
+    const cleanup=await Promise.allSettled([
+      (async()=>{if(account)await db.query("update public.customer_portal_accounts set active=false where tenant_id=$1 and id=$2",[tenant,account]);})(),
+      (async()=>{if(userId&&tenant)await db.query("update public.object_customer_bindings set active=false where tenant_id=$1 and user_id=$2",[tenant,userId]);})(),
+      (async()=>{if(tenant)await db.query("update public.customers set status='archived' where tenant_id=$1 and id=$2",[tenant,customer]);})(),
+      (async()=>{if(userId){const result=await admin.auth.admin.updateUserById(userId,{ban_duration:"876000h"});if(result.error)throw new Error("Testaccount kon niet worden geblokkeerd");}})(),
+      (async()=>{await context?.close();})(),
+    ]);
+    const closed=await Promise.allSettled([(async()=>{await browser?.close();})(),db.end()]);
+    if([...cleanup,...closed].some(result=>result.status==="rejected")){
+      console.error("Fictieve testopruiming onvolledig; alle afsluitacties zijn geprobeerd.");
+      if(!failed){phase="synthetic_cleanup";throw new Error("Fictieve testopruiming mislukt");}
+    }else console.log("Fictief testaccount afgesloten; gelabeld Mollie-testbewijs blijft controleerbaar.");
   }
 }
 main().catch(()=>{console.error(`Mollie stagingacceptatie mislukt bij ${phase}; geen credentials, tokens of persoonsgegevens gelogd.`);process.exitCode=1;});
