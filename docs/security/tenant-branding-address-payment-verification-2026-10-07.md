@@ -60,6 +60,24 @@
   e-mailtoestemming, deze accountgebonden weigering, behouden in-appmeldingen
   en ongewijzigde toestemming voor een tweede account. De acht bestaande
   klantbetalingstests, waaronder uitgestelde policy-intrekking, slaagden.
+- Stagingacceptatie `37598014893` op `b87046f6` maakte een echte testcheckout
+  aan en controleerde providerbedrag/merchant en de onbetaalde vroege retour.
+  De bevestigingshelper faalde daarna; deze run bewijst geen betaalbevestiging.
+  Mollie beschrijft een statuskeuze gevolgd door Continue en noemt de methode
+  inmiddels `iDEAL | Wero`: [testflow](https://docs.mollie.com/docs/shopify-test-and-go-live),
+  [naamwijziging](https://docs.mollie.com/changelog/ideal-logo-updated-to-ideal-wero).
+  De herwerkte helper wacht begrensd op zichtbare actieve controls, submit
+  alleen het formulier van de statuskeuze, ondersteunt providerframes en
+  beide iDEAL-namen, en loopt na Paid door naar Continue en de tenantretour.
+  Een documentgeneratie voorkomt dat dezelfde URL een volgende stap blokkeert.
+  Diagnostiek gebruikt uitsluitend HTTP-status, vaste actie/fout/hostcategorieën
+  en control-aantallen/booleans; URLs, DOM-tekst en provider-/authgegevens blijven
+  buiten uitvoer. Acht browserfixtures bewijzen deze stappen, verborgen controls,
+  vertraagd laden, herhaalde document-URLs, één klik bij onveranderd laden en
+  weigering van een lookalike-host of retour zonder statuskeuze. Deze fictieve
+  browserfixtures bewijzen op zichzelf geen providerbetaling. De operationele
+  helper is expliciet aan de bronhashinventaris toegevoegd; de release-,
+  account-, merchant-, bedrag-, mail- en ledgergrenzen blijven ongewijzigd.
 
 Lokale regressies: 1.475 unitchecks, 428 database-integratiechecks en 398
 pgTAP-checks en 14 desktop/mobiel-browsertests slaagden. De complete CI en de afzonderlijke echte staging-Mollie

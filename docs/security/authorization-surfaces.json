@@ -6536,6 +6536,11 @@
       "source_sha256": "1fbc06435c98723a6c842785eb6aa5c1bdaa8b088c02860885b294a24483068f"
     },
     {
+      "id": "operation:lib/operations/mollie-test-checkout.ts",
+      "classification": "operation",
+      "source_sha256": "e3884b497d1f392181bc794f35a93e605ce022a93b50c95350842f6ea8e9075a"
+    },
+    {
       "id": "operation:next.config.ts",
       "classification": "operation",
       "source_sha256": "8d88b3ce1dee7652fcdcbbac92d4a8c254470c66080ef45efa62b07f0d808ddb"
@@ -6608,7 +6613,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "244eac6569a97e21ad5d224458db28429f6eb8ae1e2e986126dc3e5c21e6cd16"
+      "source_sha256": "a2f0141bf9bef936810b55c3aa87302ed3878f0b128611031370cacc32df3769"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -6688,7 +6693,7 @@
     {
       "id": "operation:scripts/staging-customer-payment-acceptance.ts",
       "classification": "operation",
-      "source_sha256": "b13df767bdafd140baa7f909423ce5331f09791b14d79900916fd67b7b839975"
+      "source_sha256": "65e17034c40d40f79ca077cf97ee2d7cb220497e4df5b5e9d7c786410c651535"
     },
     {
       "id": "operation:scripts/staging-tenant-integrations.ts",

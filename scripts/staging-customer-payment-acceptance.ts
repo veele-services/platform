@@ -6,38 +6,12 @@ import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { rootCertificates } from "node:tls";
 import { Client } from "pg";
-import { chromium, expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { chromium, expect, type Browser, type BrowserContext } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { stagingDatabaseUrl } from "../lib/env/staging-database";
+import { confirmMollieTestCheckout, MollieTestCheckoutError } from "../lib/operations/mollie-test-checkout";
 let phase="guards";
-
-async function confirmTestCheckout(page: Page) {
-  for (let step=0;step<8;step++) {
-    if (!new URL(page.url()).hostname.endsWith("mollie.com")) return;
-    const select=page.locator("select");
-    for(let i=0;i<await select.count();i++) {
-      const paid=select.nth(i).locator('option[value="paid"]');
-      if(await paid.count()){await select.nth(i).selectOption("paid");await page.locator('button[type="submit"],input[type="submit"]').first().click();return;}
-    }
-    const radio=page.locator('input[type="radio"][value="paid"]');
-    if(await radio.count()){await radio.first().check();await page.locator('button[type="submit"],input[type="submit"]').first().click();return;}
-    const paid=page.getByRole("button",{name:/^(Paid|Betaald)$/i});
-    if(await paid.count()){await paid.first().click();return;}
-    // A generic payment submit can open the test-status simulator; only the
-    // explicit Paid choice completes this helper's provider-confirmation step.
-    const pay=page.getByRole("button",{name:/^(Pay|Betalen|Pay now)$/i});
-    if(await pay.count()&&await pay.first().isEnabled()){await pay.first().click();await page.waitForTimeout(1000);continue;}
-    const method=page.getByText(/^iDEAL$/i,{exact:true});
-    if(await method.count()){await method.first().click();await page.waitForTimeout(1000);continue;}
-    const bank=page.getByText(/^(Test bank|Testbank|ING)$/i,{exact:true});
-    if(await bank.count()){await bank.first().click();await page.waitForTimeout(1000);continue;}
-    const next=page.getByRole("button",{name:/^(Continue|Verder|Proceed|Doorgaan|Confirm|Bevestigen)$/i});
-    if(await next.count()){await next.first().click();await page.waitForTimeout(1000);continue;}
-    await page.waitForTimeout(1000);
-  }
-  throw new Error("Mollie-testcheckout vraagt een niet herkende teststap");
-}
 
 async function main() {
   const slug=process.env.TARGET_TENANT_SLUG;
@@ -107,8 +81,11 @@ async function main() {
       phase="return_before_confirmation";
       const checkout=page.url();await page.goto(payment.redirectUrl);await expect(page.getByRole("heading",{name:"Je betaalstatus wordt gecontroleerd"})).toBeVisible();
       const unpaid=(await db.query("select sum(paid_cents)::int amount from public.invoices where tenant_id=$1 and id=any($2::uuid[])",[tenant,selected.map(i=>i.id)])).rows[0];if(unpaid.amount!==0)throw new Error("Terugkeer heeft onterecht een betaling bevestigd");
+      phase="mollie_test_checkout_reopen";
+      const reopened=await page.goto(checkout);
+      console.log(JSON.stringify({check:"mollie_test_checkout_document",httpStatus:reopened?.status()??0}));
       phase="mollie_test_confirmation";
-      await page.goto(checkout);await confirmTestCheckout(page);
+      await confirmMollieTestCheckout(page,origin,diagnostic=>console.log(JSON.stringify({check:"mollie_test_checkout_controls",...diagnostic})));
       phase="provider_webhook_settlement";
       await page.waitForURL(url=>url.origin===origin&&url.pathname==="/klant",{timeout:20000});
       await expect.poll(async()=>Number((await db.query("select sum(paid_cents)::int amount from public.invoices where tenant_id=$1 and id=any($2::uuid[])",[tenant,selected.map(i=>i.id)])).rows[0].amount),{timeout:60000}).toBe(amount);
@@ -147,4 +124,4 @@ async function main() {
     }else console.log("Fictief testaccount afgesloten; gelabeld Mollie-testbewijs blijft controleerbaar.");
   }
 }
-main().catch(()=>{console.error(`Mollie stagingacceptatie mislukt bij ${phase}; geen credentials, tokens of persoonsgegevens gelogd.`);process.exitCode=1;});
+main().catch(error=>{if(error instanceof MollieTestCheckoutError)console.error(JSON.stringify({check:"mollie_test_checkout_failure",kind:error.kind,...error.diagnostic}));console.error(`Mollie stagingacceptatie mislukt bij ${phase}; geen credentials, tokens of persoonsgegevens gelogd.`);process.exitCode=1;});
