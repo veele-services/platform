@@ -4986,7 +4986,8 @@
         "lib/operations/production-deployment.test.ts",
         "lib/env/production-database.test.ts",
         "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "scripts/test-production-contract-linux.sh",
+        "lib/operations/production-bootstrap.test.ts"
       ]
     },
     {
@@ -5060,7 +5061,8 @@
         "lib/env/production-database.test.ts",
         "lib/env/production-runtime.test.ts",
         "scripts/test-production-contract-linux.sh",
-        "lib/operations/worker-request.test.ts"
+        "lib/operations/worker-request.test.ts",
+        "lib/operations/production-worker-timer.test.ts"
       ]
     },
     {

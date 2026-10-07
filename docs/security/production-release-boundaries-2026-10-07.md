@@ -29,7 +29,7 @@ its hosted workflow checks the exact healthy runtime first and never resets a
 password. Staging adapters retain their own staging-only project contracts.
 
 Evidence: `lib/env/production-database.test.ts`, `production-runtime.test.ts`,
-`lib/operations/production-backup.test.ts`, `bootstrap-platform-admin.test.ts`,
+`lib/operations/production-backup.test.ts`, `production-bootstrap.test.ts`,
 `production-deployment.test.ts`, existing staging database/migration tests.
 
 ## Runtime health, worker and scanner
@@ -54,7 +54,9 @@ Obsolete Auth links preserve the production origin and return OTP-required login
 without session or credential cookies.
 
 Evidence: health route tests, worker request tests, scanner runtime permissions,
-scanner readiness and startup tests; existing worker timer suite. Production
+scanner readiness and startup tests; `production-worker-timer.test.ts` exercises
+the separate production timer's fresh/old/failed/paused and wrong-environment
+cases, alongside the unchanged staging suite. Production
 public checks are source-reviewed but await live production execution.
 
 ## Hosted workflow and root broker
