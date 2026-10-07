@@ -87,6 +87,22 @@ gegevens blijven ongemoeid. Historische/afgeronde estimates worden niet herschre
 
 ## Afbakening en privacy
 
+Klantonboarding, klantprofiel en objecten, personeelsonboarding en het eigen
+personeelsprofiel gebruiken dezelfde adresvelden als het backoffice. Selectie
+slaat afzonderlijke straat, huisnummer, huisletter/toevoeging, postcode, plaats
+en WGS84-coördinaten op. De server haalt een geselecteerd PDOK-adres opnieuw
+op en vergelijkt alle adresdelen; browsercoördinaten worden vervangen. Een
+handmatige wijziging wist de oude coördinaten en vraagt een nieuwe selectie.
+De klantzoekroute vereist een actuele klantaccount binnen de hostname-tenant
+en controleert account en sessie opnieuw na provider-I/O. Suggesties staan in
+de top-layer van een geopend dialoog, zodat selectie op mobiel bruikbaar blijft.
+
+De expliciete staging-integratiecontrole kan bestaande adressen onderzoeken
+en herstellen. Alleen één exact overeenkomend PDOK-resultaat wordt opgeslagen,
+met vergelijking van de oude bronwaarde voordat de wijziging wordt geschreven.
+Ontbrekende, onvolledige en dubbelzinnige adressen blijven ter controle staan;
+er wordt geen locatie gegokt en afgeronde reistijdhistorie blijft behouden.
+
 Elke HTTP-aanvraag controleert origin, sessie, hostname-tenant en actuele toegang.
 De context-/cache-/opslag-RPC's zijn uitsluitend voor de serverrol. De gewone
 personeelslijst mag privé-adreskolommen niet selecteren. HR/beheer en de medewerker

@@ -1,5 +1,19 @@
 /* The shared OTP form keeps its real Auth actions; only staff destinations
  * receive the two-column identity and mobile form from the prototype. */
+.auth-page { color:var(--brand-ink); background:radial-gradient(circle at top right,var(--brand-accent-soft) 0,transparent 45%),var(--brand-canvas); }
+.auth-card { border-color:var(--brand-border); }
+.auth-card > .fieldgrid-brand { margin-bottom:26px; gap:14px; flex-wrap:wrap; }
+.auth-card .brand-name-fallback { color:var(--brand-ink); max-width:100%; white-space:normal; overflow-wrap:anywhere; font-size:22px; }
+.auth-card .brand-tenant-name { color:var(--brand-ink); font-size:18px; font-weight:700; overflow-wrap:anywhere; }
+.auth-brand-fallback { display:grid; gap:10px; margin-bottom:26px; }
+.auth-brand-fallback .product-brand { color:var(--brand-primary); }
+.auth-card .brand-logo-image { width:144px; min-width:144px; height:64px; border-radius:0; }
+.auth-card .eyebrow { color:var(--brand-accent-text); }
+.auth-card .primary-button { background:var(--brand-action); color:var(--brand-action-foreground); }
+.auth-card .primary-button:hover { background:var(--brand-action-hover); }
+.auth-card .auth-input:focus-within { border-color:var(--brand-focus); box-shadow:0 0 0 3px var(--brand-accent-soft); }
+.auth-card .auth-form :where(a,.auth-text-button) { color:var(--brand-accent-text); }
+.auth-card .auth-form :where(button,input,a):focus-visible { outline:3px solid var(--brand-focus); outline-offset:3px; }
 .auth-page.staff-login {
   min-height: 100dvh;
   grid-template-columns: 1fr 1fr;

@@ -552,3 +552,9 @@ Upload cleanup removes only unbound artifacts older than 24 hours or drafts
 explicitly discarded by their owner. A live scan lease delays deletion to avoid
 a late-write race. Removing a draft frees its upload quota immediately.
 Bound messages/support copies have no invented automatic retention purge.
+## Tenantintegraties
+
+Voor een expliciete Mollie-testkoppeling, adresherstel en echte klantcheckout
+zie [staging-tenant-integrations.md](staging-tenant-integrations.md). Dit is
+een afzonderlijke operatorhandeling na de exacte stagingpromotie en wordt
+niet door een migratie of automatische deploy uitgevoerd.

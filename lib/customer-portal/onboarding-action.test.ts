@@ -1,3 +1,5 @@
+vi.mock("server-only",()=>({}));
+vi.mock("@/lib/addresses/form",()=>({verifiedAddress:async(value:unknown)=>value}));
 import { beforeEach,describe,expect,it,vi } from "vitest";
 const mocks=vi.hoisted(()=>({rpc:vi.fn(),actor:vi.fn(),revalidate:vi.fn()}));
 vi.mock("@/lib/objects/auth",()=>({getObjectActor:mocks.actor}));vi.mock("next/cache",()=>({revalidatePath:mocks.revalidate}));

@@ -30,6 +30,10 @@ export async function POST(request: Request) {
   const receipt = (operation: string) => ticketRpc(db, "email_auth_hook_receipt", { operation, hook_id: hookId, payload_hash: digest });
   let claimed = false, sendStarted = false;
   try {
+    if (["magiclink", "email"].includes(payload.email_data.email_action_type)) {
+      destination.slug = z.string().nullable().parse(await ticketRpc(db, "email_auth_login_resolve", { actor: payload.user.id, target_slug: destination.slug, hook_id: hookId }));
+      destination.origin = destination.slug ? new URL(env.APP_URL).origin.replace("://", `://${destination.slug}.`) : new URL(env.APP_URL).origin;
+    }
     const context = contextSchema.parse(await ticketRpc(db, "email_auth_context", { target_slug: destination.slug, actor: payload.user.id, recipient: payload.user.email, action_type: payload.email_data.email_action_type }));
     const messages = authMailMessages(payload, destination.origin, context.company);
     const claim = z.object({ claimed: z.boolean(), state: z.string().optional() }).parse(await receipt("begin"));

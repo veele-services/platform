@@ -21,12 +21,14 @@ export function AddressInput({
   name = "addressPayload",
   required = false,
   legacyFields = false,
+  disabled = false,
   onChange,
 }: {
   initial?: unknown;
   name?: string;
   required?: boolean;
   legacyFields?: boolean;
+  disabled?: boolean;
   onChange?: (address: Address) => void;
 }) {
   const [value, setValue] = useState(() => normalizeAddress(initial)),
@@ -39,6 +41,7 @@ export function AddressInput({
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   const [position, setPosition] = useState({ left: 0, top: 0, width: 0 });
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const anchor = useRef<HTMLDivElement>(null),
     serial = useRef(0),
     abort = useRef<AbortController | null>(null),
@@ -189,12 +192,13 @@ export function AddressInput({
   };
   return (
     <div className="address-input wide">
-      <input type="hidden" name={name} value={JSON.stringify(value)} />
+      <div aria-disabled={disabled || undefined} className="address-input-controls">
+      <input disabled={disabled} type="hidden" name={name} value={JSON.stringify(value)} />
       {legacyFields && (
         <>
-          <input type="hidden" name="street" value={value.street} />
-          <input type="hidden" name="postalCode" value={value.postal_code} />
-          <input type="hidden" name="city" value={value.city} />
+          <input disabled={disabled} type="hidden" name="street" value={value.street} />
+          <input disabled={disabled} type="hidden" name="postalCode" value={value.postal_code} />
+          <input disabled={disabled} type="hidden" name="city" value={value.city} />
         </>
       )}
       <div className="address-fields" ref={anchor}>
@@ -211,6 +215,7 @@ export function AddressInput({
           <label key={key}>
             {label}
             <input
+              disabled={disabled}
               value={value[key]}
               required={
                 required &&
@@ -225,6 +230,7 @@ export function AddressInput({
                 edit(key, e.target.value);
               }}
               onFocus={(e) => {
+                setPortalTarget(e.currentTarget.closest("dialog") ?? document.body);
                 if (searchInput.current !== e.currentTarget) {
                   ++serial.current;
                   abort.current?.abort();
@@ -251,6 +257,7 @@ export function AddressInput({
         <label>
           Landcode
           <input
+            disabled={disabled}
             value={value.country}
             onFocus={() => { ++serial.current; abort.current?.abort(); setSearchField("country"); setQuery(""); setOpen(false); setOptions([]); setBusy(false); }}
             maxLength={2}
@@ -263,7 +270,8 @@ export function AddressInput({
         <MapPin size={16} />
         {addressStatus[value.status]}
       </p>
-      {open &&
+      </div>
+      {open && !disabled &&
         options.length > 0 &&
         createPortal(
           <div
@@ -299,7 +307,7 @@ export function AddressInput({
             ))}
             <small>Adresgegevens: Kadaster / PDOK (CC BY 4.0)</small>
           </div>,
-          document.body,
+          portalTarget ?? document.body,
         )}
     </div>
   );

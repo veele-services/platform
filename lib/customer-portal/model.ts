@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { addressSchema } from "@/lib/addresses/model";
 
 const id=z.uuid(),text=z.string(),version=z.number().int().positive().safe();
 const revision=z.number().int().nonnegative().safe();
@@ -9,14 +10,14 @@ export const customerAccountOptionSchema=z.object({id,name:text}).strict();
 export const customerAccountOptionsSchema=z.array(customerAccountOptionSchema);
 export const customerProfileSchema=z.object({
  fullName:text,email:z.email(),company:text,phone:text,invoiceEmail:text,
- street:text,postalCode:text,city:text,companyNumber:text,
+ street:text,postalCode:text,city:text,companyNumber:text,address:addressSchema.optional(),
  customerVersion:version,contactVersion:revision,
 }).strict();
 export const customerInstructionSchema=z.object({id,body:text,version,createdAt:z.iso.datetime({offset:true}),author:text}).strict();
 export const customerObjectSchema=z.object({
  id,number:text,name:text,type:z.enum(["office","residential","school","care","retail","industrial","other"]),
  status:z.enum(["draft","active","paused","archived"]),size:z.number().positive().max(1_000_000).nullable(),version,
- street:text,postalCode:text,city:text,contact:text,phone:text,
+ street:text,postalCode:text,city:text,contact:text,phone:text,address:addressSchema.optional(),
  contactVersion:revision,contactRecordVersion:revision,services:z.array(text),instructions:z.array(customerInstructionSchema),
 }).strict();
 export const customerVisitSchema=z.object({
@@ -47,14 +48,14 @@ export const customerProfileInputSchema=z.object({
  firstName:text.trim().min(1).max(80),lastName:text.trim().min(1).max(100),company:text.trim().min(2).max(180),
  phone:text.trim().min(5).max(40),invoiceEmail:z.email().max(254),street:text.trim().min(2).max(200),
  postalCode:text.trim().regex(/^[1-9][0-9]{3} ?[A-Za-z]{2}$/,"Gebruik een Nederlandse postcode."),city:text.trim().min(2).max(100),
- companyNumber:text.regex(/^(?:[0-9]{8})?$/,"Gebruik acht cijfers of laat het KvK-nummer leeg."),
+ address:addressSchema.optional(),companyNumber:text.regex(/^(?:[0-9]{8})?$/,"Gebruik acht cijfers of laat het KvK-nummer leeg."),
 }).strict();
 export const customerObjectInputSchema=z.object({
  id:id.optional(),version:revision,name:text.trim().min(2).max(160),type:customerObjectSchema.shape.type,
  size:z.number().positive().max(1_000_000).nullable(),street:text.trim().min(2).max(200),
  postalCode:text.trim().regex(/^[1-9][0-9]{3} ?[A-Za-z]{2}$/),city:text.trim().min(2).max(100),
  contact:text.trim().min(2).max(180),phone:text.trim().min(5).max(40),contactVersion:revision,contactRecordVersion:revision,
- instruction:text.trim().max(10_000),
+ instruction:text.trim().max(10_000),address:addressSchema.optional(),
 }).strict();
 export type CustomerProfileInput=z.infer<typeof customerProfileInputSchema>;
 export type CustomerObjectInput=z.infer<typeof customerObjectInputSchema>;
@@ -82,5 +83,5 @@ export const customerInstructionInputSchema=z.object({objectId:id,version,body:t
 export function profileInput(profile:CustomerProfile):CustomerProfileInput {
  const [firstName="",...lastName]=profile.fullName.split(/\s+/);
  return {firstName,lastName:lastName.join(" "),company:profile.company,phone:profile.phone,invoiceEmail:profile.invoiceEmail,
-  street:profile.street,postalCode:profile.postalCode,city:profile.city,companyNumber:profile.companyNumber};
+  street:profile.street,postalCode:profile.postalCode,city:profile.city,companyNumber:profile.companyNumber,...(profile.address?{address:profile.address}:{})};
 }

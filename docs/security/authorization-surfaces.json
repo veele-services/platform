@@ -43,9 +43,10 @@
         "getAuthContext"
       ],
       "resources": [
+        "rpc:customer_portal_accounts",
         "rpc:travel_session_active"
       ],
-      "source_sha256": "eff7094c175bbba675a4b8f5d3989027e5be3a9c45f76498febf978d0abf87f6"
+      "source_sha256": "e2c803d39e18b33f1ce89ecd0595158a68c91466afdcbe08ecff6c164ffb986b"
     },
     {
       "id": "code:app/api/auth/session/route.ts",
@@ -71,7 +72,7 @@
         "from:tenant_branding",
         "from:tenants"
       ],
-      "source_sha256": "ae7461fcc8bd17e4eddc43a25cbf96f98f9acbe5b80f10f74b36c6e4c1509557"
+      "source_sha256": "0f12833c36f0403ab6985c2958b1982ce3c5cd6556fae31b3c03ded2c4ab42d7"
     },
     {
       "id": "code:app/api/customer-files/[kind]/[id]/route.ts",
@@ -175,7 +176,7 @@
         "verifyAuthMailHook"
       ],
       "resources": [],
-      "source_sha256": "da05bc8033176837e7dd82808902aefcba828f31b6e8fcc48f15e167f32045ea"
+      "source_sha256": "4bb498df537bcc03e62558524c587a69f0f7a44b9e60e8fa3383a049f81f315d"
     },
     {
       "id": "code:app/api/email/events/route.ts",
@@ -1492,7 +1493,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "280bc6e779f8a3d294437c61e83f4d683ea2648b8a3e7ac08f80da3c66cd1248"
+      "source_sha256": "e9102909a7e9b6247e862985f59858d88c8f433c3c1288b3b270d5233a18965b"
     },
     {
       "id": "code:app/login/page.tsx",
@@ -1503,7 +1504,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "b67e7064cc5bbedcdb5928363e8f04f70b110e072e0fc913315f632c4cc0c5f2"
+      "source_sha256": "7c9e13f2512306dd091b554e4abfffdc119ad97c59cda032e45cdab2616a18f4"
     },
     {
       "id": "code:app/notifications/actions.ts",
@@ -1759,7 +1760,7 @@
         "rpc:set_shift_interest",
         "rpc:transition_work_order"
       ],
-      "source_sha256": "ef9d78e31960857545ef0c0dd1a713f82781382daa0fe512f328beef2379bd2c"
+      "source_sha256": "c6b374155f9486d1379638c05d3b2468d94d8650a66b170fdd8cbe88630f0160"
     },
     {
       "id": "code:app/staff/layout.tsx",
@@ -1980,7 +1981,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "e7cc580acad49bf7e9331e3e5a4b2227b275c75ffbf6f7a86fb1f27e78531433"
+      "source_sha256": "d2beda3b526c335410fe04e48a477908403d8062deb39b9d0af7f078b84e7671"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
@@ -2083,6 +2084,19 @@
         "from:tenants"
       ],
       "source_sha256": "aee4d5457f04346b96397b5417e1c7934f5457ba493b9834ede17173da02b3bc"
+    },
+    {
+      "id": "code:lib/auth/login-mail-context.ts",
+      "exports": [
+        "prepareLoginMailContext",
+        "releaseLoginMailContext"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createAdminClient"
+      ],
+      "resources": [],
+      "source_sha256": "e617fd6fdbda9da0de553e36d513e53b99465b958e614e28fcc7633ceb25fcf0"
     },
     {
       "id": "code:lib/branding/house-style-actions.ts",
@@ -2262,7 +2276,7 @@
       "resources": [
         "rpc:customer_portal_object_save"
       ],
-      "source_sha256": "d40f8d799476e3096d54f84f2f3216e1dce965b0af49b8289a978c4f8b6fe7a4"
+      "source_sha256": "63ded910fa86e066918f273cb0df1c0dcdb68767bd7d121fbdae287029b67b3e"
     },
     {
       "id": "code:lib/customer-portal/onboarding-action.ts",
@@ -2274,7 +2288,7 @@
       "resources": [
         "rpc:customer_portal_onboarding_save"
       ],
-      "source_sha256": "5a44f0810fb7fc75796994925b3cd37a12803f0e2d7add7f3887bfbc1eedb003"
+      "source_sha256": "5487f4dd8fbd4f55690ee0f8960f6131e2c7022cf3c2f8dcaca76b77c537752e"
     },
     {
       "id": "code:lib/customer-portal/payment-action.ts",
@@ -2318,7 +2332,7 @@
       "resources": [
         "rpc:customer_portal_profile_save"
       ],
-      "source_sha256": "7a5a8b5d940c85ece56dd160f8727c2f4f555d000105f059cc598c150eb72580"
+      "source_sha256": "40b43129d451822b240f1924b170fc74c5b52386c0bf49f29a4be2628a376730"
     },
     {
       "id": "code:lib/customer-portal/report-download.ts",
@@ -3266,6 +3280,23 @@
       "classification": "table",
       "rls": true,
       "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.email_login_brand_requests",
+      "classification": "table",
+      "rls": true,
+      "force_rls": false,
       "anonymous": false,
       "authenticated": false,
       "anonymous_select": false,
@@ -6420,6 +6451,11 @@
       "source_sha256": "bb4bbdd2e3c117a8112c701f6235505cf8d06efda23c7216e31cb3671cdf70ce"
     },
     {
+      "id": "operation:.github/workflows/staging-tenant-integrations.yml",
+      "classification": "operation",
+      "source_sha256": "da324fe63fbd610a6abcac159b9434669f77031aee6ab825d457386ba6becf27"
+    },
+    {
       "id": "operation:deploy/Caddyfile.example",
       "classification": "operation",
       "source_sha256": "924bc987c3e96aa3c4f906d4351049dc597aa4570355ae2f622168f4397557cf"
@@ -6572,7 +6608,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "b0c209677991e766e65e8a2de5ca9466a1c7a72e92396765b0ed185acaf9a670"
+      "source_sha256": "244eac6569a97e21ad5d224458db28429f6eb8ae1e2e986126dc3e5c21e6cd16"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -6627,7 +6663,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "74c70295579fbccdd9638c142a9b801cd665152ca2f7b85f9bb13a2d8c30ecbe"
+      "source_sha256": "6cc22524f15048c3b67ee33fd5830eb8e465952c863cd76bc945d2cea1c6e187"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -6648,6 +6684,16 @@
       "id": "operation:scripts/run-worker.mjs",
       "classification": "operation",
       "source_sha256": "1b0b2d47ee8d93038ffdab189544922791b4b04aa2f4ff7c1e3a3a65b88f11d0"
+    },
+    {
+      "id": "operation:scripts/staging-customer-payment-acceptance.ts",
+      "classification": "operation",
+      "source_sha256": "b9ce449f3bb0fb7c43db325480ad5fa9270b177d1de967be9d01d78f33141612"
+    },
+    {
+      "id": "operation:scripts/staging-tenant-integrations.ts",
+      "classification": "operation",
+      "source_sha256": "9a9c23e747bcea1f6eba16cb2e292300a16dfa0d9d1c386b721b3ff1f11fd419"
     },
     {
       "id": "operation:scripts/test-release-artifact.mjs",
@@ -7145,6 +7191,15 @@
       "definition_sha256": "68955ec8c504a4274e904561aceb9afd85a2659432ba75d2f7b0d7dda2e7e6d7"
     },
     {
+      "id": "rpc:private.customer_input_address(input jsonb, previous jsonb)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "38d3d6c7550c2cd7e31c5beca93a97277c73ba2cc472bb7312bca0e492a39639"
+    },
+    {
       "id": "rpc:private.customer_invoice_access(t uuid, i uuid)",
       "classification": "private-function",
       "security_definer": true,
@@ -7277,7 +7332,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "ecf69176427702e0bf74e61ec0878230e77ba541cd213797a3891fdf47eabc23"
+      "definition_sha256": "6ad2cd825d993c1b6d2d8fcf3cd17ce770a014ed3f38468a1312cb5b0de14f78"
     },
     {
       "id": "rpc:private.customer_revision_bump(t uuid, a uuid)",
@@ -8816,7 +8871,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "c4f18edbbbfd0a74f58231e6320cecdabf392c5147bff9fdd3467433cd991481"
+      "definition_sha256": "647818e12a30c392b2e6ac2bc4ab8eaf0ab4c7726c59af3eeb83976dfa0842a1"
     },
     {
       "id": "rpc:private.staff_leave_allocate_minutes_by_year(starts_on date, ends_on date, requested_by_year jsonb, total_minutes integer)",
@@ -8861,7 +8916,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "1caca8fda357765ebf0cf683a44bcd2e6da3fc7395ff4ad463cefcfc27d30489"
+      "definition_sha256": "cc955061e7b4ff4d705b0469ccf87d1192e2ab6b2ed5416e8af474568bbcae4c"
     },
     {
       "id": "rpc:private.staff_normalize_profile_payload(value jsonb)",
@@ -10229,7 +10284,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "c4f66651f53da7ef63d45cee4366df1b1b80188de83a8acee9a15c1375be22c5"
+      "definition_sha256": "17c6a36017a2b00aa23895bb6b9aefcccc41e63786f963cb293ad0653046c54b"
     },
     {
       "id": "rpc:public.customer_portal_file_authorize(target_tenant uuid, target_account uuid, kind text, target_id uuid)",
@@ -10292,7 +10347,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "73ed8a72ee79d2fcf040f167f6c87ab6189c6875c043c46fb8b4d7c89a2104ef"
+      "definition_sha256": "cc1f5771981e75fde29156f88b7080d43578128a202c4adfd6bbeb475f3cc981"
     },
     {
       "id": "rpc:public.customer_portal_onboarding_save(target_tenant uuid, target_account uuid, input jsonb, request_id uuid)",
@@ -10301,7 +10356,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "4576456cc02ad58c60a28fe7ea6881a6bae15e15a06bb3b07bf4309a19b54d24"
+      "definition_sha256": "f092c51c033c0ebba640bc2bffc85d5f57adbd5978b6ad255c69030870d23629"
     },
     {
       "id": "rpc:public.customer_portal_payment_prepare(target_tenant uuid, target_account uuid, invoice_ids uuid[], request_id uuid, expected_mode text, expected_profile text)",
@@ -10337,7 +10392,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "fc093d7e6c790a6ecc7d86f5edf4ae327f377b146956760aa46474fa76b72f78"
+      "definition_sha256": "d80e730220c77f098c7e52863b79388dcba4963357cb53a924984af37cd7d12b"
     },
     {
       "id": "rpc:public.customer_portal_report_file(target_tenant uuid, target_account uuid, target_report uuid, asset_id uuid)",
@@ -10436,7 +10491,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "ef25145c12ff66783cecdfaea0757d869f67f9347d8e6fd1046fb47b5ef7b3c8"
+      "definition_sha256": "00e48aacec96ab4cc1b5339fb701f5ab26e5831a1e4b514b723a07d9d9aeb334"
     },
     {
       "id": "rpc:public.dismiss_account_guide(guide_key text)",
@@ -10482,6 +10537,33 @@
       "authenticated": false,
       "service": true,
       "definition_sha256": "cc2f0b0e309f96ad7873fefad7e417cfda6fa0839b4c94423931404cbc0b3a9c"
+    },
+    {
+      "id": "rpc:public.email_auth_login_prepare(target_slug text, recipient text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "7af3522ec3edd074063226be6d746f0d79f3d941f56358a3ac9ad41bfb11775b"
+    },
+    {
+      "id": "rpc:public.email_auth_login_release(target_request uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "221040665748790723a94c74a8ee3b1b75fb8b26bfbac5e085c3a96a742fe0bf"
+    },
+    {
+      "id": "rpc:public.email_auth_login_resolve(actor uuid, target_slug text, hook_id text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "093b3d6aecc5ea30f6cfbd11554750737fa1c176d233c4e5e3c46a199e26115d"
     },
     {
       "id": "rpc:public.email_provider_event(input jsonb)",

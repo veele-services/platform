@@ -1,5 +1,6 @@
 "use server";
 
+import { prepareLoginMailContext, releaseLoginMailContext } from "@/lib/auth/login-mail-context";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -57,10 +58,16 @@ export async function loginOtp(_: OtpState, formData: FormData): Promise<OtpStat
       const emailRedirectTo = tenantSlug
         ? tenantAppUrl(tenantSlug, "/login")
         : new URL("/login", z.url().parse(process.env.APP_URL)).toString();
-      await supabase.auth.signInWithOtp({
-        email: input.data.email,
-        options: { emailRedirectTo, shouldCreateUser: false },
-      });
+      const context = await prepareLoginMailContext(tenantSlug, input.data.email);
+      if (context) {
+        try {
+          const result = await supabase.auth.signInWithOtp({
+            email: input.data.email,
+            options: { emailRedirectTo, shouldCreateUser: false },
+          });
+          if (result.error) await releaseLoginMailContext(context);
+        } catch { await releaseLoginMailContext(context); }
+      }
     } catch {
       // Deliberately indistinguishable from an unknown account or a delivered
       // message. This endpoint must never become an account-enumeration oracle.

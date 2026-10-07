@@ -1,4 +1,6 @@
 "use server";
+import { addressSchema } from "@/lib/addresses/model";
+import { verifiedAddress } from "@/lib/addresses/form";
 
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
@@ -36,6 +38,7 @@ const availabilityPreferencesSchema = z.object({
 }).strict();
 const updateAvailabilitySchema = availabilityPreferencesSchema.extend({ version: z.number().int().nonnegative() }).strict();
 const homeAddressSchema = z.object({
+  address: addressSchema.optional(),
   street: z.string().trim().max(200),
   postalCode: z.string().trim().max(20),
   city: z.string().trim().max(120),
@@ -272,6 +275,8 @@ export async function saveStaffOnboarding(input: SaveStaffOnboardingInput): Prom
     const context = await staffContext();
     const parsed = onboardingSchema.parse(input);
     const { complete, ...payload } = parsed;
+    if(payload.draft.profile.homeAddress.address)payload.draft.profile.homeAddress.address=await verifiedAddress(payload.draft.profile.homeAddress.address, false);
+    if(payload.draft.transport.alternateDepartureAddress?.address)payload.draft.transport.alternateDepartureAddress.address=await verifiedAddress(payload.draft.transport.alternateDepartureAddress.address, false);
     // Empty address objects from the management form are placeholders. Only
     // send an alternate address when the employee actually departs from it.
     if (payload.draft.transport.departureKind !== "alternate") payload.draft.transport.alternateDepartureAddress = null;
@@ -289,6 +294,8 @@ export async function updateStaffProfile(input: UpdateStaffProfileInput): Promis
   try {
     const context = await staffContext();
     const payload = profileSchema.parse(input);
+    if(payload.homeAddress.address)payload.homeAddress.address=await verifiedAddress(payload.homeAddress.address, false);
+    if(payload.transport.alternateDepartureAddress?.address)payload.transport.alternateDepartureAddress.address=await verifiedAddress(payload.transport.alternateDepartureAddress.address, false);
     await reportRpc(await createClient(), "staff_update_profile", { target_tenant: context.tenant.id, input: payload });
     revalidateStaffWorkspaces();
     return { ok: true };

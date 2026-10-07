@@ -26,13 +26,14 @@
     },
     {
       "id": "code:app/api/addresses/route.ts",
-      "surfaceFingerprint": "b0e2f5427861e9b474f3f4b68bf98c1a41e22d630f55d24e072ada81ac7db06c",
-      "status": "controlled",
+      "surfaceFingerprint": "fd4c0cb254742bfa57ee13707bedd26a01862e539aac0c60f53282c7ad43b622",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -48,12 +49,14 @@
     },
     {
       "id": "code:app/api/branding/[tenantId]/email-logo/route.ts",
-      "surfaceFingerprint": "f07cfd56e6070d81f4161417f06e71301fc818caf293f6e210b57d77a1f64ebc",
-      "status": "controlled",
+      "surfaceFingerprint": "dc2aa553ad752686e03300ccaf110577bb703894c85c782c2dbf375367395862",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/otp-activity-verification-2026-10-05.md",
-        "docs/security/branding-management-verification-2026-10-05.md"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -133,15 +136,14 @@
     },
     {
       "id": "code:app/api/email/auth/route.ts",
-      "surfaceFingerprint": "77f16149d70b8fd0dee136b9f29073595ca5c8e936d1e83757cd8cfb1ee9c677",
+      "surfaceFingerprint": "a356cc1aad21d5e67fec1b44c88d3140e367c0f4362edf311eccb1acaac33853",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -1054,28 +1056,26 @@
     },
     {
       "id": "code:app/login/actions.ts",
-      "surfaceFingerprint": "44326f6b918dfbda14245759bce72c8e03bd1f3dd7c8fc19ff7b561b98bd2bb5",
+      "surfaceFingerprint": "4c6279990c478eaea0737bd9bae76dfc621610aee6807710e6558352546996cd",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/auth-mail-diagnostics-2026-10-05.md",
-        "lib/auth/login-actions.test.ts",
-        "lib/email-centre/auth-message.test.ts",
-        "lib/communications/email.test.ts",
-        "tests/e2e/auth-mail-hook.spec.ts",
-        "tests/e2e/universal-otp.spec.ts"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
       "id": "code:app/login/page.tsx",
-      "surfaceFingerprint": "da6cdb31bc3ddad7957fe117ade569e50552d3dbbbd5a87a48df096d82d02118",
+      "surfaceFingerprint": "eb6379ec9ff3ef3e91c08f2b258386137737fc48951d704805894234dd9e9ca7",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -1253,15 +1253,14 @@
     },
     {
       "id": "code:app/staff/actions.ts",
-      "surfaceFingerprint": "a4629fa45f0b712addbb31f59563a507c873293cc5d25482a17702cf6a89731e",
+      "surfaceFingerprint": "981ac0af3072a45c928c42bb57c4e020b50f7950618e42282f4dfe9a011ebb1d",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -1466,12 +1465,14 @@
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "5fe363e6223f66e89b835da43482489b09a120f0b0d727c6d115c65ae961fd3e",
-      "status": "controlled",
+      "surfaceFingerprint": "db21ee0b8f85e29979afc9aa14dc1d35cb34f3b4b5e8467e3ee139dd988b0cfe",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Reviewed unchanged live workspace/RPC actor boundaries and tenant data sources; presentation, real existing commands and fixed account guide keys only. No new privileged client, membership or general customer role.",
-        "tests/e2e/planboard.spec.ts; tests/e2e/staff-popups.spec.ts; tests/e2e/list-consistency.spec.ts; tests/e2e/account-guides.spec.ts; lib/staff/work-order-completion.test.ts."
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -1550,6 +1551,18 @@
         "docs/security/otp-activity-verification-2026-10-05.md",
         "docs/security/branding-management-verification-2026-10-05.md",
         "docs/security/session-loading-verification-2026-10-06.md"
+      ]
+    },
+    {
+      "id": "code:lib/auth/login-mail-context.ts",
+      "surfaceFingerprint": "d6ade6ede88b9eaba7113e3ad34bb1ab7de170dbb23f3d234fda8cc49055ae6a",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -1664,20 +1677,26 @@
     },
     {
       "id": "code:lib/customer-portal/object-action.ts",
-      "surfaceFingerprint": "da5cc01536c150f609dec2d8bd2be6d3c5ea5a7f6472d517fc060cbc6ceae8b1",
-      "status": "controlled",
+      "surfaceFingerprint": "a3f21fd50aa643d6ff42679a1da7a043eca0e666c5bdae2a693fc320d027c143",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
       "id": "code:lib/customer-portal/onboarding-action.ts",
-      "surfaceFingerprint": "4188a378c4866c743612a87912d2f6af6f4d65d21165018b1f0967c956093864",
-      "status": "controlled",
+      "surfaceFingerprint": "ccff4085ccb154ed9bbacfdb2c995f137554c97588c145222fe335d4d85f1713",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -1700,11 +1719,14 @@
     },
     {
       "id": "code:lib/customer-portal/profile-action.ts",
-      "surfaceFingerprint": "265c545355223365d73a536b3e250193a48c9fcd1cefd77caaf747144ee06f78",
-      "status": "controlled",
+      "surfaceFingerprint": "d3aa6ac1daa9cc57095d8c48380139efe27bca1d2d96655defbf9169adf21712",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -2307,6 +2329,18 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "db:private.email_login_brand_requests",
+      "surfaceFingerprint": "a214ca3438a4d646a8669d9dc918f0135618ba77be81ae95c05799a84a83ba89",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -4422,6 +4456,18 @@
       ]
     },
     {
+      "id": "operation:.github/workflows/staging-tenant-integrations.yml",
+      "surfaceFingerprint": "f02ebc9bec19c4608eac629be8a161fa35dbf88b5233898e4c75462184d9adf1",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
+      ]
+    },
+    {
       "id": "operation:deploy/Caddyfile.example",
       "surfaceFingerprint": "7800a093fdbb98c151c2126f4b2ee9f2a04b87207e87d7e571e093a19d818ce1",
       "status": "controlled",
@@ -4735,12 +4781,14 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "0502da51ea3a5cebddf39ec5d5ef54852b519f33e4d61477224f75b1410ac894",
-      "status": "controlled",
+      "surfaceFingerprint": "8de3668b2868c004ba84ba3325d6e6256d106565829e16ffc6581bf73445c61e",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/auth-mail-diagnostics-2026-10-05.md",
-        "lib/operations/auth-mail-diagnostic.test.ts",
-        "lib/operations/auth-mail-context-diagnostic.test.ts"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -4857,11 +4905,14 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "fd24435ed94445a5821ef33c7c9cb3a45b7e2bb95f90b63c753cb810d00e0306",
+      "surfaceFingerprint": "4d4a06e62f878fabc0662e16934c7f3e505fef87c120a3b18a6cf2f8d6529759",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-details-verification-2026-10-07.md",
-        "scripts/verify-local-migration-manifest.ts: clean local replay of 126 migrations; previous 125 statement hashes unchanged"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -4906,6 +4957,26 @@
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
         "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:scripts/staging-customer-payment-acceptance.ts",
+      "surfaceFingerprint": "7b5c340bd6d1c9d42a22910b4346dd602c6f11ee8e34a5aa1da63a09fc07631d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md"
+      ]
+    },
+    {
+      "id": "operation:scripts/staging-tenant-integrations.ts",
+      "surfaceFingerprint": "4c4a9e8def2796fc191be4cda4cebf4c679f287f973cea954db0ed95efff9079",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -5556,6 +5627,18 @@
       ]
     },
     {
+      "id": "rpc:private.customer_input_address(input jsonb, previous jsonb)",
+      "surfaceFingerprint": "458e5a61945a9f218d61acc429a403143ed2d66c2713c37e9752f1691d12bf9d",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
+      ]
+    },
+    {
       "id": "rpc:private.customer_invoice_access(t uuid, i uuid)",
       "surfaceFingerprint": "2fc54998eecaba929d30b8b0b3c3e128872ae58c6d572ace65bd2fce30304bb9",
       "status": "controlled",
@@ -5704,11 +5787,14 @@
     },
     {
       "id": "rpc:private.customer_portal_profile(t uuid, a uuid)",
-      "surfaceFingerprint": "215f7d5d2d2a3d40ad88f18f1ea5871727b4c881f372d21a9cf533d55a4f01ab",
-      "status": "controlled",
+      "surfaceFingerprint": "ee854153f75c516cbf8150f3e0e209e11751039df9be03ea09ab40adaa805537",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -7585,14 +7671,14 @@
     },
     {
       "id": "rpc:private.staff_home_address_complete(value jsonb)",
-      "surfaceFingerprint": "326792446dda14d9b47ffa87beb052ddb913007d188fe0f39ba1b7ed63b2f8e5",
-      "status": "controlled",
+      "surfaceFingerprint": "e955315d696ac80324ec6143ee48e11a74d139b8fba9f8a46b1cd58bb98e5ee2",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-security-catalog.mjs",
-        "tests/e2e/fieldgrid.spec.ts",
-        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -7641,14 +7727,14 @@
     },
     {
       "id": "rpc:private.staff_normalize_address(value jsonb)",
-      "surfaceFingerprint": "e22c35e0c1926549b06eb9a20cb581815d66363c3650a3cbb1157bacb58baf83",
-      "status": "controlled",
+      "surfaceFingerprint": "f0802a9aacf9e052bd29ba5fb4bfd2ae9c140feb9b764cabecc54b22a21c3f7c",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-security-catalog.mjs",
-        "tests/e2e/fieldgrid.spec.ts",
-        "docs/implementation/staff-personnel-app-traceability.md#onboarding"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -9301,11 +9387,14 @@
     },
     {
       "id": "rpc:public.customer_portal_draft(target_tenant uuid, target_account uuid)",
-      "surfaceFingerprint": "a792a2acdfb57daf92c1815d27cf43817f86896522bf7636c4009a16e1dc0d4b",
-      "status": "controlled",
+      "surfaceFingerprint": "47517719d5a1dd3e7b04d234df17f59782420e0e4056c457faff730777a7c00a",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -9366,20 +9455,26 @@
     },
     {
       "id": "rpc:public.customer_portal_object_save(target_tenant uuid, target_account uuid, expected_account_version bigint, input jsonb, request_id uuid)",
-      "surfaceFingerprint": "77fbe64302084b0fea475850ea8572bb00f81885b471333bd314944b9a372323",
-      "status": "controlled",
+      "surfaceFingerprint": "515c02367b60dc7f308bebe0b0f4ff4174e418e11c792fa7c67b3e9e38a6c958",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
       "id": "rpc:public.customer_portal_onboarding_save(target_tenant uuid, target_account uuid, input jsonb, request_id uuid)",
-      "surfaceFingerprint": "68c00aaa7f1eda982e278785e650b89b33cd6a7a108c92f51c9286ad6ffbb728",
-      "status": "controlled",
+      "surfaceFingerprint": "6bb3e643bd78ba262527c6e72a201cf72b90121ccc81b2110cf4130651f0309b",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -9411,11 +9506,14 @@
     },
     {
       "id": "rpc:public.customer_portal_profile_save(target_tenant uuid, target_account uuid, expected_account_version bigint, expected_customer_version bigint, expected_contact_version bigint, input jsonb, request_id uuid)",
-      "surfaceFingerprint": "f48a2179ad7ab6edfe5b571c275b1bb8b1eccdffe67358c6432ab269e0d8d448",
-      "status": "controlled",
+      "surfaceFingerprint": "b881af32573e8740ffc0e780478051c8acff9cce5be02dfd07fae486f851a922",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -9511,15 +9609,14 @@
     },
     {
       "id": "rpc:public.customer_portal_workspace(target_tenant uuid, target_account uuid)",
-      "surfaceFingerprint": "5870003834a3695c76136ac532e0dc37532cc77c0624ef2c7a106bfcec8c8cd4",
-      "status": "controlled",
+      "surfaceFingerprint": "7fb891707bad7086545570df2614ece6eb737bac3f26952390cffcd48ce64661",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md",
-        "docs/security/branding-management-verification-2026-10-05.md",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-customer-payments.mjs",
-        "scripts/test-customer-activity.mjs"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {
@@ -9573,6 +9670,42 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:public.email_auth_login_prepare(target_slug text, recipient text)",
+      "surfaceFingerprint": "05ed88501655893408f49777d686b1c9fd80e2bcb5813616b388271e1b28d104",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.email_auth_login_release(target_request uuid)",
+      "surfaceFingerprint": "1bb4266078928cca1ff7997163771d28d21dc12793bbb33260996990079d84cb",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.email_auth_login_resolve(actor uuid, target_slug text, hook_id text)",
+      "surfaceFingerprint": "544c28d9cca47a760063bdc7fab2ac12e907126a979b137630ff9be07a9f01c3",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "app/api/addresses/route.test.ts",
+        "lib/addresses/form.test.ts",
+        "scripts/test-customer-portal.mjs",
+        "tests/e2e/login-branding.spec.ts"
       ]
     },
     {

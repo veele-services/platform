@@ -502,9 +502,10 @@ test("nieuwe medewerker hervat en voltooit de volledige personeels-onboarding", 
   await page.reload();
   await expect(page.getByRole("heading", { name: "Je profiel" })).toBeVisible();
   await onboarding.getByLabel("Mobiel nummer *", { exact: true }).fill("0612345678");
-  await onboarding.getByLabel("Straat en huisnummer", { exact: true }).fill("Testlaan 12");
+  await onboarding.getByLabel("Straatnaam", { exact: true }).fill("Testlaan");
+  await onboarding.getByLabel("Huisnummer", { exact: true }).fill("12");
   await onboarding.getByLabel("Postcode", { exact: true }).fill("1234 AB");
-  await onboarding.getByLabel("Plaats", { exact: true }).fill("Utrecht");
+  await onboarding.getByLabel("Woonplaats", { exact: true }).fill("Utrecht");
   await page.setViewportSize({ width: 1024, height: 900 });
   await screenshot("onboarding-profile-desktop");
   await page.setViewportSize({ width: 390, height: 844 });

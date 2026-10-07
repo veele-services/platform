@@ -55,11 +55,27 @@ test("customer portal has explicit bootstrap identity and independent exact obje
   await db.query("insert into public.object_records(tenant_id,object_id,kind,title,body,state,instruction_type,starts_at,customer_visible,created_by,updated_by) values($1,$2,'instruction','Fictitious public instruction','FICTITIOUS visible instruction','active','fixed',now(),true,$3,$3),($1,$2,'instruction','Hidden instruction','INTERNAL INSTRUCTION CANARY','active','fixed',now(),false,$3,$3)",[tenant,object,manager]);
   await db.query("insert into public.personnel(id,tenant_id,user_id,full_name) values($1,$2,$3,'INTERNAL EMPLOYEE CANARY')",[randomUUID(),tenant,manager]);
   await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at,published_at,planning_state,created_by) values($1,$2,$3,$4,'FICTITIOUS-PORTAL','Onderhoud','released',now(),now()+interval '1 hour',now(),now()+interval '1 hour',now(),'final',$5)",[order,tenant,customer,object,manager]);
+  await t.test("OTP branding uses only a live authorized server request, survives a platform redirect and prevents cross-tenant races",async()=>{
+   const slug=`portal-${tenant}`,email=`${alice}@customer-portal-fixture.invalid`;
+   const prepare=(target=slug)=>call("select public.email_auth_login_prepare($1,$2) id",[target,email],manager,"service_role");
+   await deny(call("select public.email_auth_login_prepare($1,$2)",[slug,email]));
+   await deny(prepare(`portal-${foreignTenant}`));
+   const id=(await prepare())[0].id;assert.ok(id);assert.equal((await prepare())[0].id,null);
+   const resolve=(target=null,hook="fictitious-hook")=>call("select public.email_auth_login_resolve($1,$2,$3) slug",[alice,target,hook],manager,"service_role");
+   assert.equal((await resolve())[0].slug,slug);assert.equal((await resolve())[0].slug,slug);
+   await deny(resolve(`portal-${foreignTenant}`));await deny(resolve(null,"other-hook"));
+   const context=(await call("select public.email_auth_context($1,$2,$3,'magiclink') data",[slug,alice,email],manager,"service_role"))[0].data;
+   assert.equal(context.tenant_id,tenant);assert.equal(context.company,"FICTITIOUS portal supplier");
+   await db.query("update public.customer_contacts set active=false where id=$1",[contact]);
+   await deny(prepare());await db.query("update public.customer_contacts set active=true where id=$1",[contact]);
+   const platform=(await prepare(null))[0].id;assert.ok(platform);assert.equal((await resolve(null,"platform-hook"))[0].slug,null);
+   await deny(call("select * from private.email_login_brand_requests"));
+  });
   await t.test("workspace allowlist excludes other customers, unbound objects, vault capability and internal identity fields",async()=>{
    const data=await workspace();assert.deepEqual(data.objects.map(o=>o.id),[object]);assert.deepEqual(data.visits.map(v=>v.id),[order]);
    assert.equal(data.profile.fullName,"FICTITIOUS Alice");assert.equal(data.objects[0].instructions[0].author,"FICTITIOUS portal supplier");
    const serialized=JSON.stringify(data);
-   for(const forbidden of ["FOREIGN","UNBOUND OBJECT CANARY","INTERNAL","PRIVATE VAULT CANARY",manager,"manageSecrets","manage_secrets","created_by","owner_user_id","storage_path","review_note","needsReview","needs_review","response"])assert.equal(serialized.includes(forbidden),false,`Customer DTO excludes ${forbidden}`);
+   for(const forbidden of ["FOREIGN","UNBOUND OBJECT CANARY","INTERNAL","PRIVATE VAULT CANARY",manager,"manageSecrets","manage_secrets","created_by","owner_user_id","storage_path","review_note","needsReview","response"])assert.equal(serialized.includes(forbidden),false,`Customer DTO excludes ${forbidden}`);
    await deny(workspace(otherAccount));await deny(workspace(account,foreignTenant));await deny(workspace(account,tenant,bob));
    await deny(call("select public.customer_portal_workspace($1,$2)",[tenant,account],alice,"anon"));
   });
@@ -186,6 +202,23 @@ test("customer portal has explicit bootstrap identity and independent exact obje
    assert.equal((await db.query("select full_name from public.customer_contacts where id=$1",[contactId])).rows[0].full_name,input.contact,"Shared CRM contact is not silently rewritten");
    await db.query("update public.object_customer_bindings set active=false where tenant_id=$1 and object_id=$2 and user_id=$3",[tenant,site.id,alice]);await deny(save());
   });
+  await t.test("structured customer addresses persist parts and coordinates, survive retries, and clear old locations on manual change",async()=>{
+   const before=await workspace();const site=before.objects.find(x=>x.id===object);
+   const address={street_name:"Fictieve Straat",house_number:"42",house_letter:"A",house_addition:"bis",postal_code:"1234 AB",city:"Teststad",country:"NL",street:"Fictieve Straat 42A bis",formatted:"Fictieve Straat 42A bis, 1234 AB Teststad",source:"pdok",source_id:randomUUID(),bag_id:"1234567890123456",latitude:52.1,longitude:4.4,located_at:new Date().toISOString(),status:"confirmed"};
+   const input={id:object,version:site.version,name:site.name,type:site.type,size:site.size,street:address.street,postalCode:address.postal_code,city:address.city,contact:site.contact||"Fictieve Contactpersoon",phone:site.phone||"0301234567",contactVersion:site.contactVersion,contactRecordVersion:site.contactRecordVersion,instruction:"",address};
+   const key=randomUUID(),save=(value=input,id=key,version=before.account.version)=>call("select public.customer_portal_object_save($1,$2,$3,$4,$5) data",[tenant,account,version,value,id]).then(r=>r[0].data);
+   const result=await save();assert.deepEqual(await save({...input,address:{...address,located_at:new Date(Date.now()+1000).toISOString()}}),result);
+   const row=(await db.query("select address,latitude,longitude from public.objects where id=$1",[object])).rows[0];
+   assert.equal(Number(row.latitude),52.1);assert.equal(Number(row.longitude),4.4);assert.equal(row.address.house_number,"42");assert.equal(row.address.house_letter,"A");assert.equal(row.address.house_addition,"bis");
+   const staff=(await db.query("select private.staff_normalize_address($1::jsonb) address",[{street:address.street,postalCode:address.postal_code,city:address.city,country:address.country,address}])).rows[0].address;
+   assert.equal(staff.latitude,address.latitude);assert.equal(staff.longitude,address.longitude);assert.equal(staff.house_number,"42");
+   const repeated=(await db.query("select private.staff_normalize_address($1::jsonb) address,private.staff_home_address_complete($1::jsonb) complete",[staff])).rows[0];assert.equal(repeated.complete,true);assert.deepEqual(repeated.address,staff);
+   const current=await workspace(),changed=current.objects.find(x=>x.id===object);assert.equal(changed.address.source_id,address.source_id);
+   await assert.rejects(save({...input,version:changed.version,address:{...address,city:"Wrong city"}},randomUUID(),current.account.version),error=>error.code==="23514");
+   const manual={...input,version:changed.version,contactVersion:changed.contactVersion,contactRecordVersion:changed.contactRecordVersion,street:"Other street 7"};delete manual.address;
+   await save(manual,randomUUID(),current.account.version);
+   const updated=(await db.query("select address,latitude,longitude from public.objects where id=$1",[object])).rows[0];assert.equal(updated.latitude,null);assert.equal(updated.longitude,null);assert.equal(updated.address.status,"needs_review");
+  });
   await t.test("inactive contact closes new and legacy customer reads",async()=>{
    await db.query("update public.customer_contacts set active=false where id=$1",[contact]);
    try{await deny(workspace());assert.deepEqual((await call("select public.customer_object_visits($1) data",[tenant]))[0].data,[],"An inactive contact also closes legacy visit RPCs");}
@@ -213,7 +246,7 @@ test("customer portal has explicit bootstrap identity and independent exact obje
    await db.query("update public.object_visit_requests set review_note='INTERNAL REVIEW CANARY',owner_user_id=$1,response='FICTITIOUS public response' where id=$2",[manager,own]);
    const detail=(target=account,user=alice)=>call("select public.customer_portal_visit($1,$2,$3) data",[tenant,target,order],user).then(rows=>rows[0].data);
    const data=await detail();assert.equal(data.visit.id,order);assert.equal(data.visit.objectId,object);assert.deepEqual(data.requests.map(r=>r.id),[own]);assert.equal(data.requests[0].body,input.body);assert.equal(data.requests[0].response,"FICTITIOUS public response");assert.equal(data.requests[0].author,(await workspace()).profile.fullName);
-   for(const forbidden of ["INTERNAL","PRIVATE VAULT",manager,"userId","created_by","owner_user_id","review_note","needs_review","storage_path"])assert.equal(JSON.stringify(data).includes(forbidden),false);
+   for(const forbidden of ["INTERNAL","PRIVATE VAULT",manager,"userId","created_by","owner_user_id","review_note","storage_path"])assert.equal(JSON.stringify(data).includes(forbidden),false);
    await deny(detail(otherAccount));await deny(detail(account,bob));
    await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,array['management']::public.app_role[],'active')",[tenant,alice]);
    try{assert.deepEqual(await detail(),data,"A management role does not widen this customer projection");}finally{await db.query("delete from public.tenant_memberships where tenant_id=$1 and user_id=$2",[tenant,alice]);}

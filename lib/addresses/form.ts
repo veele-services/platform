@@ -48,3 +48,10 @@ export async function addressFromForm(
   if (!a.street_name && !a.postal_code && !a.city) a.status = "missing";
   return a;
 }
+
+/** JSON forms use the exact same fresh provider check as backoffice forms. */
+export async function verifiedAddress(value: unknown, required = true): Promise<Address> {
+  const form = new FormData();
+  form.set("addressPayload", JSON.stringify(value));
+  return addressFromForm(form, "addressPayload", required);
+}
