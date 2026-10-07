@@ -74,7 +74,7 @@ mockprovider; de staging-DB-proef draait volledig binnen een rollbacktransactie.
 ## Reviews en configuratie
 
 Beide aangeleverde Trustindex-ID’s blijven behouden: footerbadge op alle
-pagina’s en recensies op Home/Over ons. Reviewinhoud, scores, Google-attributie
+pagina’s en recensies op Home/Over ons. Widgetfonts gebruiken eveneens de provider-CDN. Reviewinhoud, scores, Google-attributie
 en bronbediening blijven van de provider. Alleen publieke marketing krijgt de
 benodigde `cdn.trustindex.io`, `de-proxy.trustindex.io` en Google-avatarbronnen
 in CSP. Inline scripts krijgen de door Proxy gegenereerde nonce.

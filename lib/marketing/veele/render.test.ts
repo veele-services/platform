@@ -24,6 +24,7 @@ describe("isolated marketing delivery",()=>{
   });
   it("external review style/image/connect sources are scoped to public marketing",()=>{
     expect(createContentSecurityPolicy(false,true,"https://fixture.supabase.co",true).value).toContain("https://cdn.trustindex.io");
+    expect(createContentSecurityPolicy(false,true,"https://fixture.supabase.co",true).value).toContain("font-src 'self' data: https://cdn.trustindex.io");
     expect(createContentSecurityPolicy(false,true,"https://fixture.supabase.co").value).not.toContain("trustindex");
   });
 });

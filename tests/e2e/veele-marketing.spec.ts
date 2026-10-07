@@ -30,6 +30,7 @@ test.afterAll(async()=>{
 
 test("all supplied routes, current-origin SEO, 404 and portal links",async({page})=>{
  test.setTimeout(120000);
+ const missingAssets:string[]=[];page.on("response",r=>{if(r.url().includes("/assets/")&&r.status()>=400)missingAssets.push(new URL(r.url()).pathname);});
  for(const path of Object.keys(pages).filter(p=>p!=="404")){
   const response=await page.goto(origin+path);expect(response!.status()).toBe(200);
   await expect(page.locator('h1')).toHaveCount(1);await expect(page.locator('meta[name=robots]')).toHaveAttribute("content","noindex,follow");
@@ -37,6 +38,7 @@ test("all supplied routes, current-origin SEO, 404 and portal links",async({page
   expect(await page.locator("img").evaluateAll(images=>images.every(img=>!(img as HTMLImageElement).complete||(img as HTMLImageElement).naturalWidth>0))).toBe(true);
   expect(await page.locator('footer a[href="/login?next=%2Fklant"]').count()).toBe(1);
  }
+ expect(missingAssets).toEqual([]);
  expect((await page.goto(origin+"/not-present/"))!.status()).toBe(404);
  for(const next of["app","staff","klant"]){expect((await page.goto(`${origin}/login?next=%2F${next}`))!.status()).toBe(200);await expect(page.locator("form")).toBeVisible();await expect(page.locator("#request-form")).toHaveCount(0);}
 });

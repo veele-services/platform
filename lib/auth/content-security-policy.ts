@@ -30,7 +30,7 @@ export function createContentSecurityPolicy(
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${development ? " 'unsafe-eval'" : ""}`,
     `style-src 'self' 'unsafe-inline'${publicMarketing ? " https://cdn.trustindex.io" : ""}`,
-    "font-src 'self' data:",
+    `font-src 'self' data:${publicMarketing ? " https://cdn.trustindex.io" : ""}`,
     `img-src 'self' data: blob: https://tiles.openfreemap.org${publicMarketing ? " https://cdn.trustindex.io https://de-proxy.trustindex.io https://*.googleusercontent.com" : ""}`,
     `connect-src 'self' https://tiles.openfreemap.org${publicMarketing ? " https://cdn.trustindex.io https://de-proxy.trustindex.io" : ""}${supabaseSources.length ? ` ${supabaseSources.join(" ")}` : ""}`,
     "worker-src 'self' blob:",
