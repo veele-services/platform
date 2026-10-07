@@ -206,8 +206,11 @@ koppelt. Bestaande klant-/factuurrechten en betaalverwerking blijven leidend.
 3. Hosted prepare controleert config/history, bouwt, maakt en valideert een backup,
    past voorwaartse migraties toe en versleutelt/attesteert de handoff. Geen
    productiecredentials op de VPS-runner. Brokerverificatie vindt root-only plaats.
-4. Controleer de exacte productiehealth na activatie. Start als operator de
-   `fieldgrid-worker@production.timer`. De workeracceptatie observeert een verse
+4. Controleer de exacte productiehealth na activatie. Maak daarna de webservice
+   rebootbestendig met `systemctl enable fieldgrid@production.service` en start
+   de worker als operator met `systemctl enable --now fieldgrid-worker@production.timer`.
+   Controleer voor beide units `systemctl is-enabled` en `systemctl is-active`.
+   De workeracceptatie observeert een verse
    succesvolle batch ná webactivatie; zij installeert/start geen hostservices.
 5. Voer **Bootstrap production platform administrator** op branch `production`
    uit. De workflow vereist eerst de gezonde exacte release, maakt één
