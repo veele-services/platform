@@ -43,6 +43,23 @@
 - De adresinspectie meldt expliciet wanneer verouderde coördinaten nog niet
   zijn onderzocht. Een adres dat tijdens herstel verandert, telt als conflict
   en resterend controlepunt; het wordt niet als hersteld geboekt.
+  Veilige redenaantallen onderscheiden onvolledigheid, niet ondersteunde landen,
+  ontbrekende of ambigue matches, providerfouten en schrijffouten. Dezelfde
+  inspectie maakt een ontbrekend tenantlogo en de gebruikte fallback expliciet.
+- Echte PDOK-search en -lookup met openbare stationsadressen bevestigden
+  `Den Haag` als alias voor de officiële BAG-woonplaats `'s-Gravenhage`.
+  `lib/addresses/reconciliation.test.ts` controleert die expliciete alias
+  met exact volledige straat, postcode, land en afzonderlijke huisnummerdelen.
+  Andere straten, huisnummers, toevoegingen, postcodes en plaatsen blijven
+  geweigerd; legacy straattekst wordt niet geraden of onnauwkeurig vergeleken.
+- De bevestigde testbetaling maakt normaal ook een klantmail aan. Vóór
+  factuur- en checkoutcreatie zet alleen het nieuw aangemaakte fictieve
+  account zijn bestaande persoonlijke klantmailvoorkeur op `email=false`.
+  De effectieve `customer.payment_received`-policy moet e-mail weigeren;
+  anders stopt acceptatie. Een lokale rollbackcontrole bewees standaard
+  e-mailtoestemming, deze accountgebonden weigering, behouden in-appmeldingen
+  en ongewijzigde toestemming voor een tweede account. De acht bestaande
+  klantbetalingstests, waaronder uitgestelde policy-intrekking, slaagden.
 
 Lokale regressies: 1.475 unitchecks, 428 database-integratiechecks en 398
 pgTAP-checks en 14 desktop/mobiel-browsertests slaagden. De complete CI en de afzonderlijke echte staging-Mollie

@@ -4,6 +4,7 @@ import { Client } from "pg";
 import { stagingDatabaseUrl } from "../lib/env/staging-database";
 import { normalizeAddress, type Address } from "../lib/addresses/model";
 import { searchAddresses, lookupAddress } from "../lib/addresses/pdok";
+import { matchesReconciliationAddress } from "../lib/addresses/reconciliation";
 
 const slug = process.env.TARGET_TENANT_SLUG;
 const operation = process.env.INTEGRATION_OPERATION;
@@ -36,40 +37,47 @@ async function main() {
       await db.query("insert into public.tenant_provider_connections(tenant_id,provider,mode,secret_reference,public_config,active,verified_at) values($1,'mollie','test','MOLLIE_API_KEY',jsonb_build_object('profile_id',$2::text),true,clock_timestamp()) on conflict(tenant_id,provider) do update set mode='test',secret_reference='MOLLIE_API_KEY',public_config=excluded.public_config,active=true,verified_at=excluded.verified_at,updated_at=clock_timestamp()", [tenant.id, profile.id]);
       console.log("Expliciete tenantverbinding met het geverifieerde Mollie-testprofiel opgeslagen.");
     }
+    const branding = (await db.query("select logo_path is not null and btrim(logo_path)<>'' has_logo,coalesce(starts_with(logo_path,tenant_id::text||'/'),false) scoped from public.tenant_branding where tenant_id=$1", [tenant.id])).rows[0];
+    const hasLogo = Boolean(branding?.has_logo);
+    console.log(JSON.stringify({ check: "tenant_branding", configured: Boolean(branding), hasLogo, scoped: Boolean(branding?.scoped) }));
     const logo = await fetch(`${origin}/api/branding/${tenant.id}/email-logo`, { signal: AbortSignal.timeout(10000) });
-    console.log(JSON.stringify({ check: "public_email_logo", available: logo.ok, supportedMime: /image\/(png|jpeg)/.test(logo.headers.get("content-type") ?? "") }));
+    console.log(JSON.stringify({ check: "public_email_logo", configured: hasLogo, fallbackUsed: !hasLogo, httpStatus: logo.status, available: logo.ok, supportedMime: /^image\/(png|jpeg)(?:;|$)/i.test(logo.headers.get("content-type") ?? "") }));
     const specs = [["objects","address"],["customers","billing_address"],["customers","visit_address"],["personnel","home_address"],["personnel","alternate_departure_address"],["travel_depots","address"]] as const;
-    const clean = (v: string) => v.normalize("NFKC").trim().toLowerCase().replace(/\s+/g," ");
-    const matches = (a: Address, b: Address) => clean(a.street) === clean(b.street) && clean(a.postal_code).replaceAll(" ","") === clean(b.postal_code).replaceAll(" ","") && clean(a.city) === clean(b.city) && a.country === b.country;
     for (const [table,column] of specs) {
       const rows = (await db.query(`select id,${column} address from public.${table} where tenant_id=$1 and coalesce(${column},'{}')<>'{}'`, [tenant.id])).rows;
       let missing = 0, stale = 0, repaired = 0, review = 0, conflicts = 0;
+      const reasons = { incomplete: 0, unsupportedCountry: 0, noExactMatch: 0, ambiguous: 0, providerFailure: 0, conflict: 0, writeFailure: 0 };
       for (const row of rows) {
         const current = normalizeAddress(row.address);
-        if (!current.street || !current.postal_code || !current.city || current.country !== "NL") { review++; continue; }
+        if (current.country !== "NL") { reasons.unsupportedCountry++; review++; continue; }
+        if (!current.street || !current.postal_code || !current.city) { reasons.incomplete++; review++; continue; }
         if (current.status !== "confirmed" || current.latitude === null || current.longitude === null || !current.located_at) missing++;
         if (operation !== "repair") continue;
+        let phase: "provider" | "write" = "provider";
         try {
           let fresh: Address | null = null;
+          let exactCount = 0;
           if (current.source === "pdok" && current.source_id) {
-            const found = await lookupAddress(current.source_id); if (matches(current,found)) fresh = found;
+            const found = await lookupAddress(current.source_id); if (matchesReconciliationAddress(current,found)) { fresh = found; exactCount = 1; }
           } else {
             const options = await searchAddresses(`${current.street} ${current.postal_code} ${current.city}`);
             const exact: Address[] = [];
-            for (const option of options) { const found = await lookupAddress(option.id); if (matches(current,found)) exact.push(found); }
+            for (const option of options) { const found = await lookupAddress(option.id); if (matchesReconciliationAddress(current,found)) exact.push(found); }
+            exactCount = exact.length;
             if (exact.length === 1) fresh = exact[0];
           }
-          if (!fresh) { review++; continue; }
+          if (!fresh) { if (exactCount > 1) reasons.ambiguous++; else reasons.noExactMatch++; review++; continue; }
           if (current.status === "confirmed" && (current.latitude !== fresh.latitude || current.longitude !== fresh.longitude)) stale++;
           if (current.status !== "confirmed" || !current.located_at || current.latitude !== fresh.latitude || current.longitude !== fresh.longitude || current.source_id !== fresh.source_id) {
+            phase = "write";
             const changed = await db.query(`update public.${table} set ${column}=$1 where tenant_id=$2 and id=$3 and ${column}=$4`, [fresh,tenant.id,row.id,row.address]);
             if (changed.rowCount === 1) repaired++;
-            else { conflicts++; review++; }
+            else { conflicts++; reasons.conflict++; review++; }
           }
-        } catch { review++; }
+        } catch { if (phase === "provider") reasons.providerFailure++; else reasons.writeFailure++; review++; }
       }
       console.log(JSON.stringify({ check: "addresses", table, column, count: rows.length, missing,
-        ...(operation === "repair" ? { stale } : { stale_not_checked: true }), repaired, conflicts, needsReview: review }));
+        ...(operation === "repair" ? { stale } : { stale_not_checked: true }), repaired, conflicts, needsReview: review, ...reasons }));
     }
   } finally { await db.end(); }
 }

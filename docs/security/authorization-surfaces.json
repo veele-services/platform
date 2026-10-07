@@ -6688,12 +6688,12 @@
     {
       "id": "operation:scripts/staging-customer-payment-acceptance.ts",
       "classification": "operation",
-      "source_sha256": "43907aae584b252145404ee6463bd333e44368f85da8fd1658bff69ac315e4c8"
+      "source_sha256": "b13df767bdafd140baa7f909423ce5331f09791b14d79900916fd67b7b839975"
     },
     {
       "id": "operation:scripts/staging-tenant-integrations.ts",
       "classification": "operation",
-      "source_sha256": "9df14bd39f826b03ccf7804aa17197c022a51854118ad65e5ea322a7d386a514"
+      "source_sha256": "ab817137c9d3420707dde8ed35ec27b313f0261f301ecce8d23ef8e26c9b4c35"
     },
     {
       "id": "operation:scripts/test-release-artifact.mjs",
