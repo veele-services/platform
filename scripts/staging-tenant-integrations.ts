@@ -43,7 +43,7 @@ async function main() {
     const matches = (a: Address, b: Address) => clean(a.street) === clean(b.street) && clean(a.postal_code).replaceAll(" ","") === clean(b.postal_code).replaceAll(" ","") && clean(a.city) === clean(b.city) && a.country === b.country;
     for (const [table,column] of specs) {
       const rows = (await db.query(`select id,${column} address from public.${table} where tenant_id=$1 and coalesce(${column},'{}')<>'{}'`, [tenant.id])).rows;
-      let missing = 0, stale = 0, repaired = 0, review = 0;
+      let missing = 0, stale = 0, repaired = 0, review = 0, conflicts = 0;
       for (const row of rows) {
         const current = normalizeAddress(row.address);
         if (!current.street || !current.postal_code || !current.city || current.country !== "NL") { review++; continue; }
@@ -63,11 +63,13 @@ async function main() {
           if (current.status === "confirmed" && (current.latitude !== fresh.latitude || current.longitude !== fresh.longitude)) stale++;
           if (current.status !== "confirmed" || !current.located_at || current.latitude !== fresh.latitude || current.longitude !== fresh.longitude || current.source_id !== fresh.source_id) {
             const changed = await db.query(`update public.${table} set ${column}=$1 where tenant_id=$2 and id=$3 and ${column}=$4`, [fresh,tenant.id,row.id,row.address]);
-            repaired += changed.rowCount ?? 0;
+            if (changed.rowCount === 1) repaired++;
+            else { conflicts++; review++; }
           }
         } catch { review++; }
       }
-      console.log(JSON.stringify({ check: "addresses", table, column, count: rows.length, missing, stale, repaired, needsReview: review }));
+      console.log(JSON.stringify({ check: "addresses", table, column, count: rows.length, missing,
+        ...(operation === "repair" ? { stale } : { stale_not_checked: true }), repaired, conflicts, needsReview: review }));
     }
   } finally { await db.end(); }
 }

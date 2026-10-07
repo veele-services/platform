@@ -32,6 +32,14 @@
 - `tests/e2e/customer-portal.spec.ts`: eerste object zonder bestaande binding,
   mobiele autocomplete in native dialog, persistente huisnummerdelen en
   coördinaten, vijf breedtes, downloads en intrekken van toegang.
+- Uitnodigingsmails zijn op 390 en 800 px visueel gecontroleerd; de nieuwe
+  voorbeelden behouden de natuurlijke logoverhouding en bevatten uitsluitend
+  een fictieve activatielink. De staging-betaalacceptatie vergelijkt na elke
+  herhaalde webhook de volledige factuurstatus en betaalverdeling, gebruikt
+  normale browsercookies en probeert alle afsluitacties onafhankelijk.
+- De adresinspectie meldt expliciet wanneer verouderde coördinaten nog niet
+  zijn onderzocht. Een adres dat tijdens herstel verandert, telt als conflict
+  en resterend controlepunt; het wordt niet als hersteld geboekt.
 
 Lokale regressies: 1.475 unitchecks, 428 database-integratiechecks en 398
 pgTAP-checks en 14 desktop/mobiel-browsertests slaagden. De complete CI en de afzonderlijke echte staging-Mollie
