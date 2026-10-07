@@ -26,7 +26,7 @@ describe("platformbeheerbootstrap", () => {
     const output = `${result.stdout}${result.stderr}`;
 
     expect(result.status).not.toBe(0);
-    expect(output).toContain("Supabase-URL is niet aantoonbaar het productionproject; verbinding geweigerd.");
+    expect(output).toContain("Supabase-URL is niet aantoonbaar het productieproject; verbinding geweigerd.");
     expect(output).not.toContain("Top-level await");
     expect(output).not.toContain("test-password-only");
     expect(output).not.toContain("local-test-key");
