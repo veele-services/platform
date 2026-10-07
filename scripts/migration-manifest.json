@@ -646,6 +646,11 @@
       "version": "20261007033000",
       "name": "staff_verified_addresses",
       "sha256": "e0c70b442c142f7ec6d0c2d4bf70ad1fa159ecd9e549357c96185a3b8d4dd8fd"
+    },
+    {
+      "version": "20261007041000",
+      "name": "veele_website_intake",
+      "sha256": "92a40d976a98ac387c35dd005d44d3436f766835f6244269724b111f38f9f2a1"
     }
   ]
 }

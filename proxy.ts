@@ -7,6 +7,8 @@ import { BROWSER_SESSION_HEADER, isProtectedPage, PROTECTED_PAGE_HEADER } from "
 import { deriveBrowserSessionKey } from "@/lib/auth/session-key";
 import { createContentSecurityPolicy } from "@/lib/auth/content-security-policy";
 import { signedInLoginDestination } from "@/lib/auth/workspace-destination";
+import { publicMarketingPath, VEELE_WEBSITE_SLUG } from "@/lib/marketing/veele/routes";
+import { renderWebsite, websiteSitemap } from "@/lib/marketing/veele/render";
 
 export async function proxy(request: NextRequest) {
   if (isAuthenticatedWorkerRequest({ method: request.method, pathname: request.nextUrl.pathname, search: request.nextUrl.search, host: request.headers.get("host"), authorization: request.headers.get("authorization") }, { DEPLOY_TARGET: process.env.DEPLOY_TARGET, PORT: process.env.PORT, ADMIN_API_SECRET: process.env.ADMIN_API_SECRET })) {
@@ -22,7 +24,7 @@ export async function proxy(request: NextRequest) {
     return new NextResponse("Onbekende Fieldgrid-host", { status: 404, headers: { "cache-control": "no-store" } });
   }
 
-  if (hostContext.kind === "tenant" && process.env.DEPLOY_TARGET !== "local") {
+  if (hostContext.kind === "tenant" && (process.env.DEPLOY_TARGET !== "local" || hostContext.slug === VEELE_WEBSITE_SLUG)) {
     const result = await fetch(
       `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenants?select=id&slug=eq.${encodeURIComponent(hostContext.slug)}&status=eq.active&limit=1`,
       {
@@ -44,7 +46,18 @@ export async function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete(BROWSER_SESSION_HEADER);
-  const contentSecurityPolicy = createContentSecurityPolicy();
+  const publicPath = new URL(request.url).pathname;
+  const marketing = hostContext.kind === "tenant" && hostContext.slug === VEELE_WEBSITE_SLUG && ["GET", "HEAD"].includes(request.method) && publicMarketingPath(publicPath);
+  const path = publicPath;
+  if (marketing && path !== "/" && !path.endsWith("/") && !/\.[^/]+$/.test(path)) {
+    const url = new URL(process.env.APP_URL!); url.hostname = hostContext.hostname; url.pathname = path + "/"; url.search = request.nextUrl.search;
+    return NextResponse.redirect(url, 308);
+  }
+  if (!marketing && path.length > 1 && path.endsWith("/")) {
+    const url = new URL(process.env.APP_URL!); url.hostname = hostContext.hostname; url.pathname = path.replace(/\/+$/, ""); url.search = request.nextUrl.search;
+    return NextResponse.redirect(url, 308);
+  }
+  const contentSecurityPolicy = createContentSecurityPolicy(undefined, undefined, undefined, marketing);
   // Always overwrite incoming presentation headers, including public routes.
   requestHeaders.set("x-nonce", contentSecurityPolicy.nonce);
   requestHeaders.set("content-security-policy", contentSecurityPolicy.value);
@@ -63,6 +76,15 @@ export async function proxy(request: NextRequest) {
     return result;
   };
   let response = nextResponse();
+  if (marketing && hostContext.kind === "tenant") {
+    const originUrl = new URL(process.env.APP_URL!); originUrl.hostname = hostContext.hostname;
+    const origin = originUrl.origin, indexable = process.env.DEPLOY_TARGET === "production";
+    const headers = { "cache-control": "no-store", "content-security-policy": contentSecurityPolicy.value, ...(!indexable ? { "x-robots-tag": "noindex, nofollow" } : {}) };
+    if (publicPath === "/robots.txt") return new NextResponse(`User-agent: *\n${indexable ? "Allow: /" : "Disallow: /"}\nSitemap: ${origin}/sitemap.xml\n`, { headers: { ...headers, "content-type": "text/plain; charset=utf-8" } });
+    if (publicPath === "/sitemap.xml") return new NextResponse(websiteSitemap(origin), { headers: { ...headers, "content-type": "application/xml; charset=utf-8" } });
+    const rendered = renderWebsite(publicPath, origin, contentSecurityPolicy.nonce, indexable);
+    return new NextResponse(request.method === "HEAD" ? null : rendered.html, { status: rendered.status, headers: { ...headers, "content-type": "text/html; charset=utf-8" } });
+  }
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  skipTrailingSlashRedirect: true, // Proxy keeps Frame page slashes and existing application URLs.
   deploymentId: process.env.DEPLOYMENT_VERSION ?? process.env.RELEASE_SHA,
   poweredByHeader: false,
   reactStrictMode: true,

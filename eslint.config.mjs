@@ -6,5 +6,5 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   globalIgnores([".next/**",
-    "public/maplibre/**", "coverage/**", "playwright-report/**", "test-results/**", "design-reference/**"]),
+    "public/maplibre/**", "public/veele-services/**", "websites/**", "coverage/**", "playwright-report/**", "test-results/**", "design-reference/**"]),
 ]);

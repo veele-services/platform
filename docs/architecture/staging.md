@@ -97,6 +97,20 @@ must bind to `127.0.0.1`, not to all interfaces.
 
 ## 4. Routing and tenant resolution
 
+### Public Veele Services website
+
+The active hostname tenant `veele-services` uses its origin for the supplied
+28-route Frame marketing website. `/app`, `/staff`, `/klant`, login and existing
+API/token routes remain on the same origin. Other tenants retain their homepage;
+missing/inactive tenants never fall back to Veele. The supplied HTML/CSS/JS and
+assets ship inside the existing Next.js release, without another process, port,
+Caddy route or Sites deployment. Staging remains noindex. Canonicals and sitemap
+use the verified tenant origin; production hosts are chosen in the production phase.
+The wizard reuses commercial website intake, its prospect step, module checks
+and rate limits. Requests are not booked appointments or work orders. All wishes
+are saved atomically as native values or visible request notes. External review
+sources are allowed only by the public marketing-page content security policy.
+
 | URL | Meaning |
 |---|---|
 | `https://staging.fieldgrid.nl` | Public Fieldgrid staging/platform page; no tenant context |

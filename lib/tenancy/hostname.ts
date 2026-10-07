@@ -28,7 +28,7 @@ export function resolveHostContext(rawHost: string | null, appUrl: string, deplo
     return { kind: "platform", hostname };
   }
 
-  const suffix = `.${platformHostname}`;
+  const suffix = deployTarget === "local" && hostname.endsWith(".localhost") ? ".localhost" : `.${platformHostname}`;
   if (!hostname.endsWith(suffix)) return { kind: "invalid", hostname };
 
   const slug = hostname.slice(0, -suffix.length);

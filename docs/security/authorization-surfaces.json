@@ -433,6 +433,22 @@
       "source_sha256": "9cc6e45fc4c66aba8e3ef7ee1ced7c3d7e807f4d95e327ce90e1a8e4533d8eb5"
     },
     {
+      "id": "code:app/api/veele-website/requests/route.ts",
+      "exports": [
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createAdminClient",
+        "resolveHostContext"
+      ],
+      "resources": [
+        "from:tenants",
+        "rpc:commercial_website_intake"
+      ],
+      "source_sha256": "86e0a0abc04c7c7afcaefc95eb5a5867cacaeed40b02575090e5e2496c1a089f"
+    },
+    {
       "id": "code:app/api/worker/route.ts",
       "exports": [
         "POST"
@@ -3137,7 +3153,7 @@
         "resolveHostContext"
       ],
       "resources": [],
-      "source_sha256": "b4798afd71cc92aa450ad72900c52968ee45da63eac2a110c89638765cf35c2e"
+      "source_sha256": "013f203333d03c6b1124e81a591b4171e1059e3bcb58a630392de34f2cfc5c99"
     },
     {
       "id": "db:private.commercial_commands",
@@ -6428,7 +6444,7 @@
     {
       "id": "operation:.github/workflows/_verify.yml",
       "classification": "operation",
-      "source_sha256": "ef91213e2dd3fece643a43e089b35e3adc1755fb26312359f64d41cf17caa597"
+      "source_sha256": "22bc1cc24c623d2a88217abcfc6fba7d8c9f3f5b0d2369d0e22e554a1bd6a140"
     },
     {
       "id": "operation:.github/workflows/bootstrap-staging-admin.yml",
@@ -6443,7 +6459,7 @@
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
       "classification": "operation",
-      "source_sha256": "2c0292f8296e74b247ec2d505f4d6c746bb7280242dce1386df91aa66f52b448"
+      "source_sha256": "f1098fe8cecbeb0077d94397327430ea6fd7c0f63350e0c8f7914879ddd1de76"
     },
     {
       "id": "operation:.github/workflows/diagnose-auth-mail.yml",
@@ -6543,12 +6559,12 @@
     {
       "id": "operation:next.config.ts",
       "classification": "operation",
-      "source_sha256": "8d88b3ce1dee7652fcdcbbac92d4a8c254470c66080ef45efa62b07f0d808ddb"
+      "source_sha256": "29d9ff79c4ea57910dcdf466d48f12ce4e8f13ede57e1901d3d6a4b98cc0e838"
     },
     {
       "id": "operation:package.json",
       "classification": "operation",
-      "source_sha256": "d5bed18f4c3cdbc8d6d1a74992b4f0a50b453ab5d5ec9e1d4911a3aadbc24855"
+      "source_sha256": "0806d4b721ab013c91df84f032c11c5b1650e86c200702c80bdebe00d6e0f028"
     },
     {
       "id": "operation:patches/braces@3.0.3.patch",
@@ -6591,6 +6607,11 @@
       "source_sha256": "1ee97a08c267d0e9bbffaba86cd7db41df10fa66300937adf0d9ec2406be8426"
     },
     {
+      "id": "operation:scripts/build-veele-marketing.mjs",
+      "classification": "operation",
+      "source_sha256": "0e49cc12ae0da07c71e7ef5740800cfddda5924326191a943af0969d05a7c696"
+    },
+    {
       "id": "operation:scripts/check-authorization-review.mjs",
       "classification": "operation",
       "source_sha256": "694130248859c4654e6c4082660864f3f5d0cd1325ec1c0b01fa853397772d35"
@@ -6613,7 +6634,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "a2f0141bf9bef936810b55c3aa87302ed3878f0b128611031370cacc32df3769"
+      "source_sha256": "aed3242d4315f102ed5b20570e987cd9b720cb9024307294f7fbd56f3bba9ba8"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -6668,7 +6689,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "6cc22524f15048c3b67ee33fd5830eb8e465952c863cd76bc945d2cea1c6e187"
+      "source_sha256": "07441e6759f0e5ffe407f6207bfcfdf22509cbfdf68e043e7291d4f7b594a568"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -6711,6 +6732,11 @@
       "source_sha256": "f3b51382315d689fe33cea4859d88a5141e0ff6d72d886a31733f4dac54d555a"
     },
     {
+      "id": "operation:scripts/test-veele-marketing.mjs",
+      "classification": "operation",
+      "source_sha256": "30c6ad86b2f0d00d32c866daa431611d25c26bc0017cec07fd0ae05937a932ad"
+    },
+    {
       "id": "operation:scripts/verify-healthcheck.mjs",
       "classification": "operation",
       "source_sha256": "022e4501014ad2213100fe4b31583dc985a2f45fd1826e4fdc58eeb3d0016857"
@@ -6729,6 +6755,11 @@
       "id": "operation:scripts/verify-public-auth-redirect.mjs",
       "classification": "operation",
       "source_sha256": "6b08a213d0d4ff586aae1472685e4a17d6cd9707a8ff006e6b4a581099827751"
+    },
+    {
+      "id": "operation:scripts/verify-veele-website.mjs",
+      "classification": "operation",
+      "source_sha256": "47190fc151f75e59c22cccc71d2b77d7b8e68f1e8090af60d642d18a96646d4c"
     },
     {
       "id": "operation:scripts/write-runtime-env.sh",
@@ -7031,7 +7062,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "adc060ac1b6fb1b9e26cc7fda264eff35405b5b20f72af2a2d7b22b734d504cc"
+      "definition_sha256": "2d54c2a9c34e854fffdf6e7662e9235227f1e1148b30513c1b43c51dcde06559"
     },
     {
       "id": "rpc:private.commercial_member(t uuid)",
@@ -7067,7 +7098,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "83fac897a5354cc31885d2d34ff423077e73ab3f0d56b0845f924442681dc67a"
+      "definition_sha256": "6de1edaf66bd2b8e38d5cdfe22e7457d3d41570dd18ac4ef6093ade5c17b2b4f"
     },
     {
       "id": "rpc:private.commercial_snapshot(q quotes)",
@@ -10055,7 +10086,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": true,
-      "definition_sha256": "16b591564ea081b84a4e045eb0691db360d0401a08adcb00e976f35182b7bbeb"
+      "definition_sha256": "1f13f8ac5904f791b12b0fb6f4eb65026503935ec4e2fe8f341668e30d74d572"
     },
     {
       "id": "rpc:public.commercial_quote_mail_claim(target_tenant uuid, target_quote uuid, command_id uuid, reminder boolean)",
@@ -10092,6 +10123,15 @@
       "authenticated": true,
       "service": false,
       "definition_sha256": "535cc01a008d98ff9c27c8a817cc3d8db8ea463740f052b0e82aca60a1f8048c"
+    },
+    {
+      "id": "rpc:public.commercial_website_intake(target_tenant uuid, request_id uuid, input jsonb, additional_notes text, submission_metadata jsonb, client_hash text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "8360b29bc33ba1499ed1b41e0e7f6f6d58ed8a2f40920a96c594de8b469c2188"
     },
     {
       "id": "rpc:public.complete_platform_admin_invitation(target_tenant uuid, actor_user_id uuid, target_user uuid)",

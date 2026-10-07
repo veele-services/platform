@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:veele-services:website-submission-envelope:1.0.0",
+  "title": "Proposed website submission envelope; not a Fieldgrid API contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "envelopeVersion",
+    "inquiry",
+    "wizardAnswers"
+  ],
+  "properties": {
+    "envelopeVersion": {
+      "const": "1.0.0"
+    },
+    "inquiry": {
+      "allOf": [
+        {
+          "$ref": "urn:veele-services:inquiry:1.0.0"
+        },
+        {
+          "properties": {
+            "mode": {
+              "const": "submission"
+            }
+          },
+          "required": [
+            "mode"
+          ]
+        }
+      ]
+    },
+    "wizardAnswers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "planningFlexible",
+        "frequencyLabel"
+      ],
+      "properties": {
+        "planningFlexible": {
+          "type": "boolean"
+        },
+        "frequencyLabel": {
+          "enum": [
+            "Eenmalig",
+            "Wekelijks",
+            "Meerdere keren per week",
+            "Maandelijks",
+            "In overleg"
+          ]
+        }
+      }
+    }
+  }
+}
