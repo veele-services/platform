@@ -77,7 +77,12 @@ export async function confirmMollieTestCheckout(page: Page, tenantOrigin: string
       let acted = false;
       for (const frame of page.frames().filter(item => isMollieHost(item.url()))) {
         const candidates: Partial<Record<CheckoutAction, Locator>> = controls(frame);
-        if (statusForm && await statusForm.count()) candidates.submit_status = statusForm.locator('button[type="submit"], input[type="submit"]').or(statusForm.getByRole("button", { name: /^(Continue|Verder|Proceed|Doorgaan|Confirm|Bevestigen)$/i }));
+        // Native buttons without a type submit their form too. Limit this to
+        // the form that owns the explicit Paid control; its label is not an API.
+        if (statusForm && await statusForm.count()) {
+          const nativeSubmit = statusForm.locator('button[type="submit"], button:not([type]):not([command]):not([commandfor]):not(select > button), input[type="submit"]');
+          candidates.submit_status = await available(nativeSubmit) ? nativeSubmit : statusForm.getByRole("button", { name: /^(Continue|Verder|Proceed|Doorgaan|Confirm|Bevestigen)$/i });
+        }
         const visible: Partial<Record<CheckoutAction, Locator>> = {};
         for (const [name, locator] of Object.entries(candidates) as Array<[CheckoutAction, Locator]>) {
           visible[name] = await available(locator);

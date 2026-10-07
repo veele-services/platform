@@ -4635,7 +4635,7 @@
     },
     {
       "id": "operation:lib/operations/mollie-test-checkout.ts",
-      "surfaceFingerprint": "0019031be256af05d7eea4cfb712408589c319c8bfbfc785bbb8ee3f008a9158",
+      "surfaceFingerprint": "bb35cd948d6a9d25817767d9617b7fc357a9ad268b3533f0a67ad8858ca1ae50",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",

@@ -32,6 +32,20 @@ test("Paid choice still requires Continue after delayed simulator loading", asyn
   await expect(page).toHaveURL(`${tenant}/klant`);
 });
 
+test("Paid radio submits its native default button without relying on its label", async ({ page }) => {
+  await fixture(page, `<form onsubmit="event.preventDefault();document.body.dataset.wrong='true'"><button>Unrelated submit</button></form>
+    <form onsubmit="event.preventDefault();if(this.elements.status.value==='paid'&&event.submitter.id==='confirm'&&!document.body.dataset.wrong)location.href='${tenant}/klant'">
+      <label><input type="radio" name="status" value="paid">Paid</label>
+      <button type="button" onclick="document.body.dataset.wrong='true'">Continue</button>
+      <button commandfor="absent" onclick="document.body.dataset.wrong='true'">Unknown command</button>
+      <button hidden>Hidden default submit</button><button id="confirm">Complete test payment</button>
+    </form>`);
+  const actions: string[] = [];
+  await confirmMollieTestCheckout(page, tenant, diagnostic => actions.push(diagnostic.action), 8_000);
+  expect(actions).toEqual(["paid_radio", "submit_status"]);
+  await expect(page).toHaveURL(`${tenant}/klant`);
+});
+
 test("current iDEAL Wero name opens a labelled radio simulator", async ({ page }) => {
   await fixture(page, `<button onclick="document.querySelector('#pay').disabled=false">iDEAL | Wero</button>
     <button id="pay" disabled onclick="document.body.innerHTML=document.querySelector('template').innerHTML">Pay €1.00</button>
