@@ -33,7 +33,7 @@ submitButton.addEventListener('click',async()=>{
   if(typeof result.reference!=='string'||!/^AAN-\d{4}-[A-F0-9]{8}$/.test(result.reference))throw new Error('De ontvangst kon nog niet worden bevestigd. Probeer dezelfde aanvraag opnieuw.');
   received=true;submitStatus.textContent='Uw aanvraag is ontvangen. Referentie: '+result.reference+'. We nemen contact met u op. Dit is nog geen afspraak of prijsbevestiging.';submitButton.querySelector('span').textContent='Aanvraag ontvangen';$('#wizard-back').hidden=true;
   $$('#request-summary button').forEach(b=>b.disabled=true);submitStatus.focus();
- }catch(error){submitStatus.textContent=error.name==='AbortError'||error instanceof TypeError?'De verbinding is onderbroken of de ontvangst kon nog niet worden bevestigd. Uw invoer blijft behouden. Verstuur dezelfde aanvraag opnieuw; deze wordt niet dubbel geregistreerd.':error.message;}
+ }catch(error){submitStatus.textContent=error.name==='AbortError'||error instanceof TypeError||error instanceof SyntaxError?'De verbinding is onderbroken of de ontvangst kon nog niet worden bevestigd. Uw invoer blijft behouden. Verstuur dezelfde aanvraag opnieuw; deze wordt niet dubbel geregistreerd.':error.message;}
  finally{clearTimeout(timeout);if(!received)frozen.forEach(([control,disabled])=>control.disabled=disabled);submitting=false;submitButton.disabled=received;$('#wizard-back').disabled=false;if(!received)submitButton.querySelector('span').textContent='Aanvraag versturen';}
 });
 // Staging a WebMCP tool never performs the explicit submit action.

@@ -67,10 +67,10 @@ test("real mixed-service submission, retained failures, retry identity and durab
  await expect(page.locator("#request-summary")).toContainText("Planning bespreekbaar: Nee");
  let sent:string|undefined,fail=true;await page.route("**/api/veele-website/requests",async route=>{
   const payload=route.request().postData()!;if(sent)expect(payload).toBe(sent);sent=payload;
-  if(fail){fail=false;const stored=await route.fetch();expect(stored.status()).toBe(200);await route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({ok:false,error:"FICTITIOUS tijdelijke storing, probeer opnieuw."})});return;}
+  if(fail){fail=false;const stored=await route.fetch();expect(stored.status()).toBe(200);await route.fulfill({status:503,contentType:"text/plain",body:"FICTITIOUS upstream unavailable"});return;}
   const response=await route.fetch();await route.fulfill({response});
  });
- await page.locator("#submit-request").click();await expect(page.locator("#submit-status")).toContainText("tijdelijke storing");
+ await page.locator("#submit-request").click();await expect(page.locator("#submit-status")).toContainText("Uw invoer blijft behouden");
  await expect(page.locator("#contact_name")).toHaveValue("FICTITIOUS Aanvrager");
  await page.locator("#submit-request").click();await expect(page.locator("#submit-status")).toContainText("Uw aanvraag is ontvangen");await expect(page.locator("#submit-request")).toBeDisabled();
  const db=new pg.Client({connectionString:requireLocalDatabaseUrl().href});await db.connect();
