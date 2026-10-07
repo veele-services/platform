@@ -343,13 +343,13 @@ test("klantdossier opent elf volledige paginaonderdelen en bewaart contacten, no
   await page.reload();await expect(row).toBeVisible();await expect(page).toHaveURL(/tab=documenten/);
   for(const width of [768,390,320]){
     await page.setViewportSize({width,height:844});
-    for(const tab of ["overzicht","contactpersonen","objecten","afspraken","communicatie","documenten"]){
-      await dossier.getByLabel("Onderdeel",{exact:true}).selectOption(tab);
+    for(const [tab,title] of [["overzicht","Overzicht"],["contactpersonen","Contactpersonen"],["objecten","Objecten"],["afspraken","Afspraken & opdrachten"],["communicatie","Communicatie & tijdlijn"],["documenten","Documenten"]]){
+      await nav.getByRole("link",{name:title,exact:true}).click();
       await expect(page).toHaveURL(new RegExp("tab="+tab));
       await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     }
   }
-  await page.setViewportSize({width:390,height:844});await dossier.getByLabel("Onderdeel",{exact:true}).selectOption("overzicht");await expect(dossier.getByRole("heading",{name:"Aandacht & opvolging"})).toBeVisible();
+  await page.setViewportSize({width:390,height:844});await nav.getByRole("link",{name:"Overzicht",exact:true}).click();await expect(dossier.getByRole("heading",{name:"Aandacht & opvolging"})).toBeVisible();
   await expect(dossier.locator(".customer-overview-cards")).toHaveScreenshot("customer-dossier-overview-390.png",{stylePath:"tests/e2e/dossier-screenshot.css"});
   const staffContext=await browser.newContext({baseURL:"http://127.0.0.1:3000"});
   try{const staff=await staffContext.newPage();await login(staff,"field-worker@fieldgrid.test","/staff");expect((await staffContext.request.get(downloadPath!)).status()).toBe(404);}finally{await staffContext.close();}

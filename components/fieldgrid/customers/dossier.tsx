@@ -1,4 +1,7 @@
 "use client";
+import { DossierNavigation } from "../dossier-navigation";
+import { PageHeading } from "../page-heading";
+import { ContentSection } from "../content-section";
 import { useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -163,15 +166,6 @@ export function CustomerDossier({
       if (!r.ok) toast.error(r.error);
       else router.refresh();
     });
-  const heading = (title: string, description: string, action?: ReactNode) => (
-    <div className="object-section-title">
-      <div>
-        <h2>{title}</h2>
-        <p>{description}</p>
-      </div>
-      {action && <div className="object-actions">{action}</div>}
-    </div>
-  );
   const toolbar = (children?: ReactNode) => (
     <div className="compact-filter-bar customer-dossier-filter">
       <span className="compact-filter-result">Overzicht verfijnen</span>
@@ -227,21 +221,7 @@ export function CustomerDossier({
         <ArrowLeft size={16} />
         Terug naar klanten
       </Link>
-      <header className="dossier-header">
-        <div>
-          <span className="eyebrow">
-            {c.customer_number} · {customerTypes[c.customer_type]}
-          </span>
-          <h1>{c.name}</h1>
-          <div className="object-inline-facts">
-            <span className="resource-status">{customerStates[c.status]}</span>
-            <span>Verantwoordelijke: {owner(c.owner_user_id)}</span>
-            <span>
-              Primair contact: {primary?.full_name || "Nog vastleggen"}
-            </span>
-          </div>
-        </div>
-        <div className="object-actions">
+      <PageHeading eyebrow={`${c.customer_number} · ${customerTypes[c.customer_type]}`} title={c.name} description={<div className="dossier-heading-facts"><span className="resource-status">{customerStates[c.status]}</span><span>Verantwoordelijke: {owner(c.owner_user_id)}</span><span>Primair contact: {primary?.full_name || "Nog vastleggen"}</span></div>} actions={<>
           <button className="secondary-button" onClick={() => setEditing(true)}>
             <Pencil size={15} />
             Bewerken
@@ -287,40 +267,8 @@ export function CustomerDossier({
               </button>
             </PopoverContent>
           </Popover>
-        </div>
-      </header>
-      <nav className="customer-tabs" aria-label="Klantdossier">
-        <div className="customer-tabs-wide">
-          {customerTabs.map(([k, label]) => (
-            <Link
-              key={k}
-              href={href(k)}
-              scroll={false}
-              aria-current={tab === k ? "page" : undefined}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-        <label className="customer-tabs-mobile">
-          Onderdeel
-          <select
-            aria-label="Onderdeel"
-            value={tab}
-            onChange={(e) =>
-              router.push(href(e.target.value as CustomerTab), {
-                scroll: false,
-              })
-            }
-          >
-            {customerTabs.map(([k, label]) => (
-              <option key={k} value={k}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </nav>
+        </>}/>
+      <DossierNavigation label="Klantdossier" current={tab} tabs={customerTabs.map(([id,title])=>({id,title,href:href(id)}))}/>
       {tab === "overzicht" && (
         <>
           <div className="customer-overview-cards">
@@ -382,17 +330,13 @@ export function CustomerDossier({
               </Link>
             ))}
           </div>
-          <section className="dossier-card">
-            {heading(
-              "Aandacht & opvolging",
-              "Open de bronregistratie om een afspraak of actie bij te werken.",
-              <button
+          <ContentSection title={"Aandacht & opvolging"} description={"Open de bronregistratie om een afspraak of actie bij te werken."} actions={<button
                 className="secondary-button"
                 onClick={() => setCommunication(true)}
               >
                 Actie toevoegen
-              </button>,
-            )}
+              </button>} bodyClassName="dossier-section-body">
+
             {!c.owner_user_id && (
               <p className="dossier-notice">
                 Accountverantwoordelijke ontbreekt.{" "}
@@ -490,12 +434,9 @@ export function CustomerDossier({
               !data.commercialFollowup.length && (
                 <Empty>Geen open dossieracties of verstreken deadlines.</Empty>
               )}
-          </section>
-          <section className="dossier-card">
-            {heading(
-              "Recente activiteit",
-              "Zakelijke registraties en wijzigingen binnen deze klantrelatie.",
-            )}{" "}
+          </ContentSection>
+          <ContentSection title={"Recente activiteit"} description={"Zakelijke registraties en wijzigingen binnen deze klantrelatie."} bodyClassName="dossier-section-body">
+            {" "}
             {data.notes.slice(0, 3).map((n) => (
               <article className="dossier-event" key={n.id}>
                 <div>
@@ -515,21 +456,17 @@ export function CustomerDossier({
             <Link className="text-link" href={href("communicatie")}>
               Volledige tijdlijn →
             </Link>
-          </section>
+          </ContentSection>
         </>
       )}
       {tab === "gegevens" && (
-        <section className="dossier-card">
-          {heading(
-            "Klantgegevens",
-            "De relatiegegevens worden hergebruikt in de bestaande klant-, offerte- en facturatiestroom.",
-            <button
+        <ContentSection title={"Klantgegevens"} description={"De relatiegegevens worden hergebruikt in de bestaande klant-, offerte- en facturatiestroom."} actions={<button
               className="secondary-button"
               onClick={() => setEditing(true)}
             >
               Gegevens bewerken
-            </button>,
-          )}
+            </button>} bodyClassName="dossier-section-body">
+
           <dl className="customer-facts">
             {[
               ["Klantnummer", c.customer_number],
@@ -580,21 +517,17 @@ export function CustomerDossier({
             Gegevensversie {c.version} · bijgewerkt {date(c.updated_at)}.
             Afgesloten documenten behouden hun eigen aangeboden gegevens.
           </p>
-        </section>
+        </ContentSection>
       )}
       {tab === "contactpersonen" && tenant.roles.some(role=>["tenant_admin","management"].includes(role)) && <CustomerPortalAccess key={c.id} customerId={c.id} contacts={data.contacts}/> }
       {tab === "contactpersonen" && (
-        <section className="dossier-card">
-          {heading(
-            "Contactpersonen",
-            "Functionele labels zijn geen portaalrechten of onbeperkte toestemming voor meerwerk.",
-            <button
+        <ContentSection title={"Contactpersonen"} description={"Functionele labels zijn geen portaalrechten of onbeperkte toestemming voor meerwerk."} actions={<button
               className="primary-button"
               onClick={() => setContact("new")}
             >
               Contactpersoon toevoegen
-            </button>,
-          )}
+            </button>} bodyClassName="dossier-section-body">
+
           {toolbar(
             <label>
               Status
@@ -683,20 +616,16 @@ export function CustomerDossier({
           {!data.contacts.length && (
             <Empty>Nog geen contactpersonen vastgelegd.</Empty>
           )}
-        </section>
+        </ContentSection>
       )}
       {tab === "objecten" && (
-        <section className="dossier-card">
-          {heading(
-            "Objecten",
-            "Fysieke locaties van deze klant; het factuuradres is geen uitvoeringsadres.",
-            <Link
+        <ContentSection title={"Objecten"} description={"Fysieke locaties van deze klant; het factuuradres is geen uitvoeringsadres."} actions={<Link
               className="primary-button"
               href={`/app/objecten?new=1&customer=${c.id}`}
             >
               Nieuw object
-            </Link>,
-          )}
+            </Link>} bodyClassName="dossier-section-body">
+
           {toolbar(
             <label>
               Status
@@ -787,7 +716,7 @@ export function CustomerDossier({
           {!selectedObjects.length && (
             <Empty>Geen objecten bij deze selectie.</Empty>
           )}
-        </section>
+        </ContentSection>
       )}
       {tab === "contracten" &&
         (commercial ? (
@@ -802,11 +731,7 @@ export function CustomerDossier({
         ))}
       {tab === "afspraken" && (
         <>
-          <section className="dossier-card">
-            {heading(
-              "Afspraken & opdrachten",
-              "Dezelfde concrete bezoeken als op het planbord. Uitvoering, akkoord en betaling behouden elk hun eigen status.",
-              <>
+          <ContentSection title={"Afspraken & opdrachten"} description={"Dezelfde concrete bezoeken als op het planbord. Uitvoering, akkoord en betaling behouden elk hun eigen status."} actions={<>
                 <button
                   className="secondary-button"
                   onClick={() => setCalendar((v) => !v)}
@@ -816,8 +741,8 @@ export function CustomerDossier({
                 <Link className="primary-button" href="/app/planning">
                   Planbord openen
                 </Link>
-              </>,
-            )}
+              </>} bodyClassName="dossier-section-body">
+
             {toolbar(
               <>
                 <label>
@@ -987,7 +912,7 @@ export function CustomerDossier({
             {!selectedOrders.length && (
               <Empty>Geen afspraken bij deze selectie.</Empty>
             )}
-          </section>
+          </ContentSection>
           <DossierChainPanel
             scope={{ customerId: c.id }}
             view="requests"
@@ -1009,11 +934,8 @@ export function CustomerDossier({
         </>
       )}
       {tab === "facturen" && (
-        <section className="dossier-card">
-          {heading(
-            "Facturen & betalingen",
-            "Alleen daadwerkelijke facturen en betaalregistraties. Een akkoord of afgeronde werkbon is nog geen betaling.",
-          )}
+        <ContentSection title={"Facturen & betalingen"} description={"Alleen daadwerkelijke facturen en betaalregistraties. Een akkoord of afgeronde werkbon is nog geen betaling."} bodyClassName="dossier-section-body">
+
           {finance ? (
             <>
               {toolbar(
@@ -1152,14 +1074,11 @@ export function CustomerDossier({
           ) : (
             <Empty>Je hebt geen toegang tot financiële gegevens.</Empty>
           )}
-        </section>
+        </ContentSection>
       )}
       {tab === "kwaliteit" && (
-        <section className="dossier-card">
-          {heading(
-            "Kwaliteit & meldingen",
-            "Klachten, complimenten, controles en herstelacties blijven bij de oorspronkelijke locatie en afspraak.",
-          )}
+        <ContentSection title={"Kwaliteit & meldingen"} description={"Klachten, complimenten, controles en herstelacties blijven bij de oorspronkelijke locatie en afspraak."} bodyClassName="dossier-section-body">
+
           {toolbar(
             <>
               <label>
@@ -1272,18 +1191,14 @@ export function CustomerDossier({
               melding te registreren.
             </Empty>
           )}
-        </section>
+        </ContentSection>
       )}
       {tab === "documenten" && (
         <>
-          <section className="dossier-card">
-            {heading(
-              "Documenten",
-              "Originele bestanden en versiehistorie. Alleen expliciet gedeelde documenten komen in het klantportaal.",
-              <button className="primary-button" onClick={() => setDoc("new")}>
+          <ContentSection title={"Documenten"} description={"Originele bestanden en versiehistorie. Alleen expliciet gedeelde documenten komen in het klantportaal."} actions={<button className="primary-button" onClick={() => setDoc("new")}>
                 Document uploaden
-              </button>,
-            )}
+              </button>} bodyClassName="dossier-section-body">
+
             {toolbar(
               <label>
                 Categorie
@@ -1375,7 +1290,7 @@ export function CustomerDossier({
               </table>
             </div>
             {!data.documents.length && <Empty>Nog geen klantdocumenten.</Empty>}
-          </section>
+          </ContentSection>
           <DossierChainPanel
             scope={{ customerId: c.id }}
             view="documents"
@@ -1387,17 +1302,13 @@ export function CustomerDossier({
       {tab === "communicatie" && <TicketContextPanel kind="customer" id={c.id}/>}
       {tab === "communicatie" && (
         <>
-          <section className="dossier-card">
-            {heading(
-              "Communicatie & tijdlijn",
-              "Interne zakelijke notities, gesprekken en opvolging. Dit overzicht verzendt zelf geen berichten.",
-              <button
+          <ContentSection title={"Communicatie & tijdlijn"} description={"Interne zakelijke notities, gesprekken en opvolging. Dit overzicht verzendt zelf geen berichten."} actions={<button
                 className="primary-button"
                 onClick={() => setCommunication(true)}
               >
                 Registratie toevoegen
-              </button>,
-            )}
+              </button>} bodyClassName="dossier-section-body">
+
             {toolbar()}{" "}
             {data.notes
               .filter((n) =>
@@ -1453,12 +1364,9 @@ export function CustomerDossier({
             {!data.notes.length && (
               <Empty>Nog geen zakelijke communicatie geregistreerd.</Empty>
             )}
-          </section>
-          <section className="dossier-card">
-            {heading(
-              "Wijzigingshistorie",
-              "Wie de registratie heeft gewijzigd en wanneer; geen openbare klantcommunicatie.",
-            )}
+          </ContentSection>
+          <ContentSection title={"Wijzigingshistorie"} description={"Wie de registratie heeft gewijzigd en wanneer; geen openbare klantcommunicatie."} bodyClassName="dossier-section-body">
+
             {data.history.map((h) => (
               <p key={h.id}>
                 {historyLabel(h.source)}{" "}
@@ -1470,7 +1378,7 @@ export function CustomerDossier({
                 · {h.actor} · {date(h.at)}
               </p>
             ))}
-          </section>
+          </ContentSection>
           <DossierChainPanel
             scope={{ customerId: c.id }}
             view="timeline"

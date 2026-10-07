@@ -146,7 +146,7 @@ test("PDOK address selection, exact suffixes, stale response protection and mobi
   await modal.getByLabel("Klantnaam").fill("FICTIEF autofill acceptatie");
   await modal.getByRole("button", { name: "Volgende" }).click();
   const address = modal.locator(".address-input").filter({ has: page.locator('[name="visitAddress"]') });
-  const search = address.getByRole("combobox", { name: "Zoek een adres" });
+  const search = address.getByRole("combobox", { name: "Straatnaam" });
   let finishOld!: () => void;
   const oldFinished = new Promise<void>((resolve) => {
     finishOld = resolve;
@@ -198,10 +198,12 @@ test("PDOK address selection, exact suffixes, stale response protection and mobi
       .latitude,
   ).toBeNull();
   await expect(address.getByText(/Adres controleren:/)).toBeVisible();
-  await address.getByLabel("Zoekmethode").selectOption("postcode");
-  await address.getByLabel("Zoekpostcode").fill("1234AB");
-  await address.getByLabel("Zoekhuisnummer").fill("12");
-  await address.getByLabel("Zoektoevoeging").fill("A bis");
+  await expect(address.getByLabel("Zoekmethode")).toHaveCount(0);
+  await expect(address.getByLabel("Zoek een adres")).toHaveCount(0);
+  await address.getByLabel("Postcode", { exact: true }).fill("1234AB");
+  await address.getByLabel("Huisnummer", { exact: true }).fill("12");
+  await address.getByLabel("Huisletter", { exact: true }).fill("A");
+  await address.getByLabel("Toevoeging", { exact: true }).fill("bis");
   await page.getByRole("option", { name: /FICTIEF Testplein/ }).click();
   await expect(address.getByLabel("Huisnummer", { exact: true })).toHaveValue(
     "12",
@@ -418,7 +420,7 @@ test("address suggestions stay clickable outside an object wizard scroll contain
   await modal.getByLabel("Objectnaam").fill("FICTIEF niet opgeslagen");
   await modal.getByRole("button", { name: "Volgende" }).click();
   await modal
-    .getByRole("combobox", { name: "Zoek een adres" })
+    .getByRole("combobox", { name: "Straatnaam" })
     .fill("Testplein 12");
   await page.getByRole("option", { name: /FICTIEF Testplein/ }).click();
   await expect(modal).toBeVisible();

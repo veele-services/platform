@@ -1,4 +1,5 @@
 "use client";
+import { ContentSection } from "./content-section";
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -190,8 +191,8 @@ export function MobilityPanel({ personnelId }: { personnelId: string }) {
     });
   };
   return (
-    <section className="dossier-card">
-      <h2>Woonadres, vertrekpunt & vervoer</h2>
+    <ContentSection title={"Woonadres, vertrekpunt & vervoer"} bodyClassName="dossier-section-body ">
+
       <p className="travel-notice">
         Eén adresregistratie voor dit dossier en de reisplanning. Alleen
         bevoegde beheerders en de medewerker zelf kunnen privévertrekgegevens
@@ -211,7 +212,7 @@ export function MobilityPanel({ personnelId }: { personnelId: string }) {
           {pending ? "Opslaan…" : "Reisinstellingen opslaan"}
         </button>
       </form>
-    </section>
+    </ContentSection>
   );
 }
 function DepotForm({ depot, onSaved }: { depot?: Depot; onSaved: () => void }) {
@@ -437,8 +438,8 @@ export function ArrivalSettings({
     changed();
   };
   return (
-    <section className="dossier-card travel-settings">
-      <h2>Adres & aankomstlocatie</h2>
+    <ContentSection title={"Adres & aankomstlocatie"} bodyClassName="dossier-section-body travel-settings">
+
       <p>{a.formatted || "Adres ontbreekt"}</p>
       <p className={!base ? "travel-warning" : "travel-notice"}>
         {addressStatus[a.status]}
@@ -478,6 +479,7 @@ export function ArrivalSettings({
           />
           Gebruik adreslocatie
         </label>
+        <div className="dossier-actions">
         <button
           type="button"
           className="secondary-button"
@@ -495,6 +497,7 @@ export function ArrivalSettings({
         >
           {map ? "Kaart sluiten" : "Locatie controleren op kaart"}
         </button>
+        </div>
         {map && (
           <LocationMap
             point={(useAddress && base ? base : point) || [5.1, 52.1]}
@@ -562,7 +565,7 @@ export function ArrivalSettings({
           Aankomstinstellingen opslaan
         </button>
       </form>
-    </section>
+    </ContentSection>
   );
 }
 export function DayMobilityForm({

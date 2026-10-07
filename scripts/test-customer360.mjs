@@ -113,6 +113,24 @@ test("Customer 360 uses persistent sources, guarded relationships and exact revi
       "insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,array['tenant_admin','management','finance']::public.app_role[],'active'),($1,$3,array['staff']::public.app_role[],'active')",
       [tenant, manager, staff],
     );
+    await t.test("account owners show the own tenant's employee name, never email or another tenant's name", async () => {
+      const localPerson = randomUUID(), foreignPerson = randomUUID();
+      await db.query("insert into public.personnel(id,tenant_id,user_id,employee_number,full_name,email) values($1,$2,$3,'OWNER-LOCAL','Fictieve Voornaam Achternaam',$4),($5,$6,$3,'OWNER-FOREIGN','Foreign confidential name',$4)", [localPerson,tenant,manager,`${manager}@customer360.test`,foreignPerson,other]);
+      const owners = () => call("select * from public.customer_owners($1)", [tenant]);
+      assert.deepEqual(await owners(), [{ id:manager, label:"Fictieve Voornaam Achternaam", commercial:true }]);
+      assert.deepEqual(await call("select * from public.customer_owners($1)",[other]), []);
+      assert.deepEqual(await call("select * from public.customer_owners($1)",[tenant],staff), []);
+      await db.query("update public.personnel set user_id=null where id=$1", [localPerson]);
+      assert.equal((await owners())[0].label, "Fictieve Voornaam Achternaam");
+      await db.query("update auth.users set email_confirmed_at=null,raw_user_meta_data='{}' where id=$1", [manager]);
+      assert.equal((await owners())[0].label, "Naam niet vastgelegd");
+      await db.query("update auth.users set email_confirmed_at=now(),raw_user_meta_data='{\"first_name\":\"Fictieve\",\"last_name\":\"Beheerder\"}' where id=$1", [manager]);
+      await db.query("delete from public.personnel where id=any($1::uuid[])", [[localPerson,foreignPerson]]);
+      assert.equal((await owners())[0].label, "Fictieve Beheerder");
+      await db.query("update public.tenant_memberships set status='revoked' where tenant_id=$1 and user_id=$2", [tenant,manager]);
+      assert.deepEqual(await owners(), []);
+      await db.query("update public.tenant_memberships set status='active' where tenant_id=$1 and user_id=$2", [tenant,manager]);
+    });
     await t.test(
       "five-step customer input is atomic and retry-safe, private customer has no required company number",
       async () => {

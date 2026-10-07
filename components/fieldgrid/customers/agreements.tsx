@@ -1,4 +1,5 @@
 "use client";
+import { ContentSection } from "../content-section";
 import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -27,20 +28,11 @@ export function CustomerAgreements({
 }) {
   const [edit, setEdit] = useState<Agreement | "new" | null>(null);
   return (
-    <section className="dossier-card">
-      <div className="object-section-title">
-        <div>
-          <h2>Contracten & diensten</h2>
-          <p>
-            Vaste afspraken, scope en expliciet vastgelegde akkoorden. Een
-            concept geeft geen toestemming voor betaald werk.
-          </p>
-        </div>
-        <button className="primary-button" onClick={() => setEdit("new")}>
+    <ContentSection title={"Contracten & diensten"} description={"Vaste afspraken, scope en expliciet vastgelegde akkoorden. Een concept geeft geen toestemming voor betaald werk."} actions={<button className="primary-button" onClick={() => setEdit("new")}>
           <Plus size={16} />
           Nieuw contract
-        </button>
-      </div>
+        </button>} bodyClassName="dossier-section-body ">
+
       {!data.agreements.length && (
         <p className="dossier-empty">Nog geen contracten vastgelegd.</p>
       )}
@@ -163,7 +155,7 @@ export function CustomerAgreements({
           onClose={() => setEdit(null)}
         />
       )}
-    </section>
+    </ContentSection>
   );
 }
 

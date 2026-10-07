@@ -29,6 +29,15 @@ const nextConfig: NextConfig = {
           { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'" },
         ],
       },
+      // Private invoice bytes may be previewed only on this tenant origin.
+      // All application pages and other file routes keep the default DENY.
+      ...["/api/files/invoice/:id", "/api/files/invoice-concept/:id"].map(source => ({
+        source,
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+        ],
+      })),
       ...["/quote/:path*", "/booking/:path*", "/pay/:path*"].map(source => ({source,headers:[{key:"Referrer-Policy",value:"no-referrer"},{key:"Cache-Control",value:"private, no-store"}]})),
     ];
   },

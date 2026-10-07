@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getServerEnv } from "@/lib/env/server";
 import { renderInvoicePdf } from "@/lib/pdf/invoice";
+import { invoiceSnapshotInput } from "@/lib/pdf/invoice-snapshot";
 import { invoiceLogo } from "@/lib/pdf/invoice-brand";
 import { invoiceConceptSchema } from "@/lib/finance/invoice-concepts";
 import { sendEmail } from "@/lib/providers/sendgrid";
@@ -59,23 +60,12 @@ export async function createInvoice(formData: FormData): Promise<ActionResult<{ 
       if (error) throw new Error("Factuur niet aangemaakt. Controleer de rapportcontrole, akkoorden en nog factureerbare hoeveelheden.");
       finalized = data;
     }
-    const { data: lines, error: linesError } = await supabase.from("invoice_lines").select("*").eq("tenant_id", context.tenant.id).eq("invoice_id", finalized.id);
+    const { error: linesError } = await supabase.from("invoice_lines").select("*").eq("tenant_id", context.tenant.id).eq("invoice_id", finalized.id);
     if (linesError) throw new Error("Factuurregels konden niet worden geladen");
     if (finalized.pdf_storage_path) return { ok: true, invoiceId: finalized.id };
-    const customer = finalized.customer_snapshot as Record<string, unknown>;
     const branding = finalized.branding_snapshot as Record<string, unknown>;
-    const billing = (customer.billing_preferences ?? {}) as Record<string, unknown>;
     const pdf = await renderInvoicePdf({
-      invoiceNumber: finalized.invoice_number!, issuedOn: finalized.issued_on!, dueOn: finalized.due_on!,
-      tenantName: String(branding.tenant_name ?? context.tenant.name), customerName: String(customer.name ?? "Klant"),
-      billingAddress: (customer.billing_address ?? {}) as Record<string, unknown>,
-      reference: String(billing.reference || ""), costCenter: String(billing.costCenter || ""),
-      lines: lines.map((line) => ({ description: line.description, quantity: line.quantity, unit: line.unit, unitPriceCents: line.unit_price_cents, vatBasisPoints: line.vat_basis_points, subtotalCents: line.subtotal_cents, vatCents: line.vat_cents, totalCents: line.total_cents })),
-      subtotalCents: finalized.subtotal_cents, vatCents: finalized.vat_cents, totalCents: finalized.total_cents,
-      primaryColor: typeof branding.primary_color === "string" ? branding.primary_color : undefined,
-      accentColor: typeof branding.accent_color === "string" ? branding.accent_color : undefined,
-      logo: await invoiceLogo(context.tenant.id, branding), senderEmail: typeof branding.sender_email === "string" ? branding.sender_email : undefined,
-      footer: typeof branding.pdf_footer === "string" ? branding.pdf_footer : null,
+      ...invoiceSnapshotInput(finalized), logo: await invoiceLogo(context.tenant.id, branding),
     });
 
     const path = `${context.tenant.id}/${finalized.id}/${finalized.invoice_number}.pdf`;

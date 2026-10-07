@@ -254,7 +254,7 @@
       "resources": [
         "rpc:execution_invoice_concepts"
       ],
-      "source_sha256": "a3498e9466c7e7b2cab540eac0fd3af04ae981fd5a162d1f21c385874cf755b1"
+      "source_sha256": "14d01ed8fc70faae1f5c06b144f408cbe44146c89a5f618efdaf36861652b5b7"
     },
     {
       "id": "code:app/api/files/invoice/[id]/route.ts",
@@ -264,13 +264,14 @@
       "classification": "route-or-rsc",
       "observedControls": [
         "createClient",
-        "getAuthContext"
+        "getAuthContext",
+        "resolveSource"
       ],
       "resources": [
         "from:invoices",
         "rpc:customer_file_access"
       ],
-      "source_sha256": "de50d2355262e72a2741318e3a2e962fe4539b426c60c6f63a40cfa0967141de"
+      "source_sha256": "f517b2c6b7e661bb58ec5b08a2bddb21a0eb9f46bb1132b560199a0900acae88"
     },
     {
       "id": "code:app/api/files/object-document/[id]/route.ts",
@@ -601,7 +602,7 @@
         "rpc:execution_invoice_concepts",
         "rpc:register_manual_payment"
       ],
-      "source_sha256": "6878f498aeb0fa1042f417bd921c8ffac9195b4154d1f7d8e09b111b21276aa6"
+      "source_sha256": "e84b45af4ff300f316d2ba71900fb29e52e0443580f47a523eb08c3937c583fd"
     },
     {
       "id": "code:app/app/klanten/[customerId]/page.tsx",
@@ -3122,7 +3123,7 @@
         "resolveHostContext"
       ],
       "resources": [],
-      "source_sha256": "971a2fe932df9e082ac20209ce45dc52544f5f47b06b4f2b980f6d8ef458a71c"
+      "source_sha256": "b4798afd71cc92aa450ad72900c52968ee45da63eac2a110c89638765cf35c2e"
     },
     {
       "id": "db:private.commercial_commands",
@@ -6501,7 +6502,7 @@
     {
       "id": "operation:next.config.ts",
       "classification": "operation",
-      "source_sha256": "daaced14b72c839eebdca60695f96da5bbf55668c38169955763b9039f280895"
+      "source_sha256": "8d88b3ce1dee7652fcdcbbac92d4a8c254470c66080ef45efa62b07f0d808ddb"
     },
     {
       "id": "operation:package.json",
@@ -6626,7 +6627,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "8f5b0433782eb26b262c66756643722581040c294b98cb96f8dd67cf9749ae88"
+      "source_sha256": "74c70295579fbccdd9638c142a9b801cd665152ca2f7b85f9bb13a2d8c30ecbe"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -10165,7 +10166,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "ddd8196b105ec2bdc263958245834464d6370c67ca64fc5c83fd41e48a3ea24f"
+      "definition_sha256": "0938d66768d7d5b7b0af7ce40b5710f05a801996adcaf278b675ccf15e984753"
     },
     {
       "id": "rpc:public.customer_portal_accounts(target_tenant uuid)",
@@ -10507,7 +10508,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "861714064056543cb8ed9ccfc1e6fd19103465fbb860afc68ebe96012263327f"
+      "definition_sha256": "a9f152463d78d8df80138c095239a0cd14ae33fce56777c6dfb61ae8f691fe1f"
     },
     {
       "id": "rpc:public.expired_work_order_signature_uploads()",

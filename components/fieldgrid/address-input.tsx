@@ -1,13 +1,20 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { MapPin, Search } from "lucide-react";
+import { MapPin } from "lucide-react";
 import {
   addressStatus,
   changeAddress,
   normalizeAddress,
   type Address,
 } from "@/lib/addresses/model";
+
+const searchFields = ["street_name", "postal_code", "house_number", "house_letter", "house_addition"];
+function addressQuery(field: string, address: Address) {
+  if (field === "street_name") return address.street_name;
+  return searchFields.includes(field) && /^\d{4}\s?[A-Za-z]{2}$/.test(address.postal_code.trim()) && address.house_number
+    ? [address.postal_code, address.house_number, address.house_letter, address.house_addition].filter(Boolean).join(" ") : "";
+}
 
 export function AddressInput({
   initial,
@@ -23,11 +30,7 @@ export function AddressInput({
   onChange?: (address: Address) => void;
 }) {
   const [value, setValue] = useState(() => normalizeAddress(initial)),
-    [mode, setMode] = useState("free"),
-    [query, setQuery] = useState(""),
-    [postcode, setPostcode] = useState(""),
-    [number, setNumber] = useState(""),
-    [addition, setAddition] = useState("");
+    [query, setQuery] = useState("");
   const [options, setOptions] = useState<Array<{ id: string; label: string }>>(
       [],
     ),
@@ -40,10 +43,9 @@ export function AddressInput({
     serial = useRef(0),
     abort = useRef<AbortController | null>(null),
     id = useId();
-  const term =
-    mode === "free"
-      ? query
-      : [postcode, number, addition].filter(Boolean).join(" ");
+  const term = query;
+  const searchInput = useRef<HTMLInputElement | null>(null);
+  const [searchField, setSearchField] = useState("street_name");
   const change = (a: Address) => {
     setValue(a);
     const form = anchor.current?.closest("form");
@@ -96,11 +98,11 @@ export function AddressInput({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [term]);
+  }, [term, searchField]);
   useEffect(() => {
     if (!open) return;
     const place = () => {
-      const r = anchor.current?.getBoundingClientRect();
+      const r = searchInput.current?.getBoundingClientRect();
       if (r)
         setPosition({
           left: Math.max(8, r.left),
@@ -144,6 +146,8 @@ export function AddressInput({
       if (!r.ok) throw new Error(d.error);
       if (seq === serial.current) {
         change(d.address);
+        setQuery("");
+        setOptions([]);
         setMessage(
           "Adres geselecteerd. Controleer of dit het juiste adres is; dit is geen bewijs van woonplaats of eigendom.",
         );
@@ -162,7 +166,11 @@ export function AddressInput({
     abort.current?.abort();
     setBusy(false);
     setOpen(false);
-    change(changeAddress(value, { [field]: text }));
+    const next = changeAddress(value, { [field]: text });
+    change(next);
+    setOptions([]);
+    setMessage("");
+    setQuery(addressQuery(field, next));
   }
   const keyboard = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -189,102 +197,7 @@ export function AddressInput({
           <input type="hidden" name="city" value={value.city} />
         </>
       )}
-      <div className="address-search" ref={anchor}>
-        <label>
-          Adres zoeken
-          <select
-            aria-label="Zoekmethode"
-            value={mode}
-            onChange={(e) => {
-              ++serial.current;
-              setOpen(false);
-              setMode(e.target.value);
-            }}
-          >
-            <option value="free">Vrij zoeken</option>
-            <option value="postcode">Postcode en huisnummer</option>
-          </select>
-        </label>
-        {mode === "free" ? (
-          <label className="wide">
-            <Search size={15} />
-            Zoek een adres
-            <input
-              value={query}
-              onChange={(e) => {
-                ++serial.current;
-                setQuery(e.target.value);
-              }}
-              onKeyDown={keyboard}
-              role="combobox"
-              aria-autocomplete="list"
-              aria-expanded={open}
-              aria-controls={id}
-              aria-activedescendant={
-                active >= 0 ? `${id}-${active}` : undefined
-              }
-              placeholder="Straat, huisnummer of plaats…"
-              autoComplete="off"
-            />
-          </label>
-        ) : (
-          <div className="address-fields">
-            <label>
-              Zoekpostcode
-              <input
-                value={postcode}
-                onChange={(e) => {
-                  ++serial.current;
-                  setPostcode(e.target.value);
-                }}
-                placeholder="1234 AB"
-                autoComplete="off"
-                onKeyDown={keyboard}
-                role="combobox"
-                aria-expanded={open}
-                aria-controls={id}
-              />
-            </label>
-            <label>
-              Zoekhuisnummer
-              <input
-                value={number}
-                onChange={(e) => {
-                  ++serial.current;
-                  setNumber(e.target.value);
-                }}
-                inputMode="numeric"
-                onKeyDown={keyboard}
-                role="combobox"
-                aria-expanded={open}
-                aria-controls={id}
-              />
-            </label>
-            <label>
-              Zoektoevoeging
-              <input
-                value={addition}
-                onChange={(e) => {
-                  ++serial.current;
-                  setAddition(e.target.value);
-                }}
-                onKeyDown={keyboard}
-                role="combobox"
-                aria-expanded={open}
-                aria-controls={id}
-                aria-autocomplete="list"
-                aria-activedescendant={
-                  active >= 0 ? `${id}-${active}` : undefined
-                }
-              />
-            </label>
-          </div>
-        )}
-      </div>
-      <p className="address-feedback" role="status">
-        {busy ? "Adresgegevens ophalen…" : message}
-      </p>
-      <div className="address-fields">
+      <div className="address-fields" ref={anchor}>
         {(
           [
             ["street_name", "Straatnaam"],
@@ -306,7 +219,28 @@ export function AddressInput({
                 ) &&
                 (key !== "house_number" || value.source !== "legacy")
               }
-              onChange={(e) => edit(key, e.target.value)}
+              onChange={(e) => {
+                searchInput.current = e.currentTarget;
+                setSearchField(key);
+                edit(key, e.target.value);
+              }}
+              onFocus={(e) => {
+                if (searchInput.current !== e.currentTarget) {
+                  ++serial.current;
+                  abort.current?.abort();
+                  setQuery(addressQuery(key, value)); setOptions([]); setBusy(false);
+                }
+                searchInput.current = e.currentTarget;
+                setSearchField(key); setOpen(false);
+              }}
+              onKeyDown={searchFields.includes(key) ? keyboard : undefined}
+              role={searchFields.includes(key) ? "combobox" : undefined}
+              aria-autocomplete={searchFields.includes(key) ? "list" : undefined}
+              aria-expanded={searchFields.includes(key) ? open && searchField === key : undefined}
+              aria-controls={open && searchField === key ? id : undefined}
+              aria-activedescendant={open && searchField === key && active >= 0 ? `${id}-${active}` : undefined}
+              autoComplete="off"
+              placeholder={key === "street_name" ? "Typ een straat of adres…" : key === "postal_code" ? "1234 AB" : undefined}
               inputMode={key === "house_number" ? "numeric" : undefined}
               maxLength={
                 key === "house_letter" ? 4 : key === "house_number" ? 8 : 200
@@ -318,11 +252,13 @@ export function AddressInput({
           Landcode
           <input
             value={value.country}
+            onFocus={() => { ++serial.current; abort.current?.abort(); setSearchField("country"); setQuery(""); setOpen(false); setOptions([]); setBusy(false); }}
             maxLength={2}
             onChange={(e) => edit("country", e.target.value.toUpperCase())}
           />
         </label>
       </div>
+      <p className="address-feedback" role="status">{busy ? "Adresgegevens ophalen…" : message}</p>
       <p className={`address-location address-${value.status}`}>
         <MapPin size={16} />
         {addressStatus[value.status]}

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import pg from "pg";
 import { createClient } from "@supabase/supabase-js";
 import { PDFDocument } from "pdf-lib";
@@ -16,6 +16,7 @@ test.beforeAll(async()=>{
  const url=requireLocalDatabaseUrl();db=new pg.Client({connectionString:url.href});await db.connect();
  tenant=(await db.query("select id from public.tenants where slug='fieldgrid-e2e'")).rows[0].id;manager=(await db.query("select id from auth.users where email='platform-admin@fieldgrid.test'")).rows[0].id;
  await db.query("insert into public.customers(id,tenant_id,customer_number,name,billing_email) values($1,$2,'KL-CHAIN','Dossier Ketenproef','chain@fieldgrid.test')",[customer,tenant]);
+ await db.query("update public.customers set legal_name='Fictieve Ketenproef B.V.',company_number='87654321',vat_number='NL987654321B01',phone='0300000000',billing_address='{\"street\":\"Teststraat 30\",\"postal_code\":\"1234 AB\",\"city\":\"Utrecht\"}' where id=$1",[customer]);
  await db.query("insert into public.objects(id,tenant_id,customer_id,object_number,name,address) values($1,$2,$3,'OB-CHAIN','Ketenproef locatie','{\"street\":\"Teststraat 30\",\"city\":\"Utrecht\"}')",[object,tenant,customer]);
  await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,signature_mode,lead_personnel_id,planned_start_at,planned_end_at,projected_start_at,projected_end_at,actual_start_at,created_by) values($1,$2,$3,$4,'WB-CHAIN','Onderhoud','in_progress','none',$6,now()-interval '30 minutes',now()+interval '30 minutes',now()-interval '30 minutes',now()+interval '30 minutes',now()-interval '30 minutes',$5)",[order,tenant,customer,object,manager,person]);
  await db.query("insert into public.work_order_assignments(id,tenant_id,work_order_id,personnel_id,status,planned_start_at,planned_end_at,projected_start_at,projected_end_at,actual_start_at) select $1,tenant_id,id,$2,'in_progress',planned_start_at,planned_end_at,projected_start_at,projected_end_at,actual_start_at from public.work_orders where id=$3",[assignment,person,order]);
@@ -99,6 +100,23 @@ test("Dossier 360: customer agreement, object programme, partial execution and l
  await page.goto("/app/facturen");const conceptRow=page.getByRole("row").filter({hasText:"WB-CHAIN"});await expect(conceptRow).toContainText("Concept");await conceptRow.getByRole("button",{name:"Bekijk",exact:true}).click();const preview=page.getByRole("dialog",{name:"Concept WB-CHAIN"});await expect(preview.locator("iframe")).toHaveAttribute("src",`/api/files/invoice-concept/${order}`);await page.screenshot({path:"test-results/invoice-concept-preview.png",fullPage:true});const draftPdf=await page.request.get(`/api/files/invoice-concept/${order}`);expect(draftPdf.status()).toBe(200);expect(draftPdf.headers()["content-type"]).toContain("application/pdf");await preview.getByRole("button",{name:"Sluiten",exact:true}).click();await conceptRow.getByRole("checkbox").check();await expect(page.getByRole("region",{name:"Geselecteerde facturen"})).toContainText("1 geselecteerd");await page.getByRole("button",{name:"Concepten definitief maken",exact:true}).click();const invoice=page.getByRole("dialog",{name:"Conceptfactuur definitief maken"});await invoice.getByRole("button",{name:"Definitief maken",exact:true}).click();await expect(invoice).toBeHidden();
  const finalInvoice=(await db.query("select i.id,i.pdf_sha256 from public.invoices i join public.invoice_lines l on l.invoice_id=i.id where l.work_order_task_id=$1",[task])).rows[0];
  const savedPdf=await page.request.get(`/api/files/invoice/${finalInvoice.id}?preview=1`);expect(savedPdf.status()).toBe(200);expect(savedPdf.headers()["content-disposition"]).toContain("inline");expect(savedPdf.headers()["cache-control"]).toBe("private, no-store");
+ expect(savedPdf.headers()["x-frame-options"]).toBe("SAMEORIGIN");
+ expect(savedPdf.headers()["content-security-policy"]).toContain("frame-ancestors 'self'");
+ expect(savedPdf.headers()["content-security-policy"]).not.toContain("sandbox");
+ expect(createHash("sha256").update(await savedPdf.body()).digest("hex")).toBe(finalInvoice.pdf_sha256);
+ const frozen=(await db.query("select customer_snapshot from public.invoices where id=$1",[finalInvoice.id])).rows[0].customer_snapshot;
+ expect(frozen).toMatchObject({legal_name:"Fictieve Ketenproef B.V.",company_number:"87654321",vat_number:"NL987654321B01"});
+ await db.query("update public.customers set legal_name='Later changed customer',company_number='11223344' where id=$1",[customer]);
+ const presentation=await page.request.get(`/api/files/invoice/${finalInvoice.id}?presentation=1&preview=1`);
+ expect(presentation.status()).toBe(200);expect(presentation.headers()["x-frame-options"]).toBe("SAMEORIGIN");
+ expect(presentation.headers()["content-disposition"]).toContain("inline");
+ expect(presentation.headers()["cache-control"]).toBe("private, no-store");
+ expect((await PDFDocument.load(await presentation.body())).getPageCount()).toBeGreaterThan(0);
+ const afterPresentation=(await db.query("select pdf_sha256,customer_snapshot from public.invoices where id=$1",[finalInvoice.id])).rows[0];
+ expect(afterPresentation.pdf_sha256).toBe(finalInvoice.pdf_sha256);expect(afterPresentation.customer_snapshot).toEqual(frozen);
+ const download=await page.request.get(`/api/files/invoice/${finalInvoice.id}?presentation=1`);expect(download.status()).toBe(200);expect(download.headers()["content-disposition"]).toContain("attachment");
+ const ordinaryPage=await page.request.get("/app/facturen");expect(ordinaryPage.headers()["x-frame-options"]).toBe("DENY");
+ expect((await request.get(`/api/files/invoice/${finalInvoice.id}?presentation=1&preview=1`)).status()).toBe(404);
  expect((await request.get(`/api/files/invoice/${finalInvoice.id}`)).status()).toBe(404);expect((await request.get(`/api/files/invoice-concept/${order}`)).status()).toBe(404);
  const lines=(await db.query("select quantity,unit_price_cents,source_snapshot from public.invoice_lines where work_order_task_id=$1",[task])).rows;expect(lines).toHaveLength(1);expect(lines[0].quantity).toBe("2.000");expect(lines[0].unit_price_cents).toBe("1200");expect(lines[0].source_snapshot.agreement.version).toBe(1);
  await page.goto(`/app/klanten?record=${customer}&tab=finance`);await expect(page.locator(".customer-dossier:visible").getByRole("link",{name:"Bekijk",exact:true})).toBeVisible();

@@ -626,6 +626,11 @@
       "version": "20261006230000",
       "name": "account_function_guides",
       "sha256": "6dbde403f4c18f748e76bd95b6e88b9a92b754e919d77c2c9b2a7b7288bd13ba"
+    },
+    {
+      "version": "20261007010000",
+      "name": "dashboard_owner_names_and_invoice_identity",
+      "sha256": "c2d1e5a8e568c729b2ea371f67a20ddca766c494e2bfa450239813115b9af26f"
     }
   ]
 }
