@@ -74,7 +74,7 @@ export const customerOnboardingInputSchema=z.object({mode:z.enum(["save","comple
 }).strict().refine(value=>value.mode!=="complete"||value.step===3&&value.confirmed,"Controleer en bevestig je gegevens.")
  .refine(value=>value.mode!=="review"||value.confirmed,"Bevestig dat je de gewijzigde brongegevens hebt gecontroleerd.");
 export type CustomerOnboardingInput=z.infer<typeof customerOnboardingInputSchema>;
-export const customerServiceRequestInputSchema=z.object({service:text.trim().min(2).max(100),objectIds:z.array(id).min(1,"Selecteer minstens één object.").max(25).refine(values=>new Set(values).size===values.length,"Selecteer ieder object eenmaal."),
+export const customerServiceRequestInputSchema=z.object({service:text.trim().min(2).max(100),objectIds:z.array(id).max(25).refine(values=>new Set(values).size===values.length,"Selecteer ieder object eenmaal."),
  frequency:z.enum(["Eenmalig","Wekelijks","Maandelijks","In overleg"]),preferredOn:z.iso.date().nullable(),description:text.trim().min(3).max(10000),
 }).strict();
 export type CustomerServiceRequestInput=z.infer<typeof customerServiceRequestInputSchema>;

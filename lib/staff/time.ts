@@ -48,11 +48,12 @@ export function staffClock(value: string | Date, timezone: string) {
   }).format(typeof value === "string" ? new Date(value) : value);
 }
 
-export function staffDayLabel(day: string, timezone: string, style: "short" | "long" = "long") {
+export function staffDayLabel(day: string, style: "short" | "long" = "long") {
+  // `day` already denotes the tenant's calendar date, not an instant to convert again.
   const value = new Date(`${day}T12:00:00.000Z`);
   return new Intl.DateTimeFormat("nl-NL", style === "short"
-    ? { weekday: "short", day: "numeric", month: "short", timeZone: timezone }
-    : { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: timezone })
+    ? { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }
+    : { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
     .format(value);
 }
 

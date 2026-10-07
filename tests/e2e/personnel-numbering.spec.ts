@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../lib/database.types";
 import { requireLocalApiUrl } from "./local-target";
 import { authenticateWorkspace } from "./login-auth";
+import { expectPixelAlignedScreenshot } from "./pixel-aligned-screenshot";
 
 test("personeelsnummering is instelbaar, automatisch en per medewerker aanpasbaar", async ({ page }) => {
   test.setTimeout(60_000);
@@ -23,9 +24,9 @@ test("personeelsnummering is instelbaar, automatisch en per medewerker aanpasbaa
     await settings.getByLabel("Voorvoegsel (prefix)").fill("MW-");
     await settings.getByRole("spinbutton", { name: /^Startnummer/ }).fill("100");
     await expect(settings.getByText("MW-0100", { exact: true })).toBeVisible();
-    await expect(settings).toHaveScreenshot("personnel-number-settings-1440.png");
+    await expectPixelAlignedScreenshot(settings,"personnel-number-settings-1440.png");
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(settings).toHaveScreenshot("personnel-number-settings-390.png");
+    await expectPixelAlignedScreenshot(settings,"personnel-number-settings-390.png");
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.setViewportSize({ width: 1440, height: 900 });
     await settings.getByLabel("Voorvoegsel (prefix)").fill(prefix);

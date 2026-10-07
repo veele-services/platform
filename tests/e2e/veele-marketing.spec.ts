@@ -78,3 +78,18 @@ test("real mixed-service submission, retained failures, retry identity and durab
   expect(rows).toHaveLength(1);expect(rows[0].discipline).toBe("Schoonmaak + Beveiliging + Facilitaire diensten");expect(rows[0].description).toContain("Nee (niet aangevinkt)");expect(rows[0].description).toContain("23:00");expect(rows[0].description).toContain("Testnotitie\nTweede regel ✓");expect(rows[0].name).toBe("FICTITIOUS Organisatie");expect(rows[0].full_name).toBe("FICTITIOUS Aanvrager");expect(rows[0].object_id).toBeNull();
  }finally{await db.end();}
 });
+
+test("public intake accepts an unknown location on mobile and is visible to management",async({page})=>{
+ await page.setViewportSize({width:390,height:844});await page.goto(origin+"/aanvragen/?dienst=schoonmaak");
+ const next=()=>page.locator("#wizard-next").click();await next();
+ await expect(page.locator("#location_type")).not.toHaveAttribute("required","");await next();await next();
+ await page.locator("#frequency").selectOption({label:"In overleg"});await next();
+ await page.locator("#contact_name").fill("FICTITIOUS Locatie later");await page.locator("#email").fill("no-location@example.test");await page.locator("#notes").fill("Volledige wensen zonder adres.");await next();
+ await expect(page.locator("#request-summary")).toContainText("Locatie later vaststellen");await page.locator("#submit-request").click();await expect(page.locator("#submit-status")).toContainText("Uw aanvraag is ontvangen");
+ const db=new pg.Client({connectionString:requireLocalDatabaseUrl().href});await db.connect();
+ try{
+  const rows=(await db.query("select r.* from public.requests r join public.customer_contacts c on c.id=r.contact_id where r.tenant_id=$1 and c.email='no-location@example.test'",[tenant])).rows;
+  expect(rows).toHaveLength(1);expect(rows[0].object_id).toBeNull();expect(rows[0].preferences.location).toBe("");expect(rows[0].description).toContain("Volledige wensen zonder adres.");expect(rows[0].next_action).toContain("object bespreken");
+  expect((await db.query("select count(*)::int n from public.objects where tenant_id=$1",[tenant])).rows[0].n).toBe(0);
+ }finally{await db.end();}
+});

@@ -651,6 +651,11 @@
       "version": "20261007041000",
       "name": "veele_website_intake",
       "sha256": "92a40d976a98ac387c35dd005d44d3436f766835f6244269724b111f38f9f2a1"
+    },
+    {
+      "version": "20261007110000",
+      "name": "optional_customer_intake_location",
+      "sha256": "70560d564256d5b351268a4bc33810bde59f91a2cc869762fbcdf44538f5a9c0"
     }
   ]
 }

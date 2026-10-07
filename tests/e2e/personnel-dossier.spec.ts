@@ -7,6 +7,7 @@ import type { Database } from "../../lib/database.types";
 import { requireLocalApiUrl, requireLocalDatabaseUrl } from "./local-target";
 import { authenticateStaff, E2E_APP_ORIGIN } from "./staff-auth";
 import { authenticateWorkspace } from "./login-auth";
+import { expectPixelAlignedScreenshot } from "./pixel-aligned-screenshot";
 
 test.use({actionTimeout:15000});
 
@@ -35,7 +36,7 @@ test("dossier 360: tabs, profile, contracts, private document versions, reviews,
   await page.getByRole("row").filter({hasText:"Lisa Dossierdemo"}).getByRole("button",{name:"Bekijk",exact:true}).click();
   await expect(page).toHaveURL(new RegExp(`/app/personeel/${f.id}$`));
   await expect(page.getByRole("heading",{name:"Lisa Dossierdemo",exact:true})).toBeVisible();
-  await expect(page.locator(".personnel-dossier")).toHaveScreenshot("dossier-empty-1440.png",{stylePath:"./tests/e2e/dossier-screenshot.css",mask:[page.locator(".personnel-dossier .unified-page-heading .eyebrow")]});
+  await expectPixelAlignedScreenshot(page.locator(".personnel-dossier"),"dossier-empty-1440.png",{stylePath:"./tests/e2e/dossier-screenshot.css",mask:[page.locator(".personnel-dossier .unified-page-heading .eyebrow")]});
   await page.getByRole("button",{name:"Bewerken",exact:true}).click();let dialog=page.getByRole("dialog");
   await dialog.getByLabel("Zakelijke telefoon").fill("0612345678");await save(dialog);
   await page.getByRole("link",{name:"Persoonsgegevens",exact:true}).click();await expect(page).toHaveURL(/tab=persoon/);await expect(page.getByText("0612345678",{exact:true})).toBeVisible();

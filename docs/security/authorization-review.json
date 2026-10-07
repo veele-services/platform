@@ -1477,14 +1477,15 @@
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "db21ee0b8f85e29979afc9aa14dc1d35cb34f3b4b5e8467e3ee139dd988b0cfe",
+      "surfaceFingerprint": "5ca6db5c02e5c5dfd7d4aec172d03fb16f0e48682f50b6f6c3968bb2f45a24d5",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
-        "app/api/addresses/route.test.ts",
-        "lib/addresses/form.test.ts",
+        "docs/security/planning-intake-mobile-dossiers-review-2026-10-07.md",
         "scripts/test-customer-portal.mjs",
-        "tests/e2e/login-branding.spec.ts"
+        "lib/customer-portal/request-action.test.ts",
+        "tests/e2e/fieldgrid.spec.ts",
+        "tests/e2e/customer-objectless-intake.spec.ts",
+        "lib/staff/time.test.ts"
       ]
     },
     {
@@ -1752,11 +1753,14 @@
     },
     {
       "id": "code:lib/customer-portal/request-action.ts",
-      "surfaceFingerprint": "78cda304675ec40fae8f591393bda27c09edec2da07b8fd8a1798ef434096eb5",
-      "status": "controlled",
+      "surfaceFingerprint": "9a6938337f7e7c1342ca573b80c413ebebac96eea5c2cd7ec84365ba0a380843",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/planning-intake-mobile-dossiers-review-2026-10-07.md",
+        "scripts/test-customer-portal.mjs",
+        "lib/customer-portal/request-action.test.ts",
+        "tests/e2e/fieldgrid.spec.ts",
+        "tests/e2e/customer-objectless-intake.spec.ts"
       ]
     },
     {
@@ -4939,14 +4943,14 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "787146b7deba9d74d614827d8fd606e695b6ceb61a7bca9f84d4066728f0e115",
-      "status": "controlled",
+      "surfaceFingerprint": "82b365c294c6752d72412d1b7a586ef10addc08eb44fc8e0d1870b667c2a7f67",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/veele-website-review.md",
-        "scripts/test-veele-marketing.mjs",
-        "app/api/veele-website/requests/route.test.ts",
-        "lib/marketing/veele/render.test.ts",
-        "tests/e2e/veele-marketing.spec.ts"
+        "docs/security/planning-intake-mobile-dossiers-review-2026-10-07.md",
+        "scripts/test-customer-portal.mjs",
+        "lib/customer-portal/request-action.test.ts",
+        "tests/e2e/fieldgrid.spec.ts",
+        "tests/e2e/customer-objectless-intake.spec.ts"
       ]
     },
     {
@@ -5443,11 +5447,14 @@
     },
     {
       "id": "rpc:private.commercial_customer_scope(t uuid, c uuid, o uuid, creator uuid)",
-      "surfaceFingerprint": "e10cce3fb295bd8f8bfde261315d4b712c29a5cdaf74cd235a8689d0d1bd56f3",
-      "status": "controlled",
+      "surfaceFingerprint": "b6c03f495b697e466454b78d5e59911b0f8cc418a016edbda053286c1dd7599d",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/planning-intake-mobile-dossiers-review-2026-10-07.md",
+        "scripts/test-customer-portal.mjs",
+        "lib/customer-portal/request-action.test.ts",
+        "tests/e2e/fieldgrid.spec.ts",
+        "tests/e2e/customer-objectless-intake.spec.ts"
       ]
     },
     {
@@ -9611,11 +9618,14 @@
     },
     {
       "id": "rpc:public.customer_portal_request_create(target_tenant uuid, target_account uuid, input jsonb, request_id uuid)",
-      "surfaceFingerprint": "c9303ef1d72027230bb32ad0cbfb69d0c769ca881d26037a0c8ec85568d0699c",
-      "status": "controlled",
+      "surfaceFingerprint": "09ecc5710321e28ed26b0bf15d31d0a93dd70057bdc9552f858ca74ef9a7b0d9",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/planning-intake-mobile-dossiers-review-2026-10-07.md",
+        "scripts/test-customer-portal.mjs",
+        "lib/customer-portal/request-action.test.ts",
+        "tests/e2e/fieldgrid.spec.ts",
+        "tests/e2e/customer-objectless-intake.spec.ts"
       ]
     },
     {

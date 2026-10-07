@@ -32,7 +32,7 @@ export const guideCatalogue = {
   "customer.appointments": ["Mijn afspraken", "Bekijk geplande en uitgevoerde bezoeken. Open een afspraak om de werkzaamheden te bekijken of een instructie door te geven."],
   "customer.reports": ["Mijn rapporten", "Bekijk de vrijgegeven resultaten van uitgevoerde werkzaamheden. Open een rapport om de PDF en de bijbehorende informatie te lezen."],
   "customer.invoices": ["Mijn facturen", "Bekijk je facturen en het openstaande bedrag. Open een factuur voor de PDF of selecteer facturen om een betaling te controleren en te starten."],
-  "customer.services": ["Diensten en aanvragen", "Vraag werkzaamheden voor een object aan en volg de behandeling. Open een aanvraag om de afspraken of offerte te bekijken en een beslissing door te geven."],
+  "customer.services": ["Diensten en aanvragen", "Vraag werkzaamheden aan en volg de behandeling. Een object of adres kun je later doorgeven. Open een aanvraag om de afspraken of offerte te bekijken en een beslissing door te geven."],
   "customer.tickets": ["Mijn gesprekken", "Stel een vraag aan je contactpersoon of technische support. Open een gesprek om de antwoorden te lezen en te reageren."],
   "customer.news": ["Nieuws", "Lees updates en praktische informatie van je organisatie. Open een bericht om de volledige tekst te bekijken."],
   "customer.profile": ["Mijn gegevens", "Controleer je contactgegevens en factuuradres en pas ze aan als je account dat toestaat. Sla je e-mailvoorkeuren apart op."],
@@ -64,7 +64,7 @@ export const guideCatalogue = {
   "feature.account-setup": ["Je klantomgeving instellen", "Controleer de gegevens van je klantaccount en kies je voorkeuren. Doorloop de stappen en bevestig de gegevens als ze kloppen."],
   "feature.customer-visit": ["Afspraak bekijken", "Bekijk de planning, werkzaamheden en gedeelde documenten van deze afspraak. Geef aanvullende instructies door via het daarvoor bestemde veld."],
   "feature.customer-object": ["Object bekijken", "Bekijk de gegevens en afspraken van deze locatie. Gebruik de beschikbare acties om een instructie door te geven of een dienst aan te vragen."],
-  "feature.customer-request": ["Aanvraag en offerte", "Bekijk de aangevraagde werkzaamheden en de voorgestelde prijs. Controleer de details voordat je een offerte accepteert of een wijziging doorgeeft."],
+  "feature.customer-request": ["Aanvraag en offerte", "Geef je wensen door; een object of adres kan later. Volg je aanvraag en controleer de details en prijs voordat je een offerte accepteert of een wijziging doorgeeft."],
 } as const;
 
 export type GuideKey = keyof typeof guideCatalogue;

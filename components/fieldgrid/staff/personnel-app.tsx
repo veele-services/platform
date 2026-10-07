@@ -266,8 +266,8 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
 function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, onNews }: { orders: StaffOrder[]; assignments: Assignment[]; data: StaffWorkspaceData; timezone: string; onOpen: (order: StaffOrder) => void; onHours: () => void; onNews: () => void }) {
   const today = staffDate(new Date(), timezone);
   const orderDays = assignments.map((item) => staffDate(item.projected_start_at, timezone));
-  const initial = orderDays.includes(today) ? today : [...orderDays].filter((item) => item > today).sort()[0] ?? [...orderDays].sort().at(-1) ?? today;
-  const [selectedDay, setSelectedDay] = useState(initial);
+  // Only initialize on opening; refreshed assignments must not change the chosen day.
+  const [selectedDay, setSelectedDay] = useState(() => staffDate(new Date(), timezone));
   const [mode, setMode] = useState<PlanningView>("lijst");
   const swipe = useRef<number | null>(null);
   const week = staffWeek(selectedDay);
@@ -292,7 +292,7 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
   const firstEntry = [...dayEntries].sort((left, right) => Date.parse(left.starts_at) - Date.parse(right.starts_at))[0];
   const dateLabel = selectedDay === today
     ? `Vandaag, ${new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${selectedDay}T12:00:00Z`))}`
-    : staffDayLabel(selectedDay, timezone);
+    : staffDayLabel(selectedDay);
   const onKey = (event: ReactKeyboardEvent) => { if (event.key === "ArrowLeft") setSelectedDay(addStaffDays(selectedDay, -1)); if (event.key === "ArrowRight") setSelectedDay(addStaffDays(selectedDay, 1)); };
   const swipeEnd = (clientX: number) => { if (swipe.current === null) return; const delta = clientX - swipe.current; if (Math.abs(delta) > 45) setSelectedDay(addStaffDays(selectedDay, delta < 0 ? 1 : -1)); swipe.current = null; };
   return <div className="ps-planning-grid">
@@ -303,7 +303,7 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
           <div className="ps-view-toggle" aria-label="Planningweergave"><button className={mode === "lijst" ? "active" : ""} aria-pressed={mode === "lijst"} onClick={() => setMode("lijst")}><List/>Lijst</button><button className={mode === "agenda" ? "active" : ""} aria-pressed={mode === "agenda"} onClick={() => setMode("agenda")}><CalendarDays/>Agenda</button></div>
         </div>
         <div className="ps-week" tabIndex={0} onKeyDown={onKey} onTouchStart={(event) => { swipe.current = event.touches[0]?.clientX ?? null; }} onTouchEnd={(event) => swipeEnd(event.changedTouches[0]?.clientX ?? 0)}>
-          <div className="ps-week-days">{week.map((date) => <button key={date} className={`ps-week-day${date === selectedDay ? " active" : ""}${orderDays.includes(date) ? " has-work" : ""}`} aria-pressed={date === selectedDay} onClick={() => setSelectedDay(date)}><span>{staffDayLabel(date, timezone, "short").split(" ")[0]}</span><strong>{Number(date.slice(-2))}</strong><i/></button>)}</div>
+          <div className="ps-week-days">{week.map((date) => <button key={date} className={`ps-week-day${date === selectedDay ? " active" : ""}${orderDays.includes(date) ? " has-work" : ""}`} aria-label={staffDayLabel(date)} aria-pressed={date === selectedDay} onClick={() => setSelectedDay(date)}><span>{staffDayLabel(date, "short").split(" ")[0]}</span><strong>{Number(date.slice(-2))}</strong><i/></button>)}</div>
         </div>
         <div className="ps-result-line"><strong>{visible.length} {visible.length === 1 ? "werkbon" : "werkbonnen"}</strong><span>{mode === "lijst" ? "Nieuwste ontvangen bovenaan" : "Op volgorde van afspraak"}</span></div>
       </div>
@@ -427,7 +427,7 @@ function HoursScreen({ data, personnelId, timezone, pending, run }: { data: Staf
         <section className="ps-panel ps-hours-week-panel" aria-labelledby="ps-hours-week-title">
           <div className="ps-hours-week-toolbar"><h2 id="ps-hours-week-title">{currentWeek ? "Deze week" : "Weekoverzicht"}</h2><div className="ps-hours-week-actions"><button className="ps-week-arrow" aria-label="Vorige week" onClick={() => setSelectedDay(addStaffDays(selectedDay, -7))}><ChevronLeft/></button><button className="ps-week-arrow" aria-label="Terug naar huidige week" title="Terug naar huidige week" disabled={currentWeek && selectedDay === today} onClick={() => setSelectedDay(today)}><RotateCcw/></button><button className="ps-week-arrow" aria-label="Volgende week" onClick={() => setSelectedDay(addStaffDays(selectedDay, 7))}><ChevronRight/></button></div></div>
           {!currentWeek && <small className="ps-hours-week-range" aria-live="polite">{rangeDate(week[0]!)} – {rangeDate(week[6]!)}</small>}
-          <div className="ps-hours-week-overview" aria-label="Geregistreerde tijd per weekdag">{visibleWeek.map(date => <button type="button" className="ps-hours-week-day" aria-pressed={date === selectedDay} aria-label={`${staffDayLabel(date, timezone)}: ${staffDuration(dayTotals.get(date)!.paid)}`} onClick={() => setSelectedDay(date)} key={date}><span>{new Intl.DateTimeFormat("nl-NL", { weekday: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`))}</span><strong>{staffDuration(dayTotals.get(date)!.paid)}</strong></button>)}</div>
+          <div className="ps-hours-week-overview" aria-label="Geregistreerde tijd per weekdag">{visibleWeek.map(date => <button type="button" className="ps-hours-week-day" aria-pressed={date === selectedDay} aria-label={`${staffDayLabel(date)}: ${staffDuration(dayTotals.get(date)!.paid)}`} onClick={() => setSelectedDay(date)} key={date}><span>{new Intl.DateTimeFormat("nl-NL", { weekday: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`))}</span><strong>{staffDuration(dayTotals.get(date)!.paid)}</strong></button>)}</div>
           <div className="ps-hours-week-total"><span>Totaal</span><strong>{staffDuration(weekTotal)}</strong></div>
         </section>
         <section className="ps-panel ps-hours-retention"><h2>DUIDELIJK GEREGISTREERD</h2><p>Je uren blijven beschikbaar nadat werkbonnen uit de dagplanning zijn verdwenen.</p></section>
@@ -466,7 +466,7 @@ function CorrectionDialog({ entry, timezone, pending, close, submit }: { entry: 
     : Boolean(requestedStartLocal && requestedEndLocal));
   return <Dialog title="Correctie doorgeven" kicker="MIJN UREN" close={close} footer={<><button type="button" className="ps-secondary" disabled={pending} onClick={close}>Annuleren</button><button type="submit" form="ps-time-correction-form" className="ps-primary" disabled={pending || !ready}>{pending ? "Versturen…" : "Correctieverzoek indienen"}</button></>}>
     <form id="ps-time-correction-form" className="ps-form" onSubmit={send}>
-      <div className="ps-toast-note"><strong>Gekozen registratie</strong><br/>{staffDayLabel(staffDate(entry.starts_at, timezone), timezone)} · {staffClock(entry.starts_at, timezone)}–{staffClock(entry.ends_at!, timezone)} · {entry.kind}</div>
+      <div className="ps-toast-note"><strong>Gekozen registratie</strong><br/>{staffDayLabel(staffDate(entry.starts_at, timezone))} · {staffClock(entry.starts_at, timezone)}–{staffClock(entry.ends_at!, timezone)} · {entry.kind}</div>
       <fieldset className="ps-choice-group ps-time-correction-modes"><legend>Hoe wil je de correctie doorgeven?</legend><label className="ps-check"><input type="radio" name="correction-mode" value="duration" checked={mode === "duration"} onChange={() => setMode("duration")}/>Correcte duur</label><label className="ps-check"><input type="radio" name="correction-mode" value="times" checked={mode === "times"} onChange={() => setMode("times")}/>Begin- en eindtijd</label></fieldset>
       {mode === "duration" ? <label className="ps-field">Correcte duur (minuten)<input type="number" min={1} max={600} step={1} required value={requestedDurationMinutes} onChange={(event) => setRequestedDurationMinutes(event.currentTarget.valueAsNumber)}/><small>Pas de huidige duur aan; de bestaande begintijd blijft het uitgangspunt.</small></label> : <div className="ps-form-grid"><label className="ps-field">Correcte begintijd<input type="datetime-local" required value={requestedStartLocal} onChange={(event) => setRequestedStartLocal(event.target.value)}/></label><label className="ps-field">Correcte eindtijd<input type="datetime-local" required value={requestedEndLocal} onChange={(event) => setRequestedEndLocal(event.target.value)}/></label></div>}
       <label className="ps-field">Reden voor correctie<textarea rows={5} required minLength={3} maxLength={2000} placeholder="Geef concreet aan wat er niet klopt." value={reason} onChange={(event) => setReason(event.target.value)}/></label>
@@ -496,7 +496,7 @@ function MoreScreen({ view, setView, data, profile, timezone, email, tenantName,
     <section className="ps-panel ps-open-shifts" aria-label="Open diensten"><div className="ps-panel-heading"><div><span>OPEN DIENSTEN</span><h2>Interesse doorgeven</h2></div><CalendarDays/></div>{shifts.map((shift) => {
       const interest = data.shiftInterests.find((item) => item.open_shift_id === shift.id && item.personnel_id === profile.id);
       const interested = interest?.status === "interested";
-      return <div className="ps-list-row" key={shift.id}><span><strong>{staffDayLabel(staffDate(shift.starts_at, timezone), timezone)}</strong><small>{staffClock(shift.starts_at, timezone)}–{staffClock(shift.ends_at, timezone)}</small></span><button className={interested ? "ps-secondary" : "ps-primary"} disabled={pending} onClick={() => run(() => toggleShiftInterest({ shiftId: shift.id, interested: !interested }), interested ? "Interesse ingetrokken" : "Interesse doorgegeven")}>{interested ? "Intrekken" : "Interesse"}</button></div>;
+      return <div className="ps-list-row" key={shift.id}><span><strong>{staffDayLabel(staffDate(shift.starts_at, timezone))}</strong><small>{staffClock(shift.starts_at, timezone)}–{staffClock(shift.ends_at, timezone)}</small></span><button className={interested ? "ps-secondary" : "ps-primary"} disabled={pending} onClick={() => run(() => toggleShiftInterest({ shiftId: shift.id, interested: !interested }), interested ? "Interesse ingetrokken" : "Interesse doorgegeven")}>{interested ? "Intrekken" : "Interesse"}</button></div>;
     })}{!shifts.length && <p>Er zijn geen open diensten.</p>}</section>
     <form className="ps-more-signout" action="/auth/signout" method="post"><button className="ps-text-button"><LogOut/>Uitloggen</button></form>
   </div>;

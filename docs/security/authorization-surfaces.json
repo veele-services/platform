@@ -1997,7 +1997,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "d2beda3b526c335410fe04e48a477908403d8062deb39b9d0af7f078b84e7671"
+      "source_sha256": "af20a79f173c680cd2ec25df1cb732aec8cd5d77dc3c307ce4830b8af33e0a00"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
@@ -2372,7 +2372,7 @@
       "resources": [
         "rpc:customer_portal_request_create"
       ],
-      "source_sha256": "238b950a6ab8988f6ca01cf684c055e65b8f68b67e6bfd6b9b62d97707b52cf4"
+      "source_sha256": "15fd59f282b94d011ca5706a8b9dc450cebc2a1d7094f7125cf857f830f41e98"
     },
     {
       "id": "code:lib/customer-portal/ticket-action.ts",
@@ -6689,7 +6689,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "07441e6759f0e5ffe407f6207bfcfdf22509cbfdf68e043e7291d4f7b594a568"
+      "source_sha256": "e6cd41f0eddcfcf374c426acc23d19ca87d38a2c06edc4bc42ea17a8693f7868"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -7026,7 +7026,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "286cb1fca80d6dccdd8c6fc1714460b2bc9bb9e11e240f585ebc0471bd2f76d1"
+      "definition_sha256": "5e3b057466234d94eae7d70505946dd6eff0a713c1e808afff893e6ee2150ccf"
     },
     {
       "id": "rpc:private.commercial_decide(q_id uuid, t uuid, input jsonb, actor uuid, channel text)",
@@ -10464,7 +10464,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "5cdcace2ac62621c6f0ff3252be533ef394d2382efff92dae53d88f5bb40c267"
+      "definition_sha256": "7977d4f7b084af8ecdc9493def75847756ee9c7e25b429d160654c075945e5ee"
     },
     {
       "id": "rpc:public.customer_portal_request_detail(target_tenant uuid, target_account uuid, target_request uuid)",

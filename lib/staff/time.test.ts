@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { addStaffDays, assignmentInterval, staffDate, staffWeek, summarizeEntries } from "./time";
+import { addStaffDays, assignmentInterval, staffDate, staffDayLabel, staffWeek, summarizeEntries } from "./time";
 
 describe("staff time presentation", () => {
+  it("labels the selected tenant date without a second conversion, including UTC+14", () => {
+    const instant=new Date("2030-01-15T11:30:00Z");
+    expect(staffDayLabel(staffDate(instant,"Pacific/Kiritimati"))).toBe("woensdag 16 januari 2030");
+    expect(staffDayLabel(staffDate(instant,"Pacific/Honolulu"))).toBe("dinsdag 15 januari 2030");
+  });
   it("uses the assignment schedule before the employee starts", () => {
     expect(assignmentInterval({ projected_start_at: "2026-10-04T08:00:00Z", projected_end_at: "2026-10-04T10:00:00Z" }, "Europe/Amsterdam", new Date("2026-10-04T09:00:00Z"))).toMatchObject({ start: "10:00", end: "12:00", source: "planned", running: false });
   });

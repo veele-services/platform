@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 // @ts-expect-error The retained website contract is a vanilla browser module.
-import { buildInquiry } from "@/websites/veele-services/assets/request-contract.js";
+import { buildInquiry, validateState, summaryGroups } from "@/websites/veele-services/assets/request-contract.js";
 import { mapWebsiteSubmission, websiteSubmissionSchema, type WebsiteSubmission } from "./submission";
 
 export function fixtureSubmission(services = ["schoonmaak", "beveiliging", "facilitair"]) {
@@ -8,6 +8,15 @@ export function fixtureSubmission(services = ["schoonmaak", "beveiliging", "faci
   return { envelopeVersion: "1.0.0", inquiry: buildInquiry(state, { mode: "submission", inquiryId: "12345678-1234-4123-8123-123456789abc", createdAt: "2026-10-07T00:00:00.000Z" }), wizardAnswers: { planningFlexible: false, frequencyLabel: "In overleg" } } as WebsiteSubmission;
 }
 describe("lossless public inquiry mapping", () => {
+  it("accepts unknown location in browser and server while preserving all other answers", () => {
+    expect(validateState({},1)).toEqual([]);
+    expect(summaryGroups({}).find((group: {title:string})=>group.title==="Locatie").lines).toEqual(["Locatie later vaststellen"]);
+    const q=fixtureSubmission();q.inquiry.location={country:"NL"};
+    const mapped=mapWebsiteSubmission(websiteSubmissionSchema.parse(q),"t","s");
+    expect(mapped.input.location).toBe("");expect(mapped.input.subject).toContain("Locatie later vaststellen");
+    expect(mapped.input.contact_name).toBe(q.inquiry.contact.name);expect(mapped.extraNotes).toContain(q.inquiry.message);
+    expect(validateState({postal_code:"wrong"},1)).not.toEqual([]);
+  });
   it.each([1,2,3,4,5,6,7])("preserves every selected service, branch and explicit false (combination %i)", mask => {
     const services = ["schoonmaak", "beveiliging", "facilitair"].filter((_,i) => mask & (1<<i));
     const envelope = websiteSubmissionSchema.parse(fixtureSubmission(services));

@@ -1,5 +1,6 @@
 "use client";
 import { DossierNavigation } from "../dossier-navigation";
+import { DossierActions } from "../dossier-actions";
 import { PageHeading } from "../page-heading";
 import { ContentSection } from "../content-section";
 import { useState, useTransition, type ReactNode } from "react";
@@ -221,7 +222,7 @@ export function CustomerDossier({
         <ArrowLeft size={16} />
         Terug naar klanten
       </Link>
-      <PageHeading eyebrow={`${c.customer_number} · ${customerTypes[c.customer_type]}`} title={c.name} description={<div className="dossier-heading-facts"><span className="resource-status">{customerStates[c.status]}</span><span>Verantwoordelijke: {owner(c.owner_user_id)}</span><span>Primair contact: {primary?.full_name || "Nog vastleggen"}</span></div>} actions={<>
+      <PageHeading eyebrow={`${c.customer_number} · ${customerTypes[c.customer_type]}`} title={c.name} description={<div className="dossier-heading-facts"><span className="resource-status">{customerStates[c.status]}</span><span>Verantwoordelijke: {owner(c.owner_user_id)}</span><span>Primair contact: {primary?.full_name || "Nog vastleggen"}</span></div>} actions={<DossierActions primary={<button className="primary-button" onClick={() => setDoc("new")}><FileText size={15} />Document toevoegen</button>}>
           <button className="secondary-button" onClick={() => setEditing(true)}>
             <Pencil size={15} />
             Bewerken
@@ -240,10 +241,6 @@ export function CustomerDossier({
             <Building2 size={15} />
             Object toevoegen
           </Link>
-          <button className="primary-button" onClick={() => setDoc("new")}>
-            <FileText size={15} />
-            Document toevoegen
-          </button>
           <Popover>
             <PopoverTrigger asChild>
               <button className="resource-action">
@@ -267,7 +264,7 @@ export function CustomerDossier({
               </button>
             </PopoverContent>
           </Popover>
-        </>}/>
+        </DossierActions>}/>
       <DossierNavigation label="Klantdossier" current={tab} tabs={customerTabs.map(([id,title])=>({id,title,href:href(id)}))}/>
       {tab === "overzicht" && (
         <>

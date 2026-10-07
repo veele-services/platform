@@ -14,8 +14,16 @@ describe("customer service and ordinary instruction persistence actions",()=>{
  it.each(["tenantId","customerId","userId","ownerId","status","priority","priceCents","confirmed"])("rejects forged request field %s",async field=>{
   expect(await createCustomerPortalRequest({...input,request:{...request,[field]:"FORGED"}})).toMatchObject({ok:false});expect(mocks.actor).not.toHaveBeenCalled();
  });
- it("never chooses a first object or accepts duplicates",async()=>{
-  for(const objectIds of [[],[object,object]])expect(await createCustomerPortalRequest({...input,request:{...request,objectIds}})).toMatchObject({ok:false});expect(mocks.rpc).not.toHaveBeenCalled();
+ it("persists an objectless request without selecting a first object",async()=>{
+  expect(await createCustomerPortalRequest({...input,request:{...request,objectIds:[]}})).toMatchObject({ok:true,requestIds:[child]});
+  expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("customer_portal_request_create",{target_tenant:tenant,target_account:account,input:{...request,objectIds:[]},request_id:command});
+ });
+ it("rejects duplicate objects",async()=>{
+  expect(await createCustomerPortalRequest({...input,request:{...request,objectIds:[object,object]}})).toMatchObject({ok:false});expect(mocks.rpc).not.toHaveBeenCalled();
+ });
+ it.each([{requestIds:[]},{requestIds:[child,object]}])("requires exactly one child receipt for an objectless request (%j)",async({requestIds})=>{
+  mocks.rpc.mockResolvedValueOnce({data:{groupId:command,requestIds},error:null});
+  expect(await createCustomerPortalRequest({...input,request:{...request,objectIds:[]}})).toMatchObject({ok:false});expect(mocks.revalidate).not.toHaveBeenCalled();
  });
  it("does not export unexpected receipt data",async()=>{
   mocks.rpc.mockResolvedValueOnce({data:{groupId:command,requestIds:[child],ownerId:tenant},error:null});expect(await createCustomerPortalRequest(input)).toMatchObject({ok:false});expect(mocks.revalidate).not.toHaveBeenCalled();

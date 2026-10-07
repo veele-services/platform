@@ -348,6 +348,43 @@ test("customer portal has explicit bootstrap identity and independent exact obje
    await db.query("update public.customer_portal_accounts set active=false where id=$1",[account]);try{await deny(save());await deny(list());}finally{await db.query("update public.customer_portal_accounts set active=true where id=$1",[account]);}
    await db.query("update public.task_catalog set active=false where id=$1",[catalog]);assert.deepEqual((await call("select public.customer_portal_services($1,$2) data",[tenant,account]))[0].data,[]);await assert.rejects(save(input,randomUUID()),e=>e.code==="23514");
   });
+  await t.test("intake without objects stays private, persists once and lets management attach a location later",async()=>{
+   await db.query("savepoint objectless_intake");
+   try{
+    await db.query("update public.object_customer_bindings set active=false where tenant_id=$1 and user_id=$2",[tenant,alice]);
+    assert.deepEqual((await workspace()).objects,[]);
+    // No SQL NULL truth value may bypass an IF NOT guard used by quote commands.
+    for(const creator of [null,bob,alice]){
+     await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:alice,session_id:sessions.get(alice),role:"authenticated"})]);
+     const scope=(await db.query("select private.commercial_customer_scope($1,$2,null,$3) allowed",[tenant,customer,creator])).rows[0].allowed;
+     assert.equal(scope,creator===alice);
+     await db.query("select set_config('request.jwt.claims','{}',true)");
+    }
+    const key=randomUUID(),input={service:"Andere dienstverlening",objectIds:[],frequency:"Maandelijks",preferredOn:null,description:"FICTITIOUS complete wishes without a known location"};
+    const save=(id=key,target=account,user=alice)=>call("select public.customer_portal_request_create($1,$2,$3,$4) data",[tenant,target,input,id],user).then(rows=>rows[0].data);
+    const count=(table)=>db.query(`select count(*)::int n from public.${table} where tenant_id=$1`,[tenant]).then(result=>result.rows[0].n);
+    const counts=async()=>[await count("objects"),await count("customers"),await count("customer_contacts")],before=await counts();
+    await deny(save(randomUUID(),otherAccount));await deny(save(randomUUID(),account,bob));
+    const receipt=await save();assert.equal(receipt.requestIds.length,1);assert.deepEqual(await save(),receipt);
+    assert.deepEqual(await counts(),before,"No placeholder objects or identities are created");
+    const rid=receipt.requestIds[0],record=(await db.query("select * from public.requests where id=$1",[rid])).rows[0];
+    assert.equal(record.object_id,null);assert.equal(record.customer_id,customer);assert.equal(record.contact_id,contact);assert.equal(record.description,input.description);assert.equal(record.preferences.frequency,input.frequency);
+    const groups=(await call("select public.customer_portal_requests($1,$2) data",[tenant,account]))[0].data,group=groups.find(item=>item.id===key);
+    assert.deepEqual(group.objectIds,[]);assert.equal(group.parts.length,1);assert.equal(group.parts[0].objectId,null);assert.equal(group.description,input.description);
+    const detail=(await call("select public.customer_portal_request_detail($1,$2,$3) data",[tenant,account,rid]))[0].data;
+    assert.equal(detail.request.description,input.description);
+    await deny(call("select public.customer_portal_request_detail($1,$2,$3) data",[tenant,otherAccount,rid],bob));
+    await db.query("update public.customer_portal_accounts set active=false where id=$1",[account]);await deny(save());
+    await db.query("update public.customer_portal_accounts set active=true where id=$1",[account]);
+    const management=(await call("select public.commercial_detail($1,$2,'request') data",[tenant,rid],manager))[0].data;assert.equal(management.record.description,input.description);assert.equal(management.record.object_id,null);
+    const payload={id:rid,version:record.version,customer_id:customer,object_id:object,owner_id:manager,subject:record.subject,description:"Manager must not overwrite customer wishes",discipline:record.discipline,source:"portal",priority:"normal",work_kind:"recurring",next_action:"Locatie vastgesteld"};
+    await call("select public.commercial_command($1,$2,'request_save',$3) data",[tenant,randomUUID(),payload],manager);
+    const linked=(await db.query("select object_id,description from public.requests where id=$1",[rid])).rows[0];assert.equal(linked.object_id,object);assert.equal(linked.description,input.description);
+    await db.query("update public.object_customer_bindings set active=true where tenant_id=$1 and object_id=$2 and user_id=$3",[tenant,object,alice]);
+    assert.equal((await call("select public.customer_portal_request_detail($1,$2,$3) data",[tenant,account,rid]))[0].data.request.objectId,object);
+    assert.deepEqual(await save(),receipt,"A retry never removes the location linked by management");
+   }finally{await db.query("rollback to savepoint objectless_intake");await db.query("release savepoint objectless_intake");}
+  });
   await t.test("customer news comes from real central campaigns and remains isolated between two accounts of one login",async()=>{
    await db.query("savepoint customer_news_fixture");
    try{
