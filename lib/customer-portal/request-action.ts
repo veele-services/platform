@@ -13,7 +13,7 @@ export async function createCustomerPortalRequest(input:unknown){
   const response=await actor.db.rpc("customer_portal_request_create",{target_tenant:actor.tenant.id,target_account:value.accountId,input:value.request,request_id:value.commandId});
   if(response.error)return {ok:false as const,code:response.error.code,error:response.error.code==="23514"?"Controleer de beschikbare dienst, objecten, voorkeursdatum en wensen.":response.error.code==="54000"?"Je hebt veel aanvragen verstuurd. Neem contact op met je accountmanager.":"Je aanvraag kon niet worden verstuurd. Controleer je actuele objecttoegang."};
   const result=resultSchema.parse(response.data);
-  if(result.groupId!==value.commandId||result.requestIds.length!==value.request.objectIds.length||new Set(result.requestIds).size!==result.requestIds.length)throw new Error("Ongeldig ontvangstbewijs");
+  if(result.groupId!==value.commandId||result.requestIds.length!==Math.max(1,value.request.objectIds.length)||new Set(result.requestIds).size!==result.requestIds.length)throw new Error("Ongeldig ontvangstbewijs");
   revalidatePath("/klant","layout");revalidatePath("/app","layout");return {ok:true as const,...result};
  }catch{return {ok:false as const,error:"Versturen kon niet worden bevestigd. Probeer dezelfde aanvraag opnieuw; je invoer blijft staan."};}
 }

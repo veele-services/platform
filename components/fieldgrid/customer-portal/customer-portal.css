@@ -237,6 +237,15 @@
 .customer-portal .ticket-file small{font-size:calc(.74rem * var(--dashboard-font-scale, 1));color:var(--muted)}.customer-portal .ticket-file progress{width:100%}
 .customer-portal .ticket-actions{display:flex;gap:8px;justify-content:flex-end}.customer-portal .ticket-error{color:#a13e37}
 
+.customer-portal .detail-tabs{min-width:0;overscroll-behavior-x:contain;scrollbar-width:thin;scroll-padding-inline:8px}
+.customer-portal .detail-tabs button{flex-shrink:0;min-height:48px}
+@media(max-width:600px){
+ .customer-portal .detail-tabs{margin:0 0 20px;padding:6px;gap:6px;max-width:100%;border:1px solid var(--line);border-radius:12px;background:var(--canvas)}
+ .customer-portal .detail-tabs button{padding:12px 14px;border-radius:8px}
+ .customer-portal .detail-tabs button.active{background:var(--brand-accent-soft,#eef7ef)}
+ .customer-portal [data-customer-dialog] .modal-footer .button{min-height:48px;min-width:0;white-space:normal;overflow-wrap:anywhere}
+}
+
 .customer-portal .customer-visit-form fieldset{border:0;padding:0;margin:0;min-width:0;display:grid;gap:18px}
 .customer-portal .customer-visit-form .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
 .customer-portal .customer-visit-form .field{min-width:0;margin:0}

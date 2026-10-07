@@ -1,5 +1,6 @@
 "use client";
 import { DossierNavigation } from "./dossier-navigation";
+import { DossierActions } from "./dossier-actions";
 import { PageHeading } from "./page-heading";
 import { ContentSection } from "./content-section";
 import { MobilityPanel } from "./travel-settings";
@@ -94,7 +95,7 @@ export function PersonnelDossier({tenant,personnelId,data,workspace,tab,initialP
  const missingCodes=requiredCodes.filter(code=>!certificates.some(c=>c.data.code===code&&c.status==="approved"&&["Geldig","Geen einddatum","Verloopt binnenkort"].includes(certificateValidity(c.data))));
  return <div className="personnel-dossier">
   <Link className="dossier-back" href="/app/personeel"><ArrowLeft size={16}/>Terug naar personeel</Link>
-  <PageHeading eyebrow={`PERSONEELSDOSSIER 360 · ${person.employee_number}`} title={person.full_name} description={<><span>{functionName} · {String(contract?.data.team || "Team nog niet vastgelegd")}</span><div className="dossier-heading-facts"><Status>{labels[employment] || employment}</Status><span>Leidinggevende: {data.owners.find(o => o.id === contract?.data.managerId)?.label || workspace.personnel.find(p => p.user_id === contract?.data.managerId)?.full_name || "Nog niet vastgelegd"}</span></div></>} actions={<><button className="secondary-button" onClick={editProfile}><Pencil size={15}/>Bewerken</button><button className="secondary-button" onClick={()=>setUpload({})}><FileText size={15}/>Document toevoegen</button>{add("task","Taak toevoegen")}</>}/>
+  <PageHeading eyebrow={`PERSONEELSDOSSIER 360 · ${person.employee_number}`} title={person.full_name} description={<><span>{functionName} · {String(contract?.data.team || "Team nog niet vastgelegd")}</span><div className="dossier-heading-facts"><Status>{labels[employment] || employment}</Status><span>Leidinggevende: {data.owners.find(o => o.id === contract?.data.managerId)?.label || workspace.personnel.find(p => p.user_id === contract?.data.managerId)?.full_name || "Nog niet vastgelegd"}</span></div></>} actions={<DossierActions primary={add("task","Taak toevoegen")}><button className="secondary-button" onClick={editProfile}><Pencil size={15}/>Bewerken</button><button className="secondary-button" onClick={()=>setUpload({})}><FileText size={15}/>Document toevoegen</button></DossierActions>}/>
   <DossierNavigation label="Dossieronderdelen" current={tab} tabs={dossierTabs.map(([id,title])=>({id,title,href:href(id),count:tabCounts[id]}))}/>
 
 

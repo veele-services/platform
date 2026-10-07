@@ -357,6 +357,7 @@ test("klantdossier opent elf volledige paginaonderdelen en bewaart contacten, no
 
 test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, uren en personeelszaken", async ({ page }) => {
   test.setTimeout(60_000);
+  await page.clock.setFixedTime(new Date("2030-01-15T08:00:00Z"));
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page, "field-worker@fieldgrid.test", "/staff");
   const app = page.locator(".personnel-app");
@@ -578,7 +579,8 @@ test("planningwijziging verschijnt realtime bij personeel zonder paginareload", 
   const staffContext = await browser.newContext({
     baseURL: "http://127.0.0.1:3000",
     locale: "nl-NL",
-    timezoneId: "Europe/Amsterdam",
+    // The browser is still on Jan 15; the tenant is already on Jan 16.
+    timezoneId: "America/Los_Angeles",
   });
   const staff = await staffContext.newPage();
   const orderId = "e6000000-0000-4000-8000-000000000001";
@@ -609,7 +611,11 @@ test("planningwijziging verschijnt realtime bij personeel zonder paginareload", 
   };
 
   try {
+    await staff.clock.setFixedTime(new Date("2030-01-15T23:30:00Z"));
     await login(staff, "field-worker@fieldgrid.test", "/staff");
+    await expect(staff.locator(".ps-week-day[aria-pressed=true]")).toHaveAccessibleName("woensdag 16 januari 2030");
+    await expect(staff.getByRole("button",{name:/WB-2030-001/})).toHaveCount(0);
+    await staff.getByRole("button",{name:"dinsdag 15 januari 2030",exact:true}).click();
     const staffOrder = staff.getByRole("button", { name: /WB-2030-001/ });
     const staffTime = staffOrder.locator(".ps-order-time");
     await expect(staffTime).toHaveText("10:00–10:30");
@@ -628,6 +634,7 @@ test("planningwijziging verschijnt realtime bij personeel zonder paginareload", 
     await savePlanningTime(newStart, newEnd, "10:15–10:45");
 
     await expect(staffTime).toHaveText("10:15–10:45", { timeout: 8_000 });
+    await expect(staff.locator(".ps-week-day[aria-pressed=true]")).toHaveAccessibleName("dinsdag 15 januari 2030");
     await expect.poll(() => staff.evaluate(() => Reflect.get(window, "__fieldgridRealtimeSentinel"))).toBe(sentinel);
     await expect(staff).toHaveURL(/\/staff$/);
   } finally {

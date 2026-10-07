@@ -7,6 +7,15 @@ import { ticketModule } from "./staff-modules";
 
 test.use({ reducedMotion: "reduce" });
 
+// These display tests open the dated fixture through the real planning action,
+// which also records that the employee has seen it. Keep execution timers real.
+async function openFixtureOrder(page:Page){
+ const now=new Date();await page.clock.setFixedTime(new Date("2030-01-15T08:00:00Z"));
+ await authenticateStaff(page,"field-worker@fieldgrid.test");
+ await page.getByRole("button",{name:/WB-2030-001/}).click();
+ await page.clock.setFixedTime(now);
+}
+
 async function inspectDialog(page: Page, dialog: Locator, info: TestInfo, name: string) {
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute("aria-modal", "true");
@@ -39,8 +48,7 @@ async function inspectDialog(page: Page, dialog: Locator, info: TestInfo, name: 
 
 test("werkbonvensters blijven binnen het scherm en bewaren terugkeer naar de bon", async ({ page }, info) => {
   test.setTimeout(90_000);
-  await authenticateStaff(page, "field-worker@fieldgrid.test");
-  await page.getByRole("button", { name: /WB-2030-001/ }).click();
+  await openFixtureOrder(page);
   const sheet = page.getByRole("dialog", { name: "Werkbon WB-2030-001", exact: true });
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 844 });
@@ -152,8 +160,7 @@ test("actieve uitvoering toont meerwerk en afrondingscontrole zonder rapport of 
     await db.query("update public.work_orders set status='in_progress' where id=$1", [orderId]);
     await db.query("update public.work_order_assignments set status='in_progress',actual_start_at=clock_timestamp() where id=$1", [assignmentId]);
     await page.setViewportSize({ width: 320, height: 740 });
-    await authenticateStaff(page, "field-worker@fieldgrid.test");
-    await page.getByRole("button", { name: /WB-2030-001/ }).click();
+    await openFixtureOrder(page);
     const sheet = page.getByRole("dialog", { name: "Werkbon WB-2030-001", exact: true });
     await sheet.getByRole("tab", { name: "Werkzaamheden", exact: true }).click();
     const extra = sheet.locator(".fg-section").filter({ has: page.getByRole("heading", { name: "Meerwerk", exact: true }) });
@@ -187,7 +194,7 @@ test("gereedgemelde werkbon toont geen hervatten of uitvoeringsacties",async({pa
   await db.query("insert into public.work_order_report_versions(id,tenant_id,work_order_id,version,snapshot,content_hash,signature_policy,state,created_by,submission_key) select $2,w.tenant_id,w.id,w.report_version+1,b.snapshot,encode(extensions.digest(b.snapshot::text,'sha256'),'hex'),coalesce(w.signature_policy_snapshot,private.work_order_signature_policy(w)),'review',w.created_by,$3 from public.work_orders w cross join lateral(select private.work_order_report_snapshot(w,'FICTITIOUS completed display report') snapshot)b where w.id=$1",[orderId,reportId,randomUUID()]);
   await db.query("update public.work_orders set status='completed',report_state='review',report_version=report_version+1 where id=$1",[orderId]);
   expect((await db.query("select status from public.work_orders where id=$1",[orderId])).rows[0].status).toBe("completed");
-  await authenticateStaff(page,"field-worker@fieldgrid.test");await page.getByRole("button",{name:/WB-2030-001/}).click();
+  await openFixtureOrder(page);
   const sheet=page.getByRole("dialog",{name:"Werkbon WB-2030-001",exact:true});
   await expect(sheet.getByRole("button",{name:/Hervatten|Gereedmelden hervatten|Oplevering afronden|Werk afronden|Pauzeren|Werkbon terugmelden/})).toHaveCount(0);
   await sheet.getByRole("tab",{name:"Werkzaamheden",exact:true}).click();

@@ -627,8 +627,6 @@
         "properties": {
           "location": {
             "required": [
-              "type",
-              "city",
               "country"
             ],
             "allOf": [

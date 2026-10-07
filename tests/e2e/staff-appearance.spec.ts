@@ -33,6 +33,7 @@ test("Tickets blijft zichtbaar met uitleg als de module uitstaat", async ({ page
 
 test("actieve Tickets opent de bestaande engine in dezelfde personeelsopmaak", async ({ page }, info) => {
   test.setTimeout(90_000);
+  await page.clock.setFixedTime(new Date("2030-01-15T08:00:00Z"));
   const restore = await ticketModule(true);
   try {
     await authenticateStaff(page, "field-worker@fieldgrid.test");

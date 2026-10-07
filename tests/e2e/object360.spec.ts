@@ -48,8 +48,18 @@ test("Object 360: full page tabs, structure, versioned instructions and responsi
  const tabs=page.getByRole("navigation",{name:"Objectdossier tabbladen"});await expect(tabs.getByRole("link")).toHaveCount(13);
  for(const width of [1440,768,390,320]){
   await page.setViewportSize({width,height:950});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+  if(width<=620){
+   expect(await tabs.evaluate(element=>element.scrollWidth>element.clientWidth)).toBe(true);
+   for(const action of await page.locator(".dossier-header-actions button,.dossier-header-actions a").all()){
+    const bounds=await action.boundingBox();expect(bounds!.height).toBeGreaterThanOrEqual(44);expect(bounds!.x).toBeGreaterThanOrEqual(0);expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(width);
+   }
+  }
   await expect(page).toHaveScreenshot(`object360-overview-${width}.png`,{fullPage:true,stylePath:"tests/e2e/dossier-screenshot.css",mask:[page.locator(".object-metrics strong").first()]});
  }
+ await page.goto(`/app/objecten/${object}?tab=tijdlijn`);
+ const active=tabs.locator('[aria-current="page"]');await expect(active).toContainText("Tijdlijn");
+ await expect.poll(async()=>{const row=await tabs.boundingBox(),item=await active.boundingBox();return !!row&&!!item&&item.x>=row.x&&item.x+item.width<=row.x+row.width+1;}).toBe(true);
+ await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  await page.setViewportSize({width:1440,height:1000});await tabs.getByRole("link",{name:"Locatie & structuur"}).click();await expect(tabs.getByRole("link",{name:"Locatie & structuur"})).toHaveAttribute("aria-current","page");
  await page.getByRole("button",{name:"Onderdeel toevoegen"}).click();const node=page.getByRole("dialog",{name:"Locatieonderdeel toevoegen"});await node.getByLabel("Naam",{exact:true}).fill("Entree");await node.getByRole("button",{name:"Opslaan",exact:true}).click();await expect(node).toBeHidden();await expect(page.getByText("Entree",{exact:true})).toBeVisible();
  await tabs.getByRole("link",{name:"Instructies & taken"}).click();await expect(tabs.getByRole("link",{name:"Instructies & taken"})).toHaveAttribute("aria-current","page");await page.getByRole("button",{name:"Instructie toevoegen",exact:true}).last().click();const instruction=page.getByRole("dialog",{name:"Nieuw · Instructie"});
@@ -86,4 +96,21 @@ test("Object 360: branded OTP mail, no-store secure value, blur and revocation",
  const response=page.waitForResponse(r=>r.url().endsWith("/api/objects/vault")&&r.request().postDataJSON().operation==="read");await card.getByRole("button",{name:"Bevestigen",exact:true}).click();const valueResponse=await response;expect(valueResponse.headers()["cache-control"]).toContain("no-store");await expect(card.locator(".object-secret-value")).toBeVisible();
  await page.evaluate(()=>window.dispatchEvent(new Event("blur")));await expect(card.locator(".object-secret-value")).toHaveCount(0);await expect(card.getByRole("button",{name:"Verificatiecode aanvragen"})).toBeVisible();
  expect(await page.evaluate(()=>JSON.stringify({...localStorage}).includes("FICTIONAL-BROWSER-VALUE"))).toBe(false);
+});
+
+test("customer and personnel dossiers keep mobile tabs and grouped actions inside the viewport",async({page})=>{
+ test.setTimeout(90000);await login(page,`/app/klanten/${fixtureCustomer}`);
+ for(const route of [`/app/klanten/${fixtureCustomer}`,`/app/personeel/${fixturePerson}`]){
+  await page.goto(route);const tabs=page.locator(`${route.includes("klanten")?".customer-dossier":".personnel-dossier"} .dossier-navigation`);await expect(tabs).toBeVisible();
+  for(const width of [320,390,768,1440]){
+   await page.setViewportSize({width,height:900});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+   for(const action of await page.locator(".dossier-header-actions button,.dossier-header-actions a").all()){
+    const b=await action.boundingBox();expect(b!.x).toBeGreaterThanOrEqual(0);expect(b!.x+b!.width).toBeLessThanOrEqual(width+1);if(width<=620)expect(b!.height).toBeGreaterThanOrEqual(44);
+   }
+   await page.screenshot({path:`test-results/${route.includes("klanten")?"customer":"personnel"}-dossier-${width}.png`,fullPage:true});
+  }
+  await page.setViewportSize({width:320,height:900});await tabs.getByRole("link").last().click();const active=tabs.locator('[aria-current="page"]');
+  await expect.poll(async()=>{const row=await tabs.boundingBox(),b=await active.boundingBox();return !!row&&!!b&&b.x>=row.x&&b.x+b.width<=row.x+row.width+1;}).toBe(true);
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ }
 });
