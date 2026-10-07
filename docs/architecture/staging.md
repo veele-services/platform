@@ -235,11 +235,17 @@ legacy project is used as its starting point.
 | `EXPECTED_SUPABASE_PROJECT_REF` | Present in GitHub Environment `staging`; identifies the new staging project and remains out of Git |
 | `FORBIDDEN_SUPABASE_PROJECT_REF` | `ckdtiuemeygrnujjibnw` |
 
+The newly confirmed V1 production project `tqqknlrggmpslttisrck` is also forbidden
+from staging. This additional source-level denylist does not replace the legacy
+guard or introduce a credential/configuration fallback. It applies even if an
+operator accidentally sets the expected staging ref to the production ref.
+
 Starting the runtime, running migrations and creating backups must all fail
 closed when:
 
 - the expected staging ref is absent;
 - expected and forbidden refs are equal;
+- the expected ref or API/database target is the confirmed V1 production project;
 - a configured Supabase URL resolves to the forbidden ref;
 - a migration or backup connection resolves to the forbidden ref;
 - the actual connection cannot be proven to belong to the expected staging ref.

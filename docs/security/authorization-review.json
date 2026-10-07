@@ -4592,11 +4592,13 @@
     },
     {
       "id": "operation:deploy/fieldgrid-install-staging-release",
-      "surfaceFingerprint": "bad3e7233326eaff4ce39130d7b2cee886acd24aa574f13bf1e47bd4dd7de24a",
+      "surfaceFingerprint": "0c6b115c17af71dded92b178a2259c375076efa86432c18c918451e81730f19a",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "The broker still verifies all three attestations, decrypts only in its root-owned work directory and preserves the fixed no-argument privilege boundary.",
-        "The extracted release is now rejected unless server.js, worker-client.mjs and the packaged clamav-preflight.mjs are all present; lib/operations/deployment-broker.test.ts covers this completeness gate."
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/env/staging-database.test.ts",
+        "lib/env/server-isolation.test.ts",
+        "lib/operations/deployment-broker.test.ts"
       ]
     },
     {
@@ -4747,24 +4749,24 @@
     },
     {
       "id": "operation:lib/env/server.ts",
-      "surfaceFingerprint": "3d88ddb2aeb4a261f568c96edc6b35bd4c95e45042e0c34249e306364a44b9ea",
-      "status": "controlled",
+      "surfaceFingerprint": "1be6d42b0425ce6009e9aaf76a55cf157003d5ee3702243597ea065ee3973b77",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
-        "lib/operations/production-deployment.test.ts",
-        "lib/env/production-database.test.ts",
-        "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "lib/env/staging-database.test.ts",
+        "lib/env/server-isolation.test.ts",
+        "lib/operations/deployment-broker.test.ts"
       ]
     },
     {
       "id": "operation:lib/env/staging-database.ts",
-      "surfaceFingerprint": "eabbfab9c26ca46ce64860e0b4328c23bede89363b3b3de2ba81ecbdb37145c0",
-      "status": "controlled",
+      "surfaceFingerprint": "56c84ea226865547cfbf14c895eb54e3a900abcedb34d34f7e5a883235e96b54",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-staging-migration-boundary-review:2026-10-02",
+        "docs/security/production-release-boundaries-2026-10-07.md",
         "lib/env/staging-database.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "lib/env/server-isolation.test.ts",
+        "lib/operations/deployment-broker.test.ts"
       ]
     },
     {

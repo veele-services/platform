@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { isStagingTicketScannerPath } from "@/lib/tickets/scanner-path";
 import { assertProductionRuntime } from "./production-runtime";
+import { isForbiddenStagingProjectRef } from "./staging-database";
 
 const serverSchema = z.object({
   APP_ENV: z.enum(["development", "production"]),
@@ -89,7 +90,7 @@ export function getServerEnv(): ServerEnv {
     if (parsed.FORBIDDEN_SUPABASE_PROJECT_REF !== "ckdtiuemeygrnujjibnw") {
       throw new Error("Unexpected production Supabase project-ref guard");
     }
-    if (parsed.EXPECTED_SUPABASE_PROJECT_REF === parsed.FORBIDDEN_SUPABASE_PROJECT_REF) {
+    if (isForbiddenStagingProjectRef(parsed.EXPECTED_SUPABASE_PROJECT_REF)) {
       throw new Error("Staging and forbidden Supabase project refs must differ");
     }
     if (ref !== parsed.EXPECTED_SUPABASE_PROJECT_REF || publicRef !== parsed.EXPECTED_SUPABASE_PROJECT_REF) {

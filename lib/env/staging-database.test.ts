@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { Client } from "pg";
-import { assertStagingProject, forbiddenProductionRef, stagingDatabaseUrl } from "./staging-database";
+import { assertStagingProject, currentProductionRef, forbiddenProductionRef, stagingDatabaseUrl } from "./staging-database";
 
 const ref = "abcdefghijklmnopqrst";
 const env = { DEPLOY_TARGET: "staging", APP_ENV: "development", EXPECTED_SUPABASE_PROJECT_REF: ref, FORBIDDEN_SUPABASE_PROJECT_REF: forbiddenProductionRef, SUPABASE_URL: `https://${ref}.supabase.co`, BACKUP_DATABASE_URL: `postgresql://postgres:FICTITIOUS%21@db.${ref}.supabase.co:5432/postgres?sslmode=require` };
@@ -30,6 +30,10 @@ it("permits a transaction pool only for the ordinary runtime connection", () => 
   const url = `postgresql://postgres.${ref}:FICTITIOUS@aws-1-eu-west-1.pooler.supabase.com:6543/postgres`;
   expect(stagingDatabaseUrl("DATABASE_URL", { ...env, DATABASE_URL: url }).port).toBe("6543");
   expect(() => stagingDatabaseUrl("MIGRATION_DATABASE_URL", { ...env, MIGRATION_DATABASE_URL: url })).toThrow();
+});
+it.each(["DATABASE_URL", "MIGRATION_DATABASE_URL", "BACKUP_DATABASE_URL"] as const)("rejects the confirmed new production project even when the expected staging ref and %s all match it", key => {
+  const mistaken = { ...env, EXPECTED_SUPABASE_PROJECT_REF: currentProductionRef, SUPABASE_URL: `https://${currentProductionRef}.supabase.co`, [key]: `postgresql://postgres:FICTITIOUS@db.${currentProductionRef}.supabase.co:5432/postgres` };
+  expect(() => stagingDatabaseUrl(key, mistaken)).toThrow("Stagingprojectguard");
 });
 it("normalizes the default port before passing a validated URL to pg", () => {
   const value = `postgresql://postgres.${ref}:FICTITIOUS@aws-1-eu-west-1.pooler.supabase.com/postgres`;

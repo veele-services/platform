@@ -27,10 +27,15 @@ and a distinct worker secret. Errors identify settings only. Marketing and Googl
 Routes remain disabled. Bootstrap remains OTP-only, emailconfirmed and idempotent;
 its hosted workflow checks the exact healthy runtime first and never resets a
 password. Staging adapters retain their own staging-only project contracts.
+The owner-confirmed new production ref `tqqknlrggmpslttisrck` is explicitly denied
+by staging startup, connection/migration/backup guards and broker configuration
+validation, independently of the expected staging ref; the legacy denylist stays.
 
 Evidence: `lib/env/production-database.test.ts`, `production-runtime.test.ts`,
 `lib/operations/production-backup.test.ts`, `production-bootstrap.test.ts`,
 `production-deployment.test.ts`, existing staging database/migration tests.
+`server-isolation.test.ts` and the staging broker's executed Python validator
+also reject a matching production API URL/ref masquerading as staging.
 
 ## Runtime health, worker and scanner
 

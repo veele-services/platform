@@ -119,6 +119,7 @@ install -d -o root -g fieldgrid-production -m 0750 /opt/fieldgrid/production/rel
 install -d -o root -g root -m 0700 /opt/fieldgrid/production/backups
 install -o root -g fieldgrid-production -m 0640 /dev/null /opt/fieldgrid/production/shared/runtime.env
 install -o root -g root -m 0755 deploy/fieldgrid-install-production-release /usr/local/sbin/fieldgrid-install-production-release
+install -o root -g root -m 0755 deploy/fieldgrid-install-staging-release /usr/local/sbin/fieldgrid-install-staging-release
 install -o root -g root -m 0440 deploy/fieldgrid-production-runner.sudoers /etc/sudoers.d/fieldgrid-production-runner
 visudo -cf /etc/sudoers.d/fieldgrid-production-runner
 install -d -o root -g root -m 0755 /etc/systemd/system/fieldgrid@production.service.d /etc/systemd/system/fieldgrid-worker@production.service.d
@@ -136,6 +137,9 @@ uitsluitend zijn eigen groep. Geen Docker-, sudo-, runtime- of scannergroep
 toevoegen. Een aparte runnerinstallatie krijgt alleen label `fieldgrid-production`;
 zijn systemd-userdrop-in gebruikt `deploy/fieldgrid-production-runner-user.conf`.
 Bind hem aan alleen dit repository/deploymentpad en geef nooit staginglabels mee.
+De gereviewde stagingbroker krijgt uitsluitend de extra weigering van het nieuwe
+productieproject; stagingpaden, service, providercredentials en runtime blijven
+gelijk. Installeer deze guard vóór de eerste productieactivatie.
 
 Gebruik de bestaande root-only `/etc/fieldgrid` en gecontroleerde GitHub trustroot;
 maak een **nieuw** productie-encryptiepaar, zonder stagingcert/key te wijzigen:

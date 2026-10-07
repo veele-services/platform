@@ -62,6 +62,10 @@ gebruiken direct/session-poort 5432; transactiemodus 6543 is alleen toegestaan
 voor de afzonderlijke runtimeverbinding. Queryparameters mogen de identiteit van
 een verbinding niet vervangen. TLS controleert CA en hostname.
 
+Staging weigert daarnaast de bevestigde nieuwe productieprojectref
+`tqqknlrggmpslttisrck` in startup, migratie, backup en de releasebroker, ook als
+de verwachte stagingref per ongeluk op dat productieproject is ingesteld.
+
 Geen stagingdata, Auth-accounts, uitnodigingen of betalingen worden overgenomen.
 De operator bootstrapt één OTP-platformbeheerder en maakt daarna de echte Veele
 tenant, branding en toegangen aan. Marketingpublicatie vereist een actieve Veele
