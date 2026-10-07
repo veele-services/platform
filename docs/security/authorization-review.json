@@ -4961,15 +4961,15 @@
     },
     {
       "id": "operation:scripts/staging-customer-payment-acceptance.ts",
-      "surfaceFingerprint": "7b5c340bd6d1c9d42a22910b4346dd602c6f11ee8e34a5aa1da63a09fc07631d",
-      "status": "controlled",
+      "surfaceFingerprint": "ca295c29e69bd8436f747fd877b29f00942dceae83125ed17d19a45401adb454",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/tenant-branding-address-payment-verification-2026-10-07.md"
       ]
     },
     {
       "id": "operation:scripts/staging-tenant-integrations.ts",
-      "surfaceFingerprint": "4c4a9e8def2796fc191be4cda4cebf4c679f287f973cea954db0ed95efff9079",
+      "surfaceFingerprint": "38e1228cac234af9916d102405cd913a9d8650471ca58b690ae060bd71e6d299",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
