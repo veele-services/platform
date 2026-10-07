@@ -4635,7 +4635,7 @@
     },
     {
       "id": "operation:lib/operations/mollie-test-checkout.ts",
-      "surfaceFingerprint": "bb35cd948d6a9d25817767d9617b7fc357a9ad268b3533f0a67ad8858ca1ae50",
+      "surfaceFingerprint": "e7654d7acc1eac697b518fd9ab5b4513760a0016883e916f0488a7c506bb2d5d",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
@@ -4971,7 +4971,7 @@
     },
     {
       "id": "operation:scripts/staging-customer-payment-acceptance.ts",
-      "surfaceFingerprint": "5459e9deadc0b29a1033c3e3609cc9cf5e193c819acc31c1db39fb6247c66fa3",
+      "surfaceFingerprint": "8869dc1da13bdee0bba875331d05459ca728e01a5c319498b5a6f7d6e778ca3d",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",

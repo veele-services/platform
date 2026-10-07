@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { confirmMollieTestCheckout, MollieTestCheckoutError, type CheckoutDiagnostic } from "../../lib/operations/mollie-test-checkout";
+import { checkoutActionFailureReason, confirmMollieTestCheckout, MollieTestCheckoutError, type CheckoutDiagnostic } from "../../lib/operations/mollie-test-checkout";
 
 test.use({ trace: "off", screenshot: "off", video: "off" });
 const tenant = "https://fictional-staging-tenant.example.invalid";
@@ -44,6 +44,49 @@ test("Paid radio submits its native default button without relying on its label"
   await confirmMollieTestCheckout(page, tenant, diagnostic => actions.push(diagnostic.action), 8_000);
   expect(actions).toEqual(["paid_radio", "submit_status"]);
   await expect(page).toHaveURL(`${tenant}/klant`);
+});
+
+test("native POST waits for a slow provider redirect without submitting twice", async ({ page }) => {
+  test.setTimeout(25_000);
+  await fixture(page, `<form method="POST" action="/complete"><label><input type="radio" name="status" value="paid">Paid</label><button>Complete test payment</button></form>`);
+  let submissions = 0;
+  let selectedStatus: string | null = null;
+  await page.route("https://checkout.mollie.com/complete", async route => {
+    submissions++;
+    expect(route.request().method()).toBe("POST");
+    selectedStatus = new URLSearchParams(route.request().postData() ?? "").get("status");
+    await new Promise(resolve => setTimeout(resolve, 8_000));
+    // Playwright routes only the first request in an HTTP redirect chain. Use
+    // a fresh navigation after the delayed native POST response so the entire
+    // fictional checkout remains intercepted instead of attempting real DNS.
+    await route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: `<script>location.href='${tenant}/klant'</script>` });
+  });
+  const actions: string[] = [];
+  await confirmMollieTestCheckout(page, tenant, diagnostic => actions.push(diagnostic.action), 15_000);
+  expect(actions).toEqual(["paid_radio", "submit_status"]);
+  expect(submissions).toBe(1);
+  expect(selectedStatus).toBe("paid");
+  await expect(page).toHaveURL(`${tenant}/klant`);
+});
+
+test("an intercepted submit stays blocked and emits only a fixed reason", async ({ page }) => {
+  await fixture(page, `<form><label><input type="radio" name="status" value="paid" onchange="document.querySelector('#cover').hidden=false">Paid</label>
+    <button style="position:absolute;top:80px;left:10px">Complete test payment</button>
+    <div id="cover" hidden style="position:absolute;top:60px;left:0;width:100%;height:100px;z-index:10">PRIVATE_PROVIDER_REFERENCE</div></form>`);
+  let captured: unknown;
+  try { await confirmMollieTestCheckout(page, tenant, undefined, 10_000); } catch (error) { captured = error; }
+  expect(captured).toBeInstanceOf(MollieTestCheckoutError);
+  expect(captured).toMatchObject({ kind: "action_timeout", reason: "pointer_intercepted", diagnostic: { action: "submit_status" } });
+  expect(JSON.stringify(captured)).not.toMatch(/PRIVATE_PROVIDER_REFERENCE|https:|fictional-local-test/);
+});
+
+test("failure reasons follow completed action markers without exposing call logs", () => {
+  const reason = (log: string) => checkoutActionFailureReason(new Error(`Timeout with PRIVATE_PROVIDER_REFERENCE at ${checkout}\nCall log:\n${log}`));
+  expect(reason("  - <div>PRIVATE_PROVIDER_REFERENCE</div> intercepts pointer events\n  - click action done\n  - waiting for scheduled navigations to finish")).toBe("navigation_pending");
+  expect(reason("  - waiting for scheduled navigations to finish")).toBe("other");
+  expect(reason("  - click action done\n  - waiting for scheduled navigations to finish\n  - navigations have finished")).toBe("other");
+  expect(reason("  - click action done\n  - waiting for scheduled navigations to finish\n  - element is not stable")).toBe("element_unstable");
+  expect(reason("\u001b[2m  - <div>PRIVATE_PROVIDER_REFERENCE</div> intercepts pointer events\u001b[22m")).toBe("pointer_intercepted");
 });
 
 test("current iDEAL Wero name opens a labelled radio simulator", async ({ page }) => {
