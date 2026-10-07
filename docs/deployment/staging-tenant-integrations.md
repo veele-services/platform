@@ -19,7 +19,10 @@ automatisch een tenantkoppeling. De operator kiest één van deze handelingen:
   alleen geschreven als hun bronwaarde intussen niet is gewijzigd.
 - `acceptance`: maak een fictieve, duidelijk gelabelde klant met drie
   testfacturen (€ 1, € 2 en € 3). Auth genereert en verifieert een tijdelijke
-  testsessie zonder een e-mail te sturen. Playwright controleert de echte
+  testsessie zonder een e-mail te sturen. De bestaande persoonlijke
+  notificatievoorkeur blokkeert alle klantmails voor alleen het fictieve
+  account; de effectieve betaalnotificatiepolicy wordt vóór checkout
+  gecontroleerd. Playwright controleert de echte
   Mollie-testcheckout op mobiel voor één factuur en op desktop voor twee
   facturen samen. Controleer providerprofiel, bedrag, terugkeer en webhook.
   De terugkeer vóór providerbevestiging moet € 0 betaald behouden; tweemaal

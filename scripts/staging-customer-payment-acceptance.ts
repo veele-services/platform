@@ -66,6 +66,13 @@ async function main() {
     await db.query("insert into public.objects(id,tenant_id,customer_id,object_number,name,address)values($1,$2,$3,$4,'FICTIEVE MOLLIE TESTLOCATIE','{\"street\":\"Fictieve testlocatie 1\",\"postal_code\":\"1234 AB\",\"city\":\"Teststad\"}')",[object,tenant,customer,prefix]);
     await db.query("insert into public.object_customer_bindings(tenant_id,object_id,user_id,created_by)values($1,$2,$3,$4)",[tenant,object,userId,owner.user_id]);
     account=(await db.query("update public.customer_portal_accounts set contact_id=$3 where tenant_id=$1 and user_id=$2 returning id",[tenant,userId,contact])).rows[0].id;
+    // The paid transition also queues customer notifications. Suppress email
+    // through the existing personal policy for this synthetic account only.
+    phase="synthetic_mail_preference";
+    await db.query("insert into private.notification_preferences(tenant_id,user_id,context,email)values($1,$2,'customer',false)",[tenant,userId]);
+    const mailPolicy=(await db.query("select private.notification_policy($1,'customer.payment_received','customer','email',$2) policy",[tenant,userId])).rows[0]?.policy;
+    if(mailPolicy?.allowed!==false)throw new Error("E-mail voor het fictieve account is niet geblokkeerd");
+    phase="synthetic_customer_and_invoices";
     const invoices:Array<{id:string;number:string;amount:number}>=[];
     for(const [i,amount]of [100,200,300].entries()){
       const order=randomUUID(),task=randomUUID(),invoice=randomUUID(),number=`${prefix}-${i+1}`;
