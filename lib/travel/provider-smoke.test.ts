@@ -45,11 +45,11 @@ describe("credential-safe live deployment routing check", () => {
     ).rejects.toThrow("ontbreekt");
     expect(fetcher).not.toHaveBeenCalled();
   });
-  it("only permits staging and an HTTPS base without credentials", async () => {
+  it("requires a canonical deployed environment and an HTTPS base without credentials", async () => {
     const fetcher = vi.fn();
     await expect(
       checkRoutingProvider({ ...env, DEPLOY_TARGET: "production" }, fetcher),
-    ).rejects.toThrow("uitsluitend");
+    ).rejects.toThrow("deploymentomgeving");
     await expect(
       checkRoutingProvider(
         { ...env, OPENROUTESERVICE_BASE_URL: "http://localhost" },
@@ -68,6 +68,12 @@ describe("credential-safe live deployment routing check", () => {
     );
     expect(fetcher).not.toHaveBeenCalled();
     expect(log).toHaveBeenCalledWith(expect.stringContaining("handmatige"));
+  });
+  it("permits production profiles only at the canonical production origin", async () => {
+    const fetcher = vi.fn(async () => Response.json({ durations: [[600]], distances: [[1500]] }));
+    await checkRoutingProvider({ ...env, DEPLOY_TARGET: "production", APP_URL: "https://fieldgrid.nl" }, fetcher, vi.fn());
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    await expect(checkRoutingProvider({ ...env, DEPLOY_TARGET: "production", APP_URL: "https://staging.fieldgrid.nl" }, fetcher)).rejects.toThrow("deploymentomgeving");
   });
   it("reports HTTP failures without the provider body or key", async () => {
     const fetcher = vi

@@ -1,0 +1,16 @@
+# Append this independent block to the operator's configuration. Preserve staging.
+fieldgrid.nl, *.fieldgrid.nl {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3302 {
+		flush_interval -1
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+	}
+	# Wildcard TLS needs the installed DNS provider module and operator-owned token.
+	# tls {
+	# 	dns <provider> {env.DNS_API_TOKEN}
+	# }
+}

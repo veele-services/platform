@@ -16,5 +16,6 @@ it("does not hide failures or reuse evidence for changed configuration", async (
 it("never reports disabled staging as ready", async () => {
   const probe = vi.fn(), ready = createScannerReadiness(probe);
   expect(await ready({ ...env, CLAMAV_ENABLED: "false" })).toBe("unavailable");
+  expect(await ready({ ...env, DEPLOY_TARGET: "production", CLAMAV_ENABLED: "false" })).toBe("unavailable");
   expect(await ready({ ...env, DEPLOY_TARGET: "local", CLAMAV_ENABLED: "false" })).toBe("disabled"); expect(probe).not.toHaveBeenCalled();
 });

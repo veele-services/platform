@@ -3,10 +3,14 @@
 type DeploymentEnvironment = Record<string, string | undefined>;
 export type StagingDatabaseKey = "DATABASE_URL" | "MIGRATION_DATABASE_URL" | "BACKUP_DATABASE_URL";
 export const forbiddenProductionRef = "ckdtiuemeygrnujjibnw";
+export const currentProductionRef = "tqqknlrggmpslttisrck";
+export function isForbiddenStagingProjectRef(ref: string) {
+  return ref === forbiddenProductionRef || ref === currentProductionRef;
+}
 
 export function assertStagingProject(env: DeploymentEnvironment) {
   const expected = env.EXPECTED_SUPABASE_PROJECT_REF;
-  if (env.DEPLOY_TARGET !== "staging" || env.APP_ENV !== "development" || env.FORBIDDEN_SUPABASE_PROJECT_REF !== forbiddenProductionRef || !/^[a-z0-9]{20}$/.test(expected ?? "") || expected === forbiddenProductionRef) throw new Error("Stagingprojectguard ontbreekt of is ongeldig; verbinding geweigerd.");
+  if (env.DEPLOY_TARGET !== "staging" || env.APP_ENV !== "development" || env.FORBIDDEN_SUPABASE_PROJECT_REF !== forbiddenProductionRef || !/^[a-z0-9]{20}$/.test(expected ?? "") || isForbiddenStagingProjectRef(expected ?? "")) throw new Error("Stagingprojectguard ontbreekt of is ongeldig; verbinding geweigerd.");
   try {
     const api = new URL(env.SUPABASE_URL ?? "");
     if (api.protocol !== "https:" || api.hostname !== `${expected}.supabase.co` || api.port || api.username || api.password || api.pathname !== "/" || api.search || api.hash) throw new Error();

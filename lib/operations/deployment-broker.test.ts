@@ -1,10 +1,31 @@
-import { readFileSync, statSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { productionRuntimeFixture } from "../../tests/fixtures/production-env";
+import { currentProductionRef } from "../env/staging-database";
 
 const read = (path: string) => readFileSync(path, "utf8");
 
 describe("staging deployment broker boundary", () => {
+  it("rejects the confirmed production project before staging activation even when expected ref and URLs agree", () => {
+    const directory = mkdtempSync(join(tmpdir(), "fieldgrid-staging-project-guard-"));
+    try {
+      const validator = read("deploy/fieldgrid-install-staging-release").match(/\/usr\/bin\/python3 - "\$runtime_candidate" "\$sha" <<'PY'\n([\s\S]*?)\nPY/);
+      expect(validator).not.toBeNull();
+      const env: Record<string, string> = { ...productionRuntimeFixture(), NODE_ENV: "production", RELEASE_SHA: "a".repeat(40), DEPLOYMENT_VERSION: "a".repeat(40), DEPLOY_TARGET: "staging", APP_ENV: "development", APP_URL: "https://staging.fieldgrid.nl", PORT: "3301", MOLLIE_API_KEY: "test_FICTITIOUS", MOLLIE_WEBHOOK_URL: "https://staging.fieldgrid.nl/api/mollie/webhook" };
+      delete env.STAGING_SUPABASE_PROJECT_REF;
+      const path = join(directory, "runtime.env");
+      for (const ref of [env.EXPECTED_SUPABASE_PROJECT_REF, currentProductionRef]) {
+        const candidate = { ...env, EXPECTED_SUPABASE_PROJECT_REF: ref, SUPABASE_URL: `https://${ref}.supabase.co`, NEXT_PUBLIC_SUPABASE_URL: `https://${ref}.supabase.co` };
+        writeFileSync(path, Object.entries(candidate).map(([key, value]) => `${key}="${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`).join("\n") + "\n", { mode: 0o600 });
+        const result = spawnSync("python3", ["-", path, "a".repeat(40)], { input: validator![1], encoding: "utf8" });
+        expect(result.status).toBe(ref === currentProductionRef ? 1 : 0);
+        if (ref === currentProductionRef) expect(result.stderr).toContain("Ongeldige stagingprojectref");
+      }
+    } finally { rmSync(directory, { recursive: true, force: true }); }
+  });
   it("attests one packaged release and delegates activation to the fixed broker", () => {
     const workflow = read(".github/workflows/deploy-staging.yml");
     const deploy = read("scripts/deploy-local.sh");

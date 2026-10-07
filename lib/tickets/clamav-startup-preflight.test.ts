@@ -12,6 +12,7 @@ type Preflight = {
     socketPath: string;
     timeoutMs: number;
   };
+  productionClamavPreflightOptions: (env: Record<string, string | undefined>) => { socketPath: string; timeoutMs: number };
 };
 
 const moduleUrl = pathToFileURL(join(process.cwd(), "scripts/check-clamav-socket.mjs")).href;
@@ -46,6 +47,11 @@ async function scanner(
 }
 
 describe("standalone ClamAV startup preflight", () => {
+  it("permits production only with its own loopback port and the canonical scanner", () => {
+    const env = { DEPLOY_TARGET: "production", HOSTNAME: "127.0.0.1", PORT: "3302", CLAMAV_ENABLED: "true", CLAMAV_SOCKET: "/run/clamav/clamd.ctl" };
+    expect(preflight.productionClamavPreflightOptions(env)).toEqual({ socketPath: "/run/clamav/clamd.ctl", timeoutMs: 3000 });
+    for (const patch of [{ PORT: "3301" }, { HOSTNAME: "0.0.0.0" }, { DEPLOY_TARGET: "staging" }, { CLAMAV_ENABLED: "false" }, { CLAMAV_SOCKET: "/tmp/clamd.sock" }]) expect(() => preflight.productionClamavPreflightOptions({ ...env, ...patch })).toThrow("preflight failed");
+  });
   it("uses clamd zPING framing and accepts only a complete PONG", async () => {
     const fixture = await scanner((socket) => {
       socket.write("PO");

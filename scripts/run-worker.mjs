@@ -1,7 +1,8 @@
 const port = Number(process.env.PORT);
 const secret = process.env.ADMIN_API_SECRET;
+const expectedPort = process.env.DEPLOY_TARGET === "staging" ? 3301 : process.env.DEPLOY_TARGET === "production" ? 3302 : undefined;
 
-if (!Number.isInteger(port) || port < 1024 || port > 65535 || !secret || secret.length < 32) {
+if (!expectedPort || port !== expectedPort || !secret || secret.length < 32) {
   console.error("Workerconfiguratie ontbreekt of is ongeldig.");
   process.exitCode = 1;
 } else {

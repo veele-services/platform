@@ -12,10 +12,10 @@ async function releaseIdentity(deployTarget: string) {
     const [value, metadata] = await Promise.all([readFile(path, "utf8"), stat(path)]);
     const release = value.trim();
     if (!/^[0-9a-f]{40}$/.test(release)) throw new Error("invalid release marker");
-    if (deployTarget === "staging" && (metadata.uid !== 0 || (metadata.mode & 0o022) !== 0)) throw new Error("untrusted release marker");
+    if (deployTarget !== "local" && (metadata.uid !== 0 || (metadata.mode & 0o022) !== 0)) throw new Error("untrusted release marker");
     return release;
   } catch (error) {
-    if (deployTarget === "staging") throw error;
+    if (deployTarget !== "local") throw error;
     return process.env.DEPLOYMENT_VERSION ?? process.env.RELEASE_SHA ?? process.env.GITHUB_SHA ?? "local";
   }
 }

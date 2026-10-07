@@ -6,10 +6,18 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: () =>
 vi.mock("node:fs/promises", () => ({ readFile: async () => "a".repeat(40), stat: async () => mocks.marker }));
 vi.mock("@/lib/tickets/scanner-readiness", () => ({ scannerReadiness: mocks.readiness }));
 import { GET } from "./route";
-beforeEach(() => { vi.clearAllMocks(); mocks.marker.uid = 0; mocks.marker.mode = 0o100640; mocks.readiness.mockResolvedValue("ready"); });
+beforeEach(() => { vi.clearAllMocks(); mocks.env.DEPLOY_TARGET = "staging"; mocks.marker.uid = 0; mocks.marker.mode = 0o100640; mocks.readiness.mockResolvedValue("ready"); });
 it("requires runtime scanner readiness while preserving verified DB and release identity", async () => {
   mocks.readiness.mockResolvedValue("unavailable"); const response = await GET(new Request("https://staging.fieldgrid.nl/api/healthz"));
   expect(response.status).toBe(503); expect(await response.json()).toMatchObject({ database: "ready", scanner: "unavailable", status: "unavailable", release: "a".repeat(40) });
+});
+it("requires a root-owned immutable marker for production too", async () => {
+  mocks.env.DEPLOY_TARGET = "production";
+  let response = await GET(new Request("https://fieldgrid.nl/api/healthz"));
+  expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ environment: "production", release: "a".repeat(40) });
+  mocks.marker.uid = 994;
+  response = await GET(new Request("https://fieldgrid.nl/api/healthz"));
+  expect(response.status).toBe(503); expect(await response.json()).toMatchObject({ release: "unavailable" });
 });
 it("reports ready without disclosing engine, paths, UID or credentials", async () => {
   const response = await GET(new Request("https://staging.fieldgrid.nl/api/healthz")), body = await response.text();

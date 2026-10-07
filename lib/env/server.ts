@@ -1,6 +1,8 @@
 import "server-only";
 import { z } from "zod";
 import { isStagingTicketScannerPath } from "@/lib/tickets/scanner-path";
+import { assertProductionRuntime } from "./production-runtime";
+import { isForbiddenStagingProjectRef } from "./staging-database";
 
 const serverSchema = z.object({
   APP_ENV: z.enum(["development", "production"]),
@@ -16,6 +18,7 @@ const serverSchema = z.object({
   MIGRATION_DATABASE_URL: z.string().min(1).optional(),
   EXPECTED_SUPABASE_PROJECT_REF: z.string().min(1).optional(),
   FORBIDDEN_SUPABASE_PROJECT_REF: z.string().min(1).optional(),
+  STAGING_SUPABASE_PROJECT_REF: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   MOLLIE_API_KEY: z.string().min(8).optional(),
   MOLLIE_WEBHOOK_URL: z.string().url().optional(),
@@ -65,6 +68,7 @@ function projectRef(url: string): string | undefined {
 export function getServerEnv(): ServerEnv {
   if (cached) return cached;
   const parsed = serverSchema.parse(process.env);
+  if (parsed.DEPLOY_TARGET === "production") assertProductionRuntime(process.env);
   const ref = projectRef(parsed.SUPABASE_URL);
   const publicRef = projectRef(parsed.NEXT_PUBLIC_SUPABASE_URL);
   if (parsed.EXPECTED_SUPABASE_PROJECT_REF && ref !== parsed.EXPECTED_SUPABASE_PROJECT_REF) {
@@ -86,7 +90,7 @@ export function getServerEnv(): ServerEnv {
     if (parsed.FORBIDDEN_SUPABASE_PROJECT_REF !== "ckdtiuemeygrnujjibnw") {
       throw new Error("Unexpected production Supabase project-ref guard");
     }
-    if (parsed.EXPECTED_SUPABASE_PROJECT_REF === parsed.FORBIDDEN_SUPABASE_PROJECT_REF) {
+    if (isForbiddenStagingProjectRef(parsed.EXPECTED_SUPABASE_PROJECT_REF)) {
       throw new Error("Staging and forbidden Supabase project refs must differ");
     }
     if (ref !== parsed.EXPECTED_SUPABASE_PROJECT_REF || publicRef !== parsed.EXPECTED_SUPABASE_PROJECT_REF) {

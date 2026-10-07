@@ -260,13 +260,15 @@
     },
     {
       "id": "code:app/api/healthz/route.ts",
-      "surfaceFingerprint": "fc8a26ffe2c73fee10946b4a7c3db6fefd697f29f46df3574b7e833d1bc92c03",
-      "status": "controlled",
+      "surfaceFingerprint": "23277df3fc9edda66caed75a068c9f1b5fde088a5152ee3b8d9b1e3e86886e6a",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh",
+        "app/api/healthz/route.test.ts"
       ]
     },
     {
@@ -2155,13 +2157,16 @@
     },
     {
       "id": "code:lib/tickets/scanner-readiness.ts",
-      "surfaceFingerprint": "73a153f168d2356de89b726973f1da4f4b2580ab826a0dafa0f1937812b0af52",
-      "status": "controlled",
+      "surfaceFingerprint": "7327574d65401b0fee535baa996fbffdbc54560f5f9491d0fa554c4168aaccc7",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh",
+        "lib/tickets/scanner-runtime-permissions.test.ts",
+        "lib/tickets/clamav-startup-preflight.test.ts"
       ]
     },
     {
@@ -4417,14 +4422,26 @@
     },
     {
       "id": "operation:.github/workflows/_verify.yml",
-      "surfaceFingerprint": "27dd709be40d245305278198942fea4d880a1d178817751433f7f4a3ae0cfcca",
+      "surfaceFingerprint": "0d0e4ce5099356964f8af7f51e4adf1733aa418fd318146e1554e1b2190ba5ff",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:.github/workflows/bootstrap-production-admin.yml",
+      "surfaceFingerprint": "4ff403ee919d8fd3deabfcc6f3a4dcabcb6931c9b5cc6daa015f90b984f510a0",
       "status": "controlled",
       "evidence": [
-        "docs/security/veele-website-review.md",
-        "scripts/test-veele-marketing.mjs",
-        "app/api/veele-website/requests/route.test.ts",
-        "lib/marketing/veele/render.test.ts",
-        "tests/e2e/veele-marketing.spec.ts"
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
       ]
     },
     {
@@ -4445,6 +4462,18 @@
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
         "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:.github/workflows/deploy-production.yml",
+      "surfaceFingerprint": "4e026605c47e8ef236b65bcf1f62575022bd2647ce7d8a1b224237842b6bb5b7",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
       ]
     },
     {
@@ -4470,6 +4499,16 @@
       ]
     },
     {
+      "id": "operation:.github/workflows/production-tenant-merchant.yml",
+      "surfaceFingerprint": "3066d485218a341598de120d7a647de6bc8ee8c123de60628e94741143bbe5c6",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-merchant.test.ts",
+        "lib/operations/workflow-security.test.ts"
+      ]
+    },
+    {
       "id": "operation:.github/workflows/staging-tenant-integrations.yml",
       "surfaceFingerprint": "f02ebc9bec19c4608eac629be8a161fa35dbf88b5233898e4c75462184d9adf1",
       "status": "corrected-and-rechecked",
@@ -4490,6 +4529,18 @@
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
         "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:deploy/Caddyfile.production.example",
+      "surfaceFingerprint": "28f501e51ab7930c3c7548ae84eee8f87d4e4f7a99636bbf45ff4df92feeb2e8",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
       ]
     },
     {
@@ -4528,12 +4579,50 @@
       ]
     },
     {
+      "id": "operation:deploy/fieldgrid-install-production-release",
+      "surfaceFingerprint": "8e5d76492bbd90a419c2209dc246e629bc5f9a609459c44acf58d86577130f18",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
       "id": "operation:deploy/fieldgrid-install-staging-release",
-      "surfaceFingerprint": "bad3e7233326eaff4ce39130d7b2cee886acd24aa574f13bf1e47bd4dd7de24a",
+      "surfaceFingerprint": "0c6b115c17af71dded92b178a2259c375076efa86432c18c918451e81730f19a",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "The broker still verifies all three attestations, decrypts only in its root-owned work directory and preserves the fixed no-argument privilege boundary.",
-        "The extracted release is now rejected unless server.js, worker-client.mjs and the packaged clamav-preflight.mjs are all present; lib/operations/deployment-broker.test.ts covers this completeness gate."
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/env/staging-database.test.ts",
+        "lib/env/server-isolation.test.ts",
+        "lib/operations/deployment-broker.test.ts"
+      ]
+    },
+    {
+      "id": "operation:deploy/fieldgrid-production-runner-user.conf",
+      "surfaceFingerprint": "af30954b8af6b2c1a296ccf33331bfd11f51a8d017f7b16c991c8bbc00d04cd2",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:deploy/fieldgrid-production-runner.sudoers",
+      "surfaceFingerprint": "35c5e4554578cc879af19e808fcffe2a4b35ac1b5b853428dae3abacca0993a4",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
       ]
     },
     {
@@ -4577,6 +4666,19 @@
       ]
     },
     {
+      "id": "operation:deploy/fieldgrid-worker@production.service.d/identity.conf",
+      "surfaceFingerprint": "84aeaf215a9c65f8efd6ca8a261c109be73a19eabf0f38b233e7063fc3f36a73",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh",
+        "lib/operations/worker-request.test.ts"
+      ]
+    },
+    {
       "id": "operation:deploy/fieldgrid@.service",
       "surfaceFingerprint": "383be917b34bd62126db649e89979e22638bec0abf98ac9e726da9b3417315e8",
       "status": "corrected-and-rechecked",
@@ -4586,13 +4688,85 @@
       ]
     },
     {
-      "id": "operation:lib/env/staging-database.ts",
-      "surfaceFingerprint": "eabbfab9c26ca46ce64860e0b4328c23bede89363b3b3de2ba81ecbdb37145c0",
+      "id": "operation:deploy/fieldgrid@production.service.d/identity.conf",
+      "surfaceFingerprint": "6e7cf977e723df461df5f130672bbb3ba388f5274f8560c3f5598acb4bee359f",
       "status": "controlled",
       "evidence": [
-        "manual-staging-migration-boundary-review:2026-10-02",
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:lib/env/production-database.ts",
+      "surfaceFingerprint": "4e1edb55b89053b30346f48d13921571337a27d38c2c88dc47d48e98b378b499",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:lib/env/production-migration-command.ts",
+      "surfaceFingerprint": "0515db4d0c190cd3647353af3d5b1403913d6433635931dc02976868a77d6de1",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:lib/env/production-migration-config.ts",
+      "surfaceFingerprint": "61129cdc576af9b3109cc5359486d765fa4bb81c7cf59b5c7e728ffe74843366",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:lib/env/production-runtime.ts",
+      "surfaceFingerprint": "14cb7a3023d586280756c94d40bbc2780f235241ae5042feae97ba3d68409195",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:lib/env/server.ts",
+      "surfaceFingerprint": "1be6d42b0425ce6009e9aaf76a55cf157003d5ee3702243597ea065ee3973b77",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
         "lib/env/staging-database.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "lib/env/server-isolation.test.ts",
+        "lib/operations/deployment-broker.test.ts"
+      ]
+    },
+    {
+      "id": "operation:lib/env/staging-database.ts",
+      "surfaceFingerprint": "56c84ea226865547cfbf14c895eb54e3a900abcedb34d34f7e5a883235e96b54",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/env/staging-database.test.ts",
+        "lib/env/server-isolation.test.ts",
+        "lib/operations/deployment-broker.test.ts"
       ]
     },
     {
@@ -4654,6 +4828,64 @@
       "evidence": [
         "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
         "tests/e2e/mollie-test-checkout.spec.ts"
+      ]
+    },
+    {
+      "id": "operation:lib/operations/production-merchant.ts",
+      "surfaceFingerprint": "c1a9b4836e7bf080195759aa1f6e893a8917ea6a9cba0eefbb28dc2e145516ed",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-merchant.test.ts",
+        "lib/operations/workflow-security.test.ts"
+      ]
+    },
+    {
+      "id": "operation:lib/operations/worker-request.ts",
+      "surfaceFingerprint": "bd5b1637d280786efc8c6252c0d854254102d35d8a560faf330d037c8d283900",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh",
+        "lib/operations/worker-request.test.ts"
+      ]
+    },
+    {
+      "id": "operation:lib/tickets/scan.ts",
+      "surfaceFingerprint": "8995a2e89967c582f16fb77f5200cc1ae31cb88465acb8ed964ec4b662450cf4",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/tickets/scan.test.ts"
+      ]
+    },
+    {
+      "id": "operation:lib/tickets/scanner-readiness.ts",
+      "surfaceFingerprint": "034ee87c5ad8484b5a20d62b55f489d9ecc2906ffff25f083be477963efd30b6",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh",
+        "lib/tickets/scanner-runtime-permissions.test.ts",
+        "lib/tickets/clamav-startup-preflight.test.ts"
+      ]
+    },
+    {
+      "id": "operation:lib/travel/provider-smoke.ts",
+      "surfaceFingerprint": "49d62fff3200c2fe7667b4d797e8c283c6547867c44f3e129fed8272216047da",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
       ]
     },
     {
@@ -4755,12 +4987,38 @@
       ]
     },
     {
+      "id": "operation:scripts/backup-production-database.ts",
+      "surfaceFingerprint": "4ae1ab0ec0d84bf5d97c38dedec9b671de546ac768c01c7cffc7864666412746",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh",
+        "lib/operations/production-backup.test.ts"
+      ]
+    },
+    {
       "id": "operation:scripts/bootstrap-platform-admin.ts",
       "surfaceFingerprint": "c5244aae295005dc4604a51b6ae40a1e34798aadd7677bd03ab8c43846b1d579",
       "status": "controlled",
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
         "docs/security/otp-activity-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "operation:scripts/bootstrap-production-admin.ts",
+      "surfaceFingerprint": "5436df6a6d8d35cf159f542c3af3a779be1c1112d1f85b8ed02cb48ef8b01806",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh",
+        "lib/operations/production-bootstrap.test.ts"
       ]
     },
     {
@@ -4788,11 +5046,54 @@
     },
     {
       "id": "operation:scripts/check-clamav-socket.mjs",
-      "surfaceFingerprint": "f0eb86da8aeb9b49c56b1e7104c5920315122adc271b282e699bb8c5936b54a4",
+      "surfaceFingerprint": "bd50c5c3dfae062b2bd76c7ceec7d9dab27a5fc02d32b3e89b96c84920ec9501",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "Manual protocol-boundary review 2026-10-02: exact staging target, enabled state and canonical Unix socket are required; no TCP or alternate-path fallback exists.",
-        "lib/tickets/clamav-startup-preflight.test.ts uses a real temporary Unix socket to prove exact zPING/PONG framing, bounded timeout, fail-closed malformed/unavailable behavior, generic non-path diagnostics and execution through the deployed current symlink."
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh",
+        "lib/tickets/scanner-runtime-permissions.test.ts",
+        "lib/tickets/clamav-startup-preflight.test.ts"
+      ]
+    },
+    {
+      "id": "operation:scripts/check-production-root-contract.sh",
+      "surfaceFingerprint": "009ea280d7e1e6b79a0a0e096742766699b12c51b2c17f1fc15f0206f9792b1b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:scripts/check-production-runner-contract.sh",
+      "surfaceFingerprint": "3db7ef9f31f5d69ab64b0a4f5e0ec54d8f3df253e41978f918ccd335837b6c51",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:scripts/check-production-worker-timer.sh",
+      "surfaceFingerprint": "5db13d2ba14560de51b72f40c53a9c6c27759e400bc5c258fa34c9f5b7a37803",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh",
+        "lib/operations/worker-request.test.ts",
+        "lib/operations/production-worker-timer.test.ts"
       ]
     },
     {
@@ -4819,14 +5120,11 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "098e8c04afe69ec70ac760b73541d1953c2f34d24b9ab07e3b5456de4ee0b9e4",
-      "status": "controlled",
+      "surfaceFingerprint": "b53eec714ee24a1a5329775184d41daac80b547051d9e901b9c2e9d8c82cd1e2",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/veele-website-review.md",
-        "scripts/test-veele-marketing.mjs",
-        "app/api/veele-website/requests/route.test.ts",
-        "lib/marketing/veele/render.test.ts",
-        "tests/e2e/veele-marketing.spec.ts"
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "scripts/check-authorization-review.mjs"
       ]
     },
     {
@@ -4897,6 +5195,18 @@
       ]
     },
     {
+      "id": "operation:scripts/deploy-production.sh",
+      "surfaceFingerprint": "f857200b4b62ae6e4d7e6e04b16f48aca4c264d21182d7e71f2c2a17eb67bf2f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
       "id": "operation:scripts/diagnose-auth-mail-context.ts",
       "surfaceFingerprint": "42f5a167a89ec91bd75930a5e5f1486657209f36780476110f75efda6d0894a4",
       "status": "controlled",
@@ -4917,6 +5227,18 @@
       ]
     },
     {
+      "id": "operation:scripts/encrypt-production-handoff.sh",
+      "surfaceFingerprint": "e9078843e9b492078eab4cc6dfd4558cf983e83e5c925691777f0cb24c20524c",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
       "id": "operation:scripts/encrypt-staging-handoff.sh",
       "surfaceFingerprint": "14e6a8296b6e9a445f5d340b5adb513ceb79928e3c3082d91b197d50d5d0056b",
       "status": "controlled",
@@ -4925,6 +5247,18 @@
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
         "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:scripts/migrate-production.ts",
+      "surfaceFingerprint": "b0990d5140e36b924b6fa95e095bf3abe4867a717f9cc84e1ab3a88ee70e8f67",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
       ]
     },
     {
@@ -4976,6 +5310,18 @@
       ]
     },
     {
+      "id": "operation:scripts/preflight-production.ts",
+      "surfaceFingerprint": "b2972356b41a88bb8a53ca60c330bdfe0388d86c7603f1cf139c0442dfc8ded6",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
       "id": "operation:scripts/preflight.ts",
       "surfaceFingerprint": "8dc3119d86f400629f33906513879c591850d484973cf280ba7a4379ca15d2ed",
       "status": "controlled",
@@ -4987,14 +5333,26 @@
       ]
     },
     {
-      "id": "operation:scripts/run-worker.mjs",
-      "surfaceFingerprint": "c87501220281739dd4aa23df13c3afe1d972e7c02454dfab5fb84a7fff24f202",
+      "id": "operation:scripts/production-tenant-merchant.ts",
+      "surfaceFingerprint": "ae43c89ded152f147234b22f953caa35f5fd03a13eada1b33d2867c5d4ff0792",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "lib/operations/workflow-security.test.ts",
-        "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-merchant.test.ts",
+        "lib/operations/workflow-security.test.ts"
+      ]
+    },
+    {
+      "id": "operation:scripts/run-worker.mjs",
+      "surfaceFingerprint": "f1b8fbf871a9137f6587e9edc3d32e1ddbc78203a7fa27b924398818b0a4b157",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh",
+        "lib/operations/worker-request.test.ts"
       ]
     },
     {
@@ -5017,6 +5375,18 @@
         "scripts/test-customer-portal.mjs",
         "tests/e2e/login-branding.spec.ts",
         "lib/addresses/reconciliation.test.ts"
+      ]
+    },
+    {
+      "id": "operation:scripts/test-production-contract-linux.sh",
+      "surfaceFingerprint": "514c67dcea6014a4963a18fcf1e14abc0a53acee4318239def928f415d375439",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
       ]
     },
     {
@@ -5087,6 +5457,63 @@
       ]
     },
     {
+      "id": "operation:scripts/verify-production-auth-redirect.mjs",
+      "surfaceFingerprint": "2250970acf6862779c120d8c087d6bd375c181b213e385034bda231fd8f0e33c",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:scripts/verify-production-healthcheck.mjs",
+      "surfaceFingerprint": "b8918ba3d470e242a492b048acec4bd1242420268af27b0cee6f1ce5f61db9eb",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:scripts/verify-production-migration-target.ts",
+      "surfaceFingerprint": "6b730a77682e933edbc0b77a430db9e2d631768bd505ff87f8c311eb6c7b878b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:scripts/verify-production-promotion.mjs",
+      "surfaceFingerprint": "d0f43869a637780dc8e7874bfa34ba4e02e42544bc46ae3c0e7456f47346cb10",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
+      ]
+    },
+    {
+      "id": "operation:scripts/verify-production-website.mjs",
+      "surfaceFingerprint": "14cce2da60445cde029894d5c5d81e3366d8fe3341d4c165544e896c1304abce",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "scripts/verify-production-website.mjs"
+      ]
+    },
+    {
       "id": "operation:scripts/verify-public-auth-redirect.mjs",
       "surfaceFingerprint": "f5b4a6196b8f3a64aafa952273f5a7cc921a54c136b0f5fddfac4b2a47cad717",
       "status": "controlled",
@@ -5105,6 +5532,18 @@
         "app/api/veele-website/requests/route.test.ts",
         "lib/marketing/veele/render.test.ts",
         "tests/e2e/veele-marketing.spec.ts"
+      ]
+    },
+    {
+      "id": "operation:scripts/write-production-runtime-env.sh",
+      "surfaceFingerprint": "71f53dd88751814c812c19422affc8dc9aa00b2562fe908c82fdef629a383518",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-deployment.test.ts",
+        "lib/env/production-database.test.ts",
+        "lib/env/production-runtime.test.ts",
+        "scripts/test-production-contract-linux.sh"
       ]
     },
     {

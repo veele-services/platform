@@ -1,0 +1,62 @@
+name: Inspect or bind an explicit production Mollie merchant
+on:
+  workflow_dispatch:
+    inputs:
+      tenant_slug:
+        description: Explicit active production tenant slug
+        required: true
+        type: string
+      confirmed_profile_id:
+        description: Mollie live profile ID verified by its owner (pfl_...)
+        required: true
+        type: string
+      operation:
+        description: Inspect or deliberately bind this tenant to the confirmed live payee
+        required: true
+        type: choice
+        options: [inspect, bind]
+permissions:
+  contents: read
+concurrency:
+  group: fieldgrid-production
+  cancel-in-progress: false
+jobs:
+  merchant:
+    if: github.ref == 'refs/heads/production'
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 10
+    env:
+      DEPLOY_TARGET: production
+      APP_ENV: production
+      APP_URL: ${{ vars.APP_URL }}
+      EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.EXPECTED_SUPABASE_PROJECT_REF }}
+      STAGING_SUPABASE_PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
+      FORBIDDEN_SUPABASE_PROJECT_REF: ${{ vars.FORBIDDEN_SUPABASE_PROJECT_REF }}
+      TARGET_TENANT_SLUG: ${{ inputs.tenant_slug }}
+      MERCHANT_OPERATION: ${{ inputs.operation }}
+      CONFIRMED_MOLLIE_PROFILE_ID: ${{ inputs.confirmed_profile_id }}
+      RELEASE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require the exact production tip from reviewed main
+        run: |
+          test "$(git rev-parse origin/production)" = "$RELEASE_SHA"
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.7.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Authenticate the confirmed live profile and inspect or bind only this tenant
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
+        run: pnpm exec tsx scripts/production-tenant-merchant.ts

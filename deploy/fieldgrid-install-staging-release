@@ -121,7 +121,7 @@ fixed = {"NODE_ENV":"production","APP_ENV":"development","DEPLOY_TARGET":"stagin
 if any(values.get(key) != value for key, value in fixed.items()):
     raise SystemExit("Runtimeconfiguratie wijkt af van stagingcontract")
 project = values["EXPECTED_SUPABASE_PROJECT_REF"]
-if not re.fullmatch(r"[a-z0-9]{20}", project) or project == fixed["FORBIDDEN_SUPABASE_PROJECT_REF"]:
+if not re.fullmatch(r"[a-z0-9]{20}", project) or project in (fixed["FORBIDDEN_SUPABASE_PROJECT_REF"], "tqqknlrggmpslttisrck"):
     raise SystemExit("Ongeldige stagingprojectref")
 for key in ("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"):
     url = urllib.parse.urlsplit(values[key])

@@ -6,7 +6,10 @@ source of truth for this repository.
 
 ## Canonical staging architecture
 
-Staging is the first and only deployment environment currently being designed.
+Staging was accepted as V1 on 7 October 2026. Production is now being prepared
+on the same VPS with a separate runtime and a new Supabase project; see
+[the production architecture](docs/architecture/production.md) and
+[the production setup and configuration inventory](docs/deployment/production-runbook.md).
 The complete, normative specification is
 [`docs/architecture/staging.md`](docs/architecture/staging.md).
 The platform workspace, onboarding, module-entitlement and template contracts
@@ -42,7 +45,9 @@ different tenant.
   commits. Direct development on `staging` is not allowed.
 - A push to `staging` first runs the complete CI suite and deploys that exact
   commit only after every check succeeds.
-- There is currently no production branch or production deployment flow.
+- `production` receives only explicitly accepted, reviewed `main` commits with
+  green main CI and a successful staging deployment for that same SHA. Its
+  workflow uses only Environment `production` and separate credentials.
 
 ## Deploying staging
 

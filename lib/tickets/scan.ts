@@ -11,7 +11,7 @@ export class ScanUnavailable extends Error {
 export function ticketScanOptions(env: Record<string, string | undefined> = process.env): ScanOptions {
   if (env.CLAMAV_ENABLED !== "true") throw new ScanUnavailable("disabled");
   const socketPath = env.CLAMAV_SOCKET ?? "";
-  if (env.DEPLOY_TARGET === "staging" && !isStagingTicketScannerPath(socketPath)) throw new ScanUnavailable("configuration");
+  if ((env.DEPLOY_TARGET === "staging" || env.DEPLOY_TARGET === "production") && !isStagingTicketScannerPath(socketPath)) throw new ScanUnavailable("configuration");
   const timeoutMs = Number(env.CLAMAV_TIMEOUT_MS ?? 30000);
   const maxDatabaseAgeHours = Number(env.CLAMAV_MAX_DATABASE_AGE_HOURS ?? 72);
   if (!socketPath.startsWith("/") || socketPath.includes("\0") || socketPath.length > 100 || !Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 60000 || !Number.isInteger(maxDatabaseAgeHours) || maxDatabaseAgeHours < 1 || maxDatabaseAgeHours > 168) throw new ScanUnavailable("configuration");
