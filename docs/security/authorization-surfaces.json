@@ -6659,7 +6659,7 @@
     {
       "id": "operation:package.json",
       "classification": "operation",
-      "source_sha256": "0806d4b721ab013c91df84f032c11c5b1650e86c200702c80bdebe00d6e0f028"
+      "source_sha256": "bb025bc58e4f142a41dd4b8d29b338a7bf6cac25164b2cd701761b6624127a50"
     },
     {
       "id": "operation:patches/braces@3.0.3.patch",
@@ -6674,7 +6674,7 @@
     {
       "id": "operation:pnpm-lock.yaml",
       "classification": "operation",
-      "source_sha256": "0877ba7ce05ad7c3c4c8fc8baa86a5ac54505c45456ce3199760032c33d69d33"
+      "source_sha256": "918ae12a3309515443f76371518be3d213782e304a656cdbbb6ea6cc65602791"
     },
     {
       "id": "operation:pnpm-workspace.yaml",

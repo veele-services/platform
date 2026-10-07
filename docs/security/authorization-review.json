@@ -4902,9 +4902,11 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "ea776047d22159bb5928321534192fdc852053de0c470999304a160c977f0e2b",
-      "status": "controlled",
+      "surfaceFingerprint": "eb8a26936dad4d8b5fb3fbbd886e9a2348d13f0e200d53f0f98b50be53d4a8af",
+      "status": "corrected-and-rechecked",
       "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md#framework-security-update--8-october-2026",
+        ".github/workflows/_verify.yml",
         "docs/security/veele-website-review.md",
         "scripts/test-veele-marketing.mjs",
         "app/api/veele-website/requests/route.test.ts",
@@ -4933,9 +4935,11 @@
     },
     {
       "id": "operation:pnpm-lock.yaml",
-      "surfaceFingerprint": "9022f67aa33917f84990cc69b1a328ac7813a8ebcefff3d42b2fa6c0411f9c49",
+      "surfaceFingerprint": "0a60e5e9348ac8671b30e6f7985cb0e83e0ec0ead79b10b14be8ee2efb61ab6b",
       "status": "corrected-and-rechecked",
       "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md#framework-security-update--8-october-2026",
+        ".github/workflows/_verify.yml",
         "manual-staging-migration-client-review:2026-10-02",
         "Frozen lockfile installs both exact CLI packages from pinned integrity hashes and passes repository supply-chain policy.",
         "Supabase CLI 2.109.1 applied the exact isolated 35-to-55 forward plan and preserved all 55 statement-history hashes.",
