@@ -4634,6 +4634,15 @@
       ]
     },
     {
+      "id": "operation:lib/operations/mollie-test-checkout.ts",
+      "surfaceFingerprint": "0019031be256af05d7eea4cfb712408589c319c8bfbfc785bbb8ee3f008a9158",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "tests/e2e/mollie-test-checkout.spec.ts"
+      ]
+    },
+    {
       "id": "operation:next.config.ts",
       "surfaceFingerprint": "46161a32f2deaff23adeaa56ef44610dc4d2dd2a2ca95661ff930b07680eb1c9",
       "status": "corrected-and-rechecked",
@@ -4781,14 +4790,15 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "8de3668b2868c004ba84ba3325d6e6256d106565829e16ffc6581bf73445c61e",
+      "surfaceFingerprint": "8bb9aaf0e4ea1e733f9eb1f520ca192c40b543b1caa2c6cb0202a4e68b43b874",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
         "app/api/addresses/route.test.ts",
         "lib/addresses/form.test.ts",
         "scripts/test-customer-portal.mjs",
-        "tests/e2e/login-branding.spec.ts"
+        "tests/e2e/login-branding.spec.ts",
+        "tests/e2e/mollie-test-checkout.spec.ts"
       ]
     },
     {
@@ -4961,10 +4971,11 @@
     },
     {
       "id": "operation:scripts/staging-customer-payment-acceptance.ts",
-      "surfaceFingerprint": "e9211006401e2e0ef5f6e3b08ef16444ec1d894eb218c6e64166b97c381f5c0f",
+      "surfaceFingerprint": "5459e9deadc0b29a1033c3e3609cc9cf5e193c819acc31c1db39fb6247c66fa3",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md"
+        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
+        "tests/e2e/mollie-test-checkout.spec.ts"
       ]
     },
     {

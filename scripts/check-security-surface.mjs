@@ -27,6 +27,7 @@ const baseOperationalPaths = [
   "lib/env/staging-migration-diagnostic.ts",
   "lib/operations/auth-mail-diagnostic.ts",
   "lib/operations/auth-mail-context-diagnostic.ts",
+  "lib/operations/mollie-test-checkout.ts",
   "next.config.ts",
   "package.json",
   "playwright.config.ts",
