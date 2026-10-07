@@ -13,6 +13,14 @@ afterEach(() => {
 });
 
 describe("resolveHostContext", () => {
+  it("keeps production tenant links on the confirmed origin and rejects staging or nested hosts", () => {
+    process.env.APP_URL = "https://fieldgrid.nl"; process.env.DEPLOY_TARGET = "production";
+    expect(resolveHostContext("fieldgrid.nl", process.env.APP_URL, "production").kind).toBe("platform");
+    expect(resolveHostContext("voorbeeld-tenant.fieldgrid.nl", process.env.APP_URL, "production")).toMatchObject({ kind: "tenant", slug: "voorbeeld-tenant" });
+    expect(resolveHostContext("voorbeeld-tenant.staging.fieldgrid.nl", process.env.APP_URL, "production").kind).toBe("invalid");
+    expect(resolveHostContext("localhost:3302", process.env.APP_URL, "production").kind).toBe("invalid");
+    for (const workspace of ["app", "staff", "klant"]) expect(tenantAppUrl("voorbeeld-tenant", `/${workspace}`)).toBe(`https://voorbeeld-tenant.fieldgrid.nl/${workspace}`);
+  });
   it("keeps the platform hostname tenant-neutral", () => {
     expect(resolveHostContext("staging.fieldgrid.nl", appUrl, "staging")).toEqual({
       kind: "platform",

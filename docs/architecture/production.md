@@ -2,7 +2,8 @@
 
 Deze specificatie volgt op de expliciete V1-acceptatie van 7 oktober 2026.
 De eigenaar bevestigde `fieldgrid.nl` en `veele-services.fieldgrid.nl`, dezelfde
-VPS als staging en een nieuw, afzonderlijk Supabaseproject dat wordt aangemaakt.
+VPS als staging en het nieuwe, afzonderlijke Supabaseproject
+`tqqknlrggmpslttisrck`.
 De [stagingarchitectuur](staging.md) blijft ongewijzigd voor staging.
 
 ## Vast contract
@@ -74,6 +75,13 @@ en tenantconfiguratiestap; een omgevingskey verleent geen klanttoegang en bewijs
 geen webhookbetaling. Onlinebetalingen blijven afhangen van de bestaande
 tenantinstellingen en providerbevestiging. Google Routes en marketingmail blijven
 uitgeschakeld in de eerste productiefase; openrouteservice gebruikt een eigen key.
+
+De handmatige `production-tenant-merchant.yml` laat de operator één actieve tenant
+en een door de Mollie-eigenaar bevestigd liveprofiel opgeven. Zij controleert de
+exacte gezonde productierelease, projectguard en geauthenticeerde `profiles/me`
+vóór inspectie of binding. Inspectie is read-only; binding is expliciet,
+transactioneel, idempotent en vervangt geen afwijkende bestaande ontvanger.
+Deze workflow maakt geen betaling, factuur, klantaccount of testdata aan.
 
 ## Releasecontract
 

@@ -25,7 +25,7 @@ gh secret list --env production --json name --jq '.[].name'
 | `SERVICE_NAME` | `fieldgrid@production.service` |
 | `HEALTHCHECK_URL` | `https://fieldgrid.nl/api/healthz` |
 | `PORT` | `3302` |
-| `EXPECTED_SUPABASE_PROJECT_REF` | Ref van het nieuwe productieproject |
+| `EXPECTED_SUPABASE_PROJECT_REF` | `tqqknlrggmpslttisrck` (door de eigenaar bevestigd) |
 | `STAGING_SUPABASE_PROJECT_REF` | Ref van het bestaande V1-stagingproject; alleen de ref, geen credentials |
 | `FORBIDDEN_SUPABASE_PROJECT_REF` | `ckdtiuemeygrnujjibnw` (legacyproject, blijft verboden) |
 | `ACCEPTED_RELEASE_SHA` | Exacte gereviewde `main`-SHA met geslaagde CI én stagingdeploy; na infrastructuurreview invullen |
@@ -183,6 +183,16 @@ Stel de productie-Mollie-integratie in en verifieer de tenant-merchantkoppeling;
 de webhook is `https://fieldgrid.nl/api/mollie/webhook`. Livebetalingstest alleen
 bewust met de echte eigenaar en echte factuur, met bedragcontrole vooraf.
 Een browserreturn markeert nooit zelf een factuur betaald.
+
+Na gezonde activatie en tenantaanmaak: voer **Inspect or bind an explicit
+production Mollie merchant** handmatig uit op branch `production`. Geef de
+actieve tenant-slug en het door de Mollie-eigenaar gecontroleerde live-profiel-ID
+(`pfl_…`) op. Begin met `inspect`; kies vervolgens bewust `bind` voor precies
+deze tenant en ontvanger. De workflow vergelijkt het opgegeven ID met het
+geauthenticeerde Mollie-profiel vóór databasebinding en weigert een afwijkende
+bestaande koppeling. Zij verstuurt geen mail en maakt geen betaling of testfactuur.
+Er is geen algemene backofficeknop die een globale key automatisch aan tenants
+koppelt. Bestaande klant-/factuurrechten en betaalverwerking blijven leidend.
 
 ## 5. Promotie en eerste ingebruikname
 

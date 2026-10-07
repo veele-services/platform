@@ -30,6 +30,11 @@ async function scanner(reply: string, date = new Date(), incomplete = false, sta
   return { options: { socketPath: path, timeoutMs: 1000, maxDatabaseAgeHours: 72 }, received };
 }
 describe("private scanner protocol (unit socket, not a clean production substitute)", () => {
+  it.each(["staging", "production"])("rejects a temporary substitute socket for deployed %s file scanning", target => {
+    const env = { DEPLOY_TARGET: target, CLAMAV_ENABLED: "true", CLAMAV_SOCKET: "/run/clamav/clamd.ctl" };
+    expect(ticketScanOptions(env).socketPath).toBe(env.CLAMAV_SOCKET);
+    expect(() => ticketScanOptions({ ...env, CLAMAV_SOCKET: "/tmp/substitute.sock" })).toThrow();
+  });
   it("streams exact bytes with proper INSTREAM framing", async () => {
     const { options, received } = await scanner("stream: OK"), bytes = Buffer.alloc(180000, 71);
     expect((await scanTicketBytes(bytes, options)).status).toBe("clean"); expect(received).toEqual([bytes]);

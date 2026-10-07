@@ -6477,6 +6477,11 @@
       "source_sha256": "bb4bbdd2e3c117a8112c701f6235505cf8d06efda23c7216e31cb3671cdf70ce"
     },
     {
+      "id": "operation:.github/workflows/production-tenant-merchant.yml",
+      "classification": "operation",
+      "source_sha256": "e7d166709e30f6426cd6bcbfeb52dab0fa9422e81774033381dc5f3ed598096e"
+    },
+    {
       "id": "operation:.github/workflows/staging-tenant-integrations.yml",
       "classification": "operation",
       "source_sha256": "da324fe63fbd610a6abcac159b9434669f77031aee6ab825d457386ba6becf27"
@@ -6622,9 +6627,19 @@
       "source_sha256": "f134132260924a856b3d5b73a59c85868436af3c82f9c7e678eabaeeecc76a21"
     },
     {
+      "id": "operation:lib/operations/production-merchant.ts",
+      "classification": "operation",
+      "source_sha256": "fe1934512d8010349e732e1ab8ef207180328186d1d1954c98eea26e1575e544"
+    },
+    {
       "id": "operation:lib/operations/worker-request.ts",
       "classification": "operation",
       "source_sha256": "19297d94820d0f819571b774ba00e0a700ab5a243348872934a9ced4880dfb22"
+    },
+    {
+      "id": "operation:lib/tickets/scan.ts",
+      "classification": "operation",
+      "source_sha256": "5a3b61a68b4187a3798174832ad93ca174a12a526c65d54fed2f346cc7fc8f4b"
     },
     {
       "id": "operation:lib/tickets/scanner-readiness.ts",
@@ -6739,7 +6754,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "2d2fdd65fcfe473ba7b3cef8d654a898a99af1ac16386d417acd7c7d3d587dd1"
+      "source_sha256": "4da28d569ae880b56f6b5ec79279c5dff08d99c96e69a37ebb488f2e2c2c97a0"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -6832,6 +6847,11 @@
       "source_sha256": "323fe949a89f0c2a96825df3187935990c8969cabcad8144562bfb09f367b823"
     },
     {
+      "id": "operation:scripts/production-tenant-merchant.ts",
+      "classification": "operation",
+      "source_sha256": "3ae9fc35b7d220402327816dae0c1a34b9e513c4cefa8673f1b309a38e67b629"
+    },
+    {
       "id": "operation:scripts/run-worker.mjs",
       "classification": "operation",
       "source_sha256": "0f937e447ca416fa3ee6a95c8f7152b5593c401a9c708994d86833fdc02849f0"
@@ -6904,7 +6924,7 @@
     {
       "id": "operation:scripts/verify-production-website.mjs",
       "classification": "operation",
-      "source_sha256": "2e74e698003b76247d7b6a752a5520a65adcc007e90368e07045bb101ae340ab"
+      "source_sha256": "c434fbb95c90f855a1043ddb4e69f435b2bca2c93da8a1b6cb890c82cb7d6acd"
     },
     {
       "id": "operation:scripts/verify-public-auth-redirect.mjs",

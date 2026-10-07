@@ -4499,6 +4499,16 @@
       ]
     },
     {
+      "id": "operation:.github/workflows/production-tenant-merchant.yml",
+      "surfaceFingerprint": "3066d485218a341598de120d7a647de6bc8ee8c123de60628e94741143bbe5c6",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-merchant.test.ts",
+        "lib/operations/workflow-security.test.ts"
+      ]
+    },
+    {
       "id": "operation:.github/workflows/staging-tenant-integrations.yml",
       "surfaceFingerprint": "f02ebc9bec19c4608eac629be8a161fa35dbf88b5233898e4c75462184d9adf1",
       "status": "corrected-and-rechecked",
@@ -4819,6 +4829,16 @@
       ]
     },
     {
+      "id": "operation:lib/operations/production-merchant.ts",
+      "surfaceFingerprint": "c1a9b4836e7bf080195759aa1f6e893a8917ea6a9cba0eefbb28dc2e145516ed",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-merchant.test.ts",
+        "lib/operations/workflow-security.test.ts"
+      ]
+    },
+    {
       "id": "operation:lib/operations/worker-request.ts",
       "surfaceFingerprint": "bd5b1637d280786efc8c6252c0d854254102d35d8a560faf330d037c8d283900",
       "status": "controlled",
@@ -4829,6 +4849,15 @@
         "lib/env/production-runtime.test.ts",
         "scripts/test-production-contract-linux.sh",
         "lib/operations/worker-request.test.ts"
+      ]
+    },
+    {
+      "id": "operation:lib/tickets/scan.ts",
+      "surfaceFingerprint": "8995a2e89967c582f16fb77f5200cc1ae31cb88465acb8ed964ec4b662450cf4",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/tickets/scan.test.ts"
       ]
     },
     {
@@ -5089,14 +5118,11 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "38e0fdf48dcdd34e8d13d5a0c1076cba2fd00d38d2cc0b00aa09437ec5b87747",
+      "surfaceFingerprint": "b53eec714ee24a1a5329775184d41daac80b547051d9e901b9c2e9d8c82cd1e2",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
-        "lib/operations/production-deployment.test.ts",
-        "lib/env/production-database.test.ts",
-        "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "scripts/check-authorization-review.mjs"
       ]
     },
     {
@@ -5305,6 +5331,16 @@
       ]
     },
     {
+      "id": "operation:scripts/production-tenant-merchant.ts",
+      "surfaceFingerprint": "ae43c89ded152f147234b22f953caa35f5fd03a13eada1b33d2867c5d4ff0792",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/production-release-boundaries-2026-10-07.md",
+        "lib/operations/production-merchant.test.ts",
+        "lib/operations/workflow-security.test.ts"
+      ]
+    },
+    {
       "id": "operation:scripts/run-worker.mjs",
       "surfaceFingerprint": "f1b8fbf871a9137f6587e9edc3d32e1ddbc78203a7fa27b924398818b0a4b157",
       "status": "corrected-and-rechecked",
@@ -5468,14 +5504,11 @@
     },
     {
       "id": "operation:scripts/verify-production-website.mjs",
-      "surfaceFingerprint": "2834c84100fa34deb89d724763b9fe0c60d4a37fbf133b43beab84f03eb6b320",
-      "status": "controlled",
+      "surfaceFingerprint": "14cce2da60445cde029894d5c5d81e3366d8fe3341d4c165544e896c1304abce",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
-        "lib/operations/production-deployment.test.ts",
-        "lib/env/production-database.test.ts",
-        "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "scripts/verify-production-website.mjs"
       ]
     },
     {

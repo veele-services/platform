@@ -35,7 +35,7 @@ Evidence: `lib/env/production-database.test.ts`, `production-runtime.test.ts`,
 ## Runtime health, worker and scanner
 
 Reviewed `app/api/healthz/route.ts`, `lib/operations/worker-request.ts`,
-`lib/tickets/scanner-readiness.ts`, `scripts/run-worker.mjs`,
+`lib/tickets/scanner-readiness.ts`, `lib/tickets/scan.ts`, `scripts/run-worker.mjs`,
 `scripts/check-clamav-socket.mjs` and both production public health/auth checks.
 Production health requires a root-owned non-writable exact release marker and
 actual database/scanner readiness; it cannot fall back to a runner-supplied SHA.
@@ -45,7 +45,8 @@ port and timing-safe bearer secret. Stage credentials/port never authenticate a
 production worker. The handler retains its independent existing authentication.
 Production scanner probes require its separate runtime UID, clamav group and
 canonical 0660 clamav-owned socket before checking protocol/definitions/EICAR.
-Startup preflight admits production only at its fixed loopback bind.
+Startup preflight admits production only at its fixed loopback bind. File-scanning
+options reject substitute sockets in both deployed environments before connection.
 
 Read-only worker acceptance requires a successful execution whose start follows
 the current web activation. `check-production-worker-timer.sh` never installs,
@@ -61,7 +62,7 @@ public checks are source-reviewed but await live production execution.
 
 ## Hosted workflow and root broker
 
-Reviewed both production workflows, `verify-production-promotion.mjs`, the
+Reviewed the production deploy/bootstrap workflows, `verify-production-promotion.mjs`, the
 production broker/activator, runtime writer/encryptor, root/runner contracts and
 systemd identity/sudo/Caddy references. Promotion requires exact accepted SHA,
 production branch tip, main ancestry, green main push CI and successful staging
@@ -90,15 +91,36 @@ Evidence: `production-deployment.test.ts` executes the broker's decrypted-runtim
 validator against cross-project, cross-port, missing, duplicate and injected
 settings and exercises promotion API evidence/redaction. `staging-handoff.test.ts`
 now verifies both independently encrypted CMS flows. `workflow-security.test.ts`
-covers both new workflows. `scripts/test-production-contract-linux.sh` proves
+covers all new workflows. `scripts/test-production-contract-linux.sh` proves
 actual Linux read/write/traversal denial in a disposable container with two
 runtime accounts and two runners. Existing broker/artifact/staging Linux checks
 remain mandatory; no production secrets or host accounts are used in tests.
 
+## Explicit production merchant configuration
+
+Reviewed `production-tenant-merchant.yml`, `scripts/production-tenant-merchant.ts`
+and `lib/operations/production-merchant.ts`. This manual hosted operator path
+requires the production branch tip, main ancestry, exact healthy deployed SHA,
+canonical production project/connection and an explicit active tenant slug.
+Only an authenticated GET to Mollie `profiles/me` is made, with redirects refused;
+its profile must equal the separately owner-confirmed live profile before a
+database connection is opened. No payment, invoice, mail or fixture is created.
+Inspection opens a read-only transaction. Explicit binding uses parameterized
+tenant predicates, an advisory transaction lock and a row lock; an existing
+different profile/mode/secret reference is rejected. Conditional conflict handling
+also rejects a competing profile inserted after initial inspection. Successful
+repeated binding preserves the payee and only activates/verifies that connection.
+Existing profile uniqueness and tenant/customer authorization stay in force.
+TLS verifies CA/hostname; secrets are step-scoped after dependency installation.
+Output contains only operation and readiness booleans; provider/SQL errors are
+not printed. Evidence: `production-merchant.test.ts`, `workflow-security.test.ts`
+and actionlint. No live provider request or production binding was executed.
+
 ## Public acceptance and inventory
 
 Production acceptance uses only exact health, obsolete-link redirect and public
-marketing/portal GETs. It neither writes database fixtures nor creates live
+marketing/portal GETs, without following redirects to alternate hosts. It neither
+writes database fixtures nor creates live
 Mollie transactions. Initial tenant/bootstrap setup is explicitly operator work;
 website acceptance fails until the actual Veele tenant exists. A repeat of only
 the acceptance job cannot replay deployment. `verify-production-website.mjs`
