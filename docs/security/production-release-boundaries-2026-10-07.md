@@ -151,3 +151,22 @@ restore exercise. Neither the V1 acceptance record nor this review fabricates
 those proofs. Secrets are configured only in GitHub Environment `production`;
 source examples and tests contain fixed settings, placeholders or generated
 local cryptographic fixtures.
+
+## Framework security update — 8 October 2026
+
+GitHub's newly published advisory [GHSA-cjq9-62q9-8jv4](https://github.com/advisories/GHSA-cjq9-62q9-8jv4)
+lists Next.js before 16.3.8 as affected by an image-optimization SSRF issue.
+The repository defines no image `remotePatterns`, so the advisory's stated
+remote-allowlist precondition is absent. Nevertheless, the
+[official 16.3.8 release](https://github.com/vercel/next.js/releases/tag/v16.3.8)
+also includes metadata and cache security repairs relevant to reviewing a
+self-hosted release. Pin `next`, `@next/env` and `eslint-config-next` together to
+16.3.8 and refresh their locked dependency integrity. The existing reviewed
+braces patch/exception is preserved; no new audit exception is introduced.
+
+Reviewed the installed 16.3.8 image and self-hosting guides, package manifest and
+lockfile delta. Application routes, image configuration, auth/tenant boundaries,
+provider settings and database schema are unchanged. Evidence: all 1,645 unit
+tests, lint/typecheck and production dependency audit pass locally; full reusable
+CI again checks build/artifact startup and browser flows for this dependency
+update. Actual promotion still requires green exact-SHA main and staging runs.
