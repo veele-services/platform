@@ -101,10 +101,10 @@ test("Object 360: branded OTP mail, no-store secure value, blur and revocation",
 test("customer and personnel dossiers keep mobile tabs and grouped actions inside the viewport",async({page})=>{
  test.setTimeout(90000);await login(page,`/app/klanten/${fixtureCustomer}`);
  for(const route of [`/app/klanten/${fixtureCustomer}`,`/app/personeel/${fixturePerson}`]){
-  await page.goto(route);const tabs=page.locator(`${route.includes("klanten")?".customer-dossier":".personnel-dossier"} .dossier-navigation`);await expect(tabs).toBeVisible();
+  await page.goto(route);const dossier=page.locator(`${route.includes("klanten")?".customer-dossier":".personnel-dossier"}:visible`),tabs=dossier.locator(".dossier-navigation");await expect(tabs).toBeVisible();
   for(const width of [320,390,768,1440]){
    await page.setViewportSize({width,height:900});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-   for(const action of await page.locator(".dossier-header-actions button,.dossier-header-actions a").all()){
+   for(const action of await dossier.locator(".dossier-header-actions button,.dossier-header-actions a").all()){
     const b=await action.boundingBox();expect(b!.x).toBeGreaterThanOrEqual(0);expect(b!.x+b!.width).toBeLessThanOrEqual(width+1);if(width<=620)expect(b!.height).toBeGreaterThanOrEqual(44);
    }
    await page.screenshot({path:`test-results/${route.includes("klanten")?"customer":"personnel"}-dossier-${width}.png`,fullPage:true});

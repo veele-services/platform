@@ -61,5 +61,12 @@ spacing. Existing dialog scrolling and safe-area footer padding are retained.
   bounded action buttons, touch targets and visible active deep-linked tabs.
   The intentional Object360 mobile and personnel dossier header/tab visual baselines were updated.
 - Twelve additional dossier/appearance/dialog browser regressions pass (the five staff dialog cases were rerun after correcting their fixture day selection).
+- The first full CI run passed 105 of 109 browser cases and exposed a retained
+  hidden dossier in a mobile test selector, plus fractional-pixel fragment crop
+  differences in three visual cases. The selector now targets the visible
+  dossier. Those fragments align to physical pixels during capture and restore
+  their styles afterward; screenshot tolerance and product styles are unchanged.
+  The corrected visual baselines were inspected and the affected cases rerun,
+  including the account-guide case that changes preceding banner visibility.
 - Lint, TypeScript and production build pass. Local file flows use the real
   isolated ClamAV fixture; scanning is not bypassed.

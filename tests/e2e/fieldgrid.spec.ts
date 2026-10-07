@@ -2,6 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import { test } from "./first-visit";
 import { brandThemeStyle, createBrandPalette } from "../../lib/branding/palette";
 import { authenticateWorkspace } from "./login-auth";
+import { expectPixelAlignedScreenshot } from "./pixel-aligned-screenshot";
 const rgb = (hex: string) => `rgb(${[1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16)).join(", ")})`;
 
 
@@ -350,7 +351,7 @@ test("klantdossier opent elf volledige paginaonderdelen en bewaart contacten, no
     }
   }
   await page.setViewportSize({width:390,height:844});await nav.getByRole("link",{name:"Overzicht",exact:true}).click();await expect(dossier.getByRole("heading",{name:"Aandacht & opvolging"})).toBeVisible();
-  await expect(dossier.locator(".customer-overview-cards")).toHaveScreenshot("customer-dossier-overview-390.png",{stylePath:"tests/e2e/dossier-screenshot.css"});
+  await expectPixelAlignedScreenshot(dossier.locator(".customer-overview-cards"),"customer-dossier-overview-390.png",{stylePath:"tests/e2e/dossier-screenshot.css"});
   const staffContext=await browser.newContext({baseURL:"http://127.0.0.1:3000"});
   try{const staff=await staffContext.newPage();await login(staff,"field-worker@fieldgrid.test","/staff");expect((await staffContext.request.get(downloadPath!)).status()).toBe(404);}finally{await staffContext.close();}
 });
