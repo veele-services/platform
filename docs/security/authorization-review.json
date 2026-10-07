@@ -4961,7 +4961,7 @@
     },
     {
       "id": "operation:scripts/staging-customer-payment-acceptance.ts",
-      "surfaceFingerprint": "b4b5a7e01b65f323875811421164fd330dcc9d3d5b7f02f0bdec0d9adced4456",
+      "surfaceFingerprint": "e9211006401e2e0ef5f6e3b08ef16444ec1d894eb218c6e64166b97c381f5c0f",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/tenant-branding-address-payment-verification-2026-10-07.md"
@@ -4969,14 +4969,15 @@
     },
     {
       "id": "operation:scripts/staging-tenant-integrations.ts",
-      "surfaceFingerprint": "38e1228cac234af9916d102405cd913a9d8650471ca58b690ae060bd71e6d299",
+      "surfaceFingerprint": "330f79e9d53c2671ce895ae4aeabe56c22b004415dba0aeea0a0bfc9ea7a32db",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
         "app/api/addresses/route.test.ts",
         "lib/addresses/form.test.ts",
         "scripts/test-customer-portal.mjs",
-        "tests/e2e/login-branding.spec.ts"
+        "tests/e2e/login-branding.spec.ts",
+        "lib/addresses/reconciliation.test.ts"
       ]
     },
     {
