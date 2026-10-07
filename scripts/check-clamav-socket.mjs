@@ -33,6 +33,12 @@ export function stagingClamavPreflightOptions(env = process.env) {
   };
 }
 
+export function productionClamavPreflightOptions(env = process.env) {
+  if (env.DEPLOY_TARGET !== "production" || env.HOSTNAME !== "127.0.0.1" || env.PORT !== "3302") throw unavailable();
+  // The scanner protocol and socket are shared; environment identity is not.
+  return stagingClamavPreflightOptions({ ...env, DEPLOY_TARGET: "staging" });
+}
+
 export function pingClamd(socketPath, timeoutMs) {
   if (
     typeof socketPath !== "string" ||
@@ -100,7 +106,10 @@ try {
 }
 if (invokedAsMain) {
   try {
-    await runStagingClamavPreflight();
+    if (process.env.DEPLOY_TARGET === "production") {
+      const options = productionClamavPreflightOptions();
+      await pingClamd(options.socketPath, options.timeoutMs);
+    } else await runStagingClamavPreflight();
     process.stdout.write("Fieldgrid scanner preflight succeeded.\n");
   } catch {
     process.stderr.write(`${FAILURE}.\n`);

@@ -16,6 +16,15 @@ it("checks ownership, mode and the actual process identity before a real probe",
   expect(await scannerReadiness(env)).toBe("ready"); expect(mocks.scan).toHaveBeenCalledOnce();
   expect(mocks.scan).toHaveBeenCalledWith({ socketPath: env.CLAMAV_SOCKET, timeoutMs: 5000, maxDatabaseAgeHours: 72 });
 });
+it("production scans require the separate production UID and canonical socket permissions", async () => {
+  const { scannerReadiness } = await import("./scanner-readiness");
+  const production = { ...env, DEPLOY_TARGET: "production" };
+  expect(await scannerReadiness(production)).toBe("unavailable"); expect(mocks.scan).not.toHaveBeenCalled();
+  mocks.read.mockImplementation(async (path: string) => path === "/etc/passwd" ? `clamav:x:12345:12345:fixture\nfieldgrid:x:${uid + 100000}:12345:fixture\nfieldgrid-production:x:${uid}:12345:fixture` : `clamav:x:${gid}:fieldgrid-production`);
+  vi.resetModules();
+  const fresh = await import("./scanner-readiness");
+  expect(await fresh.scannerReadiness(production)).toBe("ready"); expect(mocks.scan).toHaveBeenCalledOnce();
+});
 it.each([
   { isSocket: () => false, mode: 0o140660, uid: 12345, gid },
   { isSocket: () => true, mode: 0o140666, uid: 12345, gid },

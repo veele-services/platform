@@ -11,7 +11,7 @@ afterEach(async () => {
   await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
 });
 
-describe("encrypted staging handoff", () => {
+describe.each(["staging", "production"])("encrypted %s handoff", (target) => {
   it("removes plaintext and produces a root-decryptable CMS envelope", async () => {
     const directory = await mkdtemp(join(tmpdir(), "fieldgrid-handoff-"));
     directories.push(directory);
@@ -29,12 +29,13 @@ describe("encrypted staging handoff", () => {
     ], { encoding: "utf8" });
     expect(generated.status, generated.stderr).toBe(0);
 
-    const encrypted = spawnSync("bash", ["scripts/encrypt-staging-handoff.sh", source, envelope], {
+    const encrypted = spawnSync("bash", [`scripts/encrypt-${target}-handoff.sh`, source, envelope], {
       encoding: "utf8",
       env: {
         ...process.env,
         RUNNER_TEMP: directory,
-        STAGING_HANDOFF_ENCRYPTION_CERT_B64: readFileSync(certificate).toString("base64"),
+        DEPLOY_TARGET: target,
+        [`${target.toUpperCase()}_HANDOFF_ENCRYPTION_CERT_B64`]: readFileSync(certificate).toString("base64"),
       },
     });
     expect(encrypted.status, encrypted.stderr).toBe(0);

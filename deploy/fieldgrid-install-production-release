@@ -1,0 +1,182 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+[[ "$(id -u)" = 0 ]] || { echo "Releasebroker vereist root" >&2; exit 2; }
+[[ "$#" = 0 ]] || { echo "Releasebroker accepteert geen argumenten" >&2; exit 2; }
+root=/opt/fieldgrid/production
+request="$root/incoming/request"
+trusted_root=/etc/fieldgrid/github-attestation-trusted-root.jsonl
+decrypt_cert=/etc/fieldgrid/production-handoff.crt
+decrypt_key=/etc/fieldgrid/production-handoff.key
+[[ -f "$request" && ! -L "$request" && "$(stat -c %U "$request")" = fieldgrid-production-runner ]] || { echo "Ongeldig releaserequest" >&2; exit 2; }
+IFS= read -r sha < "$request"
+[[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "Ongeldige release-SHA" >&2; exit 2; }
+inbox="$root/incoming/$sha"
+declare -A inputs=(
+  [release]="$inbox/release.tar.gz"
+  [release.attestation.json]="$inbox/release.attestation.json"
+  [runtime]="$inbox/runtime.env.cms"
+  [runtime.attestation.json]="$inbox/runtime.attestation.json"
+  [backup]="$inbox/backup.dump.cms"
+  [backup.attestation.json]="$inbox/backup.attestation.json"
+)
+for input in "${inputs[@]}"; do
+  [[ -f "$input" && ! -L "$input" && "$(stat -c %U "$input")" = fieldgrid-production-runner && "$(stat -c %h "$input")" = 1 ]] || { echo "Ongeldige release-invoer" >&2; exit 2; }
+done
+[[ -f "$trusted_root" && ! -L "$trusted_root" && "$(stat -c '%U:%G:%a:%h' "$trusted_root")" = root:root:644:1 ]] || { echo "Vertrouwde GitHub-root ontbreekt of is onveilig" >&2; exit 2; }
+[[ -f "$decrypt_key" && ! -L "$decrypt_key" && "$(stat -c '%U:%G:%a:%h' "$decrypt_key")" = root:root:600:1 ]] || { echo "Root-only handoffsleutel ontbreekt of is onveilig" >&2; exit 2; }
+[[ -f "$decrypt_cert" && ! -L "$decrypt_cert" && "$(stat -c '%U:%G:%a:%h' "$decrypt_cert")" = root:root:644:1 ]] || { echo "Handoffcertificaat ontbreekt of is onveilig" >&2; exit 2; }
+
+exec 9>"$root/.release.lock"
+flock -x 9
+work="$(mktemp -d "$root/releases/.handoff-$sha.XXXXXX")"
+candidate="$root/releases/.candidate-$sha"
+runtime_candidate="$(mktemp "$root/shared/.runtime-$sha.XXXXXX")"
+backup_candidate="$(mktemp "$root/backups/.backup-$sha.XXXXXX")"
+cleanup() {
+  rm -rf -- "$work" "$candidate"
+  rm -f -- "$runtime_candidate" "$backup_candidate"
+}
+trap cleanup EXIT
+for name in "${!inputs[@]}"; do install -o root -g root -m 0600 "${inputs[$name]}" "$work/$name"; done
+
+verify_attestation() {
+  /usr/bin/gh attestation verify "$work/$1" \
+    --repo veele-services/platform \
+    --bundle "$work/$2" \
+    --custom-trusted-root "$trusted_root" \
+    --deny-self-hosted-runners \
+    --signer-workflow github.com/veele-services/platform/.github/workflows/deploy-production.yml \
+    --source-ref refs/heads/production \
+    --source-digest "$sha" \
+    --format json > "$work/$1.verification.json"
+}
+verify_attestation release release.attestation.json
+verify_attestation runtime runtime.attestation.json
+verify_attestation backup backup.attestation.json
+
+# A retained, otherwise valid handoff must not become a long-lived rollback
+# capability for the persistent transfer runner. GitHub documents these
+# verified timestamps as signed observer evidence rather than workflow input.
+/usr/bin/python3 - "$work/release.verification.json" "$work/runtime.verification.json" "$work/backup.verification.json" <<'PY'
+import datetime, json, pathlib, sys
+now = datetime.datetime.now(datetime.timezone.utc)
+for raw_path in sys.argv[1:]:
+    data = json.loads(pathlib.Path(raw_path).read_text(encoding="utf-8"))
+    if not isinstance(data, list) or len(data) != 1:
+        raise SystemExit("Attestatie moet exact een geverifieerd resultaat bevatten")
+    timestamps = data[0].get("verificationResult", {}).get("verifiedTimestamps", [])
+    if not isinstance(timestamps, list) or not timestamps:
+        raise SystemExit("Attestatie mist een geverifieerde tijdstempel")
+    observed = []
+    for item in timestamps:
+        value = item.get("timestamp") if isinstance(item, dict) else None
+        if not isinstance(value, str):
+            continue
+        try:
+            observed.append(datetime.datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(datetime.timezone.utc))
+        except ValueError:
+            pass
+    if not observed:
+        raise SystemExit("Attestatie bevat geen bruikbare geverifieerde tijdstempel")
+    newest = max(observed)
+    if newest > now + datetime.timedelta(minutes=5) or newest < now - datetime.timedelta(hours=6):
+        raise SystemExit("Attestatie valt buiten het toegestane releasevenster")
+PY
+
+openssl cms -decrypt -binary -inform DER -in "$work/runtime" -recip "$decrypt_cert" -inkey "$decrypt_key" -out "$runtime_candidate"
+openssl cms -decrypt -binary -inform DER -in "$work/backup" -recip "$decrypt_cert" -inkey "$decrypt_key" -out "$backup_candidate"
+[[ "$(stat -c %s "$runtime_candidate")" -le 65536 ]] || { echo "Runtimeconfiguratie te groot" >&2; exit 2; }
+
+/usr/bin/python3 - "$runtime_candidate" "$sha" <<'PY'
+import pathlib, re, sys, urllib.parse
+path, sha = pathlib.Path(sys.argv[1]), sys.argv[2]
+allowed = set("""NODE_ENV APP_ENV DEPLOY_TARGET APP_URL HOSTNAME PORT LOG_LEVEL RELEASE_SHA DEPLOYMENT_VERSION NEXT_SERVER_ACTIONS_ENCRYPTION_KEY SUPABASE_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY EXPECTED_SUPABASE_PROJECT_REF FORBIDDEN_SUPABASE_PROJECT_REF STAGING_SUPABASE_PROJECT_REF MOLLIE_API_KEY MOLLIE_WEBHOOK_URL SENDGRID_API_KEY SENDGRID_FROM_EMAIL SENDGRID_FROM_NAME SENDGRID_API_BASE SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY SUPABASE_SEND_EMAIL_HOOK_SECRET MAIL_MARKETING_ENABLED GOOGLE_MAPS_SERVER_API_KEY GOOGLE_ROUTES_ENABLED OPENROUTESERVICE_API_KEY OPENROUTESERVICE_BASE_URL ROUTING_PROVIDER ROUTING_CACHE_DAYS ROUTING_MATRIX_MINUTE_LIMIT ROUTING_MATRIX_DAY_LIMIT ROUTING_DIRECTIONS_MINUTE_LIMIT ROUTING_DIRECTIONS_DAY_LIMIT NEXT_PUBLIC_VAPID_PUBLIC_KEY VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT ADMIN_API_SECRET NOTIFICATION_WORKER_LIMIT NOTIFICATION_WORKER_MAX_ATTEMPTS NOTIFICATION_WORKER_BASE_RETRY_SECONDS NOTIFICATION_WORKER_MAX_RETRY_SECONDS CLAMAV_ENABLED CLAMAV_SOCKET CLAMAV_TIMEOUT_MS CLAMAV_MAX_DATABASE_AGE_HOURS""".split())
+required = set("""NODE_ENV APP_ENV DEPLOY_TARGET APP_URL HOSTNAME PORT RELEASE_SHA DEPLOYMENT_VERSION NEXT_SERVER_ACTIONS_ENCRYPTION_KEY SUPABASE_URL NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY EXPECTED_SUPABASE_PROJECT_REF FORBIDDEN_SUPABASE_PROJECT_REF STAGING_SUPABASE_PROJECT_REF MOLLIE_API_KEY MOLLIE_WEBHOOK_URL SENDGRID_API_KEY SENDGRID_FROM_EMAIL SENDGRID_FROM_NAME SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY SUPABASE_SEND_EMAIL_HOOK_SECRET OPENROUTESERVICE_API_KEY MAIL_MARKETING_ENABLED NEXT_PUBLIC_VAPID_PUBLIC_KEY VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT ADMIN_API_SECRET CLAMAV_ENABLED CLAMAV_SOCKET""".split())
+values = {}
+pattern = re.compile(r'^([A-Z0-9_]+)="((?:[^"\\]|\\["\\])*)"$')
+def decode(value: str) -> str:
+    decoded = []
+    index = 0
+    while index < len(value):
+        character = value[index]
+        if character != "\\":
+            decoded.append(character)
+            index += 1
+            continue
+        index += 1
+        if index >= len(value) or value[index] not in ('"', "\\"):
+            raise SystemExit("Ongeldige escape in runtimeconfiguratie")
+        decoded.append(value[index])
+        index += 1
+    return "".join(decoded)
+for line in path.read_text(encoding="utf-8").splitlines():
+    match = pattern.fullmatch(line)
+    if not match or match.group(1) not in allowed or match.group(1) in values:
+        raise SystemExit("Ongeldige runtimeconfiguratie")
+    values[match.group(1)] = decode(match.group(2))
+if not required.issubset(values) or any(not values[key] for key in required):
+    raise SystemExit("Runtimeconfiguratie is incompleet")
+fixed = {"NODE_ENV":"production","APP_ENV":"production","DEPLOY_TARGET":"production","APP_URL":"https://fieldgrid.nl","HOSTNAME":"127.0.0.1","PORT":"3302","RELEASE_SHA":sha,"DEPLOYMENT_VERSION":sha,"FORBIDDEN_SUPABASE_PROJECT_REF":"ckdtiuemeygrnujjibnw","GOOGLE_ROUTES_ENABLED":"false","MAIL_MARKETING_ENABLED":"false","SENDGRID_FROM_NAME":"Fieldgrid","CLAMAV_ENABLED":"true","CLAMAV_SOCKET":"/run/clamav/clamd.ctl"}
+if any(values.get(key) != value for key, value in fixed.items()):
+    raise SystemExit("Runtimeconfiguratie wijkt af van productioncontract")
+project = values["EXPECTED_SUPABASE_PROJECT_REF"]
+if not re.fullmatch(r"[a-z0-9]{20}", project) or project == fixed["FORBIDDEN_SUPABASE_PROJECT_REF"] or project == values["STAGING_SUPABASE_PROJECT_REF"] or not re.fullmatch(r"[a-z0-9]{20}", values["STAGING_SUPABASE_PROJECT_REF"]) or values["STAGING_SUPABASE_PROJECT_REF"] == fixed["FORBIDDEN_SUPABASE_PROJECT_REF"]:
+    raise SystemExit("Ongeldige productionprojectref")
+for key in ("SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"):
+    url = urllib.parse.urlsplit(values[key])
+    if url.scheme != "https" or url.hostname != f"{project}.supabase.co" or url.port or url.path not in ("", "/") or url.query or url.fragment or url.username or url.password:
+        raise SystemExit("Ongeldige production-Supabase-URL")
+if not values["MOLLIE_API_KEY"].startswith("live_") or values["MOLLIE_WEBHOOK_URL"] != "https://fieldgrid.nl/api/mollie/webhook":
+    raise SystemExit("Ongeldige production-betaalconfiguratie")
+if values["VAPID_PUBLIC_KEY"] != values["NEXT_PUBLIC_VAPID_PUBLIC_KEY"]:
+    raise SystemExit("VAPID public keys wijken af")
+PY
+
+/usr/bin/pg_restore --list "$backup_candidate" >/dev/null
+rm -rf -- "$candidate"
+mkdir -m 0750 "$candidate"
+/usr/bin/python3 - "$work/release" <<'PY'
+import pathlib, sys, tarfile
+archive = pathlib.Path(sys.argv[1])
+with tarfile.open(archive, "r:gz") as contents:
+    for member in contents.getmembers():
+        path = pathlib.PurePosixPath(member.name)
+        if path.is_absolute() or ".." in path.parts:
+            raise SystemExit("Onveilig pad in release-artifact")
+        if member.issym() or member.islnk():
+            raise SystemExit("Links zijn niet toegestaan in release-artifact")
+        if not (member.isfile() or member.isdir()):
+            raise SystemExit("Alleen reguliere bestanden en mappen zijn toegestaan in release-artifact")
+PY
+tar -xzf "$work/release" --no-same-owner --no-same-permissions -C "$candidate"
+[[ -f "$candidate/server.js" && -f "$candidate/worker-client.mjs" && -f "$candidate/clamav-preflight.mjs" ]] || { echo "Release-inhoud incompleet" >&2; exit 2; }
+printf '%s\n' "$sha" > "$candidate/.release-sha"
+sha256sum "$work/release" | awk '{print $1}' > "$candidate/.release-artifact-sha256"
+chown -R root:fieldgrid-production "$candidate"
+chmod -R u=rwX,g=rX,o= "$candidate"
+release="$root/releases/$sha"
+if [[ -e "$release" ]]; then
+  echo "Een eerder geinstalleerde release mag niet opnieuw worden geactiveerd" >&2
+  exit 2
+fi
+mv -T "$candidate" "$release"
+
+chown root:fieldgrid-production "$runtime_candidate"
+chmod 0640 "$runtime_candidate"
+mv -fT "$runtime_candidate" "$root/shared/runtime.env"
+backup_target="$root/backups/pre-$sha.dump"
+if [[ -e "$backup_target" ]]; then backup_target="$(mktemp "$root/backups/pre-$sha-retry-XXXXXXXX.dump")"; rm -f -- "$backup_target"; fi
+chown root:root "$backup_candidate"
+chmod 0600 "$backup_candidate"
+mv -T "$backup_candidate" "$backup_target"
+
+ln -sfn "$release" "$root/current.next"
+chown -h root:fieldgrid-production "$root/current.next"
+mv -Tf "$root/current.next" "$root/current"
+/usr/bin/systemctl restart fieldgrid@production.service
+rm -rf -- "$work"
+trap - EXIT
+rm -f -- "$request" "${inputs[@]}"
+rmdir "$inbox" 2>/dev/null || true
+echo "Geattesteerde release $sha met versleutelde runtime en backup geactiveerd."

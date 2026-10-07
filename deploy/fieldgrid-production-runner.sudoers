@@ -1,0 +1,2 @@
+# The empty quoted argument list is intentional: the broker accepts no arguments.
+fieldgrid-production-runner ALL=(root) NOPASSWD: /usr/local/sbin/fieldgrid-install-production-release ""

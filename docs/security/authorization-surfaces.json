@@ -321,7 +321,7 @@
       "resources": [
         "from:tenants"
       ],
-      "source_sha256": "da856dd1a715577ab7943300f2911028633b86bcee106edb5814a1f5d265c993"
+      "source_sha256": "62a527e936e8c769cb12f4a94a61791e2f5bf61ec023a493f35758520ddf4588"
     },
     {
       "id": "code:app/api/mollie/webhook/route.ts",
@@ -3024,7 +3024,7 @@
         "verifyTicketScanner"
       ],
       "resources": [],
-      "source_sha256": "cdea19c66d02b5539ac137a9a88b47936c94259fc958ed8f64fb8b24bc625b81"
+      "source_sha256": "e7d5b141e9a3a21a770af3b31d3f8cd6fa76e03e05d8c07cb017963b6f8c0777"
     },
     {
       "id": "code:lib/tickets/worker.ts",
@@ -6444,7 +6444,12 @@
     {
       "id": "operation:.github/workflows/_verify.yml",
       "classification": "operation",
-      "source_sha256": "22bc1cc24c623d2a88217abcfc6fba7d8c9f3f5b0d2369d0e22e554a1bd6a140"
+      "source_sha256": "031e0c977289e9c3b36a5a9e8d4c840b0740e6cba5b6c9d28a5ba5488b5e640a"
+    },
+    {
+      "id": "operation:.github/workflows/bootstrap-production-admin.yml",
+      "classification": "operation",
+      "source_sha256": "0e61def7f6ee815fb9c4d55d54365750b013580b0a1835b2ed8736d2ae0b2b25"
     },
     {
       "id": "operation:.github/workflows/bootstrap-staging-admin.yml",
@@ -6455,6 +6460,11 @@
       "id": "operation:.github/workflows/ci.yml",
       "classification": "operation",
       "source_sha256": "fe1d9c677cc7c9076c66d5ce0c7489546148a4655c41bc1fda0b21c76e1670de"
+    },
+    {
+      "id": "operation:.github/workflows/deploy-production.yml",
+      "classification": "operation",
+      "source_sha256": "b17259e0dc5c1a5a0b7677feda84545f02210e526bb7e270127b4e9a8dbb225d"
     },
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
@@ -6477,6 +6487,11 @@
       "source_sha256": "924bc987c3e96aa3c4f906d4351049dc597aa4570355ae2f622168f4397557cf"
     },
     {
+      "id": "operation:deploy/Caddyfile.production.example",
+      "classification": "operation",
+      "source_sha256": "0d8ae85c33c103e8bf4b3fa74e89f48cc07a9db3d4f087d76fd6ea0983c925bd"
+    },
+    {
       "id": "operation:deploy/clamav-daemon.socket.d/fieldgrid.conf.example",
       "classification": "operation",
       "source_sha256": "a711565c6652d09758e04aba693fbbf1c5c216ac23be54834b5a2e9795264b3a"
@@ -6492,9 +6507,24 @@
       "source_sha256": "7e46b6861d7b2f33ccd6b9e7906acd4daa7a14977ac87da491a0c885a3d50297"
     },
     {
+      "id": "operation:deploy/fieldgrid-install-production-release",
+      "classification": "operation",
+      "source_sha256": "c4bffb3b72a498c3129ae09003cc6614224c8e8562d0a09c454af92acbde9b58"
+    },
+    {
       "id": "operation:deploy/fieldgrid-install-staging-release",
       "classification": "operation",
       "source_sha256": "90e024ac3b0439d341290554af9235f1be81f6788330ceaf1a55b193e400873f"
+    },
+    {
+      "id": "operation:deploy/fieldgrid-production-runner-user.conf",
+      "classification": "operation",
+      "source_sha256": "ec1b9d409a76cd4a3886e77f117ca2f2f550418a2455646336cbe92e7e91fadd"
+    },
+    {
+      "id": "operation:deploy/fieldgrid-production-runner.sudoers",
+      "classification": "operation",
+      "source_sha256": "6805abde84400385ed78dfd8f0cf224cab2028ff04a473ee4dc5f29ed423bd77"
     },
     {
       "id": "operation:deploy/fieldgrid-runner.sudoers",
@@ -6517,9 +6547,44 @@
       "source_sha256": "015125891901c22dcd421e785868d2e8b328209ed569e8ac918e520c29903798"
     },
     {
+      "id": "operation:deploy/fieldgrid-worker@production.service.d/identity.conf",
+      "classification": "operation",
+      "source_sha256": "ba7ef4010173e05446926f8c436096b64348a639e6b911f00258394c661463d1"
+    },
+    {
       "id": "operation:deploy/fieldgrid@.service",
       "classification": "operation",
       "source_sha256": "a99419b9c3778d18f70bd9a37564877a150ce96cd57243402775195015c84162"
+    },
+    {
+      "id": "operation:deploy/fieldgrid@production.service.d/identity.conf",
+      "classification": "operation",
+      "source_sha256": "33f2b97b840c51b32500af6afe8124cf1fae11a651d0eee2d0fd122f4986ad2e"
+    },
+    {
+      "id": "operation:lib/env/production-database.ts",
+      "classification": "operation",
+      "source_sha256": "05013e8b42903f22bd432c2d89ba6160510b76905f44869221e2d8ea2e2c4f9a"
+    },
+    {
+      "id": "operation:lib/env/production-migration-command.ts",
+      "classification": "operation",
+      "source_sha256": "7d7817f0a699eba6c5d55c8082fb6cd0336c68dc1d26c89d986d14e737bdb9e1"
+    },
+    {
+      "id": "operation:lib/env/production-migration-config.ts",
+      "classification": "operation",
+      "source_sha256": "f004f6aa7cba451a323e19725f93a5e1079ffbc961cef24b700cebc77ca8b671"
+    },
+    {
+      "id": "operation:lib/env/production-runtime.ts",
+      "classification": "operation",
+      "source_sha256": "48acddeea1047a013b3e8be01f31a1314009b8777a231f8179e06de1ed7c6772"
+    },
+    {
+      "id": "operation:lib/env/server.ts",
+      "classification": "operation",
+      "source_sha256": "bb4d435edb128c991e45e4cda4c365ed3dd08df1eda581900272148b698c47fe"
     },
     {
       "id": "operation:lib/env/staging-database.ts",
@@ -6555,6 +6620,21 @@
       "id": "operation:lib/operations/mollie-test-checkout.ts",
       "classification": "operation",
       "source_sha256": "f134132260924a856b3d5b73a59c85868436af3c82f9c7e678eabaeeecc76a21"
+    },
+    {
+      "id": "operation:lib/operations/worker-request.ts",
+      "classification": "operation",
+      "source_sha256": "19297d94820d0f819571b774ba00e0a700ab5a243348872934a9ced4880dfb22"
+    },
+    {
+      "id": "operation:lib/tickets/scanner-readiness.ts",
+      "classification": "operation",
+      "source_sha256": "e7d5b141e9a3a21a770af3b31d3f8cd6fa76e03e05d8c07cb017963b6f8c0777"
+    },
+    {
+      "id": "operation:lib/travel/provider-smoke.ts",
+      "classification": "operation",
+      "source_sha256": "63dcef418bacb798624a4639a25876f44462902313b89cce78599b602097d364"
     },
     {
       "id": "operation:next.config.ts",
@@ -6602,9 +6682,19 @@
       "source_sha256": "eb060700a336bbdad73d31e807df658e834c9ba0c5a62146a0325c07d97f467f"
     },
     {
+      "id": "operation:scripts/backup-production-database.ts",
+      "classification": "operation",
+      "source_sha256": "64bdae32e39f5de4747bf5447784051c54fa3b0758f0383b47c714e2b54cc7d2"
+    },
+    {
       "id": "operation:scripts/bootstrap-platform-admin.ts",
       "classification": "operation",
       "source_sha256": "1ee97a08c267d0e9bbffaba86cd7db41df10fa66300937adf0d9ec2406be8426"
+    },
+    {
+      "id": "operation:scripts/bootstrap-production-admin.ts",
+      "classification": "operation",
+      "source_sha256": "d3b3f08b5d3dab13b712ee1845f41f509cf2e37afe28320dd14fcbe75fdc7138"
     },
     {
       "id": "operation:scripts/build-veele-marketing.mjs",
@@ -6619,7 +6709,22 @@
     {
       "id": "operation:scripts/check-clamav-socket.mjs",
       "classification": "operation",
-      "source_sha256": "da2ce620eb83ca84455efd31495d86e14676b5fab4ac3f9a27e890f8aa97b7dd"
+      "source_sha256": "b573d6298aae6ad9cb9034efb7aee5137f5449b887a81005172190ff87126393"
+    },
+    {
+      "id": "operation:scripts/check-production-root-contract.sh",
+      "classification": "operation",
+      "source_sha256": "554f96549652ce37edcba2692b356655d92e3089e1893eadc95855e32f31bff6"
+    },
+    {
+      "id": "operation:scripts/check-production-runner-contract.sh",
+      "classification": "operation",
+      "source_sha256": "d31a73ba2f5529246af37a9f72a4e7ce1bb90fe5b086e80bcf4a1f0b4881ea2a"
+    },
+    {
+      "id": "operation:scripts/check-production-worker-timer.sh",
+      "classification": "operation",
+      "source_sha256": "5c2e0c56fe518669ccd91c717652f7b34bd7af2b929a620cfce73a69480d98f9"
     },
     {
       "id": "operation:scripts/check-release-secrets.mjs",
@@ -6634,7 +6739,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "aed3242d4315f102ed5b20570e987cd9b720cb9024307294f7fbd56f3bba9ba8"
+      "source_sha256": "2d2fdd65fcfe473ba7b3cef8d654a898a99af1ac16386d417acd7c7d3d587dd1"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -6667,6 +6772,11 @@
       "source_sha256": "97057fcd1f0c750d709fa47110aaab3630a6f8855054caa39e40bd879b1ba305"
     },
     {
+      "id": "operation:scripts/deploy-production.sh",
+      "classification": "operation",
+      "source_sha256": "cba5ce92aefa0d1f7a3b17bf6bd8e8c4a30d73283b84889b17b85cc3be1f4a5b"
+    },
+    {
       "id": "operation:scripts/diagnose-auth-mail-context.ts",
       "classification": "operation",
       "source_sha256": "d5e409e114b455be2cfaff43f5b359e819777fa53948af2e20822865f6f215a7"
@@ -6677,9 +6787,19 @@
       "source_sha256": "529354264d437ca772050ea27256e82b8b39647d401360b7f5cd49aa6992433f"
     },
     {
+      "id": "operation:scripts/encrypt-production-handoff.sh",
+      "classification": "operation",
+      "source_sha256": "6cb26dde62aa3d0b1765b5cf9e6fa7b4e87bb3d1e3c54b2bfc222059b69d13bc"
+    },
+    {
       "id": "operation:scripts/encrypt-staging-handoff.sh",
       "classification": "operation",
       "source_sha256": "1ea14f21251b4c89a100c27c993660796cb396d9bc7882809527353e26b898b8"
+    },
+    {
+      "id": "operation:scripts/migrate-production.ts",
+      "classification": "operation",
+      "source_sha256": "b74ac52de3157c71a9ff961060d74519e0388a82cbd0721cb51d1e9452383585"
     },
     {
       "id": "operation:scripts/migrate-staging.ts",
@@ -6702,6 +6822,11 @@
       "source_sha256": "b9e0d1152062e3fbf2be1eac9d8face8a5d97bf2bb0b772352292fe03241950c"
     },
     {
+      "id": "operation:scripts/preflight-production.ts",
+      "classification": "operation",
+      "source_sha256": "7866eb6908dfe7865ecbee356875ee5c031fed97f0a7c0eb1f822c9e0e815fd2"
+    },
+    {
       "id": "operation:scripts/preflight.ts",
       "classification": "operation",
       "source_sha256": "323fe949a89f0c2a96825df3187935990c8969cabcad8144562bfb09f367b823"
@@ -6709,7 +6834,7 @@
     {
       "id": "operation:scripts/run-worker.mjs",
       "classification": "operation",
-      "source_sha256": "1b0b2d47ee8d93038ffdab189544922791b4b04aa2f4ff7c1e3a3a65b88f11d0"
+      "source_sha256": "0f937e447ca416fa3ee6a95c8f7152b5593c401a9c708994d86833fdc02849f0"
     },
     {
       "id": "operation:scripts/staging-customer-payment-acceptance.ts",
@@ -6720,6 +6845,11 @@
       "id": "operation:scripts/staging-tenant-integrations.ts",
       "classification": "operation",
       "source_sha256": "ab817137c9d3420707dde8ed35ec27b313f0261f301ecce8d23ef8e26c9b4c35"
+    },
+    {
+      "id": "operation:scripts/test-production-contract-linux.sh",
+      "classification": "operation",
+      "source_sha256": "71c8e6e091f1c265f4aa98b2f4eccb1e90c55217a09b9424dbd7271ed9d45dab"
     },
     {
       "id": "operation:scripts/test-release-artifact.mjs",
@@ -6752,6 +6882,31 @@
       "source_sha256": "673b37f36e5e29675b87dc4e5593cc9a129d08a6f68c4a84369cf8dc32698aa8"
     },
     {
+      "id": "operation:scripts/verify-production-auth-redirect.mjs",
+      "classification": "operation",
+      "source_sha256": "035bd5f0bec16977fb51e627c84107336773a5d76ba2b27a5f5fd7298639968a"
+    },
+    {
+      "id": "operation:scripts/verify-production-healthcheck.mjs",
+      "classification": "operation",
+      "source_sha256": "18f7626b7ea2f4896a7ce4418acb80370604c05c3998369f0a8e853a2e2a7f9d"
+    },
+    {
+      "id": "operation:scripts/verify-production-migration-target.ts",
+      "classification": "operation",
+      "source_sha256": "f892b351f965989256dd4e8aed1764d22f81cdd0006aff6f286651f19fd1ff59"
+    },
+    {
+      "id": "operation:scripts/verify-production-promotion.mjs",
+      "classification": "operation",
+      "source_sha256": "019650e9caf8af017025294f55f81b0f11177cf9dc604ea2912246b7050c7fdc"
+    },
+    {
+      "id": "operation:scripts/verify-production-website.mjs",
+      "classification": "operation",
+      "source_sha256": "2e74e698003b76247d7b6a752a5520a65adcc007e90368e07045bb101ae340ab"
+    },
+    {
       "id": "operation:scripts/verify-public-auth-redirect.mjs",
       "classification": "operation",
       "source_sha256": "6b08a213d0d4ff586aae1472685e4a17d6cd9707a8ff006e6b4a581099827751"
@@ -6760,6 +6915,11 @@
       "id": "operation:scripts/verify-veele-website.mjs",
       "classification": "operation",
       "source_sha256": "47190fc151f75e59c22cccc71d2b77d7b8e68f1e8090af60d642d18a96646d4c"
+    },
+    {
+      "id": "operation:scripts/write-production-runtime-env.sh",
+      "classification": "operation",
+      "source_sha256": "034d6493c33f85a1d5348db4363027f9338de113c3f3250c83b9383178f6d886"
     },
     {
       "id": "operation:scripts/write-runtime-env.sh",

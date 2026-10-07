@@ -1,7 +1,7 @@
 import {readFileSync} from "node:fs";
 import {describe,expect,it} from "vitest";
 
-const workflows=[".github/workflows/_verify.yml",".github/workflows/deploy-staging.yml",".github/workflows/bootstrap-staging-admin.yml"];
+const workflows=[".github/workflows/_verify.yml",".github/workflows/deploy-staging.yml",".github/workflows/bootstrap-staging-admin.yml",".github/workflows/deploy-production.yml",".github/workflows/bootstrap-production-admin.yml"];
 const actionReference=/uses:\s+([^\s#]+)/g;
 
 describe("release workflow credential boundary",()=>{
@@ -15,7 +15,7 @@ describe("release workflow credential boundary",()=>{
   }
  });
 
- it.each([".github/workflows/deploy-staging.yml",".github/workflows/bootstrap-staging-admin.yml"])("does not expose Environment secrets at job scope in %s",file=>{
+ it.each([".github/workflows/deploy-staging.yml",".github/workflows/bootstrap-staging-admin.yml",".github/workflows/deploy-production.yml",".github/workflows/bootstrap-production-admin.yml"])("does not expose Environment secrets at job scope in %s",file=>{
   const source=readFileSync(file,"utf8");
   const jobEnvironment=source.slice(source.indexOf("    env:"),source.indexOf("    steps:"));
   expect(jobEnvironment).not.toContain("${{ secrets.");

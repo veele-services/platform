@@ -9,6 +9,11 @@ environment. It deliberately does not describe production. Any later
 implementation that conflicts with this document requires an explicit
 architecture decision and a corresponding documentation update first.
 
+V1 staging was accepted by the repository owner on 7 October 2026. The owner
+explicitly started production and chose the same VPS, `fieldgrid.nl` and
+`veele-services.fieldgrid.nl`. The separate [production contract](production.md)
+now governs that phase. All fixed staging identities below remain unchanged.
+
 ## 1. Principles
 
 1. Fieldgrid V1 is a clean implementation. Existing applications, database
@@ -26,7 +31,7 @@ architecture decision and a corresponding documentation update first.
 |---|---|---|
 | `main` | Development and stable source history | Never deploys automatically |
 | `staging` | Explicit promotions of reviewed `main` commits | Runs full CI, then deploys that exact commit |
-| `production` | Not present in this phase | Must not be created or deployed |
+| `production` | Explicit promotions after V1 acceptance | Governed by the separate production contract |
 
 Development happens on `main` or short-lived branches merged into `main`.
 `staging` is not a development branch. A staging promotion deliberately moves
@@ -561,7 +566,7 @@ committing these files:
 - creating `/opt/fieldgrid/staging` on the VPS;
 - registering or starting the `fieldgrid-staging` runner;
 - configuring wildcard DNS and certificate issuance;
-- creating a production branch, environment or deployment flow.
+- installing the separate production runtime and configuring its providers.
 
 Migrations run only after the operator deliberately promotes a verified `main`
 commit to `staging` and the staging workflow passes its own full CI job.

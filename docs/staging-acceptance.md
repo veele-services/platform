@@ -1,5 +1,22 @@
 # Stagingacceptatie Fieldgrid V1
 
+## V1 geaccepteerd op 7 oktober 2026
+
+De repository-eigenaar heeft V1 expliciet geaccepteerd: “Top, ik accepteer dit
+als V1. Op naar production!” De geaccepteerde functionele basis is commit
+`bda48bbc143693d2d0a94b743b0e915ea6e2a721` op `main` en `staging`.
+Main-CI run `37672962209` en stagingdeploy `37676603771` waren geslaagd,
+met 1.529 unit tests, 109 browsertests en de verplichte database- en releasechecks.
+De platform- en Veele-staginghealth rapporteerden deze exacte SHA en gereedheid
+van database en scanner; ook de worker- en publieke acceptatiejobs slaagden.
+
+Dit legt de acceptatie door de eigenaar vast; het is geen afzonderlijk bewijs
+van inboxbezorging of een uitgevoerde restoreoefening. De checklist hieronder
+blijft het operationele naslagwerk. Productie wordt afzonderlijk ingericht volgens
+[de productiearchitectuur](architecture/production.md), met dezelfde VPS maar
+een nieuw Supabaseproject en eigen runtime-identiteiten en credentials. Latere
+infrastructuurwijzigingen doorlopen opnieuw CI en staging vóór productiepromotie.
+
 Deze checklist wordt uitgevoerd op de bestaande staging-VPS, met een nieuw leeg
 staging-Supabaseproject en afzonderlijke stagingcredentials. Geen enkele stap mag
 naar het productieproject of de productie-VPS wijzen.
@@ -14,7 +31,7 @@ naar het productieproject of de productie-VPS wijzen.
 - Het nieuwe staging-Supabaseproject is leeg en heeft nog geen applicatietabellen.
 - Supabase Auth heeft de staging Site URL en uitsluitend toegestane staging-redirects.
 - Supabase Auth heeft voor alle vier werkruimtes (`/platform`, `/app`, `/staff`
-  en `/klant`) Email OTP length `6`, expiry `3600`
+  en `/klant`) Email OTP length `8`, expiry `3600`
   seconden en een provider-side resend-interval van minimaal `60` seconden.
   Het hosted **Magic Link**-sjabloon toont `{{ .Token }}` en bevat geen
   `ConfirmationURL` of zelfgebouwde tokenlink; zie
@@ -101,7 +118,7 @@ naar het productieproject of de productie-VPS wijzen.
   gevraagd, zonder wachtwoord- of magic-link-login, en dat de response voor een
   onbekend adres niet verraadt of het account bestaat. Na hookactivatie ontvangt
   ieder account één mail met de juiste Fieldgrid- of tenantbranding en een
-  zescijferige code zonder credentialdragende loginlink. Voer de code in, controleer
+  achtcijferige code zonder credentialdragende loginlink. Voer de code in, controleer
   dat alleen de toegestane werkruimte opent en dat dezelfde code niet opnieuw
   bruikbaar is. Controleer dat een verkeerde tenant of ingetrokken klantbinding
   geen toegang oplevert. Deze provider- en inboxacceptatie blijft een

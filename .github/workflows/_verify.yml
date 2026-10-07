@@ -27,6 +27,8 @@ jobs:
           persist-credentials: false
       - name: Verify staging root/runner contracts with real Linux permissions
         run: bash scripts/test-staging-contract-linux.sh
+      - name: Verify production and staging Unix account isolation in a disposable container
+        run: bash scripts/test-production-contract-linux.sh
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
           version: 11.25.0
@@ -113,7 +115,7 @@ jobs:
           fi
           # The explicitly requested public Veele website is tenant content.
           # Its scoped routes/assets/adapter are not global product branding.
-          if git grep -n -i -E '\bv[e]ele\b' -- app components lib public scripts ':!app/api/veele-website/**' ':!lib/marketing/veele/**' ':!public/veele-services/**' ':!scripts/build-veele-marketing.mjs' ':!scripts/check-security-surface.mjs' ':!lib/operations/staging-smoke.test.ts' ':!scripts/verify-veele-website.mjs' ':!scripts/test-veele-marketing.mjs' ':!scripts/sql/veele-marketing-acceptance.sql'; then
+          if git grep -n -i -E '\bv[e]ele\b' -- app components lib public scripts ':!app/api/veele-website/**' ':!lib/marketing/veele/**' ':!public/veele-services/**' ':!scripts/build-veele-marketing.mjs' ':!scripts/check-security-surface.mjs' ':!lib/operations/staging-smoke.test.ts' ':!scripts/verify-veele-website.mjs' ':!scripts/verify-production-website.mjs' ':!scripts/verify-production-promotion.mjs' ':!scripts/test-veele-marketing.mjs' ':!scripts/sql/veele-marketing-acceptance.sql'; then
             exit 1
           else
             result=$?

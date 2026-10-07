@@ -6,8 +6,8 @@ export async function checkRoutingProvider(
   fetcher: typeof fetch = fetch,
   log: (message: string) => void = console.log,
 ) {
-  if (env.DEPLOY_TARGET !== "staging")
-    throw new Error("Routingcontrole is uitsluitend voor staging.");
+  if (env.DEPLOY_TARGET !== "staging" && !(env.DEPLOY_TARGET === "production" && env.APP_URL === "https://fieldgrid.nl"))
+    throw new Error("Routingcontrole vereist een geconfigureerde deploymentomgeving.");
   if (env.ROUTING_PROVIDER === "disabled") {
     log(
       "Automatische routing is expliciet uitgeschakeld; alleen handmatige reistijden.",
@@ -17,7 +17,7 @@ export async function checkRoutingProvider(
   const key = env.OPENROUTESERVICE_API_KEY;
   if (!key || key.length < 10)
     throw new Error(
-      "OPENROUTESERVICE_API_KEY ontbreekt in GitHub Environment staging.",
+      "OPENROUTESERVICE_API_KEY ontbreekt in GitHub Environment.",
     );
   const base =
     env.OPENROUTESERVICE_BASE_URL ||
@@ -61,7 +61,7 @@ export async function checkRoutingProvider(
       });
     } catch {
       throw new Error(
-        `Routingcontrole ${profile}: provider niet bereikbaar; staging niet activeren.`,
+        `Routingcontrole ${profile}: provider niet bereikbaar; deployment niet activeren.`,
       );
     }
     if (!response.ok)

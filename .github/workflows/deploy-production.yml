@@ -1,0 +1,358 @@
+name: Verify and deploy production
+
+on:
+  push:
+    branches: [production]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fieldgrid-production
+  cancel-in-progress: false
+
+jobs:
+  promotion:
+    if: github.ref == 'refs/heads/production'
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    env:
+      RELEASE_SHA: ${{ github.sha }}
+      ACCEPTED_RELEASE_SHA: ${{ vars.ACCEPTED_RELEASE_SHA }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require the production tip to be contained in reviewed main
+        run: |
+          test "$(git rev-parse origin/production)" = "$RELEASE_SHA"
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+      - name: Require exact main CI, staging acceptance and operator acceptance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/verify-production-promotion.mjs
+
+  verify:
+    needs: promotion
+    uses: ./.github/workflows/_verify.yml
+
+  host-preflight:
+    needs: verify
+    runs-on: [self-hosted, Linux, X64, fieldgrid-production]
+    environment: production
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      DEPLOY_TARGET: production
+      DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      CLAMAV_ENABLED: ${{ vars.CLAMAV_ENABLED }}
+      CLAMAV_SOCKET: ${{ vars.CLAMAV_SOCKET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify host contract before backup or migrations
+        run: bash scripts/check-production-runner-contract.sh
+      - name: Verify the installed worker timer before backup or migrations
+        run: bash scripts/check-production-worker-timer.sh --installed
+
+  prepare:
+    needs: [verify, host-preflight]
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 30
+    outputs:
+      handoff-artifact-id: ${{ steps.handoff.outputs.artifact-id }}
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    env:
+      NODE_ENV: production
+      DEPLOY_TARGET: production
+      APP_ENV: production
+      APP_URL: ${{ vars.APP_URL }}
+      DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
+      HOSTNAME: 127.0.0.1
+      PORT: ${{ vars.PORT }}
+      MOLLIE_WEBHOOK_URL: ${{ format('{0}/api/mollie/webhook', vars.APP_URL) }}
+      SENDGRID_FROM_EMAIL: ${{ vars.SENDGRID_FROM_EMAIL }}
+      SENDGRID_FROM_NAME: ${{ vars.SENDGRID_FROM_NAME }}
+      SENDGRID_API_BASE: https://api.sendgrid.com/
+      SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY: ${{ vars.SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY }}
+      MAIL_MARKETING_ENABLED: ${{ vars.MAIL_MARKETING_ENABLED }}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
+      CLAMAV_ENABLED: ${{ vars.CLAMAV_ENABLED }}
+      CLAMAV_SOCKET: ${{ vars.CLAMAV_SOCKET }}
+      CLAMAV_TIMEOUT_MS: ${{ vars.CLAMAV_TIMEOUT_MS || '30000' }}
+      CLAMAV_MAX_DATABASE_AGE_HOURS: ${{ vars.CLAMAV_MAX_DATABASE_AGE_HOURS || '72' }}
+      OPENROUTESERVICE_BASE_URL: ${{ vars.OPENROUTESERVICE_BASE_URL || 'https://api.heigit.org/openrouteservice/v2' }}
+      ROUTING_PROVIDER: ${{ vars.ROUTING_PROVIDER || 'openrouteservice' }}
+      ROUTING_CACHE_DAYS: ${{ vars.ROUTING_CACHE_DAYS || '30' }}
+      ROUTING_MATRIX_MINUTE_LIMIT: ${{ vars.ROUTING_MATRIX_MINUTE_LIMIT || '35' }}
+      ROUTING_MATRIX_DAY_LIMIT: ${{ vars.ROUTING_MATRIX_DAY_LIMIT || '450' }}
+      ROUTING_DIRECTIONS_MINUTE_LIMIT: ${{ vars.ROUTING_DIRECTIONS_MINUTE_LIMIT || '35' }}
+      ROUTING_DIRECTIONS_DAY_LIMIT: ${{ vars.ROUTING_DIRECTIONS_DAY_LIMIT || '1900' }}
+      GOOGLE_ROUTES_ENABLED: ${{ vars.GOOGLE_ROUTES_ENABLED }}
+      EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.EXPECTED_SUPABASE_PROJECT_REF }}
+      FORBIDDEN_SUPABASE_PROJECT_REF: ${{ vars.FORBIDDEN_SUPABASE_PROJECT_REF }}
+      STAGING_SUPABASE_PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
+      ACCEPTED_RELEASE_SHA: ${{ vars.ACCEPTED_RELEASE_SHA }}
+      LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+      RELEASE_SHA: ${{ github.sha }}
+      DEPLOYMENT_VERSION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.7.0
+          cache: pnpm
+      - name: Verify this production commit is the branch tip and comes from main
+        run: |
+          test "$(git rev-parse origin/production)" = "$RELEASE_SHA"
+          git merge-base --is-ancestor "$RELEASE_SHA" origin/main
+      - run: pnpm install --frozen-lockfile
+      - name: Environment preflight
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          SUPABASE_SEND_EMAIL_HOOK_SECRET: ${{ secrets.SUPABASE_SEND_EMAIL_HOOK_SECRET }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          ADMIN_API_SECRET: ${{ secrets.ADMIN_API_SECRET }}
+          OPENROUTESERVICE_API_KEY: ${{ secrets.OPENROUTESERVICE_API_KEY }}
+          GOOGLE_MAPS_SERVER_API_KEY: ${{ secrets.GOOGLE_MAPS_SERVER_API_KEY }}
+          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
+        run: pnpm exec tsx scripts/preflight-production.ts
+      - name: Verify live routing profiles using public station locations
+        env:
+          OPENROUTESERVICE_API_KEY: ${{ secrets.OPENROUTESERVICE_API_KEY }}
+        run: pnpm exec tsx scripts/check-routing-provider.ts
+      - name: Refuse unrelated or content-divergent database history
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: pnpm exec tsx scripts/verify-production-migration-target.ts
+      - name: Build the exact release before touching the database
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
+        run: pnpm build
+      - name: Package the exact standalone release
+        env:
+          RELEASE_ARTIFACT_PATH: ${{ runner.temp }}/fieldgrid-release.tar.gz
+        run: |
+          scripts/package-release.sh
+          node scripts/test-release-artifact.mjs
+      - name: Create the pre-migration database backup
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_OUTPUT_PATH: ${{ runner.temp }}/fieldgrid-production-backup.dump
+        run: pnpm exec tsx scripts/backup-production-database.ts
+      - name: Apply forward-only migrations
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: pnpm exec tsx scripts/migrate-production.ts
+      - name: Verify complete post-migration statement history
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          MIGRATION_DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+          REQUIRE_COMPLETE_MIGRATION_HISTORY: "true"
+        run: pnpm exec tsx scripts/verify-production-migration-target.ts
+      - name: Create the runtime payload on the fresh hosted runner
+        env:
+          RUNTIME_ENV_OUTPUT_PATH: ${{ runner.temp }}/fieldgrid-production-runtime.env
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          SUPABASE_SEND_EMAIL_HOOK_SECRET: ${{ secrets.SUPABASE_SEND_EMAIL_HOOK_SECRET }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          ADMIN_API_SECRET: ${{ secrets.ADMIN_API_SECRET }}
+          OPENROUTESERVICE_API_KEY: ${{ secrets.OPENROUTESERVICE_API_KEY }}
+          GOOGLE_MAPS_SERVER_API_KEY: ${{ secrets.GOOGLE_MAPS_SERVER_API_KEY }}
+          NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
+        run: scripts/write-production-runtime-env.sh
+      - name: Encrypt runtime and backup before leaving the hosted runner
+        env:
+          PRODUCTION_HANDOFF_ENCRYPTION_CERT_B64: ${{ vars.PRODUCTION_HANDOFF_ENCRYPTION_CERT_B64 }}
+        run: |
+          scripts/encrypt-production-handoff.sh "$RUNNER_TEMP/fieldgrid-production-runtime.env" "$RUNNER_TEMP/fieldgrid-production-runtime.env.cms"
+          scripts/encrypt-production-handoff.sh "$RUNNER_TEMP/fieldgrid-production-backup.dump" "$RUNNER_TEMP/fieldgrid-production-backup.dump.cms"
+      - name: Attest release bytes from the isolated builder
+        id: release_attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: ${{ runner.temp }}/fieldgrid-release.tar.gz
+      - name: Attest encrypted runtime payload
+        id: runtime_attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: ${{ runner.temp }}/fieldgrid-production-runtime.env.cms
+      - name: Attest encrypted backup payload
+        id: backup_attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-path: ${{ runner.temp }}/fieldgrid-production-backup.dump.cms
+      - name: Assemble immutable encrypted handoff
+        run: |
+          install -d -m 0700 "$RUNNER_TEMP/fieldgrid-handoff"
+          install -m 0600 "$RUNNER_TEMP/fieldgrid-release.tar.gz" "$RUNNER_TEMP/fieldgrid-handoff/release.tar.gz"
+          install -m 0600 "${{ steps.release_attestation.outputs.bundle-path }}" "$RUNNER_TEMP/fieldgrid-handoff/release.attestation.json"
+          install -m 0600 "$RUNNER_TEMP/fieldgrid-production-runtime.env.cms" "$RUNNER_TEMP/fieldgrid-handoff/runtime.env.cms"
+          install -m 0600 "${{ steps.runtime_attestation.outputs.bundle-path }}" "$RUNNER_TEMP/fieldgrid-handoff/runtime.attestation.json"
+          install -m 0600 "$RUNNER_TEMP/fieldgrid-production-backup.dump.cms" "$RUNNER_TEMP/fieldgrid-handoff/backup.dump.cms"
+          install -m 0600 "${{ steps.backup_attestation.outputs.bundle-path }}" "$RUNNER_TEMP/fieldgrid-handoff/backup.attestation.json"
+      - name: Transfer only ciphertext and attested release bytes
+        id: handoff
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          # A full rerun creates a fresh handoff without replacing prior evidence.
+          name: fieldgrid-production-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/fieldgrid-handoff/*
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+
+  deploy:
+    needs: prepare
+    runs-on: [self-hosted, Linux, X64, fieldgrid-production]
+    environment: production
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      DEPLOY_TARGET: production
+      DEPLOY_ROOT: ${{ vars.DEPLOY_ROOT }}
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
+      RELEASE_SHA: ${{ github.sha }}
+      CLAMAV_ENABLED: ${{ vars.CLAMAV_ENABLED }}
+      CLAMAV_SOCKET: ${{ vars.CLAMAV_SOCKET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify transfer-runner identity, denial and public unit contract
+        # Root-only key/trust/runtime metadata is checked by the operator before
+        # this job. Do not grant workflow code a second privileged sudo route.
+        run: bash scripts/check-production-runner-contract.sh
+      - name: Verify the installed worker timer (it may be paused for runtime transition)
+        run: bash scripts/check-production-worker-timer.sh --installed
+      - name: Require the exact prepared handoff ID
+        env:
+          HANDOFF_ARTIFACT_ID: ${{ needs.prepare.outputs.handoff-artifact-id }}
+        run: |
+          [[ "$HANDOFF_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]] || {
+            echo "Prepare did not provide a valid immutable handoff ID; refusing artifact download." >&2
+            exit 1
+          }
+      - name: Download the immutable handoff
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          artifact-ids: ${{ needs.prepare.outputs.handoff-artifact-id }}
+          path: ${{ runner.temp }}/fieldgrid-handoff
+      - name: Activate through the single fixed root broker
+        env:
+          RELEASE_ARTIFACT_PATH: ${{ runner.temp }}/fieldgrid-handoff/release.tar.gz
+          RELEASE_ATTESTATION_PATH: ${{ runner.temp }}/fieldgrid-handoff/release.attestation.json
+          RUNTIME_ENVELOPE_PATH: ${{ runner.temp }}/fieldgrid-handoff/runtime.env.cms
+          RUNTIME_ATTESTATION_PATH: ${{ runner.temp }}/fieldgrid-handoff/runtime.attestation.json
+          BACKUP_ENVELOPE_PATH: ${{ runner.temp }}/fieldgrid-handoff/backup.dump.cms
+          BACKUP_ATTESTATION_PATH: ${{ runner.temp }}/fieldgrid-handoff/backup.attestation.json
+        run: scripts/deploy-production.sh
+
+  # Activation is deliberately non-replayable. Retrying worker acceptance must
+  # only observe the installed release, never download or activate its handoff.
+  worker-acceptance:
+    needs: deploy
+    runs-on: [self-hosted, Linux, X64, fieldgrid-production]
+    environment: production
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      DEPLOY_TARGET: production
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
+      RELEASE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify exact deployed release before worker acceptance
+        run: node scripts/verify-production-healthcheck.mjs
+      - name: Verify a fresh successful production worker execution (read-only)
+        run: bash scripts/check-production-worker-timer.sh
+
+  acceptance:
+    needs: worker-acceptance
+    runs-on: ubuntu-24.04
+    environment: production
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      DEPLOY_TARGET: production
+      APP_ENV: production
+      APP_URL: ${{ vars.APP_URL }}
+      EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.EXPECTED_SUPABASE_PROJECT_REF }}
+      FORBIDDEN_SUPABASE_PROJECT_REF: ${{ vars.FORBIDDEN_SUPABASE_PROJECT_REF }}
+      STAGING_SUPABASE_PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
+      ACCEPTED_RELEASE_SHA: ${{ vars.ACCEPTED_RELEASE_SHA }}
+      RELEASE_SHA: ${{ github.sha }}
+      HEALTHCHECK_URL: ${{ vars.HEALTHCHECK_URL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.7.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify public health, exact SHA and deployed scanner readiness
+        run: node scripts/verify-production-healthcheck.mjs
+      - name: Verify obsolete Auth links preserve the public production origin
+        run: node scripts/verify-production-auth-redirect.mjs
+      - name: Verify public marketing and existing portal entry points
+        run: node scripts/verify-production-website.mjs
