@@ -1,3 +1,4 @@
+import { normalizeAddress } from "@/lib/addresses/model";
 import type { Json } from "@/lib/database.types";
 import type { NotificationPreferences } from "@/lib/notifications/model";
 import type { StaffAvailabilityPreferences, StaffOnboardingDraft } from "@/lib/staff/model";
@@ -32,7 +33,7 @@ export function defaultTransport(profile: StaffPersonnel): StaffOnboardingDraft[
     vehicle: profile.standard_vehicle === "ebike" ? "electric_bicycle" : vehicleOptions.includes(profile.standard_vehicle as (typeof vehicleOptions)[number]) ? profile.standard_vehicle as (typeof vehicleOptions)[number] : "other",
     departureKind: profile.departure_kind === "custom" ? "alternate" : departureOptions.includes(profile.departure_kind as (typeof departureOptions)[number]) ? profile.departure_kind as (typeof departureOptions)[number] : "home",
     departureDepotId: profile.departure_depot_id ?? null,
-    alternateDepartureAddress: ["custom", "alternate"].includes(profile.departure_kind ?? "") && Object.keys(alternate).length ? { street: asText(alternate.street), postalCode: asText(alternate.postal_code), city: asText(alternate.city), country: asText(alternate.country) || "NL" } : null,
+    alternateDepartureAddress: ["custom", "alternate"].includes(profile.departure_kind ?? "") && Object.keys(alternate).length ? { street: asText(alternate.street), postalCode: asText(alternate.postal_code), city: asText(alternate.city), country: asText(alternate.country) || "NL", ...(typeof alternate.street_name === "string" ? {address:normalizeAddress(alternate)} : {}) } : null,
     returnToDeparture: Boolean(profile.return_to_departure),
     ownTransport: Boolean(profile.own_transport),
     drivingLicense: Boolean(profile.driving_license),
@@ -50,7 +51,7 @@ export function defaultOnboarding(profile: StaffPersonnel, notificationPreferenc
     profile: {
       fullName: profile.full_name ?? "", preferredName: profile.preferred_name ?? "", phone: profile.phone ?? "",
       mobilePhone: profile.mobile_phone ?? "", birthDate: profile.birth_date ?? "",
-      homeAddress: { street: asText(home.street), postalCode: asText(home.postal_code), city: asText(home.city), country: asText(home.country) || "NL" },
+      homeAddress: { street: asText(home.street), postalCode: asText(home.postal_code), city: asText(home.city), country: asText(home.country) || "NL", ...(typeof home.street_name === "string" ? {address:normalizeAddress(home)} : {}) },
       emergencyContact: { name: asText(emergency.name), phone: asText(emergency.phone), relation: asText(emergency.relation) },
     },
     transport: defaultTransport(profile),
@@ -80,4 +81,3 @@ export function defaultOnboarding(profile: StaffPersonnel, notificationPreferenc
     confirmations: { ...base.confirmations, ...candidate.confirmations },
   };
 }
-

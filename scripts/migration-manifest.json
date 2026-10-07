@@ -631,6 +631,21 @@
       "version": "20261007010000",
       "name": "dashboard_owner_names_and_invoice_identity",
       "sha256": "c2d1e5a8e568c729b2ea371f67a20ddca766c494e2bfa450239813115b9af26f"
+    },
+    {
+      "version": "20261007031000",
+      "name": "customer_verified_addresses",
+      "sha256": "9ab3a45c26692b3879c9623c11546f4c18afcd33550e92b57e8155063217c0d0"
+    },
+    {
+      "version": "20261007032000",
+      "name": "auth_login_brand_context",
+      "sha256": "e8766344f2fd33e6e268ec5bdc63dd61300097773e622d86974bb230d1dc4c2e"
+    },
+    {
+      "version": "20261007033000",
+      "name": "staff_verified_addresses",
+      "sha256": "e0c70b442c142f7ec6d0c2d4bf70ad1fa159ecd9e549357c96185a3b8d4dd8fd"
     }
   ]
 }

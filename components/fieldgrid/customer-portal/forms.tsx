@@ -10,7 +10,7 @@ import { ObjectFields, ProfileFields } from "./fields";
 export type CustomerFormResult={ok:true;accountVersion?:number;profileVersions?:{customer:number;contact:number}}|{ok:false;error:string;code?:string};
 const fieldErrors=(error:z.ZodError)=>Object.fromEntries(error.issues.map(issue=>[String(issue.path[0]),issue.message]));
 export const newCustomerObject=(profile:CustomerProfile):CustomerObjectInput=>({version:0,name:"",type:"office",size:null,street:"",postalCode:"",city:"",contact:profile.fullName,phone:profile.phone,contactVersion:0,contactRecordVersion:0,instruction:""});
-export const editCustomerObject=(object:CustomerObject):CustomerObjectInput=>({id:object.id,version:object.version,name:object.name,type:object.type,size:object.size,street:object.street,postalCode:object.postalCode,city:object.city,contact:object.contact,phone:object.phone,contactVersion:object.contactVersion,contactRecordVersion:object.contactRecordVersion,instruction:""});
+export const editCustomerObject=(object:CustomerObject):CustomerObjectInput=>({id:object.id,version:object.version,name:object.name,type:object.type,size:object.size,street:object.street,postalCode:object.postalCode,city:object.city,contact:object.contact,phone:object.phone,contactVersion:object.contactVersion,contactRecordVersion:object.contactRecordVersion,instruction:"",...(object.address?{address:object.address}:{})});
 
 /** Drafts are initialized once, not replaced by a background server refresh.
  * An ambiguous retry keeps its idempotency key and original source versions. */

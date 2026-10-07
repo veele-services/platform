@@ -49,6 +49,8 @@ const baseOperationalPaths = [
   "scripts/deploy-local.sh",
   "scripts/diagnose-auth-mail.ts",
   "scripts/diagnose-auth-mail-context.ts",
+  "scripts/staging-tenant-integrations.ts",
+  "scripts/staging-customer-payment-acceptance.ts",
   "scripts/encrypt-staging-handoff.sh",
   "scripts/migrate-staging.ts",
   "scripts/migration-manifest.json",

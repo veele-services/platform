@@ -64,6 +64,7 @@ export function normalizeAddress(value: unknown): Address {
     street_name: typeof v.street === "string" ? v.street : "",
     postal_code: String(v.postal_code || v.postalCode || ""),
     city: String(v.city || ""),
+    country: typeof v.country === "string" && /^[A-Za-z]{2}$/.test(v.country) ? v.country.toUpperCase() : "NL",
     source: "legacy" as const,
   };
   return {

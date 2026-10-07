@@ -3,6 +3,7 @@ import { readScannedFile } from "@/lib/files/scanned-storage";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { brandingLogoVersion } from "@/lib/branding/logo-url";
+import sharp from "sharp";
 
 export async function GET(request: Request, { params }: { params: Promise<{ tenantId: string }> }) {
   try {
@@ -27,9 +28,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ tena
     const current = await admin.from("tenant_branding").select("logo_path").eq("tenant_id", tenantId).maybeSingle();
     if (current.error || current.data?.logo_path !== path) return new NextResponse("Niet gevonden", { status: 404 });
   }
-  return new NextResponse(new Uint8Array(logo.bytes), {
+  // PNG has broad email-client support, including Outlook. Keep private Storage
+  // private; only this scanned, bounded tenant presentation asset is public.
+  const bytes = logo.mime === "image/webp" ? await sharp(logo.bytes, { limitInputPixels: 16_000_000 }).resize({width:1024,height:512,fit:"inside",withoutEnlargement:true}).png().toBuffer() : logo.bytes;
+  return new NextResponse(new Uint8Array(bytes), {
     headers: {
-      "content-type": logo.mime,
+      "content-type": logo.mime === "image/webp" ? "image/png" : logo.mime,
       "cache-control": asset ? "public, max-age=31536000, immutable" : "private, no-store",
       "x-content-type-options": "nosniff",
       "content-security-policy": "default-src 'none'",

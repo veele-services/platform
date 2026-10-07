@@ -1,5 +1,6 @@
 "use server";
 
+import { verifiedAddress } from "@/lib/addresses/form";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getObjectActor } from "@/lib/objects/auth";
@@ -11,6 +12,7 @@ const resultSchema=z.object({accountVersion:version,customerVersion:version,cont
 export async function saveCustomerPortalProfile(input:unknown){
  try{
   const value=inputSchema.parse(input),actor=await getObjectActor();
+  if(value.profile.address)value.profile.address=await verifiedAddress(value.profile.address);
   // Hostname-derived tenant only; the body contains no tenant/customer owner.
   // Current session, account, contact, capability, module and CAS are checked
   // again by the authenticated RPC, including idempotent receipt replays.

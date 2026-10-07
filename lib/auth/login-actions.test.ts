@@ -3,8 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   signInWithOtp: vi.fn(), verifyOtp: vi.fn(), signOut: vi.fn(),
   signInWithPassword: vi.fn(), access: vi.fn(), headers: vi.fn(),
+  prepare: vi.fn(), release: vi.fn(),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: mocks }) }));
+vi.mock("@/lib/auth/login-mail-context", () => ({ prepareLoginMailContext: mocks.prepare, releaseLoginMailContext: mocks.release }));
 vi.mock("@/lib/auth/login-access", () => ({ getLoginAccess: mocks.access }));
 vi.mock("next/headers", () => ({ headers: mocks.headers }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`redirect:${url}`); } }));
@@ -27,6 +29,8 @@ describe("universal email OTP login actions", () => {
     vi.stubEnv("APP_URL", "https://staging.fieldgrid.nl");
     vi.stubEnv("DEPLOY_TARGET", "staging");
     mocks.headers.mockResolvedValue(new Headers());
+    mocks.prepare.mockResolvedValue("10000000-0000-4000-8000-000000000001");
+    mocks.release.mockResolvedValue(undefined);
     mocks.signInWithOtp.mockResolvedValue({ data: { user: null, session: null }, error: null });
     mocks.verifyOtp.mockResolvedValue({ data: { user: { id: "user" }, session: { access_token: "fictitious-access" } }, error: null });
     mocks.signOut.mockResolvedValue({ error: null });
@@ -50,6 +54,20 @@ describe("universal email OTP login actions", () => {
     input.set("tenant", "tenant-b"); input.set("redirectTo", "https://evil.invalid"); input.set("role", "platform_admin");
     await loginOtp({ step: "email" }, input);
     expect(mocks.signInWithOtp).toHaveBeenCalledWith({ email: "user@example.test", options: { emailRedirectTo: "https://tenant-a.staging.fieldgrid.nl/login", shouldCreateUser: false } });
+    expect(mocks.prepare).toHaveBeenCalledWith("tenant-a", "user@example.test");
+  });
+
+  it("does not ask Auth to send when the account is unauthorized or another context is pending", async () => {
+    mocks.prepare.mockResolvedValue(null);
+    expect(await loginOtp({step:"email"},form("request"))).toMatchObject({step:"code",notice:expect.stringContaining("Als dit account toegang heeft")});
+    expect(mocks.signInWithOtp).not.toHaveBeenCalled();
+  });
+
+  it("releases an unclaimed presentation context after an Auth error", async () => {
+    mocks.signInWithOtp.mockResolvedValue({data:null,error:{message:"Private provider details"}});
+    const result=await loginOtp({step:"email"},form("request"));
+    expect(mocks.release).toHaveBeenCalledWith("10000000-0000-4000-8000-000000000001");
+    expect(JSON.stringify(result)).not.toContain("Private provider");
   });
 
   it("never uses a local fallback when the required staging origin is absent", async () => {

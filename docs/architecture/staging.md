@@ -586,3 +586,13 @@ sockets remain isolated temporary paths. The web-runtime health gate must demons
 and valid PNG/PDF acceptance before accepting a release. The staging runner
 does not connect to the scanner. An absent scanner is a NO-GO, not
 an authorization to install system packages or change VPS units automatically.
+## Explicit tenant integration acceptance
+
+The staging-only `staging-tenant-integrations.yml` operator workflow may inspect
+or deliberately bind one named active tenant to the authenticated Mollie test
+profile, reconcile exact PDOK addresses, and run a synthetic customer checkout.
+It requires the current reviewed staging SHA to match public health and uses
+only GitHub Environment `staging`. A migration or deploy never creates the
+merchant binding. Real customer invoices remain outside acceptance fixtures;
+fictitious paid evidence is labelled, archived and retained. See
+[the operator runbook](../deployment/staging-tenant-integrations.md).

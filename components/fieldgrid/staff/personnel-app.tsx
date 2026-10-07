@@ -1,4 +1,6 @@
 "use client";
+import { AddressInput } from "../address-input";
+import { addressSchema } from "@/lib/addresses/model";
 import { GuideBanner, GuideForTitle } from "@/components/fieldgrid/guides/guide";
 
 import Link from "next/link";
@@ -642,10 +644,6 @@ function ProfileScreen({ profile, depots, email, pending, run }: { profile: Staf
   // the concurrent change instead of letting the database reject it.
   const [baseVersion, setBaseVersion] = useState(profile.version ?? 1);
   const [transport, setTransport] = useState(() => defaultTransport(profile));
-  const setAlternate = (field: "street" | "postalCode" | "city" | "country", value: string) => setTransport((current) => ({
-    ...current,
-    alternateDepartureAddress: { street: "", postalCode: "", city: "", country: "NL", ...current.alternateDepartureAddress, [field]: value },
-  }));
   const toggleLicenseCategory = (category: string, checked: boolean) => setTransport((current) => ({
     ...current,
     drivingLicenseCategories: checked ? [...new Set([...current.drivingLicenseCategories, category])] : current.drivingLicenseCategories.filter((item) => item !== category),
@@ -661,7 +659,7 @@ function ProfileScreen({ profile, depots, email, pending, run }: { profile: Staf
       phone: String(input.phone),
       mobilePhone: String(input.mobilePhone),
       birthDate: String(input.birthDate),
-      homeAddress: { street: String(input.street), postalCode: String(input.postalCode), city: String(input.city), country: String(input.country) },
+      homeAddress: (()=>{const address=addressSchema.parse(JSON.parse(String(input.homeAddress)));return {street:address.street,postalCode:address.postal_code,city:address.city,country:address.country,address};})(),
       emergencyContact: { name: String(input.emergencyName), phone: String(input.emergencyPhone), relation: String(input.emergencyRelation) },
       transport,
       });
@@ -672,14 +670,15 @@ function ProfileScreen({ profile, depots, email, pending, run }: { profile: Staf
   return <section className="ps-panel"><form className="ps-form" onSubmit={submit}>
     <div className="ps-panel-heading"><div><span>MIJN GEGEVENS</span><h2>Profiel en contact</h2></div><UserRound/></div>
     <div className="ps-form-grid"><label className="ps-field">Volledige naam<input name="fullName" autoComplete="name" defaultValue={profile.full_name} required minLength={2}/></label><label className="ps-field">Roepnaam<input name="preferredName" defaultValue={profile.preferred_name ?? ""}/></label><label className="ps-field">Tweede telefoonnummer<input name="phone" type="tel" defaultValue={profile.phone ?? ""}/></label><label className="ps-field">Mobiel<input name="mobilePhone" type="tel" autoComplete="tel" defaultValue={profile.mobile_phone ?? ""}/></label><label className="ps-field">Geboortedatum<input name="birthDate" type="date" defaultValue={profile.birth_date ?? ""}/></label><label className="ps-field">Login-e-mail<input value={email} readOnly aria-readonly="true"/></label></div>
-    <div className="ps-form-grid"><label className="ps-field">Straat en huisnummer<input name="street" autoComplete="street-address" defaultValue={asText(home.street)}/></label><label className="ps-field">Postcode<input name="postalCode" autoComplete="postal-code" defaultValue={asText(home.postal_code)}/></label><label className="ps-field">Plaats<input name="city" autoComplete="address-level2" defaultValue={asText(home.city)}/></label><label className="ps-field">Land<input name="country" autoComplete="country-name" defaultValue={asText(home.country) || "NL"}/></label><label className="ps-field">Noodcontact naam<input name="emergencyName" defaultValue={asText(emergency.name)}/></label><label className="ps-field">Noodcontact telefoon<input name="emergencyPhone" type="tel" defaultValue={asText(emergency.phone)}/></label><label className="ps-field">Relatie<input name="emergencyRelation" defaultValue={asText(emergency.relation)}/></label></div>
+    <AddressInput required disabled={pending} name="homeAddress" initial={home}/><div className="ps-form-grid"><label className="ps-field">Noodcontact naam<input name="emergencyName" defaultValue={asText(emergency.name)}/></label><label className="ps-field">Noodcontact telefoon<input name="emergencyPhone" type="tel" defaultValue={asText(emergency.phone)}/></label><label className="ps-field">Relatie<input name="emergencyRelation" defaultValue={asText(emergency.relation)}/></label></div>
     <div className="ps-panel-heading"><div><span>REIZEN</span><h2>Vervoer en vertreklocatie</h2></div><Navigation/></div>
     <div className="ps-form-grid">
       <label className="ps-field">Standaard vervoer<select value={transport.vehicle} onChange={(event) => setTransport({ ...transport, vehicle: event.target.value as typeof transport.vehicle })}><option value="car">Auto</option><option value="van">Bedrijfsbus</option><option value="motorcycle">Motor</option><option value="scooter">Scooter</option><option value="bicycle">Fiets</option><option value="electric_bicycle">E-bike</option><option value="public_transport">Openbaar vervoer</option><option value="walking">Lopend</option><option value="other">Anders</option></select></label>
       <label className="ps-field">Vertreklocatie<select value={transport.departureKind} onChange={(event) => setTransport({ ...transport, departureKind: event.target.value as typeof transport.departureKind })}><option value="home">Woonadres</option><option value="depot">Vestiging</option><option value="alternate">Ander adres</option></select></label>
       {transport.departureKind === "depot" && <label className="ps-field">Vestiging<select required value={transport.departureDepotId ?? ""} onChange={(event) => setTransport({ ...transport, departureDepotId: event.target.value || null })}><option value="">Kies een vestiging</option>{depots.map((depot) => <option value={depot.id} key={depot.id}>{depot.name}</option>)}</select></label>}
     </div>
-    {transport.departureKind === "alternate" && <div className="ps-form-grid"><label className="ps-field">Alternatief adres<input required value={transport.alternateDepartureAddress?.street ?? ""} onChange={(event) => setAlternate("street", event.target.value)}/></label><label className="ps-field">Postcode<input required value={transport.alternateDepartureAddress?.postalCode ?? ""} onChange={(event) => setAlternate("postalCode", event.target.value)}/></label><label className="ps-field">Plaats<input required value={transport.alternateDepartureAddress?.city ?? ""} onChange={(event) => setAlternate("city", event.target.value)}/></label><label className="ps-field">Land<input required value={transport.alternateDepartureAddress?.country ?? "NL"} onChange={(event) => setAlternate("country", event.target.value)}/></label></div>}
+    {transport.departureKind === "alternate" && <AddressInput required disabled={pending} name="alternateAddress" initial={transport.alternateDepartureAddress?.address??transport.alternateDepartureAddress} onChange={address=>setTransport({...transport,alternateDepartureAddress:{street:address.street,postalCode:address.postal_code,city:address.city,country:address.country,address}})}/>}
+
     <div className="ps-form-grid"><label className="ps-check"><input type="checkbox" checked={transport.ownTransport} onChange={(event) => setTransport({ ...transport, ownTransport: event.target.checked })}/>Ik beschik over eigen vervoer</label><label className="ps-check"><input type="checkbox" checked={transport.returnToDeparture} onChange={(event) => setTransport({ ...transport, returnToDeparture: event.target.checked })}/>Na werk terug naar vertreklocatie</label><label className="ps-check"><input type="checkbox" checked={transport.carpoolAllowed} onChange={(event) => setTransport({ ...transport, carpoolAllowed: event.target.checked })}/>Meerijden/carpool is mogelijk</label><label className="ps-check"><input type="checkbox" checked={transport.drivingLicense} onChange={(event) => setTransport({ ...transport, drivingLicense: event.target.checked, drivingLicenseCategories: event.target.checked ? transport.drivingLicenseCategories : [] })}/>Ik heb een rijbewijs</label></div>
     {transport.drivingLicense && <fieldset className="ps-choice-group"><legend>Rijbewijscategorieën</legend>{["AM", "A", "B", "BE", "C", "CE", "D"].map((category) => <label className="ps-check" key={category}><input type="checkbox" checked={transport.drivingLicenseCategories.includes(category)} onChange={(event) => toggleLicenseCategory(category, event.target.checked)}/>{category}</label>)}</fieldset>}
     <label className="ps-field">Beperkingen of aandachtspunten<textarea rows={3} maxLength={1000} value={transport.limitations} onChange={(event) => setTransport({ ...transport, limitations: event.target.value })}/></label>

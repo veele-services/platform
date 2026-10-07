@@ -1,3 +1,4 @@
+import type { Address } from "@/lib/addresses/model";
 import type { Json } from "@/lib/database.types";
 import type { NotificationPreferences } from "@/lib/notifications/model";
 
@@ -192,14 +193,14 @@ export type StaffOnboardingDraft = {
     phone: string;
     mobilePhone: string;
     birthDate: string;
-    homeAddress: { street: string; postalCode: string; city: string; country: string };
+    homeAddress: { street: string; postalCode: string; city: string; country: string; address?: Address };
     emergencyContact: { name: string; phone: string; relation: string };
   };
   transport: {
     vehicle: "car" | "van" | "motorcycle" | "scooter" | "electric_bicycle" | "bicycle" | "public_transport" | "walking" | "other";
     departureKind: "home" | "depot" | "alternate";
     departureDepotId: string | null;
-    alternateDepartureAddress: { street: string; postalCode: string; city: string; country: string } | null;
+    alternateDepartureAddress: { street: string; postalCode: string; city: string; country: string; address?: Address } | null;
     returnToDeparture: boolean;
     ownTransport: boolean;
     drivingLicense: boolean;

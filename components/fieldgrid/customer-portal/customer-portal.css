@@ -249,3 +249,12 @@
 .customer-portal .wordmark .brand-name{min-width:0;overflow-wrap:anywhere}
 .customer-portal .wordmark .brand-point{flex-shrink:0}
 .customer-portal .mobile-brand .brand-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.customer-portal .address-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.customer-portal .address-fields label{display:grid;gap:8px;margin:0;color:var(--muted);font-size:.875rem;font-weight:600}
+.customer-portal .address-fields label:first-child{grid-column:1/-1}
+.customer-portal .address-feedback,.customer-portal .address-location{margin:12px 0;font-size:.8125rem;color:var(--muted)}
+.customer-portal .address-location{display:flex;align-items:center;gap:8px}
+.customer-portal .address-input{margin:18px 0 24px}
+.customer-portal .fg-guide{margin-bottom:24px}
+@media(max-width:600px){.customer-portal .address-fields{gap:14px}.customer-portal .address-fields input{min-width:0;width:100%}}

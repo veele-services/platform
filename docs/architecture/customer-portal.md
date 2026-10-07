@@ -62,6 +62,19 @@ existing separately authorized domain boundaries and need their own safe DTO.
 
 ## Domain invariants
 
+- Alle login- en OTP-stappen gebruiken de actieve tenant uit de hostname voor
+  publieke naam, logo en kleuren. Dezelfde identiteit wordt voor Auth-mail
+  service-only vastgelegd na controle van actuele membership/klantbinding.
+  Deze korte context bevat geen code, token of body en verleent geen toegang.
+  Een door Auth naar de platform-URL gesaneerde redirect kan zo de juiste
+  tenant behouden; browsermetadata en een andere tenant kunnen dit niet sturen.
+  Eén account heeft maximaal één onopgeloste context; webhook-ID's begrenzen
+  hergebruik. Huidige mailtemplates, uitnodigingen en notificaties blijven de
+  bestaande tenantbranding/snapshots en centrale verzendpolicy gebruiken.
+- Het gecontroleerde publieke tenantlogo blijft gescand; WebP wordt bij
+  uitlevering als PNG weergegeven voor brede ondersteuning in e-mailclients.
+  Private Storage wordt hiervoor niet publiek gemaakt.
+
 - Preserve separate request, quote, confirmed visit, execution and billing
   dimensions. A request is never a confirmed appointment.
 - Object instructions are structural; appointment instructions attach to one

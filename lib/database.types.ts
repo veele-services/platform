@@ -8722,6 +8722,18 @@ export type Database = {
         Args: { hook_id: string; operation: string; payload_hash: string }
         Returns: Json
       }
+      email_auth_login_prepare: {
+        Args: { recipient: string; target_slug: string }
+        Returns: string
+      }
+      email_auth_login_release: {
+        Args: { target_request: string }
+        Returns: undefined
+      }
+      email_auth_login_resolve: {
+        Args: { actor: string; hook_id: string; target_slug: string }
+        Returns: string
+      }
       email_provider_event: { Args: { input: Json }; Returns: boolean }
       email_transport: {
         Args: { input: Json; operation: string }

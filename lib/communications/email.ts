@@ -106,7 +106,7 @@ export function renderTenantEmailHtml(input: {
       : safeEmailLogoUrl(input.targetUrl, "delivery", input.allowLocalLinks) ?? (() => { throw new Error("De transactielink is geen geldige HTTPS-URL"); })();
   const logoUrl = safeEmailLogoUrl(input.brand.emailLogoUrl, mode, input.allowLocalLinks);
   const headerBrand = logoUrl
-    ? `<img src="${escapeHtml(logoUrl)}" width="110" alt="${escapeHtml(company)}" style="display:block;max-width:110px;max-height:44px;width:auto;height:auto;border:0;outline:none;text-decoration:none;">`
+    ? `<img src="${escapeHtml(logoUrl)}" width="144" alt="${escapeHtml(company)}" style="display:block;max-width:144px;max-height:64px;height:auto;border:0;outline:none;text-decoration:none;">`
     : `<span style="display:block;color:${primary};font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;line-height:1.35;">${escapeHtml(company)}</span>`;
   const websiteUrl = safeWebsiteUrl(input.brand.domain);
   const website = websiteUrl

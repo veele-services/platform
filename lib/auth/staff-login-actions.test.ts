@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { signInWithOtp: mocks.signInWithOtp, verifyOtp: mocks.verifyOtp, signOut: mocks.signOut } }) }));
+vi.mock("@/lib/auth/login-mail-context", () => ({ prepareLoginMailContext: async () => "10000000-0000-4000-8000-000000000001", releaseLoginMailContext: async () => {} }));
 vi.mock("@/lib/auth/login-access", () => ({ getLoginAccess: mocks.access }));
 vi.mock("next/headers", () => ({ headers: mocks.headers }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`redirect:${url}`); } }));

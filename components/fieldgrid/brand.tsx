@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 
-export function FieldgridBrand({ tenantName, logoUrl }: { tenantName?: string | null; logoUrl?: string | null }) {
+export function FieldgridBrand({ tenantName, logoUrl, showName = false }: { tenantName?: string | null; logoUrl?: string | null; showName?: boolean }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   return (
     <span className="fieldgrid-brand">
@@ -12,6 +12,7 @@ export function FieldgridBrand({ tenantName, logoUrl }: { tenantName?: string | 
         : tenantName
           ? <span className="brand-name-fallback">{tenantName}</span>
           : <span className="brand-placeholder" aria-label="Tekstplaceholder voor tenantlogo">LOGO</span>}
+      {showName && logoUrl && logoUrl !== failedUrl && tenantName && <span className="brand-tenant-name">{tenantName}</span>}
     </span>
   );
 }
