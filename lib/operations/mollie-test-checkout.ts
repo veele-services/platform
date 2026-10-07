@@ -1,4 +1,5 @@
 import type { Frame, Locator, Page } from "@playwright/test";
+import { stripVTControlCharacters } from "node:util";
 
 type CheckoutAction = "paid_select" | "paid_radio" | "paid_button" | "submit_status" | "pay" | "ideal" | "bank" | "continue" | "return";
 type ControlState = { count: number; visible: boolean; enabled: boolean };
@@ -10,8 +11,31 @@ export type CheckoutDiagnostic = {
   action: CheckoutAction | "wait";
   controls: Partial<Record<CheckoutAction, ControlState>>;
 };
+type ActionFailureReason = "not_applicable" | "other" | "click_completed" | "navigation_pending" | "pointer_intercepted" | "element_unstable" | "element_detached" | "element_hidden" | "element_disabled" | "outside_viewport";
+/** Interpret only fixed Playwright progress markers. Never retain or return the
+ * original error: its call log can contain provider URLs and private DOM text.
+ * This diagnosis is informational and cannot establish payment or success.
+ */
+export function checkoutActionFailureReason(error: unknown): ActionFailureReason {
+  let reason: ActionFailureReason = "other";
+  if (!(error instanceof Error)) return reason;
+  for (const line of stripVTControlCharacters(error.message).split("\n")) {
+    const progress = /^\s*-\s+(.*?)\s*$/.exec(line)?.[1];
+    if (!progress) continue;
+    if (progress === "click action done") reason = "click_completed";
+    else if (progress === "waiting for scheduled navigations to finish" && reason === "click_completed") reason = "navigation_pending";
+    else if (progress === "navigations have finished" || progress === "element is visible, enabled and stable") reason = "other";
+    else if (progress.endsWith(" intercepts pointer events")) reason = "pointer_intercepted";
+    else if (progress === "element is not stable") reason = "element_unstable";
+    else if (progress.includes("element was detached from the DOM")) reason = "element_detached";
+    else if (progress === "element is not visible") reason = "element_hidden";
+    else if (progress === "element is not enabled") reason = "element_disabled";
+    else if (progress === "element is outside of the viewport") reason = "outside_viewport";
+  }
+  return reason;
+}
 export class MollieTestCheckoutError extends Error {
-  constructor(readonly kind: "unrecognized_step" | "action_timeout" | "action_failed" | "unexpected_host" | "return_without_status", readonly diagnostic: CheckoutDiagnostic) {
+  constructor(readonly kind: "unrecognized_step" | "action_timeout" | "action_failed" | "unexpected_host" | "return_without_status", readonly diagnostic: CheckoutDiagnostic, readonly reason: ActionFailureReason = "not_applicable") {
     super(`Mollie test checkout: ${kind}`);
   }
 }
@@ -106,7 +130,9 @@ export async function confirmMollieTestCheckout(page: Page, tenantOrigin: string
               else await control.selectOption({ label: await control.getByRole("option", { name: /^(Paid|Betaald)$/i }).first().textContent() ?? "Paid" }, { timeout: 5_000 });
             } else if (action === "paid_radio" && await control.getAttribute("type") === "radio") {
               await control.check({ timeout: 5_000 });
-            } else await control.click({ timeout: 5_000 });
+            // The loop owns the provider/tenant return deadline. A valid click
+            // must not fail merely because its redirect takes over five seconds.
+            } else await control.click({ timeout: 5_000, noWaitAfter: true });
             if (["paid_select", "paid_radio", "paid_button"].includes(action)) {
               statusSelected = true;
               statusForm = control.locator("xpath=ancestor::form[1]");
@@ -115,7 +141,7 @@ export async function confirmMollieTestCheckout(page: Page, tenantOrigin: string
             performed.add(key);
             acted = true;
           } catch (error) {
-            throw new MollieTestCheckoutError(error instanceof Error && error.name === "TimeoutError" ? "action_timeout" : "action_failed", diagnostic);
+            throw new MollieTestCheckoutError(error instanceof Error && error.name === "TimeoutError" ? "action_timeout" : "action_failed", diagnostic, checkoutActionFailureReason(error));
           }
           break;
         }

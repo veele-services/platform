@@ -87,6 +87,32 @@
   providercontract. De negende browserfixture controleert een onbekende
   knoptekst en weigert verborgen knoppen, `type="button"` en verzendknoppen
   van een ander formulier. Zie de [HTML-specificatie](https://html.spec.whatwg.org/multipage/form-elements.html#the-button-element).
+- Echte stagingacceptatie `37614884819` op `bc2d8976` vond de native
+  bevestigingsknop, maar de klik overschreed vijf seconden. Het oude schema
+  onderscheidde actievoorwaarden niet van de navigatiewacht; ook deze run
+  bevestigt geen betaling en sloot het fictieve account succesvol af.
+  `click({ noWaitAfter: true })` laat nu de bestaande globale returndeadline
+  de navigatie bewaken, terwijl de normale klikvoorwaarden behouden blijven.
+  [Playwright click-documentatie](https://playwright.dev/docs/api/class-locator#locator-click).
+  Vaste foutredenen verwerken alleen herkenbare progressmarkers nadat
+  terminalopmaak is verwijderd; oorspronkelijke fouten, selectors, URLs en
+  DOM-tekst worden nooit vastgelegd. Een afgeronde klik met onafgeronde
+  navigatiewacht blijft uitsluitend diagnostiek, geen betalingsbewijs.
+  Bij een fout wordt alleen de huidige volledig geverifieerde fictieve
+  betaalpoging opnieuw uitgelezen met één begrensde provider-GET en één
+  tenant-, klant- en poginggebonden ledgeraggregatie. Alleen bekende statussen,
+  contractbooleans en bedragen/aantallen komen in uitvoer. Contractmismatch
+  verbergt de providerstatus; diagnostiek wijzigt niets en behoudt de
+  oorspronkelijke fout, fase en alle onafhankelijke afsluitacties.
+  Twaalf geïsoleerde browserfixtures slagen, waaronder een native POST die
+  acht seconden op de providerrespons wacht en precies één verzending doet,
+  een afgedekte knop die geblokkeerd blijft, en gekleurde progresslogs met
+  oude retryredenen. De vertraagde fixture gebruikt na de POST een aparte
+  JS-navigatie: Playwright onderschept alleen het eerste verzoek van een
+  nagebootste HTTP-redirectketen. Een volledig offline microbrowser bevestigde
+  die beperking en de fixtureoplossing; dit verandert geen providerhostcheck.
+  De huidige ledgeraggregatie is ook op de geïsoleerde lokale database
+  uitgevoerd met niet-bestaande scopes; alle bedragen/aantallen bleven nul.
 
 Lokale regressies: 1.475 unitchecks, 428 database-integratiechecks en 398
 pgTAP-checks en 14 desktop/mobiel-browsertests slaagden. De complete CI en de afzonderlijke echte staging-Mollie

@@ -25,6 +25,7 @@ async function main() {
   const customer=randomUUID(),object=randomUUID(),contact=randomUUID(),email=`mollie-acceptance-${randomUUID()}@example.invalid`;
   let userId="",tenant="",account="";
   let browser:Browser|undefined,context:BrowserContext|undefined,failed=false;
+  let lastVerifiedAttempt:{id:string;providerId:string;profile:string;amount:number;invoiceIds:string[]}|undefined;
   try {
     browser=await chromium.launch();
     phase="tenant_and_merchant";
@@ -66,6 +67,7 @@ async function main() {
     context=await browser.newContext({viewport:{width:390,height:960}});await context.addCookies([...jar].map(([name,value])=>({name,value,url:origin,secure:true,httpOnly:false,sameSite:"Lax" as const})));
     const page=await context.newPage();
     for(const [index,selected]of [[invoices[0]],[invoices[1],invoices[2]]].entries()){
+      lastVerifiedAttempt=undefined;
       phase=index===0?"single_invoice_selection":"bundle_selection";
       if(index===1)await page.setViewportSize({width:1440,height:1000});
       await page.goto(`${origin}/klant?account=${account}&view=invoices`);await expect(page.getByRole("heading",{name:"Facturen",exact:true,level:1})).toBeVisible();
@@ -77,7 +79,8 @@ async function main() {
       const attempt=(await db.query("select p.id,p.provider_payment_id,p.amount_cents::int amount_cents,p.provider_mode,p.merchant_profile_id from public.payment_attempts p join public.invoice_groups g on g.tenant_id=p.tenant_id and g.id=p.invoice_group_id where p.tenant_id=$1 and g.customer_id=$2 order by p.created_at desc limit 1",[tenant,customer])).rows[0];
       const amount=selected.reduce((sum,invoice)=>sum+invoice.amount,0);if(!attempt||attempt.amount_cents!==amount||attempt.provider_mode!=="test"||attempt.merchant_profile_id!==target.profile)throw new Error("Onjuiste betaalontvanger of totaal");
       const provider=await fetch(`https://api.mollie.com/v2/payments/${attempt.provider_payment_id}`,{headers:{authorization:`Bearer ${process.env.MOLLIE_API_KEY}`},signal:AbortSignal.timeout(10000)}),payment=await provider.json();
-      if(!provider.ok||payment.mode!=="test"||payment.profileId!==target.profile||payment.amount.value!==(amount/100).toFixed(2)||payment.redirectUrl!==`${origin}/klant?account=${account}&view=invoices&payment=return`||payment.webhookUrl!==`${platform}/api/mollie/webhook`)throw new Error("Providercontract wijkt af");
+      if(!provider.ok||payment.id!==attempt.provider_payment_id||payment.mode!=="test"||payment.profileId!==target.profile||payment.amount.currency!=="EUR"||payment.amount.value!==(amount/100).toFixed(2)||payment.redirectUrl!==`${origin}/klant?account=${account}&view=invoices&payment=return`||payment.webhookUrl!==`${platform}/api/mollie/webhook`)throw new Error("Providercontract wijkt af");
+      lastVerifiedAttempt={id:attempt.id,providerId:attempt.provider_payment_id,profile:target.profile,amount,invoiceIds:selected.map(invoice=>invoice.id)};
       phase="return_before_confirmation";
       const checkout=page.url();await page.goto(payment.redirectUrl);await expect(page.getByRole("heading",{name:"Je betaalstatus wordt gecontroleerd"})).toBeVisible();
       const unpaid=(await db.query("select sum(paid_cents)::int amount from public.invoices where tenant_id=$1 and id=any($2::uuid[])",[tenant,selected.map(i=>i.id)])).rows[0];if(unpaid.amount!==0)throw new Error("Terugkeer heeft onterecht een betaling bevestigd");
@@ -106,7 +109,31 @@ async function main() {
       }
       console.log(JSON.stringify({check:"real_mollie_test_checkout",invoices:selected.length,amountCents:amount,viewport:index===0?"mobile":"desktop",providerConfirmed:true,returnDidNotSettle:true,webhookIdempotent:true}));
     }
-  }catch(error){failed=true;throw error;}
+  }catch(error){
+    failed=true;
+    // A UI timeout can occur after a real provider click. Observe only the last
+    // fully verified synthetic attempt without changing or settling anything.
+    // Preserve the original failure and emit no provider/account identifiers.
+    if(lastVerifiedAttempt){
+      try {
+        const last=lastVerifiedAttempt;
+        const observations=await Promise.allSettled([
+          (async()=>{
+            const response=await fetch(`https://api.mollie.com/v2/payments/${last.providerId}`,{headers:{authorization:`Bearer ${process.env.MOLLIE_API_KEY}`},signal:AbortSignal.timeout(10000)});
+            const payment=await response.json();
+            const statuses=new Set(["open","pending","authorized","paid","failed","canceled","expired"]);
+            const contractMatches=response.ok&&payment.id===last.providerId&&payment.mode==="test"&&payment.profileId===last.profile&&payment.amount?.currency==="EUR"&&payment.amount?.value===(last.amount/100).toFixed(2);
+            return {httpStatus:response.status,status:contractMatches&&statuses.has(payment.status)?payment.status:"unknown",contractMatches};
+          })(),
+          db.query("select coalesce(sum(paid_cents),0)::int paid_cents,count(*)::int invoice_count,count(*)filter(where status='paid')::int paid_count,(select count(*)::int from public.payment_allocations where tenant_id=$1 and payment_attempt_id=$4) allocation_count,(select coalesce(sum(amount_cents),0)::int from public.payment_allocations where tenant_id=$1 and payment_attempt_id=$4) allocated_cents,(select count(*)filter(where not(invoice_id=any($3::uuid[])))::int from public.payment_allocations where tenant_id=$1 and payment_attempt_id=$4) outside_scope_allocations from public.invoices where tenant_id=$1 and customer_id=$2 and id=any($3::uuid[])",[tenant,customer,last.invoiceIds,last.id]).then(result=>result.rows[0]),
+        ]);
+        const provider=observations[0].status==="fulfilled"?observations[0].value:undefined;
+        const ledger=observations[1].status==="fulfilled"?observations[1].value:undefined;
+        console.error(JSON.stringify({check:"last_verified_synthetic_payment_after_failure",invoices:last.invoiceIds.length,expectedCents:last.amount,providerLookupAvailable:Boolean(provider),providerHttpStatus:provider?.httpStatus??0,providerStatus:provider?.status??"unknown",providerContractMatches:provider?.contractMatches??false,ledgerLookupAvailable:Boolean(ledger),paidCents:ledger?.paid_cents??null,invoiceCount:ledger?.invoice_count??null,paidInvoices:ledger?.paid_count??null,allocationCount:ledger?.allocation_count??null,allocatedCents:ledger?.allocated_cents??null,outsideScopeAllocations:ledger?.outside_scope_allocations??null}));
+      } catch { console.error(JSON.stringify({check:"last_verified_synthetic_payment_after_failure",diagnosticAvailable:false})); }
+    }
+    throw error;
+  }
   finally{
     // Attempt every independent revocation even when another one fails. Keep
     // the original failing phase; cleanup details never expose provider data.
@@ -124,4 +151,4 @@ async function main() {
     }else console.log("Fictief testaccount afgesloten; gelabeld Mollie-testbewijs blijft controleerbaar.");
   }
 }
-main().catch(error=>{if(error instanceof MollieTestCheckoutError)console.error(JSON.stringify({check:"mollie_test_checkout_failure",kind:error.kind,...error.diagnostic}));console.error(`Mollie stagingacceptatie mislukt bij ${phase}; geen credentials, tokens of persoonsgegevens gelogd.`);process.exitCode=1;});
+main().catch(error=>{if(error instanceof MollieTestCheckoutError)console.error(JSON.stringify({check:"mollie_test_checkout_failure",kind:error.kind,reason:error.reason,...error.diagnostic}));console.error(`Mollie stagingacceptatie mislukt bij ${phase}; geen credentials, tokens of persoonsgegevens gelogd.`);process.exitCode=1;});
