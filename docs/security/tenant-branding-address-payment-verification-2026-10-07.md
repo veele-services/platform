@@ -78,6 +78,15 @@
   browserfixtures bewijzen op zichzelf geen providerbetaling. De operationele
   helper is expliciet aan de bronhashinventaris toegevoegd; de release-,
   account-, merchant-, bedrag-, mail- en ledgergrenzen blijven ongewijzigd.
+- Echte stagingacceptatie `37606698308` op `095c047c` herkende iDEAL, bank
+  en de Paid-radio, maar vond daarna geen verzendcontrol in het aanwezige
+  statusformulier. Deze run bevestigt geen betaling en sloot het fictieve
+  account succesvol af. De helper omvat nu ook een native `button` zonder
+  `type`, uitsluitend binnen het formulier van de gekozen Paid-control.
+  Zulke knoppen verzenden standaard hun formulier; de knoptekst is geen
+  providercontract. De negende browserfixture controleert een onbekende
+  knoptekst en weigert verborgen knoppen, `type="button"` en verzendknoppen
+  van een ander formulier. Zie de [HTML-specificatie](https://html.spec.whatwg.org/multipage/form-elements.html#the-button-element).
 
 Lokale regressies: 1.475 unitchecks, 428 database-integratiechecks en 398
 pgTAP-checks en 14 desktop/mobiel-browsertests slaagden. De complete CI en de afzonderlijke echte staging-Mollie
