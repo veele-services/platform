@@ -22,8 +22,12 @@ async function confirmTestCheckout(page: Page) {
     }
     const radio=page.locator('input[type="radio"][value="paid"]');
     if(await radio.count()){await radio.first().check();await page.locator('button[type="submit"],input[type="submit"]').first().click();return;}
-    const paid=page.getByRole("button",{name:/^(Paid|Betaald|Pay|Betalen|Pay now)$/i});
+    const paid=page.getByRole("button",{name:/^(Paid|Betaald)$/i});
     if(await paid.count()){await paid.first().click();return;}
+    // A generic payment submit can open the test-status simulator; only the
+    // explicit Paid choice completes this helper's provider-confirmation step.
+    const pay=page.getByRole("button",{name:/^(Pay|Betalen|Pay now)$/i});
+    if(await pay.count()&&await pay.first().isEnabled()){await pay.first().click();await page.waitForTimeout(1000);continue;}
     const method=page.getByText(/^iDEAL$/i,{exact:true});
     if(await method.count()){await method.first().click();await page.waitForTimeout(1000);continue;}
     const bank=page.getByText(/^(Test bank|Testbank|ING)$/i,{exact:true});

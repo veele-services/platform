@@ -4961,7 +4961,7 @@
     },
     {
       "id": "operation:scripts/staging-customer-payment-acceptance.ts",
-      "surfaceFingerprint": "ca295c29e69bd8436f747fd877b29f00942dceae83125ed17d19a45401adb454",
+      "surfaceFingerprint": "b4b5a7e01b65f323875811421164fd330dcc9d3d5b7f02f0bdec0d9adced4456",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/tenant-branding-address-payment-verification-2026-10-07.md"

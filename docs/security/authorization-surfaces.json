@@ -6688,7 +6688,7 @@
     {
       "id": "operation:scripts/staging-customer-payment-acceptance.ts",
       "classification": "operation",
-      "source_sha256": "94ceff8f2dee5fe321ed078731c5ec1ae7785c18be73883b1679b3c3105ceca3"
+      "source_sha256": "43907aae584b252145404ee6463bd333e44368f85da8fd1658bff69ac315e4c8"
     },
     {
       "id": "operation:scripts/staging-tenant-integrations.ts",

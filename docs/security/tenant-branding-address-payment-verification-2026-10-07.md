@@ -37,6 +37,9 @@
   een fictieve activatielink. De staging-betaalacceptatie vergelijkt na elke
   herhaalde webhook de volledige factuurstatus en betaalverdeling, gebruikt
   normale browsercookies en probeert alle afsluitacties onafhankelijk.
+  Een gewone checkoutknop zoals `Pay` vervolgt de teststappen; uitsluitend
+  de expliciete betaalstatus beëindigt de bevestigingsstap. Een nog niet
+  beschikbare betaalbutton blokkeert de keuze van methode of bank niet.
 - De adresinspectie meldt expliciet wanneer verouderde coördinaten nog niet
   zijn onderzocht. Een adres dat tijdens herstel verandert, telt als conflict
   en resterend controlepunt; het wordt niet als hersteld geboekt.
