@@ -4533,14 +4533,16 @@
     },
     {
       "id": "operation:deploy/Caddyfile.production.example",
-      "surfaceFingerprint": "28f501e51ab7930c3c7548ae84eee8f87d4e4f7a99636bbf45ff4df92feeb2e8",
-      "status": "controlled",
+      "surfaceFingerprint": "7d8dd601f05d1f62926ce42403d2162f6b2eba80fe90565961e339d620da5bc0",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
         "lib/operations/production-deployment.test.ts",
         "lib/env/production-database.test.ts",
         "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "scripts/test-production-contract-linux.sh",
+        "docs/deployment/production-runbook.md",
+        "manual-caddy-2.11.7-isolated-auth-redirect-fixture:2026-10-08"
       ]
     },
     {

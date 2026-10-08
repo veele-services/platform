@@ -6494,7 +6494,7 @@
     {
       "id": "operation:deploy/Caddyfile.production.example",
       "classification": "operation",
-      "source_sha256": "0d8ae85c33c103e8bf4b3fa74e89f48cc07a9db3d4f087d76fd6ea0983c925bd"
+      "source_sha256": "931d554872a3cbf3ce668aaecda8cd1550c471a47a56ec04f1942a7386889da6"
     },
     {
       "id": "operation:deploy/clamav-daemon.socket.d/fieldgrid.conf.example",

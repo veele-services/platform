@@ -1,4 +1,6 @@
-# Append this independent block to the operator's configuration. Preserve staging.
+# Replace existing production base/wildcard HTTP routing with this block.
+# Remove their old redirects/conditional handlers; never duplicate site addresses.
+# Preserve operator-owned TLS/DNS settings, staging routes/imports and other sites.
 fieldgrid.nl, *.fieldgrid.nl {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:3302 {
@@ -7,8 +9,9 @@ fieldgrid.nl, *.fieldgrid.nl {
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
-		Referrer-Policy "no-referrer"
+		>Referrer-Policy "no-referrer"
 	}
+	# Retain existing TLS directives or a TLS-snippet import here.
 	# Wildcard TLS needs the installed DNS provider module and operator-owned token.
 	# tls {
 	# 	dns <provider> {env.DNS_API_TOKEN}
