@@ -37,7 +37,8 @@
   overflow-y: auto;
 }
 .view-planning:has(> .fg-guide) > .pb-root {
-  flex: 1 0 auto;
+  flex: 0 0 calc(100dvh - 162px);
+  height: calc(100dvh - 162px);
   min-height: calc(100dvh - 162px);
 }
 .workspace-main:has(.pb-root) .global-search {

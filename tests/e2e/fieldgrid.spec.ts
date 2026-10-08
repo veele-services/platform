@@ -3,6 +3,8 @@ import { test } from "./first-visit";
 import { brandThemeStyle, createBrandPalette } from "../../lib/branding/palette";
 import { authenticateWorkspace } from "./login-auth";
 import { expectPixelAlignedScreenshot } from "./pixel-aligned-screenshot";
+import pg from "pg";
+import { requireLocalDatabaseUrl } from "./local-target";
 const rgb = (hex: string) => `rgb(${[1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16)).join(", ")})`;
 
 
@@ -227,18 +229,30 @@ test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare v
     await expect(page.locator(`.compact-filter-popover option[value="${value}"]`)).toHaveText(status);
   }
 
-  await page.getByRole("link", { name: "Planbord" }).click();
-  await expect(page).toHaveURL(/\/app\/planning$/);
-  await expect(page.getByRole("heading", { name: "Planbord", exact: true })).toBeVisible();
-  await page.getByRole("main").getByLabel("Planningsdag").fill("2030-01-15");
-  await expect(page.getByRole("main").locator("[data-order-id]")).toHaveCount(1);
-  await expect(page.getByRole("status").filter({ hasText: /Gegevens vernieuwen/ })).toHaveCount(0);
-  await expect(page.getByText("Reistijd berekenen", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Werkbon plannen", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Bestaande planning exact aanpassen", { exact: true })).toHaveCount(0);
-  await expect(page.locator(".planboard-viewport:visible")).toBeVisible();
-  await expect.poll(() => page.locator(".planboard-viewport:visible").evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(600);
-  await expect(page).toHaveScreenshot("planboard-full-1440.png", { fullPage: true });
+  // Only the two fixed seed employees belong in this visual reference. Other
+  // suites create employees with unique names, including on repeated runs.
+  const planningDb = new pg.Client({ connectionString: requireLocalDatabaseUrl().href });
+  await planningDb.connect();
+  const hiddenPeople = (await planningDb.query("select p.id from public.personnel p join public.tenants t on t.id=p.tenant_id where t.slug='fieldgrid-e2e' and p.status='active' and p.id<>all($1::uuid[])", [["e1000000-0000-4000-8000-000000000001", "e1000000-0000-4000-8000-000000000002"]])).rows.map(row => row.id);
+  try {
+    await planningDb.query("update public.personnel set status='inactive' where id=any($1::uuid[])", [hiddenPeople]);
+    await page.getByRole("link", { name: "Planbord" }).click();
+    await expect(page).toHaveURL(/\/app\/planning$/);
+    await expect(page.getByRole("heading", { name: "Planbord", exact: true })).toBeVisible();
+    await page.getByRole("main").getByLabel("Planningsdag").fill("2030-01-15");
+    await expect(page.getByRole("main").locator("[data-order-id]")).toHaveCount(1);
+    await expect(page.getByRole("status").filter({ hasText: /Gegevens vernieuwen/ })).toHaveCount(0);
+    await expect(page.getByText("Reistijd berekenen", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Werkbon plannen", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Bestaande planning exact aanpassen", { exact: true })).toHaveCount(0);
+    await expect(page.locator(".planboard-viewport:visible")).toBeVisible();
+    await expect.poll(() => page.locator(".planboard-viewport:visible").evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(600);
+    await expect(page.locator(".pb-state:visible")).toHaveText(/^2 medewerkers · .*Europe\/Amsterdam$/);
+    await expect(page).toHaveScreenshot("planboard-full-1440.png", { fullPage: true });
+  } finally {
+    await planningDb.query("update public.personnel set status='active' where id=any($1::uuid[])", [hiddenPeople]);
+    await planningDb.end();
+  }
 });
 
 test("Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel", async ({ page }) => {

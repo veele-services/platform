@@ -154,6 +154,31 @@ test("een handmatig gekozen dag blijft geselecteerd bij focus en realtime wijzig
   }
 });
 
+test("eerste uitleg houdt een planbord met veel medewerkers en de bonnenlijst bereikbaar", async ({ page }) => {
+  const extraPeople = Array.from({ length: 12 }, () => randomUUID());
+  try {
+    for (const [index, id] of extraPeople.entries()) await db.query(
+      "insert into public.personnel(id,tenant_id,full_name,employee_number) values($1,$2,$3,$4)",
+      [id, tenant, `Extra Medewerker ${index + 1}`, `E2E-MANY-${index}`],
+    );
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await authenticateWorkspace(page, "platform-admin@fieldgrid.test", `/app/planning?day=${day}`);
+    await expect(page.locator('[data-guide-key="backoffice.planning"]:visible')).toBeVisible();
+    await expect(page.locator(".pb-state:visible")).toHaveText(/^14 medewerkers · .*Europe\/Amsterdam$/);
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const board = page.locator(".pb-board:visible");
+      await expect.poll(() => page.locator(".pb-root:visible").evaluate(el => el.getBoundingClientRect().height <= innerHeight)).toBe(true);
+      await expect.poll(() => board.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+      await page.locator(".view-planning:visible").evaluate(el => { el.scrollTop = el.scrollHeight; });
+      const list = page.locator(".pb-list:visible");
+      await expect(list.getByRole("combobox", { name: "Bonnenweergave", exact: true })).toBeInViewport();
+      await expect.poll(() => list.evaluate(el => el.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+    }
+  } finally { await db.query("delete from public.personnel where id=any($1::uuid[])", [extraPeople]); }
+});
+
 test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bonacties", async ({
   page,
 }) => {
