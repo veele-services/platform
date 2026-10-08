@@ -43,6 +43,7 @@ export async function deliverPersonnelInvitation(input: {
   tenant: TenantContext;
   person: { id: string; userId: string; email: string; full_name: string; employee_number: string };
   tokenHash: string | null;
+  confirmAccess: () => Promise<void>;
 }): Promise<{ warning?: string }> {
   const env = requirePersonnelEmail();
   const admin = createAdminClient();
@@ -85,6 +86,9 @@ export async function deliverPersonnelInvitation(input: {
       const frozen=await freezeMailSnapshot(admin,input.tenant.id,delivery!.id,{fromEmail:env.SENDGRID_FROM_EMAIL,fromName:branding.sender_name||input.tenant.name,to:input.person.email,subject,text:`${body}\n\n${url.href}`,html,targetUrl:url.href,templateRevision:template.revision,templateVersionId:template.version_id,templateBaseVersionId:template.base_version_id,attachmentPath:null,attachmentFilename:null});
       mail={subject:frozen.subject,text:frozen.text,html:frozen.html};
     }
+    // Branding and document I/O may outlive a role or recipient membership.
+    // Recheck the initiating actor and exact staff account at the last boundary.
+    await input.confirmAccess();
     providerStarted=true;sent = await sendEmail({ ...mail, to: input.person.email, fromEmail: env.SENDGRID_FROM_EMAIL,
       fromName: branding.sender_name || input.tenant.name, deliveryKey, disableTracking: true,
       policy: input.tokenHash

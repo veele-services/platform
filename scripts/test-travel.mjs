@@ -329,6 +329,11 @@ test("travel: tenant isolation, private addresses, cache leases and version-safe
         const payload = JSON.stringify([{ assignmentId: assignment, personnelId: person, day: '2031-01-01', direction: 'before' }]);
         await db.query("savepoint revoke_write");
         try {
+          // Membership revocation is tested independently of the last-owner
+          // invariant; keep another confirmed active owner in this savepoint.
+          const keeper = randomUUID();
+          await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())", [keeper, `${keeper}@travel.test`]);
+          await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,array['tenant_admin']::public.app_role[],'active')", [tenant, keeper]);
           await db.query(sql, params);
           for (const action of ['set', 'clear']) {
             await assert.rejects(call("select public.store_travel_estimates($1,$2,$3,$4,$5,$6)", [tenant, prior.revision, payload, action, manager, sessions[manager]], manager, 'service_role'), e => e.code === '42501');

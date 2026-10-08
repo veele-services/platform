@@ -50,7 +50,8 @@ attribution. Tenant roles cannot change this entitlement through the Data API.
 
 ## Module entitlements
 
-The V1 module keys are `planning`, `personeel`, `rapportage` and `finance`.
+The V1 module keys are `planning`, `personeel`, `rapportage`, `finance`, `tickets`
+and `klantportaal`.
 Facturatie depends on Planning and Rapportage; Rapportage depends on Planning.
 Disabling Planning or Facturatie is rejected while conflicting operational data
 is active.
@@ -96,3 +97,42 @@ product-lock-up; contextuele technische support blijft functioneel beschikbaar.
 Productattributie staat alleen klein onderaan sidebar/e-mail. De platformgestuurde
 white-label-entitlement verwijdert ook die attributie. Historische afgeleverde
 mail- en rapportbewijsversies blijven onveranderlijk.
+
+## Modules en eigen domeinen (8 oktober 2026)
+
+De reeds gebouwde klantomgeving is als zesde module `klantportaal` instelbaar in
+platformbeheer, naast planning, personeel, rapportage, finance en tickets. De
+expliciete eigenaaropdracht activeert deze module voor de actieve Veele Services
+tenant in de afzonderlijke staging- en productiedatabases. Het inschakelen maakt
+geen klantbindingen aan en verleent geen toegang tot andere klantaccounts.
+
+Tenantinstellingen bevatten daarnaast een eigen werkruimtedomein met afzonderlijke
+DNS-verificatie en activering volgens het [domeincontract](tenant-workspace-domains.md).
+E-mailafzenderdomeinen blijven een afzonderlijk register.
+
+## Platformnavigatie, cockpit en support (8 oktober 2026)
+
+Alle platformroutes, inclusief supporttickets, supportinstellingen, notificaties,
+voorkeuren en campagnes, gebruiken één platformlayout met dezelfde navigatie,
+huisstijl en accountbediening. De beheerconsole blijft uitsluitend beschikbaar
+voor platformbeheerders. Een afzonderlijk expliciet support- of notificatierecht
+geeft toegang tot het bijbehorende werkgebied en geen algemene tenantinzage.
+
+De cockpit toont opgeslagen configuratiegegevens: actieve en gepauzeerde
+organisaties, actieve medewerkers, aangepaste communicatietemplates, uitnodigingen
+in wachtrij of met een fout, en actieve klantportalen. Supportaantallen komen uit
+de ingelogde ticket-RPC en tellen uitsluitend de toegestane supportscope.
+Ontbrekend leesrecht wordt als ontbrekende toegang getoond, niet als nul tickets.
+
+De expliciete eigenaaropdracht maakt platformbeheerders supportoperators.
+De migratie legt daarvoor concrete `platform.support.read`, `.reply`, `.note`
+en `.manage`-toekenningen vast. Bestaande beperkte scopes en ingetrokken rechten
+blijven behouden. Verwijderen van de platformrol trekt bootstraprechten in;
+hernieuwd toekennen van de rol herstelt geen eerder ingetrokken recht. Deze
+rechten gelden uitsluitend voor bewust gedeelde `platform_support`-tickets,
+nooit voor interne tenantgesprekken, HR-inhoud of tenantnotities.
+
+Een supportoverzicht opent altijd de ticketlijst. Configuratie zonder leesrecht
+toont een afgeschermde lege lijst met uitleg en een afzonderlijke instellingenlink.
+De instellingen gebruiken aangesloten tabbladen en een responsief categorieraster
+met vier kolommen op ruime schermen.

@@ -9,11 +9,13 @@ import {
   type Address,
 } from "@/lib/addresses/model";
 
-const searchFields = ["street_name", "postal_code", "house_number", "house_letter", "house_addition"];
+const searchFields = ["street_name", "postal_code"];
 function addressQuery(field: string, address: Address) {
   if (field === "street_name") return address.street_name;
-  return searchFields.includes(field) && /^\d{4}\s?[A-Za-z]{2}$/.test(address.postal_code.trim()) && address.house_number
-    ? [address.postal_code, address.house_number, address.house_letter, address.house_addition].filter(Boolean).join(" ") : "";
+  if (field !== "postal_code") return "";
+  return /^\d{4}\s?[A-Za-z]{2}$/.test(address.postal_code.trim()) && address.house_number
+    ? [address.postal_code, address.house_number, address.house_letter, address.house_addition].filter(Boolean).join(" ")
+    : address.postal_code;
 }
 
 export function AddressInput({
@@ -60,7 +62,7 @@ export function AddressInput({
     abort.current?.abort();
     const controller = new AbortController();
     abort.current = controller;
-    if (term.trim().length < 3) {
+    if (!searchFields.includes(searchField) || term.trim().length < 3) {
       const timer = setTimeout(() => {
         setOptions([]);
         setOpen(false);
@@ -243,8 +245,8 @@ export function AddressInput({
               role={searchFields.includes(key) ? "combobox" : undefined}
               aria-autocomplete={searchFields.includes(key) ? "list" : undefined}
               aria-expanded={searchFields.includes(key) ? open && searchField === key : undefined}
-              aria-controls={open && searchField === key ? id : undefined}
-              aria-activedescendant={open && searchField === key && active >= 0 ? `${id}-${active}` : undefined}
+              aria-controls={searchFields.includes(key) && open && searchField === key ? id : undefined}
+              aria-activedescendant={searchFields.includes(key) && open && searchField === key && active >= 0 ? `${id}-${active}` : undefined}
               autoComplete="off"
               placeholder={key === "street_name" ? "Typ een straat of adres…" : key === "postal_code" ? "1234 AB" : undefined}
               inputMode={key === "house_number" ? "numeric" : undefined}

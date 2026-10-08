@@ -52,6 +52,8 @@ export function TicketList({ access, data, options, query, create = false, conte
       {access.canCreate && <ActionIcon className="primary-button" label={access.workspace === "support" ? "Nieuw supportticket" : "Nieuwe melding"} icon={<Plus size={19}/>} onClick={() => setCreating(true)}/>}
     </>}/>
 
+    {!access.allowed && <p className="ticket-notice" role="status">Je kunt de ticketinrichting beheren, maar hebt geen leesrecht voor gesprekken. Alleen tickets binnen expliciet toegekende bevoegdheden verschijnen in deze lijst.</p>}
+
     {active.length > 0 && <div className="ticket-chips" aria-label="Actieve filters">{active.map(([key, value]) => <Link key={key} href={href({ [key]: null })} aria-label={`${filterLabels[key]} verwijderen`}>{filterLabels[key]}: {label(key, String(value))}<X size={12}/></Link>)}</div>}
     {error && <p className="ticket-error" role="alert">{error}</p>}
     <div className="fg-tabbed-content ticket-tabbed-content">

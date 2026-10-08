@@ -1,5 +1,6 @@
 "use server";
 
+import { hasManagementPermission } from "@/lib/management/model";
 import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
 import { readScannedFile, uploadScannedFile } from "@/lib/files/scanned-storage";
 
@@ -27,10 +28,15 @@ import { freezeEmailLogo } from "@/lib/notifications/brand-asset";
 import { deferNotificationMail, retryDeferredDocumentMail } from "@/lib/notifications/deferred-mail";
 import { readMailAttachment } from "@/lib/notifications/mail-attachment";
 
-async function financeContext(): Promise<AuthContext & { tenant: TenantContext }> {
+async function financeContext(capability?: string): Promise<AuthContext & { tenant: TenantContext }> {
   const context = await getAuthContext();
-  if (!context.tenant || !context.tenant.enabledServices.includes("finance") || !hasAnyRole(context, ["tenant_admin", "management", "finance"])) throw new Error("De module Facturatie en een financiële rol zijn vereist");
+  if (!context.tenant || !hasManagementPermission(context.tenant,"backoffice.access") || !hasManagementPermission(context.tenant,"backoffice.finance.write") || (capability && !hasManagementPermission(context.tenant,capability)) || !context.tenant.enabledServices.includes("finance") || !hasAnyRole(context, ["tenant_admin", "management", "finance"])) throw new Error("De module Facturatie en de vereiste financiële bevoegdheid zijn vereist");
   return context as AuthContext & { tenant: TenantContext };
+}
+
+async function confirmFinanceAction(context: AuthContext & { tenant: TenantContext }, capability: string) {
+  const current = await financeContext(capability);
+  if (current.user.id !== context.user.id || current.tenant.id !== context.tenant.id) throw new Error("Je financiële toegang is gewijzigd. De actie is niet uitgevoerd.");
 }
 
 export async function createInvoice(formData: FormData): Promise<ActionResult<{ invoiceId: string }>> {
@@ -88,7 +94,7 @@ export async function sendInvoice(formData: FormData): Promise<ActionResult<{ pa
   let activeDelivery: { tenantId: string; id: string } | null = null;
   let providerStarted = false;
   try {
-    const context = await financeContext();
+    const context = await financeContext("backoffice.functions.send_invoice");
     const invoiceId = z.string().uuid().parse(formData.get("invoiceId"));
     const supabase = await createClient();
     const { data: invoice, error } = await supabase.from("invoices").select("*").eq("tenant_id", context.tenant.id).eq("id", invoiceId).single();
@@ -106,7 +112,10 @@ export async function sendInvoice(formData: FormData): Promise<ActionResult<{ pa
     const stableKey = `invoice-${invoice.id}`;
     const prior = await admin.from("mail_deliveries").select("id,status,render_snapshot,idempotency_key").eq("tenant_id",context.tenant.id).eq("template","invoice").or(`idempotency_key.eq.${stableKey},idempotency_key.like.${stableKey}-%`).order("created_at",{ascending:true}).limit(1).maybeSingle();
     if (prior.error) throw new Error("De verzendstatus kon niet worden gecontroleerd.");
-    if(prior.data?.status==="failed" && await retryDeferredDocumentMail(context.tenant.id,prior.data.id)) return {ok:false,error:"De eerdere factuurmail is opnieuw ingepland. De worker controleert de ontvanger en verzendt dezelfde vastgelegde versie; er is nu nog niets verzonden."};
+    if(prior.data?.status==="failed") {
+      await confirmFinanceAction(context,"backoffice.functions.send_invoice");
+      if(await retryDeferredDocumentMail(context.tenant.id,prior.data.id)) return {ok:false,error:"De eerdere factuurmail is opnieuw ingepland. De worker controleert de ontvanger en verzendt dezelfde vastgelegde versie; er is nu nog niets verzonden."};
+    }
     const deliveryKey = prior.data?.idempotency_key ?? stableKey;
     const savedSnapshot = mailSnapshotSchema.safeParse((prior.data?.render_snapshot as Record<string, unknown> | null)?.delivery);
     if (prior.data?.status === "sent") {
@@ -125,6 +134,7 @@ export async function sendInvoice(formData: FormData): Promise<ActionResult<{ pa
     if (itemError) throw itemError;
     const token = randomBytes(32).toString("base64url");
     const tokenHash = createHash("sha256").update(token).digest("hex");
+    await confirmFinanceAction(context,"backoffice.functions.send_invoice");
     const { error: tokenError } = await admin.from("external_action_tokens").insert({ tenant_id: context.tenant.id, purpose: "payment", subject_id: group.id, token_hash: tokenHash, expires_at: group.expires_at! });
     if (tokenError) throw tokenError;
     paymentUrl = tenantAppUrl(context.tenant.slug, `/pay/${token}`);
@@ -177,10 +187,7 @@ export async function sendInvoice(formData: FormData): Promise<ActionResult<{ pa
     const attachment = await readMailAttachment(context.tenant.id, claim.delivery_id, frozen.attachmentPath);
     // Provider submission is irreversible. Re-evaluate the initiating actor
     // after all document/token I/O, rather than relying on the entry check.
-    const currentContext = await financeContext();
-    if (currentContext.user.id !== context.user.id || currentContext.tenant.id !== context.tenant.id) {
-      throw new Error("Je financiële toegang is gewijzigd. De factuur is niet verzonden.");
-    }
+    await confirmFinanceAction(context,"backoffice.functions.send_invoice");
     let sent: { id: string } | null = null; let sendError: Error | null = null;
     providerStarted = true;
     try { sent = await sendEmail({
@@ -234,7 +241,7 @@ export async function registerManualPayment(formData: FormData): Promise<ActionR
 
 export async function createPaymentBundle(formData: FormData): Promise<ActionResult<{ paymentUrl: string }>> {
   try {
-    const context = await financeContext();
+    const context = await financeContext("backoffice.functions.create_payment_bundle");
     const ids = z.string().min(1).parse(formData.get("invoiceIds")).split(",").map((id) => z.string().uuid().parse(id));
     const supabase = await createClient();
     const { data: invoices, error: invoiceError } = await supabase.from("invoices").select("id,customer_id,total_cents,paid_cents,status").in("id", ids);
@@ -248,6 +255,7 @@ export async function createPaymentBundle(formData: FormData): Promise<ActionRes
     if (itemError) throw itemError;
     const rawToken = randomBytes(32).toString("base64url");
     const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+    await confirmFinanceAction(context,"backoffice.functions.create_payment_bundle");
     const admin = createAdminClient();
     const { error } = await admin.from("external_action_tokens").insert({ tenant_id: context.tenant.id, purpose: "payment", subject_id: group.id, token_hash: tokenHash, expires_at: expiresAt });
     if (error) throw error;

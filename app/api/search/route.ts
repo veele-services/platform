@@ -2,6 +2,7 @@ import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { allowedSearchCategories, literalSearchFilter, searchInput, type SearchGroup } from "@/lib/search/model";
 import type { WorkOrderListData } from "@/lib/work-orders/model";
+import { hasManagementPermission } from "@/lib/management/model";
 
 const responseHeaders = { "cache-control": "private, no-store" };
 const forbidden = () => Response.json({ error: "Geen toegang tot zoeken." }, { status: 403, headers: responseHeaders });
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
       !request.headers.get("content-type")?.startsWith("application/json")) return forbidden();
     const context = await getAuthContext().catch(() => null);
     const tenant = context?.tenant;
-    if (!tenant || !tenant.roles.some(role => role !== "staff")) return forbidden();
+    if (!tenant || !tenant.roles.some(role => role !== "staff") || !hasManagementPermission(tenant, "backoffice.access")) return forbidden();
     const parsed = searchInput.safeParse(await request.json());
     if (!parsed.success) return Response.json({ error: "Gebruik 3 tot 100 tekens." }, { status: 400, headers: responseHeaders });
     const db = await createClient();
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     // Do not deliver a result from a membership or module revoked during I/O.
     const current = await getAuthContext().catch(() => null);
     const session = await db.rpc("travel_session_active");
-    if (!current?.tenant || current.user.id !== context.user.id || current.tenant.id !== tenant.id || session.error || !session.data) return forbidden();
+    if (!current?.tenant || current.user.id !== context.user.id || current.tenant.id !== tenant.id || !hasManagementPermission(current.tenant, "backoffice.access") || session.error || !session.data) return forbidden();
     const currentCategories = new Set(allowedSearchCategories(current.tenant).map(item => item.id));
     return Response.json({ groups: groups.filter(group => currentCategories.has(group.id as typeof categories[number]["id"]) && group.results.length) }, { headers: responseHeaders });
   } catch {

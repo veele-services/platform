@@ -277,6 +277,44 @@ test("bonnenweergave en filters zijn onafhankelijk en tellen de juiste resultate
   await expect(page.locator(".pb-count:visible")).toHaveText("2 bonnen");
   await expect(filters).toHaveAccessibleName("Zoeken en filteren");
 });
+test("kolomnamen blijven staan bij scrollen en een lege bonnenbak heeft geen scrollbalk", async ({ page }) => {
+  test.setTimeout(60_000);
+  await open(page);
+  const addedOrders = Array.from({ length: 15 }, () => randomUUID());
+  try {
+    for (const [index, id] of addedOrders.entries()) {
+      await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,created_by) select $1,tenant_id,customer_id,object_id,$2,discipline,created_by from public.work_orders where id=$3 and tenant_id=$4", [id, `PB-STICKY-${index + 1}`, orders[0], tenant]);
+    }
+    await page.getByRole("combobox", { name: "Bonnenweergave", exact: true }).selectOption("all");
+    await page.getByRole("button", { name: "Zoeken en filteren", exact: true }).click();
+    const popover = page.locator(".pb-filter-popover");
+    await popover.getByLabel("Zoeken", { exact: true }).fill("PB-STICKY");
+    await expect(page.locator(".pb-count:visible")).toHaveText("15 bonnen");
+    await page.keyboard.press("Escape");
+    const scroll = page.locator(".pb-list-scroll:visible");
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect.poll(() => scroll.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+      await scroll.evaluate(element => { element.scrollTop = element.scrollHeight; });
+      const containerBox = (await scroll.boundingBox())!, headerBox = (await scroll.getByRole("columnheader", { name: "Bonnummer", exact: true }).boundingBox())!;
+      expect(Math.abs(headerBox.y - containerBox.y)).toBeLessThanOrEqual(2);
+      await scroll.evaluate(element => { element.scrollTop = 0; });
+    }
+    await page.getByRole("button", { name: /Zoeken en filteren, 1 actief/ }).click();
+    await popover.getByLabel("Zoeken", { exact: true }).fill("NO-SUCH-WORK-ORDER");
+    await expect(page.locator(".pb-count:visible")).toHaveText("0 bonnen");
+    await page.keyboard.press("Escape");
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(scroll).toHaveAttribute("data-empty", "true");
+      await expect.poll(() => scroll.evaluate(element => element.scrollHeight <= element.clientHeight && element.scrollWidth <= element.clientWidth)).toBe(true);
+      await expect(scroll.getByRole("heading", { name: "Geen werkbonnen gevonden", exact: true })).toBeVisible();
+      await expect(scroll.getByRole("button", { name: "Wis filters", exact: true })).toBeVisible();
+    }
+  } finally {
+    await db.query("delete from public.work_orders where id=any($1) and tenant_id=$2", [addedOrders, tenant]);
+  }
+});
 test("minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebruiken dezelfde uitvoering", async ({
   page,
 }) => {

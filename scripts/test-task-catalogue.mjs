@@ -12,7 +12,7 @@ test('task catalogue numbering, immutable requirements and tenant/finance bounda
  const catalogue=(actor=manager)=>call('select public.task_catalogue($1) r',[tenant],actor);
  let category,task;
  try{
-  for(const[id,session]of sessions){await db.query('insert into auth.users(id,email) values($1,$2)',[id,`${id}@catalogue.test`]);await db.query("insert into auth.sessions(id,user_id,not_after) values($1,$2,now()+interval '1 day')",[session,id]);}
+  for(const[id,session]of sessions){await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id,`${id}@catalogue.test`]);await db.query("insert into auth.sessions(id,user_id,not_after) values($1,$2,now()+interval '1 day')",[session,id]);}
   for(const id of[tenant,other]){await db.query("insert into public.tenants(id,slug,name) values($1,$2,'FICTITIOUS catalogue')",[id,`cat-${id}`]);await db.query("insert into public.tenant_settings(tenant_id,enabled_services) values($1,array['planning','rapportage','finance'])",[id]);}
   for(const[id,roles]of[[manager,['tenant_admin','management','finance']],[planner,['planner']],[staff,['staff']]])await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,$3,'active')",[tenant,id,roles]);
   await t.test('automatic codes skip legacy collisions and strict retries never consume numbers',async()=>{

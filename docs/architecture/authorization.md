@@ -1,6 +1,8 @@
-# Gebruikers, rollen en rechten — implementatieanalyse
+# Gebruikers, rollen en rechten — historische implementatieanalyse
 
-Status: in uitvoering, niet vrijgegeven voor deployment. Analyse 1 oktober 2026.
+Dit document bewaart de query-first analyse van 1 oktober 2026. Het actuele managementmodel van 8 oktober staat in [tenant-management.md](tenant-management.md) en wordt geïmplementeerd door `20261008173000_tenant_management_roles.sql`. Het hieronder beschreven prototype wordt niet gedeployed.
+
+Status van de historische analyse: in uitvoering, niet vrijgegeven voor deployment.
 
 ## Aangetroffen architectuur
 

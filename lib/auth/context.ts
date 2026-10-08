@@ -1,9 +1,11 @@
 import "server-only";
 
 import { cookies, headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/database.types";
+import { hasManagementPermission, permissionForPath, managementTransferSchema, managementContextSchema } from "@/lib/management/model";
+import { managementRpc } from "@/lib/management/rpc";
 import { TENANT_SLUG_HEADER } from "@/lib/tenancy/hostname";
 
 export type AppRole = Database["public"]["Enums"]["app_role"];
@@ -19,6 +21,10 @@ export type TenantContext = {
   logoPath: string | null;
   whiteLabelEnabled: boolean;
   enabledServices: string[];
+  permissions?: string[] | null;
+  managementRole?: string | null;
+  managementDisplayName?: string | null;
+  ownershipTransfer?: { id: string; expiresAt: string; sourceName: string } | null;
 };
 
 export type AuthContext = {
@@ -67,6 +73,8 @@ export async function getAuthContext(): Promise<AuthContext> {
     }).maybeSingle();
     if (error) throw error;
     if (resolved) {
+      const [managementResult, transferResult] = await Promise.all([managementRpc(supabase, "management_context", { target_tenant: resolved.tenant_id }), managementRpc(supabase, "management_pending_transfer", { target_tenant: resolved.tenant_id })]);
+      const management = managementContextSchema.parse(managementResult);
       tenant = {
         id: resolved.tenant_id,
         slug: resolved.tenant_slug,
@@ -78,11 +86,20 @@ export async function getAuthContext(): Promise<AuthContext> {
         logoPath: resolved.logo_path,
         whiteLabelEnabled: resolved.white_label_enabled,
         enabledServices: resolved.enabled_services,
+        permissions: management.permissions,
+        managementRole: management.role,
+        managementDisplayName: management.displayName,
+        ownershipTransfer: managementTransferSchema.parse(transferResult),
       };
     }
   }
+  // Page components call this live resolver on every navigation; layout reuse
+  // cannot preserve an old authorization decision. API/actions also enforce
+  // their specific capability at the DB/server mutation boundary.
+  const requestedPermission = permissionForPath(requestHeaders.get("x-fieldgrid-pathname") ?? "");
+  if (tenant && requestedPermission && (!hasManagementPermission(tenant, "backoffice.access") || !hasManagementPermission(tenant, requestedPermission))) notFound();
   return {
-    user: { id: user.id, email: user.email ?? null, displayName: typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim().slice(0, 160) || null : null },
+    user: { id: user.id, email: user.email ?? null, displayName: tenant?.managementDisplayName ?? (typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim().slice(0, 160) || null : null) },
     tenant,
     memberships,
     isPlatformAdmin: Boolean(platformAdmin),

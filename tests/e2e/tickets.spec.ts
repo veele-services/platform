@@ -40,8 +40,10 @@ test.beforeAll(async () => {
     }
   }
   await db.query("insert into public.platform_admins(user_id) values($1)", [users.platform.id]);
-  for (const capability of ["platform.support.read", "platform.support.reply", "platform.support.note", "platform.support.manage"]) await db.query("insert into public.permission_grants(user_id,capability,scope) values($1,$2,$3)", [users.platform.id, capability, { tenant_ids: [tenantId] }]);
+  for (const capability of ["platform.support.read", "platform.support.reply", "platform.support.note", "platform.support.manage"]) await db.query("insert into public.permission_grants(user_id,capability,scope) values($1,$2,$3) on conflict (coalesce(tenant_id,'00000000-0000-0000-0000-000000000000'::uuid),user_id,capability) do update set scope=excluded.scope,source='explicit',enabled=true", [users.platform.id, capability, { tenant_ids: [tenantId] }]);
   await db.query("insert into public.platform_admins(user_id) values($1)", [users.config.id]);
+  // A deliberately configuration-only actor has explicitly revoked content rights.
+  await db.query("update public.permission_grants set enabled=false where user_id=$1 and capability=any($2::text[])", [users.config.id, ["platform.support.read", "platform.support.reply", "platform.support.note", "platform.support.manage"]]);
   await db.query("insert into public.permission_grants(user_id,capability,scope) values($1,'platform.support.config','{\"all\":true}') on conflict do nothing", [users.config.id]);
   await db.query("insert into public.customers(id,tenant_id,customer_number,name) values($1,$2,'T-KL-001','Fictieve ticketklant')", [customerId, tenantId]);
   await db.query("insert into public.objects(id,tenant_id,customer_id,object_number,name,address) values($1,$2,$3,'T-OB-001','Fictieve ticketlocatie',$4)", [objectId, tenantId, customerId, { street: "Teststraat 14", postal_code: "1234 AB", city: "Teststad", country: "NL" }]);
@@ -299,6 +301,7 @@ test("categorieconfiguratie en expliciete begrensde grant vereisen payloadgebond
   await category.getByRole("button", { name: "Categorie opslaan" }).click();
   await expect(category).toHaveCount(0);
   expect((await db.query("select first_response_minutes from public.ticket_categories where id=$1", [categoryId])).rows[0].first_response_minutes).toBe(120);
+  await page.getByRole("tab", { name: "Bevoegdheden", exact: true }).click();
   await page.getByRole("button", { name: "Bevoegdheid toekennen", exact: true }).click();
   const grant = page.getByRole("dialog", { name: "Begrensde bevoegdheid toekennen", exact: true });
   await grant.getByLabel("Actieve gebruiker", { exact: true }).selectOption(users.colleague.id);
@@ -326,16 +329,21 @@ test("categorieconfiguratie en expliciete begrensde grant vereisen payloadgebond
 test("configuratiebevoegdheid geeft geen gesprekstoegang; personeel ziet alleen eigen notificatievoorkeuren", async ({ page, browser }) => {
   test.setTimeout(60000);
   await login(page, "config", "/platform/support");
-  await expect(page).toHaveURL(/\/platform\/support\/instellingen$/);
-  await expect(page.getByRole("heading", { name: "Categorieën & routing", exact: true })).toBeVisible();
-  // Configuration uses tables too; it must never render the ticket inbox.
-  await expect(page.locator(".ticket-table")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/platform\/support$/);
+  await expect(page.getByRole("heading", { name: "Supportdesk", exact: true })).toBeVisible();
+  await expect(page.locator(".fg-sidebar")).toBeVisible();
+  await expect(page.locator(".ticket-table tbody tr")).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: "geen leesrecht" })).toBeVisible();
   const tickets = (await db.query("select id,title from public.tickets where tenant_id=$1 and route='platform_support'", [tenantId])).rows;
   for (const ticket of tickets) {
     await expect(page.getByText(ticket.title, { exact: true })).toHaveCount(0);
     const response = await page.request.get(`/platform/support/${ticket.id}`);
     expect(await response.text()).not.toContain(ticket.title);
   }
+  await page.locator(".unified-page-heading").getByRole("link", { name: "Instellingen", exact: true }).click();
+  await expect(page).toHaveURL(/\/platform\/support\/instellingen$/);
+  await expect(page.getByRole("heading", { name: "Categorieën & routing", exact: true })).toBeVisible();
+  await expect(page.getByRole("tablist", { name: "Meldingsinstellingen" })).toBeVisible();
   const staffContext = await browser.newContext({ baseURL: E2E_APP_ORIGIN }), staff = await staffContext.newPage();
   await login(staff, "worker", "/staff/meldingen/instellingen");
   await expect(staff.getByRole("heading", { name: "Mijn notificatievoorkeuren" })).toBeVisible();

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceData } from "@/lib/data/workspace";
 import { BackofficeShell, type BackofficeView } from "@/components/fieldgrid/backoffice-shell";
 import { NoAccess } from "../no-access";
+import { hasManagementPermission } from "@/lib/management/model";
 
 const viewBySegment: Record<string, BackofficeView> = {
   aanvragen: "aanvragen",
@@ -40,7 +41,7 @@ export default async function BackofficeViewPage({ params }: { params: Promise<{
   if (requiredService && !context.tenant.enabledServices.includes(requiredService)) notFound();
 
   const data = await getWorkspaceData(context.tenant.id);
-  if (view === "werkbonnen" && context.tenant.roles.some(role => ["tenant_admin", "management", "hr", "planner"].includes(role))) {
+  if (view === "werkbonnen" && context.tenant.roles.some(role => ["tenant_admin", "management", "hr", "planner"].includes(role)) && hasManagementPermission(context.tenant,"backoffice.personnel.read") && hasManagementPermission(context.tenant,"backoffice.functions.personnel_qualification_gaps")) {
     const db = await createClient();
     const { data: gaps, error } = await db.rpc("personnel_qualification_gaps", { target_tenant: context.tenant.id });
     if (error) throw new Error("De kwalificatiecontrole is tijdelijk niet beschikbaar.");

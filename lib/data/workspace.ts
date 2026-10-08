@@ -1,6 +1,7 @@
 import "server-only";
 import { getBrandingLogoUrl } from "@/lib/branding/logo";
 import { getAuthContext } from "@/lib/auth/context";
+import { hasManagementPermission } from "@/lib/management/model";
 import { invoiceConceptSchema, type InvoiceConcept } from "@/lib/finance/invoice-concepts";
 
 import { createClient } from "@/lib/supabase/server";
@@ -95,7 +96,13 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     const logo = await getBrandingLogoUrl(supabase, branding?.logo_path);
     return { ...parseStaffWorkspaceProjection(projection, tenantId), brandingLogoUrl: logo };
   }
-  const taskProjection=operationalTaskData(supabase,tenantId);
+  const actor = await getAuthContext();
+  if(actor.tenant?.id!==tenantId)throw new Error("Geen toegang tot deze organisatie.");
+  const canRead=(module:string,operation:string)=>hasManagementPermission(actor.tenant!,"backoffice.access")&&hasManagementPermission(actor.tenant!,`backoffice.${module}.read`)&&hasManagementPermission(actor.tenant!,`backoffice.functions.${operation}`);
+  const empty={data:[],error:null};
+  // Shared navigation must not request unavailable module RPCs. Their database
+  // guards remain authoritative when a permission changes during this request.
+  const taskProjection=canRead("work_orders","work_order_operational_task_data")?operationalTaskData(supabase,tenantId):Promise.resolve({taskRevisions:[],workOrderTasks:[]});
   const results = await Promise.all([
     allWorkspaceRows((from, to) => supabase.from("customers").select("*").eq("tenant_id", tenantId).order("name").order("id").range(from, to)),
     allWorkspaceRows((from, to) => supabase.from("customer_contacts").select("*").eq("tenant_id", tenantId).order("full_name").order("id").range(from, to)),
@@ -107,7 +114,7 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     allWorkspaceRows((from, to) => supabase.from("personnel").select("id,tenant_id,user_id,employee_number,full_name,email,phone,status,start_date,end_date,created_at,updated_at,version,standard_vehicle,departure_kind,departure_depot_id,return_to_departure").eq("tenant_id", tenantId).order("full_name").order("id").range(from, to)),
     allWorkspaceRows((from, to) => supabase.from("function_catalog").select("*").eq("tenant_id", tenantId).order("name").order("id").range(from, to)),
     allWorkspaceRows((from, to) => supabase.from("qualifications").select("*").eq("tenant_id", tenantId).order("id").range(from, to)),
-    operationalOrderRows(supabase,tenantId,{all:true}),
+    canRead("work_orders","work_order_operational_rows")?operationalOrderRows(supabase,tenantId,{all:true}):empty,
     allWorkspaceRows((from, to) => supabase.from("work_order_assignments").select("*").eq("tenant_id", tenantId).order("projected_start_at").order("id").range(from, to)),
     taskProjection.then(p=>({data:p.workOrderTasks,error:null})),
     allWorkspaceRows((from, to) => supabase.from("dispatches").select("*").eq("tenant_id", tenantId).order("dispatched_at", { ascending: false }).order("id").range(from, to)),
@@ -128,7 +135,7 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     supabase.from("tenant_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("tenant_branding").select("*").eq("tenant_id", tenantId).maybeSingle(),
     allWorkspaceRows((from, to) => supabase.from("personnel_documents").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).order("id").range(from, to)),
-    supabase.rpc("personnel_availability", { target_tenant: tenantId }),
+    canRead("personnel","personnel_availability")?supabase.rpc("personnel_availability", { target_tenant: tenantId }):empty,
     allWorkspaceRows((from, to) => supabase.from("announcement_reads").select("*").eq("tenant_id", tenantId).order("id").range(from, to)),
     allWorkspaceRows((from, to) => supabase.from("extra_work_rules").select("*").eq("tenant_id", tenantId).eq("active", true).order("id").range(from, to)),
     allWorkspaceRows((from, to) => supabase.from("work_order_allowed_extra_work").select("*").eq("tenant_id", tenantId).order("id").range(from, to)),
@@ -136,7 +143,7 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     allWorkspaceRows((from, to) => supabase.from("personnel_functions").select("*").eq("tenant_id", tenantId).order("id").range(from, to)),
     allWorkspaceRows((from, to) => supabase.from("customer_notes").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).order("id").range(from, to)),
     allWorkspaceRows((from, to) => supabase.from("customer_documents").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).order("id").range(from, to)),
-    supabase.rpc("personnel_dossier_summary", { target_tenant: tenantId }),
+    canRead("personnel","personnel_dossier_summary")?supabase.rpc("personnel_dossier_summary", { target_tenant: tenantId }):empty,
   ]);
   const singleton = <T>(result: { data: T | null; error: { message: string } | null }): T | null => {
     if (result.error) throw new Error(result.error.message);
@@ -172,8 +179,7 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     customerDocuments: rows(results[38]),
     dossierSummary: rows(results[39]),
   };
-  const actor = await getAuthContext();
-  if (actor.tenant?.id === tenantId && actor.tenant.enabledServices.includes("finance") && actor.tenant.roles.some(role => ["tenant_admin", "management", "finance"].includes(role))) {
+  if (actor.tenant.enabledServices.includes("finance") && actor.tenant.roles.some(role => ["tenant_admin", "management", "finance"].includes(role)) && canRead("finance","execution_invoice_concepts")) {
     const concepts = await supabase.rpc("execution_invoice_concepts", { target_tenant: tenantId });
     if (concepts.error) throw new Error("Factuurconcepten konden niet worden geladen.");
     workspace.invoiceConcepts = invoiceConceptSchema.array().parse(concepts.data);

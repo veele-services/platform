@@ -1056,7 +1056,7 @@ export function DayPlanboard({
       <section
         className={`pb-list ${prefs.collapsed ? "collapsed" : ""}`}
         ref={list}
-        style={{ height: prefs.collapsed ? 52 : prefs.height }}
+        style={{ height: prefs.collapsed ? 52 : data.orders.length ? prefs.height : Math.max(220, prefs.height) }}
         aria-label={`Bonnen voor ${query.day} en nog ongedateerde uitvoeringen`}
       >
         <header className="pb-list-toolbar">
@@ -1170,7 +1170,7 @@ export function DayPlanboard({
         </header>
         {!prefs.collapsed && (
           <>
-            <div className="pb-list-scroll">
+            <div className="pb-list-scroll" data-empty={!data.orders.length}>
               <table>
                 <thead>
                   <tr>

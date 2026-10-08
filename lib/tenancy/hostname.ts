@@ -1,5 +1,6 @@
 export const TENANT_SLUG_HEADER = "x-fieldgrid-tenant-slug";
 export const HOST_KIND_HEADER = "x-fieldgrid-host-kind";
+export const REQUEST_PATH_HEADER = "x-fieldgrid-pathname";
 
 export type HostContext =
   | { kind: "platform"; hostname: string }
@@ -9,7 +10,7 @@ export type HostContext =
 const tenantSlugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function normalizeHostname(value: string | null): string | null {
-  if (!value || value.includes(",")) return null;
+  if (!value || !/^(?:[a-z0-9.-]+|\[[0-9a-f:]+\])(?::\d{1,5})?$/i.test(value.trim())) return null;
   try {
     return new URL(`http://${value.trim().toLowerCase()}`).hostname;
   } catch {

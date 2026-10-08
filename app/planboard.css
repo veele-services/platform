@@ -673,16 +673,19 @@
 .pb-list table {
   width: 100%;
   min-width: 850px;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
 }
 .pb-list thead {
-  position: sticky;
-  top: 0;
   background: #f7f9fa;
-  z-index: 1;
 }
 .pb-list th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f7f9fa;
+  box-shadow: 0 1px 0 #e3eaee;
   height: 27px;
   padding: 4px 10px;
   font-size: calc(9px * var(--dashboard-font-scale, 1));
@@ -752,6 +755,44 @@
   padding: 16px;
   text-align: center;
   color: #708492;
+  font-size: calc(11px * var(--dashboard-font-scale, 1));
+}
+/* A short empty tray must not scroll its message or reserve a wide data table. */
+.pb-list-scroll[data-empty=true] {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.pb-list-scroll[data-empty=true] table {
+  min-width: 0;
+  table-layout: fixed;
+  flex: none;
+}
+.pb-list-scroll[data-empty=true] th {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-inline: 6px;
+}
+.pb-list-scroll[data-empty=true] th:first-child {
+  width: 24px;
+}
+.pb-list-scroll[data-empty=true] .pb-list-empty {
+  display: grid;
+  align-content: center;
+  flex: 1;
+  min-height: 0;
+  padding: 10px 16px;
+}
+.pb-list-scroll[data-empty=true] .fg-empty-state {
+  min-height: 0;
+  padding: 0;
+  gap: 5px;
+}
+.pb-list-scroll[data-empty=true] .fg-empty-state > svg {
+  width: 20px;
+  height: 20px;
+}
+.pb-list-scroll[data-empty=true] .fg-empty-state > p {
   font-size: calc(11px * var(--dashboard-font-scale, 1));
 }
 .pb-pagination {

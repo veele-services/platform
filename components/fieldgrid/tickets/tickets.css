@@ -46,6 +46,25 @@
 .ticket-weekdays { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
 .ticket-weekdays legend { padding: 0 0 8px; font-size: calc(12px * var(--dashboard-font-scale, 1)); font-weight: 600; }
 .ticket-settings-layout .ticket-form .ticket-notice { margin: 0; }
+.ticket-settings-tabs { min-width: 0; }
+.ticket-settings-tab-surface { display: grid; gap: 26px; padding: 24px; min-width: 0; border: 1px solid var(--brand-border); border-radius: 0 var(--fg-card-radius, 18px) var(--fg-card-radius, 18px) var(--fg-card-radius, 18px); background: var(--brand-card, #fff); }
+.ticket-settings-tab-surface > .fg-section { margin: 0; min-width: 0; }
+.ticket-settings-tab-surface .fg-section-body { margin: 0; }
+.ticket-settings-narrow > .fg-section { max-width: 960px; width: 100%; }
+.ticket-settings-category-body { padding: 0; border: 0; border-radius: 0; }
+.ticket-category-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.ticket-category-card { display: grid; align-content: start; gap: 12px; min-width: 0; padding: 16px; border: 1px solid var(--brand-border); border-radius: 12px; background: var(--brand-surface, #f5f7f8); }
+.ticket-category-card header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
+.ticket-category-card .ticket-record-link { font-size: 13px; line-height: 1.55; overflow-wrap: anywhere; }
+.ticket-category-card .fg-action-icon { flex-shrink: 0; }
+.ticket-category-card > .ticket-status { justify-self: start; }
+.ticket-category-card dl { display: grid; gap: 10px; margin: 0; }
+.ticket-category-card dt { font-size: 10px; font-weight: 500; letter-spacing: .05em; line-height: 1.6; text-transform: uppercase; color: var(--brand-muted); }
+.ticket-category-card dd { margin: 3px 0 0; font-size: 12px; line-height: 1.6; color: var(--brand-ink); overflow-wrap: anywhere; }
+.ticket-settings-tab-surface .ticket-form { gap: 18px; }
+.ticket-settings-tab-surface .ticket-form > :is(.primary-button, .secondary-button) { justify-self: start; }
+@media (max-width: 1250px) { .ticket-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .ticket-settings-tab-surface { padding: 16px; gap: 22px; } .ticket-category-grid { grid-template-columns: minmax(0, 1fr); } .ticket-settings-tab-surface .ticket-form > :is(.primary-button, .secondary-button) { width: 100%; } }
 @media (max-width: 600px) {
   .ticket-settings-layout { gap: 20px; }
   .ticket-settings-form-body .ticket-form > :is(.primary-button, .secondary-button) { width: 100%; }

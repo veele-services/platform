@@ -621,3 +621,11 @@ only GitHub Environment `staging`. A migration or deploy never creates the
 merchant binding. Real customer invoices remain outside acceptance fixtures;
 fictitious paid evidence is labelled, archived and retained. See
 [the operator runbook](../deployment/staging-tenant-integrations.md).
+
+## Eigen tenantadres (8 oktober 2026)
+
+Naast het vaste stagingadres kan platformbeheer een eigen staginghost registreren,
+DNS-verifiëren en na operatorinrichting activeren. Dit volgt het
+[domeincontract](tenant-workspace-domains.md). Tenantselectie blijft uitsluitend
+hostname-gebaseerd, fail-closed en gescheiden van productie; de vaste hostnamen,
+poort3301 en deploymentconfiguratie blijven gelden.

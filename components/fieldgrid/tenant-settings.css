@@ -1,0 +1,41 @@
+/* Settings share the numbering tab's roomy card and clearly separated groups. */
+body .tenant-settings-panel {
+  display: grid;
+  gap: 24px;
+  align-content: start;
+  min-width: 0;
+  padding: 24px;
+}
+body .content-tab-panel > .tenant-settings-panel:first-child,
+body .content-tabs:has(> .content-tab-list[aria-label="Organisatie-instellingen"]) > .content-tab-panel > .panel:first-child {
+  border-top-left-radius: 0;
+}
+.tenant-settings-panel > .section-heading { margin: 0; }
+.tenant-settings-panel > .section-heading .eyebrow { display:block; margin-bottom:6px; }
+.tenant-settings-panel > .section-heading h2 { margin:0; font-size:calc(1rem * var(--dashboard-font-scale, 1)); font-weight:600; }
+.tenant-settings-panel > .form-note { margin:0; line-height:1.65; }
+.tenant-settings-form { display:grid; gap:24px; align-content:start; min-width:0; }
+.tenant-settings-group { display:grid; gap:18px; min-width:0; margin:0; padding:20px; border:1px solid var(--brand-border,#dce4e8); border-radius:12px; }
+.tenant-settings-group legend { padding:0 6px; color:var(--brand-ink,#222c35); font-weight:600; font-size:calc(.875rem * var(--dashboard-font-scale, 1)); }
+.tenant-settings-fields,.tenant-settings-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; min-width:0; }
+.tenant-settings-fields label { display:grid; gap:8px; align-content:start; min-width:0; font-size:calc(.875rem * var(--dashboard-font-scale, 1)); font-weight:500; }
+.tenant-settings-fields label.wide { grid-column:1/-1; }
+.tenant-settings-fields :is(input,select):not([type=checkbox]) { width:100%; min-width:0; min-height:43px; padding:9px 12px; border:1px solid var(--brand-border,#dce4e8); border-radius:9px; background:var(--brand-surface,#f8fafb); color:var(--brand-ink,#222c35); }
+body .tenant-settings-panel .tenant-settings-check { display:flex; align-items:flex-start; gap:10px; font-size:calc(.875rem * var(--dashboard-font-scale, 1)); font-weight:400; line-height:1.6; }
+body .tenant-settings-check input[type=checkbox] { flex:none; width:18px; height:18px; min-height:18px; margin-top:3px; padding:0; accent-color:var(--brand-action,#43898d); }
+.tenant-settings-group > :is(p,.form-note) { margin:0; line-height:1.65; font-size:calc(.8125rem * var(--dashboard-font-scale, 1)); color:var(--brand-muted,#657887); }
+.tenant-settings-group .travel-notice { margin:0; }
+.tenant-settings-notice { margin:0; padding:14px 16px; border:1px solid var(--brand-border,#dce4e8); border-radius:10px; background:var(--brand-surface,#f5f7f8); color:var(--brand-muted,#657887); font-size:calc(.8125rem * var(--dashboard-font-scale, 1)); line-height:1.65; }
+.tenant-settings-actions { display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
+.tenant-settings-actions > .primary-button { width:100%; min-height:43px; }
+.tenant-settings-records { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; min-width:0; }
+.tenant-settings-links { display:grid; gap:0; min-width:0; }
+.tenant-settings-links a { display:block; padding:12px 0; border-bottom:1px solid var(--brand-border,#dce4e8); overflow-wrap:anywhere; }
+.tenant-settings-links a:last-child { border-bottom:0; }
+.tenant-settings-group > .secondary-button { justify-self:start; }
+@media(max-width:700px) {
+  body .tenant-settings-panel { padding:20px; gap:20px; }
+  .tenant-settings-group { padding:16px; }
+  .tenant-settings-fields,.tenant-settings-options,.tenant-settings-records { grid-template-columns:minmax(0,1fr); }
+  .tenant-settings-actions > button { flex:1 1 100%; }
+}

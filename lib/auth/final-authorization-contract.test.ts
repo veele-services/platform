@@ -7,7 +7,7 @@ describe("current authority immediately before privileged side effects", () => {
   it("rechecks finance access after attachment I/O and before provider submission", () => {
     const code = source("app/app/finance-actions.ts");
     const attachment = code.indexOf("readMailAttachment(context.tenant.id");
-    const recheck = code.indexOf("const currentContext = await financeContext()", attachment);
+    const recheck = code.indexOf('await confirmFinanceAction(context,"backoffice.functions.send_invoice")', attachment);
     const provider = code.indexOf("providerStarted = true", recheck);
     expect(attachment).toBeGreaterThan(0);
     expect(recheck).toBeGreaterThan(attachment);

@@ -656,6 +656,21 @@
       "version": "20261007110000",
       "name": "optional_customer_intake_location",
       "sha256": "70560d564256d5b351268a4bc33810bde59f91a2cc869762fbcdf44538f5a9c0"
+    },
+    {
+      "version": "20261008173000",
+      "name": "tenant_management_roles",
+      "sha256": "dc5940bc7de907c6fc0c4ff94bd936da7a2cc09f1ab3ebc4fe12e68877785349"
+    },
+    {
+      "version": "20261008174000",
+      "name": "workspace_domains_customer_portal",
+      "sha256": "14755f5f136e6e4c6c27b8b46f5f0ca1185fb4a91853d8694e4c96c4cbf6a76b"
+    },
+    {
+      "version": "20261008175000",
+      "name": "platform_support_operators",
+      "sha256": "f4c5e1f8392796f63dae07922e7fbb39be2e983a0963ae0caa2041857b9b6c85"
     }
   ]
 }

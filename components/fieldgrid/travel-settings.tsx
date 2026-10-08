@@ -1,5 +1,8 @@
 "use client";
 import { ContentSection } from "./content-section";
+import { ActionIcon } from "./action-icon";
+import { Pencil } from "lucide-react";
+import "./tenant-settings.css";
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -292,126 +295,52 @@ export function TravelSettings() {
   const attention = data.objects.filter(
     (o) => !o.arrival_location && !location(normalizeAddress(o.address)),
   );
-  return (
-    <section className="panel travel-settings">
-      <h2>Vertrekpunten & reismarges</h2>
-      <p className="travel-notice">
-        Alleen basisreistijden. Voorrang marge: object → vervoermiddel →
-        tenantstandaard. Reistijd wordt naar boven afgerond; de aankomstmarge
-        wordt ook bij korte ritten apart toegevoegd.
-      </p>
-      <form
-        className="travel-form"
-        key={data.settings.updated_at}
-        onSubmit={(e) => {
-          e.preventDefault();
-          const f = new FormData(e.currentTarget);
-          start(async () => {
-            const r = await saveTravelSettings(f);
-            if (!r.ok) toast.error(r.error);
-            else {
-              toast.success("Reismarges opgeslagen");
-              setGeneration((n) => n + 1);
-            }
-          });
-        }}
-      >
-        <input
-          type="hidden"
-          name="updatedAt"
-          value={data.settings.updated_at}
-        />
-        <label>
-          Standaard aankomstmarge (minuten)
-          <input
-            name="margin"
-            type="number"
-            min={0}
-            max={180}
-            defaultValue={data.settings.travel_margin_minutes}
-            required
-          />
-        </label>
-        <div className="address-fields">
-          {Object.entries(vehicles).map(([k, v]) => (
-            <label key={k}>
-              {v}: afwijkende marge
-              <input
-                name={`margin-${k}`}
-                type="number"
-                min={0}
-                max={180}
-                defaultValue={margins[k as Vehicle] ?? ""}
-                placeholder="Tenantstandaard"
-              />
-            </label>
-          ))}
+  const peopleAttention = data.people.filter(person => !person.standard_vehicle || !person.departure_kind);
+  return <section className="panel travel-settings tenant-settings-panel" aria-label="Reisinstellingen">
+    <div className="section-heading"><div><span className="eyebrow">PLANNING</span><h2>Vertrekpunten & reismarges</h2></div></div>
+    <p className="form-note">Stel vertrekpunten en aankomstmarges in. Voorrang marge: object → vervoermiddel → tenantstandaard. Reistijd wordt naar boven afgerond; de aankomstmarge wordt ook bij korte ritten apart toegevoegd.</p>
+    <form className="tenant-settings-form" key={data.settings.updated_at} onSubmit={event => {
+      event.preventDefault(); const form = new FormData(event.currentTarget);
+      start(async () => { const result = await saveTravelSettings(form); if (!result.ok) toast.error(result.error); else { toast.success("Reismarges opgeslagen"); setGeneration(value => value + 1); } });
+    }}>
+      <input type="hidden" name="updatedAt" value={data.settings.updated_at}/>
+      <fieldset className="tenant-settings-group" disabled={pending}>
+        <legend>Aankomstmarges</legend>
+        <div className="tenant-settings-fields">
+          <label className="wide">Standaard aankomstmarge (minuten)<input name="margin" type="number" min={0} max={180} defaultValue={data.settings.travel_margin_minutes} required/></label>
+          {Object.entries(vehicles).map(([key, label]) => <label key={key}>{label}: afwijkende marge<input name={`margin-${key}`} type="number" min={0} max={180} defaultValue={margins[key as Vehicle] ?? ""} placeholder="Tenantstandaard"/></label>)}
         </div>
-        <button className="primary-button" disabled={pending}>
-          Reismarges opslaan
-        </button>
-      </form>
-      <h3>Bedrijfslocaties en depots</h3>
-      {data.depots.map((d) => (
-        <article className="travel-card" key={d.id}>
-          <header>
-            <strong>{d.name}</strong>
-            <button className="resource-action" onClick={() => setEdit(d)}>
-              Bewerk
-            </button>
-          </header>
-          <p>{normalizeAddress(d.address).formatted}</p>
-          <small>
-            {d.active
-              ? addressStatus[normalizeAddress(d.address).status]
-              : "Inactief"}
-          </small>
-        </article>
-      ))}
-      <button className="secondary-button" onClick={() => setEdit("new")}>
-        Bedrijfslocatie toevoegen
-      </button>
-      {edit && (
-        <DepotForm
-          key={typeof edit === "string" ? "new" : edit.id}
-          depot={typeof edit === "string" ? undefined : edit}
-          onSaved={() => {
-            setEdit(null);
-            setGeneration((n) => n + 1);
-          }}
-        />
-      )}
-      <h3>Locaties die aandacht vragen ({attention.length})</h3>
-      <p className="travel-notice">
-        Bestaande adressen blijven behouden. Open een object, zoek het adres en
-        bevestig zelf het juiste resultaat; Fieldgrid kiest geen onzekere match.
-      </p>
-      {attention.map((o) => (
-        <Link className="text-link" key={o.id} href={`/app/objecten/${o.id}`}>
-          {o.name} · {addressStatus[normalizeAddress(o.address).status]}
-        </Link>
-      ))}
-      {!attention.length && (
-        <p>Alle actieve objecten hebben een bruikbare routebestemming.</p>
-      )}
-      <h3>Medewerkers: vertrek of vervoer aanvullen</h3>
-      {data.people
-        .filter((p) => !p.standard_vehicle || !p.departure_kind)
-        .map((p) => (
-          <Link
-            className="text-link"
-            key={p.id}
-            href={`/app/personeel/${p.id}?tab=persoon`}
-          >
-            {p.full_name} ·{" "}
-            {!p.standard_vehicle
-              ? "vervoermiddel ontbreekt"
-              : "vertrekkeuze ontbreekt"}
-          </Link>
-        ))}
-    </section>
-  );
+        <p>Laat een afwijkende marge leeg om de tenantstandaard te gebruiken.</p>
+      </fieldset>
+      <footer className="tenant-settings-actions"><button className="primary-button" disabled={pending}>{pending ? "Opslaan…" : "Reismarges opslaan"}</button></footer>
+    </form>
+    <fieldset className="tenant-settings-group">
+      <legend>Bedrijfslocaties en depots</legend>
+      <p>Kies vaste vertrekpunten voor reistijdberekeningen.</p>
+      <div className="tenant-settings-records">{data.depots.map(depot => <article className="travel-card" key={depot.id}>
+        <header><strong>{depot.name}</strong><ActionIcon className="resource-action" label={`Bewerk ${depot.name}`} icon={<Pencil size={16}/>} onClick={() => setEdit(depot)}/></header>
+        <p>{normalizeAddress(depot.address).formatted}</p><small>{depot.active ? addressStatus[normalizeAddress(depot.address).status] : "Inactief"}</small>
+      </article>)}</div>
+      {!data.depots.length && <p>Nog geen bedrijfslocaties. Voeg een vertrekpunt toe voor je organisatie.</p>}
+      <button className="secondary-button" onClick={() => setEdit("new")}>Bedrijfslocatie toevoegen</button>
+      {edit && <DepotForm key={typeof edit === "string" ? "new" : edit.id} depot={typeof edit === "string" ? undefined : edit} onSaved={() => { setEdit(null); setGeneration(value => value + 1); }}/>}
+    </fieldset>
+    <div className="tenant-settings-fields">
+      <fieldset className="tenant-settings-group">
+        <legend>Locaties die aandacht vragen ({attention.length})</legend>
+        <p>Open een object, zoek het adres en bevestig het juiste resultaat. Fieldgrid kiest geen onzekere match.</p>
+        <div className="tenant-settings-links">{attention.map(object => <Link className="text-link" key={object.id} href={`/app/objecten/${object.id}`}>{object.name} · {addressStatus[normalizeAddress(object.address).status]}</Link>)}</div>
+        {!attention.length && <p>Alle actieve objecten hebben een bruikbare routebestemming.</p>}
+      </fieldset>
+      <fieldset className="tenant-settings-group">
+        <legend>Vertrek of vervoer aanvullen ({peopleAttention.length})</legend>
+        <div className="tenant-settings-links">{peopleAttention.map(person => <Link className="text-link" key={person.id} href={`/app/personeel/${person.id}?tab=persoon`}>{person.full_name} · {!person.standard_vehicle ? "vervoermiddel ontbreekt" : "vertrekkeuze ontbreekt"}</Link>)}</div>
+        {!peopleAttention.length && <p>Alle medewerkers hebben een vertrekkeuze en vervoermiddel.</p>}
+      </fieldset>
+    </div>
+  </section>;
 }
+
 export function ArrivalSettings({
   object,
 }: {

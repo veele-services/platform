@@ -1,0 +1,5 @@
+/* Keep the mobile iframe painted while capturing its full page. A sticky
+   topbar otherwise appears at the current scroll offset in Chromium's image. */
+@media (max-width: 800px) {
+  .fg-topbar { position: static !important; }
+}

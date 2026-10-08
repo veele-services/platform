@@ -8,3 +8,6 @@
 @media(max-width:480px) { .catalogue-search-actions { gap:10px; } .task-catalogue .catalogue-search-actions .page-list-search { flex:1; width:auto; min-width:0; } }
 
 .task-catalogue .catalogue-row-actions{justify-content:flex-start}.task-catalogue .page-heading{margin:0}.task-catalogue .catalogue-search-actions{width:min(460px,100%)}.task-catalogue .catalogue-search-actions .page-list-search{flex:1;min-width:0}.task-catalogue .catalogue-search-actions>.primary-button{flex:0 0 auto}
+.catalogue-form-panel { display:grid; gap:24px; align-content:start; }
+.catalogue-form-panel > .form-note { margin:0; line-height:1.65; }
+.catalogue-form-panel > a { justify-self:start; }

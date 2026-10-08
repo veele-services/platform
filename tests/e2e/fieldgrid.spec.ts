@@ -19,6 +19,19 @@ async function expectNoHorizontalOverflow(page: Page) {
   })).toBe(true);
 }
 
+async function paintEmailPreview(page: Page) {
+  // Chromium may leave a sandboxed iframe below the viewport unpainted in a
+  // full-page capture. Use instant scrolling so the app's smooth scrolling
+  // cannot keep the iframe's heading moving during screenshot preparation.
+  await page.getByTitle("Voorbeeld e-mail").evaluate(element => element.scrollIntoView({ behavior: "instant", block: "center" }));
+  await page.frameLocator('iframe[title="Voorbeeld e-mail"]').locator("body").evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  if ((page.viewportSize()?.width ?? 0) > 800) {
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  }
+}
+
 test("beschermde routes vereisen een sessie en foutieve login lekt geen accountstatus", async ({ page }) => {
   await page.goto("/app");
   await expect(page).toHaveURL(/\/login/);
@@ -37,11 +50,34 @@ test("platform backoffice beheert tenants, huisstijl en berichttemplates profess
   await login(page, "platform-admin@fieldgrid.test", "/platform");
   await expect(page.getByRole("heading", { name: "Platformoverzicht" })).toBeVisible();
   await expect(page.getByText("FIELDGRID PLATFORM", { exact: true })).toBeVisible();
-  await expect(page.getByText("Demo Organisatie").first()).toBeVisible();
+  await expect(page.locator(".fg-sidebar")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Supportcockpit", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aandacht nodig", exact: true })).toBeVisible();
   await expect(page).toHaveScreenshot("platform-overview-1440.png", { fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectNoHorizontalOverflow(page);
+  await expect(page).toHaveScreenshot("platform-overview-390.png", { fullPage: true });
+  await page.getByRole("button", { name: "Open menu", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Supportdesk", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Sluit menu", exact: true }).click();
+  await page.setViewportSize({ width: 1440, height: 900 });
 
+  await page.getByRole("link", { name: "Tenants", exact: true }).click();
+  await page.getByLabel("Tenants zoeken").fill("Demo Organisatie");
   await page.getByRole("button", { name: /Demo Organisatie/ }).first().click();
   await expect(page.getByRole("heading", { name: "Demo Organisatie" })).toBeVisible();
+  await page.getByRole("tablist", { name: "Tenantinstellingen" }).getByRole("tab", { name: "Modules", exact: true }).click();
+  const modules = page.getByRole("tabpanel", { name: "Modules", exact: true });
+  await expect(modules.getByRole("switch", { name: /Klantportaal/ })).toBeEnabled();
+  await expect(modules.locator('[role="switch"]:enabled')).toHaveCount(6);
+  await expect(modules.getByRole("switch", { name: /Publieke website/ })).toBeDisabled();
+  await page.getByRole("tablist", { name: "Tenantinstellingen" }).getByRole("tab", { name: "Domein", exact: true }).click();
+  await expect(page.getByLabel("Eigen domeinnaam")).toBeVisible();
+  await expect(page).toHaveURL(/view=detail&tenant=[a-f0-9-]+&tab=domains/);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Demo Organisatie" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Supportinstellingen", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Domein", exact: true })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tablist", { name: "Tenantinstellingen" }).getByRole("tab", { name: "Huisstijl", exact: true }).click();
   await expect(page.getByLabel("Primaire kleur").last()).toHaveValue("#214e72");
   await expect(page.getByLabel("Secundaire kleur").last()).toHaveValue("#c65d21");
@@ -60,12 +96,14 @@ test("platform backoffice beheert tenants, huisstijl en berichttemplates profess
   const emailWebsiteLink = emailPreview.locator(".mail-shell > tbody > tr").last().locator('a[href^="https://"]');
   await expect(emailWebsiteLink).toBeVisible();
   await expect(emailWebsiteLink).not.toHaveText("");
+  await paintEmailPreview(page);
   await expect(page).toHaveScreenshot("platform-templates-1440.png", { fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   await expect(emailPreview.getByRole("heading", { name: /Factuur FACT-2026-00481/ })).toBeVisible();
-  await expect(page).toHaveScreenshot("platform-templates-390.png", { fullPage: true });
+  await paintEmailPreview(page);
+  await expect(page).toHaveScreenshot("platform-templates-390.png", { fullPage: true, stylePath: `${process.cwd()}/tests/e2e/platform-snapshot.css` });
 });
 
 test("backoffice toont echte tenantdata en blijft bruikbaar over alle doelbreedtes", async ({ page }) => {

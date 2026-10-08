@@ -1,14 +1,11 @@
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import test from 'node:test';
 import {createClient} from '@supabase/supabase-js';
-import {workOrderTestDatabase} from './work-order-test-target.mjs';
+import {localWorkOrderTestConfig,workOrderTestDatabase} from './work-order-test-target.mjs';
 
 test('platform identity rejects a revoked session through the real Auth and Data APIs',async()=>{
-  if(process.env.FIELDGRID_STAGING_SMOKE||process.env.FIELDGRID_LOCAL_REPLAY_DIR)throw Error('This HTTP fixture requires the original local stack only');
-  const local=JSON.parse(execFileSync('pnpm',['supabase','status','-o','json'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}));
-  const api=new URL(local.API_URL);assert.equal(api.hostname,'127.0.0.1');assert.equal(api.port,'59321');
+  const local=localWorkOrderTestConfig();
   const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};
   const admin=createClient(local.API_URL,local.SERVICE_ROLE_KEY,options),client=createClient(local.API_URL,local.ANON_KEY,options);
   const db=await workOrderTestDatabase();let userId;

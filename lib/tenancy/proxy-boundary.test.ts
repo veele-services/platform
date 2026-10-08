@@ -80,3 +80,24 @@ it("preserves a staff query deep link only inside the validated next destination
  expect(location.searchParams.get("next")).toBe("/staff?tab=meer&section=beschikbaarheid&workOrder=00000000-0000-4000-8000-000000000001");
  expect([...location.searchParams.keys()]).toEqual(["next"]);
 });
+it("maps only an active registered custom host and overwrites tenant/path signals",async()=>{
+ const fetchMock=vi.fn(async(url:string)=>new Response(JSON.stringify(url.endsWith('/rpc/resolve_workspace_hostname')?'alpha':[{id:'FICTITIOUS'}])));vi.stubGlobal('fetch',fetchMock);
+ const response=await proxy(new NextRequest('https://app.example.nl/app/klanten',{headers:{host:'app.example.nl',[TENANT_SLUG_HEADER]:'beta','x-fieldgrid-pathname':'/app/instellingen'}}));
+ // Public navigation redirects to login, while the same route with a session forwards trusted headers.
+ expect(new URL(response.headers.get('location')!).hostname).toBe('app.example.nl');
+ mocks.user.mockResolvedValue({data:{user:{id:'fixture-user'}},error:null});
+ const authenticated=await proxy(new NextRequest('https://app.example.nl/app/klanten',{headers:{host:'app.example.nl',[TENANT_SLUG_HEADER]:'beta','x-fieldgrid-pathname':'/app/instellingen'}}));
+ expect(authenticated.headers.get(`x-middleware-request-${TENANT_SLUG_HEADER}`)).toBe('alpha');
+ expect(authenticated.headers.get('x-middleware-request-x-fieldgrid-pathname')).toBe('/app/klanten');
+});
+it("rejects a pending custom domain and handles resolver outage without a fallback tenant",async()=>{
+ vi.stubGlobal('fetch',vi.fn(async()=>new Response('null')));
+ expect((await proxy(new NextRequest('https://app.example.nl/login',{headers:{host:'app.example.nl'}}))).status).toBe(404);
+ vi.stubGlobal('fetch',vi.fn(async()=>new Response('null',{status:503})));
+ expect((await proxy(new NextRequest('https://app.example.nl/login',{headers:{host:'app.example.nl'}}))).status).toBe(503);
+});
+it("opens custom workspace root in app while preserving the canonical tenant marketing site",async()=>{
+ vi.stubGlobal('fetch',vi.fn(async(url:string)=>new Response(JSON.stringify(url.endsWith('/rpc/resolve_workspace_hostname')?'veele-services':[{id:'FICTITIOUS'}]))));
+ const response=await proxy(new NextRequest('https://app.example.nl/',{headers:{host:'app.example.nl'}}));
+ expect(response.status).toBe(307);expect(response.headers.get('location')).toBe('https://app.example.nl/app');
+});

@@ -24,7 +24,10 @@ De [stagingarchitectuur](staging.md) blijft ongewijzigd voor staging.
 | Promotiebranch | `production`; uitsluitend een expliciet gepromoveerde, gecontroleerde `main`-SHA |
 | Applicatie-identiteit | `APP_ENV=production`, `DEPLOY_TARGET=production`, `NODE_ENV=production` |
 
-Tenantselectie gebeurt uitsluitend via de hostname. Een onbekende, inactieve of
+Tenantselectie gebeurt uitsluitend via de hostname. Platformbeheer kan daarnaast
+een eigen, DNS-geverifieerd tenantadres koppelen volgens
+[het domeincontract](tenant-workspace-domains.md); alleen expliciet actieve
+productiekoppelingen worden geaccepteerd. Een onbekende, inactieve of
 ongeldige tenant faalt gesloten; er is geen fallbacktenant. De Veele-root toont
 de geaccepteerde marketingwebsite. Portalen behouden dezelfde oorsprong en routes.
 Productiepagina's mogen worden geïndexeerd; staging behoudt zijn noindexbeleid.

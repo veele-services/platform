@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { TenantContext } from "@/lib/auth/context";
+import { hasManagementPermission } from "@/lib/management/model";
 
 export const searchInput = z.object({ query: z.string().trim().min(3).max(100) }).strict();
 export type SearchResult = { id: string; title: string; detail: string; href: string };
@@ -17,7 +18,12 @@ export const searchCategories = [
 ] as const;
 
 export function allowedSearchCategories(tenant: TenantContext) {
-  return searchCategories.filter(category => tenant.enabledServices.includes(category.service) && tenant.roles.some(role => (category.roles as readonly string[]).includes(role)));
+  if (!hasManagementPermission(tenant, "backoffice.access")) return [];
+  const modules = { customers: "customers", objects: "objects", orders: "work_orders", requests: "commercial", quotes: "commercial", people: "personnel", invoices: "finance" };
+  return searchCategories.filter(category => tenant.enabledServices.includes(category.service)
+    && tenant.roles.some(role => (category.roles as readonly string[]).includes(role))
+    && hasManagementPermission(tenant, `backoffice.${modules[category.id]}.read`)
+    && (category.id !== "orders" || ["work_order_list", "work_order_operational_rows"].every(fn => hasManagementPermission(tenant, `backoffice.functions.${fn}`))));
 }
 
 /** PostgREST values are quoted; SQL pattern metacharacters stay literal. */
