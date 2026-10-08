@@ -97,7 +97,7 @@ it("rejects a pending custom domain and handles resolver outage without a fallba
  expect((await proxy(new NextRequest('https://app.example.nl/login',{headers:{host:'app.example.nl'}}))).status).toBe(503);
 });
 it("opens custom workspace root in app while preserving the canonical tenant marketing site",async()=>{
- vi.stubGlobal('fetch',vi.fn(async(url:string)=>new Response(JSON.stringify(url.endsWith('/rpc/resolve_workspace_hostname')?'veele-services':[{id:'FICTITIOUS'}]))));
+ vi.stubGlobal('fetch',vi.fn(async(url:string)=>new Response(JSON.stringify(url.endsWith('/rpc/resolve_workspace_hostname')?'demo-tenant':[{id:'FICTITIOUS'}]))));
  const response=await proxy(new NextRequest('https://app.example.nl/',{headers:{host:'app.example.nl'}}));
  expect(response.status).toBe(307);expect(response.headers.get('location')).toBe('https://app.example.nl/app');
 });

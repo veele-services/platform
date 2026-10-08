@@ -4972,12 +4972,13 @@
     },
     {
       "id": "operation:.github/workflows/_verify.yml",
-      "surfaceFingerprint": "759d566532ce9e0a063973974ebb7da5ea7369980bd9d78e497d5f156a544bda",
+      "surfaceFingerprint": "e176c7fadb668a24f191fbfc227c3fc7f7daa102ae71aaeaf224a690c4da2cee",
       "status": "corrected-and-rechecked",
       "evidence": [
         "lib/operations/mail-provider-contract.test.ts: 21 passing provider signature/dependency and legitimate command tests",
         "scripts/check-mail-provider.ts: complete tracked-file scan; Git/read/parse failures propagate; violation output contains filenames only",
-        "docs/security/management-workspace-verification-2026-10-09.md: independent source review and unchanged database boundaries"
+        "docs/security/management-workspace-verification-2026-10-09.md: independent source review and unchanged database boundaries",
+        "Both complete provider/branding guards pass locally; moved unchanged source guards before expensive CI integration checks. Dummy domain fixtures use a fictitious tenant rather than product branding."
       ]
     },
     {

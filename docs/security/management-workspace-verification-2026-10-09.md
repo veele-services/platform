@@ -249,7 +249,10 @@ branding check produced a false positive on the management invitation command.
 The corrected guard detects SDK imports, dependencies, configuration and
 provider hosts while allowing the invitation verb; all 21 focused guard tests
 pass, and an independent source review found no blocking issue. No database or
-migration behavior changed. Exact-head GitHub CI remains a promotion gate.
+migration behavior changed. The separate product-branding guard also found two
+unit fixtures using a real tenant name; those now use a fictitious tenant. Both
+complete guards pass locally and run before the expensive CI integration steps.
+Exact-head GitHub CI remains a promotion gate.
 
 The evidence map groups each changed surface with its source and relevant tests.
 The final ledger preserves unchanged entries only when their fingerprints match;
