@@ -182,11 +182,25 @@ niet de inhoud van `runtime.env`; beide productie-services moeten verwijzen naar
 ## 4. DNS, TLS en providers
 
 Laat `fieldgrid.nl` en `*.fieldgrid.nl` naar de gekozen VPS wijzen. Controleer
-eventuele AAAA-records en bestaande sites vóór wijziging. Voeg het aparte blok
-uit `deploy/Caddyfile.production.example` toe, met de geïnstalleerde DNS-module
-en de door de operator beheerde DNS-providerkey voor wildcardcertificaten.
-De specifieke staginghost/wildcard blijft naar 3301 wijzen. Valideer de complete
-Caddyconfiguratie vóór reload; bewijs daarna beide origins en de staginghealth.
+eventuele AAAA-records en bestaande sites vóór wijziging. Vervang de bestaande
+productieblokken voor de basis- en wildcardhost door de routing uit
+`deploy/Caddyfile.production.example`: één proxy naar `127.0.0.1:3302` voor alle
+paden. Verwijder hun oude redirects, matchers en conditionele legacyhandlers;
+alleen een extra proxy toevoegen laat eerdere handlers actief. Maak geen
+dubbele siteadressen aan.
+
+Behoud de bestaande TLS-/DNS-directives, TLS-snippets en door de operator
+beheerde DNS-providerkey voor wildcardcertificaten. Behoud ook overige sites en
+alle specifieke stagingblokken en imports die naar 3301 wijzen. Voeg geen tweede
+stagingwildcard toe wanneer die al via een import bestaat. Valideer de volledige
+Caddyconfiguratie met de serviceomgeving, zonder providerwaarden te tonen, en
+reload via de bestaande service. Bewijs daarna beide productieorigins en beide
+staginghealthchecks zonder redirects, met de exacte verwachte SHA.
+
+Gebruik de uitgestelde `>Referrer-Policy "no-referrer"` uit het voorbeeld om de
+header na de upstreamresponse te overschrijven. Een onmiddellijke proxyheader
+kan samen met de applicatieheader twee waarden opleveren; de controle van de
+authenticatieredirect vereist precies één `no-referrer`.
 
 Verifieer SendGrid-productieafzender, SPF/DKIM en gewenste DMARC-policy, gebruik
 een eigen Mail Send-key. Stel signed Event Webhook in op
@@ -244,6 +258,15 @@ adres/coördinaten, planningsdag, dossieracties, factuur-PDF en tenantbetaalinst
 Een geslaagde workflow bewijst geen inboxbezorging of fysieke mobiele push.
 
 ## 6. Herstel en operationele vrijgave
+
+Bij de eerste productieactivatie op 8 oktober 2026 was release
+`2c58f6f7ff8874dea526a18be90bd80161a93e86` al door de broker geactiveerd toen de
+publieke controle op oude Caddyrouting vastliep. Bij zo'n proxyfout: herstel alleen
+de operatorconfiguratie en verifieer de actieve exacte publieke health en de
+read-only authenticatie- en workercontroles. Herhaal geen handoff of brokerjob
+voor een al geactiveerde release. Rond daarna bootstrap en de echte tenantaanmaak
+af; de read-only websitecontrole kan pas met die actieve tenant slagen. Hervat
+deze controles afzonderlijk, zonder de deployjob opnieuw te activeren.
 
 Root-only premigratiebackups blijven per SHA onder `backups`; de tijdelijke
 GitHub-handoff bevat uitsluitend versleutelde dumps en verloopt na één dag.
