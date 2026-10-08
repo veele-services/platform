@@ -6,9 +6,9 @@ boundaries, not a claim that every function was individually exercised or that
 local tests establish production acceptance. CI and exact-SHA deployments remain
 separate release gates.
 
-The final clean-replay capture differs from the preceding inventory at 291 IDs:
-122 database tables, 142 functions, 25 code entrypoints and two operational
-entrypoints. The 818 unchanged review entries retain their previous evidence
+The final clean-replay capture differs from the preceding inventory at 294 IDs:
+122 database tables, 142 functions, 25 code entrypoints and five operational
+entrypoints. The 816 unchanged review entries retain their previous evidence
 and matching fingerprints. Changed entries reference the specific source and
 module tests documented below; shared gate tests apply to their generated policy
 and RPC families.
@@ -232,7 +232,7 @@ the final source-bound ledger or regression results.
 On the final chronological replay, all 134 migration statement hashes match.
 The 131 existing hashes remain unchanged and only the three new migrations were
 added to the manifest. All 398 pgTAP assertions and all 467 functional database
-checks passed. The unit suite passed all 1,747 tests; lint and TypeScript passed.
+checks passed. The unit suite passed all 1,768 tests; lint and TypeScript passed.
 Ten real Auth/Data API/Storage/Realtime checks passed. Database lint has no
 errors and the security advisor reports no warnings or errors. The independent
 source review found no outstanding concrete P1/P2 finding.
@@ -244,7 +244,12 @@ passed. The complete 121-case browser regression is covered: the initial run
 passed 117 cases, and four affected cases then passed in a serial rerun after
 fixing two test readiness conditions, removing a fixture cleanup contention and
 reviewing the palette baselines. Platform baselines were visually reviewed on
-desktop and mobile. Exact-head GitHub CI remains a separate promotion gate.
+desktop and mobile. The clean GitHub browser run also passed all 121 cases. Its final provider
+branding check produced a false positive on the management invitation command.
+The corrected guard detects SDK imports, dependencies, configuration and
+provider hosts while allowing the invitation verb; all 21 focused guard tests
+pass, and an independent source review found no blocking issue. No database or
+migration behavior changed. Exact-head GitHub CI remains a promotion gate.
 
 The evidence map groups each changed surface with its source and relevant tests.
 The final ledger preserves unchanged entries only when their fingerprints match;

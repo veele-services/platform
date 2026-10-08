@@ -963,7 +963,7 @@
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
         "docs/security/otp-activity-verification-2026-10-05.md",
-        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-v\u00f3\u00f3r-deployment--5-oktober-2026"
       ]
     },
     {
@@ -4972,14 +4972,12 @@
     },
     {
       "id": "operation:.github/workflows/_verify.yml",
-      "surfaceFingerprint": "0d0e4ce5099356964f8af7f51e4adf1733aa418fd318146e1554e1b2190ba5ff",
+      "surfaceFingerprint": "759d566532ce9e0a063973974ebb7da5ea7369980bd9d78e497d5f156a544bda",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/production-release-boundaries-2026-10-07.md",
-        "lib/operations/production-deployment.test.ts",
-        "lib/env/production-database.test.ts",
-        "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "lib/operations/mail-provider-contract.test.ts: 21 passing provider signature/dependency and legitimate command tests",
+        "scripts/check-mail-provider.ts: complete tracked-file scan; Git/read/parse failures propagate; violation output contains filenames only",
+        "docs/security/management-workspace-verification-2026-10-09.md: independent source review and unchanged database boundaries"
       ]
     },
     {
@@ -5615,6 +5613,16 @@
       ]
     },
     {
+      "id": "operation:scripts/check-mail-provider.ts",
+      "surfaceFingerprint": "fd73fa6b81b8ff603e65c93075940c6cb9e4161bc791dc5673b67bb14fed36d9",
+      "status": "controlled",
+      "evidence": [
+        "lib/operations/mail-provider-contract.test.ts: 21 passing provider signature/dependency and legitimate command tests",
+        "scripts/check-mail-provider.ts: complete tracked-file scan; Git/read/parse failures propagate; violation output contains filenames only",
+        "docs/security/management-workspace-verification-2026-10-09.md: independent source review and unchanged database boundaries"
+      ]
+    },
+    {
       "id": "operation:scripts/check-production-root-contract.sh",
       "surfaceFingerprint": "009ea280d7e1e6b79a0a0e096742766699b12c51b2c17f1fc15f0206f9792b1b",
       "status": "controlled",
@@ -5676,11 +5684,12 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "b53eec714ee24a1a5329775184d41daac80b547051d9e901b9c2e9d8c82cd1e2",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "298067c51cc289ed150dd50455a7b29bc9be7c7a546521c7b8723c63eeab4fa2",
+      "status": "controlled",
       "evidence": [
-        "docs/security/production-release-boundaries-2026-10-07.md",
-        "scripts/check-authorization-review.mjs"
+        "lib/operations/mail-provider-contract.test.ts: 21 passing provider signature/dependency and legitimate command tests",
+        "scripts/check-mail-provider.ts: complete tracked-file scan; Git/read/parse failures propagate; violation output contains filenames only",
+        "docs/security/management-workspace-verification-2026-10-09.md: independent source review and unchanged database boundaries"
       ]
     },
     {

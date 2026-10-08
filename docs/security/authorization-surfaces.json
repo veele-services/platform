@@ -6710,7 +6710,7 @@
     {
       "id": "operation:.github/workflows/_verify.yml",
       "classification": "operation",
-      "source_sha256": "031e0c977289e9c3b36a5a9e8d4c840b0740e6cba5b6c9d28a5ba5488b5e640a"
+      "source_sha256": "f488f3fb73e5bd2c794a248dad3ca39ec360540d0248fd20da2d5ddd386f9c54"
     },
     {
       "id": "operation:.github/workflows/bootstrap-production-admin.yml",
@@ -6993,6 +6993,11 @@
       "source_sha256": "b573d6298aae6ad9cb9034efb7aee5137f5449b887a81005172190ff87126393"
     },
     {
+      "id": "operation:scripts/check-mail-provider.ts",
+      "classification": "operation",
+      "source_sha256": "37d05f6bd1f473e5904b67641e67c5dc1623f6a2def35cec2273a5afc99a36c1"
+    },
+    {
       "id": "operation:scripts/check-production-root-contract.sh",
       "classification": "operation",
       "source_sha256": "554f96549652ce37edcba2692b356655d92e3089e1893eadc95855e32f31bff6"
@@ -7020,7 +7025,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "4da28d569ae880b56f6b5ec79279c5dff08d99c96e69a37ebb488f2e2c2c97a0"
+      "source_sha256": "c3f6c85be8ad5d81f92782ca8f88577747fc311128fe0c9040bdd1a04b4b65de"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
