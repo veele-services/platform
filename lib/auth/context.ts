@@ -22,7 +22,7 @@ export type TenantContext = {
 };
 
 export type AuthContext = {
-  user: { id: string; email: string | null };
+  user: { id: string; email: string | null; displayName?: string | null };
   tenant: TenantContext | null;
   memberships: Array<{ tenantId: string; tenantName: string; tenantSlug: string; roles: AppRole[] }>;
   isPlatformAdmin: boolean;
@@ -82,7 +82,7 @@ export async function getAuthContext(): Promise<AuthContext> {
     }
   }
   return {
-    user: { id: user.id, email: user.email ?? null },
+    user: { id: user.id, email: user.email ?? null, displayName: typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim().slice(0, 160) || null : null },
     tenant,
     memberships,
     isPlatformAdmin: Boolean(platformAdmin),

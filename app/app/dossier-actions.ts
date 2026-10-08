@@ -5,15 +5,12 @@ import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/result";
 import type { ChainScope, DossierChain } from "@/lib/dossiers/model";
+import { loadDossierChain } from "@/lib/dossiers/data";
 
-const scopeSchema = z.object({ customerId: z.uuid().optional(), objectId: z.uuid().optional(), personnelId: z.uuid().optional(), orderId: z.uuid().optional() });
 export async function getDossierChain(scope: ChainScope): Promise<ActionResult<{ data: DossierChain }>> {
   try {
     const context = await getAuthContext(); if (!context.tenant) throw new Error();
-    const s = scopeSchema.parse(scope); const db = await createClient();
-    const { data, error } = await db.rpc("dossier_chain", { target_tenant: context.tenant.id, target_customer: s.customerId, target_object: s.objectId, target_personnel: s.personnelId, target_order: s.orderId });
-    if (error || !data) throw new Error();
-    return { ok: true, data: data as unknown as DossierChain };
+    return { ok: true, data: await loadDossierChain(context.tenant.id, scope) };
   } catch { return { ok: false, error: "De gekoppelde dossiers zijn niet beschikbaar. Controleer je toegang en probeer opnieuw." }; }
 }
 export async function saveCustomerAgreement(form: FormData): Promise<ActionResult> {

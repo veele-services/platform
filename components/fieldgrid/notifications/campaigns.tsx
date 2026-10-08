@@ -1,8 +1,10 @@
 "use client";
+import { EmptyState } from "../empty-state";
+import { ActionIcon, ActionLink } from "../action-icon";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, Eye } from "lucide-react";
 import { loadNotificationRecipients, explainNotification } from "@/app/notifications/actions";
 import { channelLabels, workspaceLabels, notificationChannels, notificationPaths, recipientCriteriaSchema, type CampaignList, type Choice, type NotificationAccess, type NotificationCampaign, type NotificationExplanation, type NotificationChannel, type RecipientCriteria, type RecipientPreview } from "@/lib/notifications/model";
 import { localDateTime, localToInstant } from "@/lib/planning/time";
@@ -56,8 +58,8 @@ export function CampaignWizard({ access, initial, onClose, onSaved }: { access: 
   </div></NotificationDialog>;
 }
 
-export function CampaignTable({ access, data }: { access: NotificationAccess; data: CampaignList }) { return <div className="nt-table-wrap"><table className="nt-table"><thead><tr><th>Onderwerp</th><th>Doelgroep</th><th>Status</th><th>Kanalen</th><th>Moment</th></tr></thead><tbody>{data.items.map(c => <tr key={c.id}><td><Link href={`${notificationPaths[access.workspace]}/campagnes/${c.id}`}>{c.title}</Link><small>{c.senderName}</small></td><td>{c.audienceSummary}<small>{c.recipientCount} ontvangers</small></td><td><State value={c.state}/></td><td>{c.channels.map(k => channelLabels[k]).join(" · ")}</td><td>{notificationDate(c.scheduledAt ?? c.createdAt, c.timezone)}<small>{c.timezone}</small></td></tr>)}</tbody></table>{!data.items.length && <p className="nt-empty">Geen notificaties binnen deze selectie.</p>}</div>; }
-export function NewCampaignButton({ access }: { access: NotificationAccess }) { const router = useRouter(), [open, setOpen] = useState(false); return <><button className="primary-button" onClick={() => setOpen(true)}><Plus size={15}/>Nieuwe notificatie</button>{open && <CampaignWizard access={access} onClose={() => setOpen(false)} onSaved={id => { setOpen(false); router.push(`${notificationPaths[access.workspace]}/campagnes/${id}`); router.refresh(); }}/>}</>; }
+export function CampaignTable({ access, data }: { access: NotificationAccess; data: CampaignList }) { return <div className="table-scroll"><table className="nt-table"><thead><tr><th>Onderwerp</th><th>Doelgroep</th><th>Status</th><th>Kanalen</th><th>Moment</th><th>Acties</th></tr></thead><tbody>{data.items.map(c => <tr key={c.id}><td><Link href={`${notificationPaths[access.workspace]}/campagnes/${c.id}`}>{c.title}</Link><small>{c.senderName}</small></td><td>{c.audienceSummary}<small>{c.recipientCount} ontvangers</small></td><td><State value={c.state}/></td><td>{c.channels.map(k => channelLabels[k]).join(" · ")}</td><td>{notificationDate(c.scheduledAt ?? c.createdAt, c.timezone)}<small>{c.timezone}</small></td><td><ActionLink label="Notificatie openen" title={`Open ${c.title}`} className="resource-action" href={`${notificationPaths[access.workspace]}/campagnes/${c.id}`} icon={<Eye size={16}/>}/></td></tr>)}</tbody></table>{!data.items.length && <EmptyState title="Nog geen notificaties" description="Gebruik de plusknop bovenaan om een notificatie op te stellen."/>}</div>; }
+export function NewCampaignButton({ access }: { access: NotificationAccess }) { const router = useRouter(), [open, setOpen] = useState(false); return <><ActionIcon className="primary-button" label="Nieuwe notificatie" icon={<Plus size={18}/>} onClick={() => setOpen(true)}/>{open && <CampaignWizard access={access} onClose={() => setOpen(false)} onSaved={id => { setOpen(false); router.push(`${notificationPaths[access.workspace]}/campagnes/${id}`); router.refresh(); }}/>}</>; }
 export function CampaignDetail({ access, data }: { access: NotificationAccess; data: NotificationCampaign }) {
   const router = useRouter(), action = useNotificationCommand(access), [editing, setEditing] = useState(false), [reason, setReason] = useState("");
   const mutate = async (command: "campaign_pause" | "campaign_resume" | "campaign_cancel" | "campaign_duplicate") => { const result = await action.execute(command, { id: data.id, version: data.version, reason: reason || undefined }); if (result?.ok) { if (command === "campaign_duplicate" && result.id) router.push(`${notificationPaths[access.workspace]}/campagnes/${result.id}`); router.refresh(); } };

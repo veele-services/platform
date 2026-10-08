@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <small>{brand?.name ?? "Fieldgrid"} · Personeelsapp</small>
       </aside>}
       <section className="auth-card">
-        {brand?.logoUrl ? <FieldgridBrand tenantName={brand.name} logoUrl={brand.logoUrl} showName /> : <div className="auth-brand-fallback"><ProductBrand/>{brand&&<span className="brand-tenant-name">{brand.name}</span>}</div>}
+        <FieldgridBrand tenantName={brand?.name} logoUrl={brand?.logoUrl}/>
         <span className="eyebrow">{staffLogin ? "PERSONEELSPORTAAL" : "VEILIGE WERKOMGEVING"}</span>
         <h1>{staffLogin ? "Inloggen personeelsapp" : "Welkom terug"}</h1>
         <p>Ontvang een eenmalige code op het e-mailadres van je account{brand ? ` bij ${brand.name}` : ""}.</p>

@@ -80,6 +80,14 @@ export type PlanningQuery = {
   status: string;
   page: number;
 };
+/** The first client render reuses the exact query that produced the server snapshot. */
+export function initialPlanningQuery(day: string): PlanningQuery {
+  return { day, view: "unassigned", search: "", status: "", page: 1 };
+}
+
+export function samePlanningQuery(left: PlanningQuery, right: PlanningQuery): boolean {
+  return left.day === right.day && left.view === right.view && left.search === right.search && left.status === right.status && left.page === right.page;
+}
 export type AssignmentInput = {
   personnelId: string;
   start: string;

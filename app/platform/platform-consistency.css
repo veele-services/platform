@@ -1,0 +1,55 @@
+/* Platform pages use the same controls, typography and card rhythm as tenants. */
+.fg-console .unified-page-heading { margin:0 0 24px; }
+.fg-console .unified-page-heading h1 { font-size:clamp(24px,2.2vw,30px);font-weight:650;line-height:1.25; }
+.fg-console .fg-eyebrow { color:var(--brand-muted);font-weight:450;letter-spacing:.12em;line-height:1.6; }
+.fg-console .fg-panel,.fg-console .fg-module-card,.fg-console .fg-metric { border:1px solid var(--brand-border);border-radius:16px;background:var(--brand-card,#fff);box-shadow:none; }
+.fg-console .fg-panel-heading h2,.fg-console .fg-content-heading h2,.fg-console .fg-template-editor h2 { font-size:16px;font-weight:600;line-height:1.5; }
+.fg-console .fg-panel-heading { align-items:center;gap:16px; }
+.fg-console .fg-button { font-size:13px;font-weight:600;box-shadow:none; }
+.fg-console .fg-button-primary { box-shadow:0 2px 5px rgb(15 35 50 / .08); }
+.fg-console .fg-button-primary:hover { transform:none; }
+.fg-console .fg-sidebar nav :is(button,a) { font-weight:500;font-size:13px; }
+.fg-console .fg-sidebar nav>span { font-weight:450; }
+.fg-console .fg-top-right { gap:10px!important; }
+.fg-console .fg-top-right .shell-account-button { width:42px;height:42px;border:1px solid var(--brand-border);border-radius:50%;font:600 13px/1 Inter,sans-serif; }
+.fg-console .fg-topbar>div:first-child { min-width:0; }
+.fg-console .fg-topbar>div:first-child>strong { white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.fg-console .fg-account-footer { display:flex;align-items:center;gap:12px; }
+.fg-console .fg-account-footer .fg-account-initials { display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;background:var(--brand-accent-soft);color:var(--brand-accent-text);font-size:13px;font-weight:600; }
+.fg-console .fg-account-footer>div { min-width:0; }
+.fg-console .fg-account-footer strong { display:block;font-size:13px;line-height:1.5;overflow-wrap:anywhere; }
+.fg-console .fg-account-footer small { margin-top:3px;font-size:11px; }
+.fg-console .fg-search { height:42px;min-width:200px;max-width:320px;background:var(--brand-card,#fff);border:1px solid var(--brand-border);border-radius:10px; }
+.fg-console .fg-search input { min-width:0;border:0;outline:0;box-shadow:none;background:transparent; }
+.fg-console .fg-search:focus-within { border-color:var(--brand-action); }
+.fg-console .fg-list-panel { padding:0;overflow:hidden; }
+.fg-console .fg-table-scroll { padding:0;scrollbar-gutter:auto; }
+.fg-console .fg-table { width:100%;margin:0;border-collapse:collapse; }
+.fg-console .fg-table thead { background:var(--brand-surface,#f4f7f8); }
+.fg-console .fg-table th { padding:16px 18px;font-size:11px;font-weight:500;letter-spacing:.06em;line-height:1.5;text-transform:uppercase;border-bottom:1px solid var(--brand-border); }
+.fg-console .fg-table th>button { display:inline-flex;align-items:center;gap:7px;margin:0;padding:0;border:0;border-radius:0;background:transparent;font:inherit;text-transform:inherit;letter-spacing:inherit;color:inherit; }
+.fg-console .fg-table td { font-size:13px;line-height:1.5;padding:16px 18px; }
+.fg-console .fg-table td:first-child .fg-tenant-record { display:flex;align-items:center;gap:12px;width:auto;height:auto;min-height:0;padding:0;border:0;background:transparent;text-align:left; }
+.fg-console .fg-table td strong { font-size:13px;font-weight:600; }
+.fg-console .fg-table td small { font-size:11px; }
+.fg-console .fg-table .fg-action-icon { display:inline-grid;width:36px;height:36px;min-width:36px;min-height:36px;padding:0;border:1px solid var(--brand-border);border-radius:9px;background:var(--brand-card,#fff);color:var(--brand-ink); }
+.fg-console .fg-tab-panel-surface { min-width:0;padding:24px;border:1px solid var(--brand-border);border-radius:0 16px 16px 16px;background:var(--brand-card,#fff); }
+.fg-console .fg-settings-grid,.fg-console .fg-brand-layout { min-width:0;align-items:start; }
+.fg-console .fg-settings-grid>*,.fg-console .fg-brand-layout>* { min-width:0; }
+.fg-console .content-tabs { margin-top:24px; }
+.fg-console .content-tab-list { margin-bottom:-1px; }
+.fg-console .fg-preview-tabs { display:flex;align-items:stretch;gap:4px;padding-top:4px;overflow:auto;margin-bottom:-1px; }
+.fg-console .fg-preview-tabs button { min-height:42px;padding:10px 14px;flex-shrink:0;border:1px solid var(--brand-border);border-radius:9px 9px 0 0;background:var(--brand-surface);color:var(--brand-muted);font-size:12px;font-weight:500; }
+.fg-console .fg-preview-tabs button.active { position:relative;z-index:1;background:var(--brand-card,#fff);border-bottom-color:var(--brand-card,#fff);color:var(--brand-accent-text); }
+.fg-console .fg-brand-preview { border:1px solid var(--brand-border);border-top-left-radius:0; }
+.fg-console .fg-field { font-size:13px; }
+.fg-console .fg-field>span { font-size:12px;font-weight:550; }
+.fg-console input:focus-visible,.fg-console select:focus-visible,.fg-console textarea:focus-visible { outline:1px solid var(--brand-action);outline-offset:0;box-shadow:none; }
+.fg-console .fg-search input:focus-visible { outline:0; }
+.fg-console button:focus-visible { outline:2px solid var(--brand-action);outline-offset:2px; }
+@media(max-width:640px) {
+ .fg-console .fg-tab-panel-surface { padding:16px; }
+ .fg-console .fg-search { min-width:0;max-width:none;flex:1; }
+ .fg-console .fg-topbar { padding-inline:15px;gap:12px; }
+ .fg-console .fg-topbar>div:first-child { flex:1; }
+}

@@ -3,6 +3,8 @@
 import * as React from "react"
 import { Popover as PopoverPrimitive } from "radix-ui"
 
+import { useOptionalTenantTheme } from "@/components/fieldgrid/tenant-theme"
+
 import { cn } from "@/lib/utils"
 
 function Popover({
@@ -26,14 +28,18 @@ function PopoverClose({
 function PopoverContent({
   className,
   portalContainer,
+  style,
   align = "center",
   sideOffset = 4,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content> & { portalContainer?: HTMLElement | null }) {
+  const theme = useOptionalTenantTheme()
   return (
     <PopoverPrimitive.Portal container={portalContainer}>
       <PopoverPrimitive.Content
         data-slot="popover-content"
+        data-tenant-theme={theme ? "true" : undefined}
+        style={{ ...theme, ...style }}
         align={align}
         sideOffset={sideOffset}
         className={cn(

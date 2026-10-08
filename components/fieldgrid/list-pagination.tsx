@@ -49,6 +49,7 @@ export function ListPagination({ total, page, pageSize, noun = "resultaten", bus
       if (onPageSizeChange) onPageSizeChange(size); else if (href) router.push(target(1, size), { scroll: false });
     }}>{[...new Set<number>([...LIST_PAGE_SIZES, pageSize])].sort((a,b)=>a-b).map(size=><option key={size} value={size}>{size}</option>)}</select><span>per pagina</span></label>
     <button className="secondary-button" aria-label="Vorige pagina" disabled={busy || current <= 1} onClick={() => navigate(current - 1)}><ChevronLeft size={16}/></button>
+    <label className="list-page-picker"><span className="sr-only">Pagina</span><select aria-label="Ga naar pagina" value={current} disabled={busy || pages <= 1} onChange={event => navigate(Number(event.target.value))}>{Array.from({length: pages}, (_, index) => <option key={index + 1} value={index + 1}>{index + 1}</option>)}</select><span className="list-page-total">van {pages}</span></label>
     <button className="secondary-button" aria-label="Volgende pagina" disabled={busy || current >= pages} onClick={() => navigate(current + 1)}><ChevronRight size={16}/></button></div>
   </nav>;
 }

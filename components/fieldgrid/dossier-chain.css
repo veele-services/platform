@@ -1,0 +1,7 @@
+.chain-page { display: grid; gap: 24px; min-width: 0; }
+.chain-section .chain-table-body { padding: 0; overflow: hidden; }
+.chain-table-body .table-scroll { margin: 0; padding: 0; }
+.chain-table-body .resource-table { width: 100%; }
+.chain-title-link { font-weight: 600; text-decoration: none; color: inherit; }
+.chain-title-link:hover { text-decoration: underline; }
+.chain-table-body .table-sort-button { display: inline-flex; align-items: center; gap: 6px; border: 0; padding: 0; background: transparent; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; text-align: left; }

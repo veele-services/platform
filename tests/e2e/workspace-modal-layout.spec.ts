@@ -112,7 +112,12 @@ test("tenantmodals houden wizardvelden compact en dossieracties en tabs bereikba
       const detail=page.getByRole("dialog",{name:"Fictieve modalaanvraag",exact:true});
       await inspect(page,detail,info,"dossier");
       const tabs=detail.getByRole("tablist");
-      await expect(tabs).toHaveCSS("background-color","rgb(255, 255, 255)");
+      // The rail is transparent; the selected card joins the white content.
+      await expect(tabs).toHaveCSS("overflow-x","auto");
+      const selected=detail.getByRole("tab",{name:"Overzicht",exact:true});
+      await expect(selected).toHaveCSS("background-color","rgb(255, 255, 255)");
+      await expect(selected).toHaveCSS("border-top-left-radius","11px");
+      await expect(selected).toHaveCSS("border-bottom-color","rgb(255, 255, 255)");
       await detail.getByRole("tab",{name:"Overzicht",exact:true}).focus();
       await page.keyboard.press("ArrowRight");
       await expect(detail.getByRole("tab",{name:"Documenten",exact:true})).toHaveAttribute("data-state","active");

@@ -133,7 +133,7 @@
 .workspace-shell :is(.resource-table,.commercial-table,.wo-table,.ticket-table,.nt-table) :is(th,td) {padding:15px 18px;border-color:var(--brand-border);}
 .workspace-shell :is(.resource-table,.commercial-table,.wo-table,.ticket-table,.nt-table) td {font-size:calc(.875rem * var(--dashboard-font-scale, 1));color:var(--brand-ink);}
 .workspace-shell :is(.resource-table,.commercial-table,.wo-table,.ticket-table,.nt-table) th {font-size:calc(.75rem * var(--dashboard-font-scale, 1));font-weight:600;color:var(--brand-muted);background:var(--brand-surface);}
-.workspace-shell .table-scroll {max-width:100%;overscroll-behavior-x:contain;scrollbar-gutter:stable;}
+.workspace-shell .table-scroll {max-width:100%;overscroll-behavior-x:contain;scrollbar-gutter:auto;}
 .workspace-shell .resource-primary strong {color:var(--brand-ink);font-weight:600;}
 .workspace-shell .resource-table small {font-size:calc(.75rem * var(--dashboard-font-scale, 1));color:var(--brand-muted);}
 .workspace-shell .resource-table .cell-main {font-size:calc(.875rem * var(--dashboard-font-scale, 1));color:var(--brand-ink);font-weight:500;}
@@ -285,73 +285,13 @@
   margin: 0;
   padding: 0;
 }
+/* Layout and type are supplied by the shared dashboard heading. */
 .workspace-shell.workspace-shell .backoffice-content .unified-page-heading {
-  position: static;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px 24px;
-  width: 100%;
-  min-height: 64px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  color: var(--brand-ink);
+  position:static;width:100%;min-height:64px;margin:0;padding:0;border:0;
+  border-radius:0;background:none;box-shadow:none;color:var(--brand-ink);
 }
 .workspace-shell.workspace-shell .unified-page-heading::before,
-.workspace-shell.workspace-shell .unified-page-heading::after { display: none; }
-.workspace-shell.workspace-shell .unified-page-heading .page-heading-copy { min-width: 0; }
-.workspace-shell.workspace-shell .unified-page-heading .eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  min-height: 28px;
-  margin: 0;
-  font-size: calc(.6875rem * var(--dashboard-font-scale, 1));
-  font-weight: 500;
-  letter-spacing: .12em;
-  line-height: 1.5;
-  color: var(--brand-muted);
-}
-.workspace-shell.workspace-shell .unified-page-heading .page-heading-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  margin-top: 4px;
-}
-.workspace-shell.workspace-shell .unified-page-heading h1 {
-  margin: 0;
-  font-size: calc(1.85rem * var(--dashboard-font-scale, 1));
-  line-height: 1.35;
-  letter-spacing: -.045em;
-  font-weight: 600;
-  color: var(--brand-ink);
-}
-.workspace-shell.workspace-shell .unified-page-heading .resource-header-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-self: center;
-  margin-left: auto;
-  min-width: 0;
-  max-width: 100%;
-}
-.workspace-shell.workspace-shell .unified-page-heading :is(input, select, button, a) {
-  max-width: 100%;
-}
-.workspace-shell.workspace-shell .unified-page-heading input[type=search] {
-  width: min(320px, 100%);
-  min-height: 42px;
-  padding: 10px 14px;
-}
+.workspace-shell.workspace-shell .unified-page-heading::after {display:none}
 .workspace-shell.workspace-shell .pb-page-heading { margin-bottom: 12px; }
 .workspace-shell.workspace-shell .pb-page-heading .pb-toolbar { padding: 0; justify-content: flex-end; }
 .workspace-shell.workspace-shell .fg-section { padding: 0; margin: 0; border: 0; background: none; box-shadow: none; }
@@ -360,7 +300,6 @@
 @media (max-width: 600px) {
   .workspace-shell.workspace-shell .backoffice-content,
   .workspace-shell.workspace-shell .backoffice-content.view-planning { padding: 24px 16px 40px !important; }
-  .workspace-shell.workspace-shell .unified-page-heading h1 { font-size: calc(1.5rem * var(--dashboard-font-scale, 1)); }
   .workspace-shell.workspace-shell .unified-page-heading .resource-header-actions { width: 100%; justify-content: flex-end; }
   .workspace-shell.workspace-shell .unified-page-heading .resource-header-actions input[type=search] { flex: 1 1 180px; }
 }

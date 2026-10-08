@@ -1,0 +1,310 @@
+/* Shared dashboard primitives. Module styles supply layout, never a second
+   visual language for tables, controls, empty states or portalled overlays. */
+:root {
+  --fg-control-size: 42px;
+  --fg-row-control-size: 34px;
+  --fg-card-radius: 18px;
+  --fg-overlay-radius: 14px;
+  --fg-overlay-shadow: 0 16px 48px rgb(20 35 45 / 16%);
+}
+
+body .unified-page-heading.page-intro,
+.workspace-shell .backoffice-content .unified-page-heading.page-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 24px;
+  row-gap: 7px;
+  align-items: center;
+  margin: 0 0 24px;
+}
+.unified-page-heading.page-intro .page-heading-copy { display: contents; }
+.unified-page-heading.page-intro .page-heading-copy > .eyebrow,
+.workspace-shell .backoffice-content .unified-page-heading.page-intro .page-heading-copy > .eyebrow {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  color: var(--brand-muted, #657887);
+  font-size: calc(.6875rem * var(--dashboard-font-scale, 1));
+  font-weight: 400;
+  letter-spacing: .12em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.unified-page-heading.page-intro .page-heading-title {
+  grid-column: 1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.unified-page-heading.page-intro .page-heading-title h1 {
+  margin: 0;
+  font-size: calc(1.75rem * var(--dashboard-font-scale, 1));
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--brand-ink, #1a2632);
+  overflow-wrap: anywhere;
+}
+.unified-page-heading.page-intro .page-heading-description {
+  grid-column: 1;
+  grid-row: 3;
+  color: var(--brand-muted, #657887);
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
+  line-height: 1.6;
+}
+.unified-page-heading.page-intro > .resource-header-actions {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+/* One frame, including tables rendered inside a reusable content section. */
+:is(.workspace-shell, .fg-console, .customer-portal, .personnel-app, .ticket-shell, .nt-standalone)
+  :is(.panel, .fg-section-body, .ticket-panel, .nt-panel, .ps-panel, .cp-card) {
+  border-color: var(--brand-border, #dce4e8);
+  border-radius: var(--fg-card-radius);
+  background: var(--brand-card, #fff);
+  box-shadow: 0 4px 20px rgb(20 35 45 / 2%);
+}
+.fg-section-body:has(> .table-scroll),
+:is(.workspace-shell, .fg-console, .nt-standalone, .ticket-shell) .panel:has(> .table-scroll) {
+  padding: 0;
+  overflow: hidden;
+}
+:is(.workspace-shell, .fg-console, .customer-portal, .personnel-app, .ticket-shell, .nt-standalone) .table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-gutter: auto;
+  overscroll-behavior-x: contain;
+}
+:is(.resource-table, .commercial-table, .wo-table, .ticket-table, .nt-table, .workspace-table) {
+  width: 100%;
+  border-spacing: 0;
+  border-collapse: separate;
+}
+:is(.workspace-shell, .fg-console, .customer-portal, .personnel-app, .ticket-shell, .nt-standalone)
+  :is(.resource-table, .commercial-table, .wo-table, .ticket-table, .nt-table, .workspace-table) th {
+  padding: 15px 18px;
+  border-radius: 0;
+  border-bottom: 1px solid var(--brand-border, #dce4e8);
+  background: var(--brand-surface, #f5f7f8);
+  color: var(--brand-muted, #657887);
+  font-family: Inter, Arial, sans-serif;
+  font-size: calc(.75rem * var(--dashboard-font-scale, 1));
+  font-weight: 500;
+  letter-spacing: .055em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+:is(.resource-table, .commercial-table, .wo-table, .ticket-table, .nt-table, .workspace-table) th :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-decoration: none;
+}
+:is(.resource-table, .commercial-table, .wo-table, .ticket-table, .nt-table, .workspace-table) td {
+  color: var(--brand-ink, #1a2632);
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
+  font-weight: 400;
+  text-transform: none;
+}
+:is(.resource-table, .commercial-table, .wo-table, .ticket-table, .nt-table, .workspace-table) td :is(a:not(.fg-action-icon), .cell-main) {
+  font-weight: 600;
+}
+
+.fg-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 200px;
+  padding: 32px 24px;
+  color: var(--brand-muted, #657887);
+  text-align: center;
+}
+.fg-empty-state > svg { color: var(--brand-muted, #657887); stroke-width: 1.6; }
+.fg-empty-state > h3 {
+  margin: 0;
+  font-family: Inter, Arial, sans-serif;
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
+  font-weight: 600;
+  letter-spacing: normal;
+  color: var(--brand-ink, #1a2632);
+}
+.fg-empty-state > p {
+  max-width: 48ch;
+  margin: 0;
+  font-size: calc(.8125rem * var(--dashboard-font-scale, 1));
+  line-height: 1.65;
+}
+.fg-empty-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+td:has(> .fg-empty-state) { padding: 0 !important; }
+
+/* Text fields keep a single quiet focus border. The wrapper owns it for
+   composite inputs; keyboard focus remains visible on standalone controls. */
+body :is(input, select, textarea):not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):focus {
+  outline: none !important;
+  border-color: var(--brand-focus, #43898d) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-focus, #43898d) 20%, transparent) !important;
+}
+body :is(.auth-input, .global-search, .resource-toolbar label, .catalogue-search):focus-within {
+  border-color: var(--brand-focus, #43898d);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-focus, #43898d) 20%, transparent);
+}
+body :is(.auth-input, .global-search, .resource-toolbar label, .catalogue-search) input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+body :is(.auth-input, .global-search, .catalogue-search) input { background: transparent; }
+
+body .fg-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--fg-control-size);
+  height: var(--fg-control-size);
+  min-height: var(--fg-control-size);
+  padding: 0;
+  border: 1px solid var(--brand-border, #dce4e8);
+  border-radius: 10px;
+  background: var(--brand-card, #fff);
+  color: var(--brand-ink, #1a2632);
+  text-decoration: none;
+  box-shadow: none;
+}
+.fg-action-icon > span { display: inline-flex; align-items: center; justify-content: center; }
+.fg-action-icon svg { width: 17px; height: 17px; stroke-width: 1.7; }
+body .fg-action-icon.primary-button {
+  background: var(--brand-action, #43898d);
+  border-color: var(--brand-action, #43898d);
+  color: var(--brand-action-foreground, #fff);
+}
+body .fg-action-icon.resource-action,
+body :is(td, .ticket-setting-row, .nt-row-actions) .fg-action-icon {
+  width: var(--fg-row-control-size);
+  height: var(--fg-row-control-size);
+  min-height: var(--fg-row-control-size);
+  border-radius: 8px;
+}
+body .fg-action-icon:not(:disabled):hover { background: var(--brand-surface, #f5f7f8); border-color: var(--brand-accent-border, #a8c9ca); }
+body .fg-action-icon.primary-button:not(:disabled):hover { background: var(--brand-action-hover, #36777a); }
+
+/* All menus, including the notification bell and account picker, share the
+   same frame, typography and item treatment, even when rendered in a portal. */
+body :is([data-slot=dropdown-menu-content], [data-slot=dropdown-menu-sub-content], [data-slot=popover-content], .resource-more-content, .compact-filter-popover, .nt-bell-panel, .shell-search-results) {
+  border: 1px solid var(--brand-border, #dce4e8) !important;
+  border-radius: var(--fg-overlay-radius) !important;
+  background: var(--brand-card, #fff) !important;
+  color: var(--brand-ink, #1a2632) !important;
+  box-shadow: var(--fg-overlay-shadow) !important;
+  font-family: Inter, Arial, sans-serif;
+  font-size: calc(.875rem * var(--dashboard-font-scale, 1));
+}
+body :is(.resource-more-content, [data-slot=dropdown-menu-content], [data-slot=dropdown-menu-sub-content]) { padding: 6px; }
+body :is(.resource-more-content > a, .resource-more-content > button, [data-slot=dropdown-menu-item], [data-slot=dropdown-menu-checkbox-item], [data-slot=dropdown-menu-radio-item], [data-slot=dropdown-menu-sub-trigger]) {
+  min-height: 38px;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: inherit;
+  font-weight: 500;
+  line-height: 1.45;
+  text-decoration: none;
+}
+body :is(.resource-more-content > a, .resource-more-content > button, [data-slot=dropdown-menu-item]):is(:hover, :focus-visible, [data-highlighted]) {
+  background: var(--brand-surface, #f3f6f7);
+  color: var(--brand-ink, #1a2632);
+}
+body [data-slot=dialog-content] :is(h2, [data-slot=dialog-title]) { font-weight: 600; }
+body .list-pagination .list-pagination-controls { display: flex; align-items: center; gap: 8px; }
+body .list-pagination .list-pagination-controls label { display: flex; align-items: center; gap: 8px; margin: 0; font: inherit; }
+body .list-pagination .list-pagination-controls select { width: auto; min-width: 62px; min-height: 38px; padding: 7px 10px; }
+.list-page-total { white-space: nowrap; }
+
+@media (max-width: 760px) {
+  body .unified-page-heading.page-intro, .workspace-shell .backoffice-content .unified-page-heading.page-intro { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .unified-page-heading.page-intro > .resource-header-actions { grid-column: 1; grid-row: 4; margin-top: 6px; }
+  .unified-page-heading.page-intro > .resource-header-actions input { max-width: 100%; }
+  body .list-pagination .list-pagination-controls { flex-wrap: wrap; }
+  body .list-pagination .list-pagination-controls .list-page-picker { margin-right: 0; }
+  .fg-empty-state { min-height: 180px; padding: 28px 20px; }
+  .fg-action-icon { --fg-control-size: 44px; --fg-row-control-size: 44px; }
+  .unified-page-heading .compact-filter-trigger { --fg-control-size: 44px; }
+}
+
+/* Tight row actions leave the available width to the actual record columns. */
+body .resource-table .actions-column { min-width: 110px; width: 1%; white-space: nowrap; }
+body .fg-action-icon.fg-action-icon { padding: 0; flex-shrink: 0; }
+body :is(.workspace-shell, .nt-standalone, .ticket-shell) .resource-table-panel { padding: 0; overflow: hidden; }
+body .resource-table-panel > .table-scroll { border: 0; border-radius: 0; }
+body .nt-inbox-table td { vertical-align: middle; }
+body .nt-inbox-table .nt-inbox-summary { display: block; max-width: 65ch; margin-top: 5px; color: var(--brand-muted, #657887); font-size: .9em; white-space: normal; }
+body .nt-inbox-table tr.unread { background: var(--brand-accent-soft, #f0f6f7); }
+body .nt-inbox-table td small { display: block; margin-top: 5px; }
+body .nt-bell-button.nt-bell-button {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 42px;
+  width: 42px; height: 42px; min-height: 42px; padding: 0;
+  border: 1px solid var(--brand-border, #dce4e8); border-radius: 50%;
+  background: var(--brand-card, #fff); color: var(--brand-ink, #1a2632); box-shadow: none;
+}
+body .nt-bell-button svg { width: 18px; height: 18px; }
+body .nt-bell-button:not(:disabled):hover { background: var(--brand-surface, #f5f7f8); }
+body .nt-bell-button[aria-busy=true] { opacity: .6; }
+body .nt-bell-panel { padding: 16px; }
+body .nt-bell-panel .fg-empty-state { min-height: 170px; padding: 24px 12px; }
+body .nt-bell-panel .nt-inbox-item { border-radius: 8px; }
+body .nt-bell-panel .nt-inbox-item:hover { background: var(--brand-surface, #f5f7f8); }
+body .nt-page > .fg-tabbed-content > .nt-tabs { gap: 4px; padding: 6px 0 0; }
+body .nt-page > .fg-tabbed-content > .nt-tabs a { padding: 12px 18px; border-radius: 11px 11px 0 0; border: 1px solid var(--brand-border, #dce4e8); background: var(--brand-surface, #f5f7f8); }
+body .nt-page > .fg-tabbed-content > .nt-tabs a[aria-current=page] { border-bottom-color: var(--brand-card, #fff); background: var(--brand-card, #fff); color: var(--brand-accent-text, #327b80); }
+body .fg-tabbed-content > .resource-table-panel { border-top-left-radius: 0; }
+body :is([data-slot=dropdown-menu-checkbox-item], [data-slot=dropdown-menu-radio-item], [data-slot=dropdown-menu-item][data-inset=true], [data-slot=dropdown-menu-sub-trigger][data-inset=true]) { padding-left: 32px; }
+body [data-slot=dialog-content] { border: 1px solid var(--brand-border, #dce4e8); border-radius: var(--fg-card-radius); background-color: var(--brand-card, #fff); color: var(--brand-ink, #1a2632); }
+body .fg-empty-state > h3 { font-size: calc(.875rem * var(--dashboard-font-scale, 1)); font-weight: 600; }
+body :is(.shell-search-field, .page-list-search, .fg-search) input:focus { outline: none !important; box-shadow: none !important; }
+
+body :is(.shell-search-field, .page-list-search, .fg-search) input { background: transparent !important; }
+
+/* Icon controls keep their square footprint inside legacy mobile toolbars. */
+body .unified-page-heading .compact-filter-trigger,
+body .workspace-shell .dossier-header-actions .fg-action-icon {
+  flex: 0 0 var(--fg-control-size);
+  width: var(--fg-control-size);
+  min-width: var(--fg-control-size);
+  height: var(--fg-control-size);
+  min-height: var(--fg-control-size);
+  padding: 0;
+}
+@media (max-width: 600px) {
+  body .list-pagination .list-pagination-controls {
+    display: grid;
+    grid-template-columns: 38px max-content 38px;
+    justify-content: end;
+    gap: 8px;
+  }
+  body .list-pagination .list-pagination-controls > label:first-child {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+  body .list-pagination .list-pagination-controls > button:first-of-type { grid-column: 1; grid-row: 2; }
+  body .list-pagination .list-pagination-controls > .list-page-picker { grid-column: 2; grid-row: 2; }
+  body .list-pagination .list-pagination-controls > button:last-of-type { grid-column: 3; grid-row: 2; }
+}

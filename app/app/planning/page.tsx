@@ -4,6 +4,7 @@ import { getPlanboard, getPlanningShellData } from "@/lib/planning/data";
 import { tenantToday, validDay } from "@/lib/planning/time";
 import { BackofficeShell } from "@/components/fieldgrid/backoffice-shell";
 import { DayPlanboard } from "@/components/fieldgrid/planboard/day-planboard";
+import { initialPlanningQuery } from "@/lib/planning/model";
 
 export default async function PlanningPage({
   searchParams,
@@ -23,13 +24,7 @@ export default async function PlanningPage({
   const today = tenantToday(context.tenant.timezone);
   const day = validDay(query.day) ? query.day : today;
   const [data, shell] = await Promise.all([
-    getPlanboard(context.tenant.id, {
-      day,
-      view: "unassigned",
-      search: "",
-      status: "",
-      page: 1,
-    }),
+    getPlanboard(context.tenant.id, initialPlanningQuery(day)),
     getPlanningShellData(context.tenant.id),
   ]);
   return (

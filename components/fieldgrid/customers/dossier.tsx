@@ -2,6 +2,9 @@
 import { DossierNavigation } from "../dossier-navigation";
 import { DossierActions } from "../dossier-actions";
 import { PageHeading } from "../page-heading";
+import { EmptyState } from "../empty-state";
+import { ActionIcon, ActionLink } from "../action-icon";
+import "../dossier-consistency.css";
 import { ContentSection } from "../content-section";
 import { useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
@@ -10,7 +13,6 @@ import {
   ArrowLeft,
   Plus,
   Pencil,
-  FileText,
   CalendarDays,
   Building2,
   ListChecks,
@@ -63,8 +65,8 @@ import { CUSTOMER_DOCUMENT_ACCEPT } from "@/lib/customers/documents";
 import { CustomerPortalAccess } from "./portal-access";
 import { CompactFilterMenu } from "../compact-filter-menu";
 
-function Empty({ children }: { children: ReactNode }) {
-  return <p className="dossier-empty">{children}</p>;
+function Empty({ title, children }: { title: string; children: ReactNode }) {
+  return <EmptyState title={title} description={children}/>;
 }
 export function CustomerDossier({
   data,
@@ -216,13 +218,31 @@ export function CustomerDossier({
       (!object || r.object_id === object) &&
       `${r.title} ${r.body}`.toLowerCase().includes(q.toLowerCase()),
   );
+  const selectedContacts = data.contacts.filter(
+    (p) =>
+      (!status || p.active === (status === "active")) &&
+      `${p.full_name} ${p.email} ${p.role}`.toLowerCase().includes(q.toLowerCase()),
+  );
+  const selectedInvoices = data.invoices.filter(
+    (i) =>
+      (!status || i.status === status) &&
+      (i.invoice_number || "concept").toLowerCase().includes(q.toLowerCase()) &&
+      (!object || data.invoiceLines.some(
+        (l) => l.invoice_id === i.id && data.orders.some(
+          (w) => w.id === l.work_order_id && w.object_id === object,
+        ),
+      )),
+  );
+  const selectedDocuments = data.documents.filter(
+    (d) => (!status || d.category === status) && d.title.toLowerCase().includes(q.toLowerCase()),
+  );
   return (
     <div className="customer-dossier object-dossier">
       <Link className="dossier-back" href={back}>
         <ArrowLeft size={16} />
         Terug naar klanten
       </Link>
-      <PageHeading eyebrow={`${c.customer_number} · ${customerTypes[c.customer_type]}`} title={c.name} description={<div className="dossier-heading-facts"><span className="resource-status">{customerStates[c.status]}</span><span>Verantwoordelijke: {owner(c.owner_user_id)}</span><span>Primair contact: {primary?.full_name || "Nog vastleggen"}</span></div>} actions={<DossierActions primary={<button className="primary-button" onClick={() => setDoc("new")}><FileText size={15} />Document toevoegen</button>}>
+      <PageHeading eyebrow={`${c.customer_number} · ${customerTypes[c.customer_type]}`} title={c.name} description={<div className="dossier-heading-facts"><span className="resource-status">{customerStates[c.status]}</span><span>Verantwoordelijke: {owner(c.owner_user_id)}</span><span>Primair contact: {primary?.full_name || "Nog vastleggen"}</span></div>} actions={<DossierActions primary={<ActionIcon className="primary-button" label="Document toevoegen" icon={<Plus size={16}/>} onClick={() => setDoc("new")}/>}>
           <button className="secondary-button" onClick={() => setEditing(true)}>
             <Pencil size={15} />
             Bewerken
@@ -265,7 +285,9 @@ export function CustomerDossier({
             </PopoverContent>
           </Popover>
         </DossierActions>}/>
+      <div className="dossier-tabbed-content">
       <DossierNavigation label="Klantdossier" current={tab} tabs={customerTabs.map(([id,title])=>({id,title,href:href(id)}))}/>
+      <div className="dossier-tab-surface">
       {tab === "overzicht" && (
         <>
           <div className="customer-overview-cards">
@@ -429,7 +451,7 @@ export function CustomerDossier({
               !dueContracts.length &&
               !staleDocs.length &&
               !data.commercialFollowup.length && (
-                <Empty>Geen open dossieracties of verstreken deadlines.</Empty>
+                <Empty title="Alles bijgewerkt">Geen open dossieracties of verstreken deadlines.</Empty>
               )}
           </ContentSection>
           <ContentSection title={"Recente activiteit"} description={"Zakelijke registraties en wijzigingen binnen deze klantrelatie."} bodyClassName="dossier-section-body">
@@ -450,6 +472,7 @@ export function CustomerDossier({
                 {h.actor} · {date(h.at)}
               </p>
             ))}
+            {!data.notes.length && !data.history.length && <Empty title="Nog geen activiteit">Zakelijke registraties en wijzigingen verschijnen hier zodra ze zijn vastgelegd.</Empty>}
             <Link className="text-link" href={href("communicatie")}>
               Volledige tijdlijn →
             </Link>
@@ -518,12 +541,7 @@ export function CustomerDossier({
       )}
       {tab === "contactpersonen" && tenant.roles.some(role=>["tenant_admin","management"].includes(role)) && <CustomerPortalAccess key={c.id} customerId={c.id} contacts={data.contacts}/> }
       {tab === "contactpersonen" && (
-        <ContentSection title={"Contactpersonen"} description={"Functionele labels zijn geen portaalrechten of onbeperkte toestemming voor meerwerk."} actions={<button
-              className="primary-button"
-              onClick={() => setContact("new")}
-            >
-              Contactpersoon toevoegen
-            </button>} bodyClassName="dossier-section-body">
+        <ContentSection title={"Contactpersonen"} description={"Functionele labels zijn geen portaalrechten of onbeperkte toestemming voor meerwerk."} actions={<ActionIcon className="primary-button" label="Contactpersoon toevoegen" icon={<Plus size={16}/>} onClick={() => setContact("new")}/>} bodyClassName="dossier-section-body">
 
           {toolbar(
             <label>
@@ -551,20 +569,12 @@ export function CustomerDossier({
                     "Actief",
                     "Acties",
                   ].map((s) => (
-                    <th key={s}>{s}</th>
+                    <th key={s} scope="col">{s}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {data.contacts
-                  .filter(
-                    (p) =>
-                      (!status || p.active === (status === "active")) &&
-                      `${p.full_name} ${p.email} ${p.role}`
-                        .toLowerCase()
-                        .includes(q.toLowerCase()),
-                  )
-                  .map((p) => (
+                {selectedContacts.map((p) => (
                     <tr key={p.id}>
                       <td>
                         <strong>{p.full_name}</strong>
@@ -610,18 +620,13 @@ export function CustomerDossier({
               </tbody>
             </table>
           </div>
-          {!data.contacts.length && (
-            <Empty>Nog geen contactpersonen vastgelegd.</Empty>
+          {!selectedContacts.length && (
+            <Empty title={data.contacts.length ? "Geen contactpersonen gevonden" : "Nog geen contactpersonen"}>{data.contacts.length ? "Geen contactpersonen voor deze selectie. Pas de filters aan." : "Nog geen contactpersonen vastgelegd."}</Empty>
           )}
         </ContentSection>
       )}
       {tab === "objecten" && (
-        <ContentSection title={"Objecten"} description={"Fysieke locaties van deze klant; het factuuradres is geen uitvoeringsadres."} actions={<Link
-              className="primary-button"
-              href={`/app/objecten?new=1&customer=${c.id}`}
-            >
-              Nieuw object
-            </Link>} bodyClassName="dossier-section-body">
+        <ContentSection title={"Objecten"} description={"Fysieke locaties van deze klant; het factuuradres is geen uitvoeringsadres."} actions={<ActionLink className="primary-button" label="Nieuw object" icon={<Plus size={16}/>} href={`/app/objecten?new=1&customer=${c.id}`}/>} bodyClassName="dossier-section-body">
 
           {toolbar(
             <label>
@@ -653,7 +658,7 @@ export function CustomerDossier({
                     "Aandacht",
                     "Acties",
                   ].map((s) => (
-                    <th key={s}>{s}</th>
+                    <th key={s} scope="col">{s}</th>
                   ))}
                 </tr>
               </thead>
@@ -711,7 +716,7 @@ export function CustomerDossier({
             </table>
           </div>
           {!selectedObjects.length && (
-            <Empty>Geen objecten bij deze selectie.</Empty>
+            <Empty title="Geen objecten gevonden">Geen objecten bij deze selectie.</Empty>
           )}
         </ContentSection>
       )}
@@ -720,10 +725,10 @@ export function CustomerDossier({
           <CustomerAgreements data={data} tenant={tenant} />
         ) : (
           <section className="dossier-card">
-            <Empty>
+            <p className="dossier-notice">
               Contractprijzen en akkoordbewijzen zijn afgeschermd. Raadpleeg de
               accountverantwoordelijke.
-            </Empty>
+            </p>
           </section>
         ))}
       {tab === "afspraken" && (
@@ -843,7 +848,7 @@ export function CustomerDossier({
                         "Open verzoeken",
                         "Acties",
                       ].map((s) => (
-                        <th key={s}>{s}</th>
+                        <th key={s} scope="col">{s}</th>
                       ))}
                     </tr>
                   </thead>
@@ -907,7 +912,7 @@ export function CustomerDossier({
               </div>
             )}
             {!selectedOrders.length && (
-              <Empty>Geen afspraken bij deze selectie.</Empty>
+              <Empty title="Geen afspraken gevonden">Geen afspraken bij deze selectie.</Empty>
             )}
           </ContentSection>
           <DossierChainPanel
@@ -980,30 +985,12 @@ export function CustomerDossier({
                         "Herkomst",
                         "Acties",
                       ].map((s) => (
-                        <th key={s}>{s}</th>
+                        <th key={s} scope="col">{s}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {data.invoices
-                      .filter(
-                        (i) =>
-                          (!status || i.status === status) &&
-                          (i.invoice_number || "concept")
-                            .toLowerCase()
-                            .includes(q.toLowerCase()) &&
-                          (!object ||
-                            data.invoiceLines.some(
-                              (l) =>
-                                l.invoice_id === i.id &&
-                                data.orders.some(
-                                  (w) =>
-                                    w.id === l.work_order_id &&
-                                    w.object_id === object,
-                                ),
-                            )),
-                      )
-                      .map((i) => (
+                    {selectedInvoices.map((i) => (
                         <tr key={i.id}>
                           <td>
                             <strong>{i.invoice_number || "Concept"}</strong>
@@ -1061,7 +1048,7 @@ export function CustomerDossier({
                   </tbody>
                 </table>
               </div>
-              {!data.invoices.length && <Empty>Nog geen facturen.</Empty>}
+              {!selectedInvoices.length && <Empty title={data.invoices.length ? "Geen facturen gevonden" : "Nog geen facturen"}>{data.invoices.length ? "Geen facturen voor deze selectie. Pas de filters aan." : "Nog geen facturen."}</Empty>}
               <p className="dossier-muted">
                 Correctieboekingen en creditnota’s hebben nog geen aparte
                 invoerflow. Een definitieve factuur kan hier niet worden
@@ -1069,7 +1056,7 @@ export function CustomerDossier({
               </p>
             </>
           ) : (
-            <Empty>Je hebt geen toegang tot financiële gegevens.</Empty>
+            <p className="dossier-notice">Je hebt geen toegang tot financiële gegevens.</p>
           )}
         </ContentSection>
       )}
@@ -1129,7 +1116,7 @@ export function CustomerDossier({
                     "Afspraak",
                     "Acties",
                   ].map((s) => (
-                    <th key={s}>{s}</th>
+                    <th key={s} scope="col">{s}</th>
                   ))}
                 </tr>
               </thead>
@@ -1183,7 +1170,7 @@ export function CustomerDossier({
             </table>
           </div>
           {!quality.length && (
-            <Empty>
+            <Empty title="Geen meldingen gevonden">
               Geen meldingen bij deze selectie. Selecteer een object om een
               melding te registreren.
             </Empty>
@@ -1192,9 +1179,7 @@ export function CustomerDossier({
       )}
       {tab === "documenten" && (
         <>
-          <ContentSection title={"Documenten"} description={"Originele bestanden en versiehistorie. Alleen expliciet gedeelde documenten komen in het klantportaal."} actions={<button className="primary-button" onClick={() => setDoc("new")}>
-                Document uploaden
-              </button>} bodyClassName="dossier-section-body">
+          <ContentSection title={"Documenten"} description={"Originele bestanden en versiehistorie. Alleen expliciet gedeelde documenten komen in het klantportaal."} actions={<ActionIcon className="primary-button" label="Document uploaden" icon={<Plus size={16}/>} onClick={() => setDoc("new")}/>} bodyClassName="dossier-section-body">
 
             {toolbar(
               <label>
@@ -1224,18 +1209,12 @@ export function CustomerDossier({
                       "Zichtbaarheid",
                       "Acties",
                     ].map((s) => (
-                      <th key={s}>{s}</th>
+                      <th key={s} scope="col">{s}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {data.documents
-                    .filter(
-                      (d) =>
-                        (!status || d.category === status) &&
-                        d.title.toLowerCase().includes(q.toLowerCase()),
-                    )
-                    .map((d) => (
+                  {selectedDocuments.map((d) => (
                       <tr key={d.id}>
                         <td>
                           <strong>{d.title}</strong>
@@ -1286,7 +1265,7 @@ export function CustomerDossier({
                 </tbody>
               </table>
             </div>
-            {!data.documents.length && <Empty>Nog geen klantdocumenten.</Empty>}
+            {!selectedDocuments.length && <Empty title={data.documents.length ? "Geen klantdocumenten gevonden" : "Nog geen klantdocumenten"}>{data.documents.length ? "Geen klantdocumenten voor deze selectie. Pas de filters aan." : "Nog geen klantdocumenten."}</Empty>}
           </ContentSection>
           <DossierChainPanel
             scope={{ customerId: c.id }}
@@ -1359,7 +1338,7 @@ export function CustomerDossier({
                 </article>
               ))}
             {!data.notes.length && (
-              <Empty>Nog geen zakelijke communicatie geregistreerd.</Empty>
+              <Empty title="Nog geen communicatie">Nog geen zakelijke communicatie geregistreerd.</Empty>
             )}
           </ContentSection>
           <ContentSection title={"Wijzigingshistorie"} description={"Wie de registratie heeft gewijzigd en wanneer; geen openbare klantcommunicatie."} bodyClassName="dossier-section-body">
@@ -1375,6 +1354,7 @@ export function CustomerDossier({
                 · {h.actor} · {date(h.at)}
               </p>
             ))}
+            {!data.history.length && <Empty title="Nog geen wijzigingen">De wijzigingshistorie verschijnt hier zodra een registratie is toegevoegd of bijgewerkt.</Empty>}
           </ContentSection>
           <DossierChainPanel
             scope={{ customerId: c.id }}
@@ -1383,6 +1363,8 @@ export function CustomerDossier({
           />
         </>
       )}
+      </div>
+      </div>
       {editing && (
         <CustomerWizard
           tenant={tenant}

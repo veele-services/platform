@@ -107,12 +107,12 @@ test("nieuws, verlof, account en apparaat gebruiken toegankelijke mobiele venste
   await leave.getByRole("button", { name: "Annuleren", exact: true }).click();
   await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("button", { name: "Meer", exact: true }).click();
   await page.locator(".ps-more-card").filter({ hasText: "Instellingen" }).click();
-  await page.getByRole("navigation", { name: "Instellingenonderdelen" }).getByRole("button", { name: "Meldingen", exact: true }).click();
+  await page.getByRole("tablist", { name: "Instellingenonderdelen" }).getByRole("tab", { name: "Meldingen", exact: true }).click();
   await page.getByRole("button", { name: "Apparaat instellen", exact: true }).click();
   const push = page.getByRole("dialog", { name: "Pushmeldingen instellen", exact: true });
   await inspectDialog(page, push, info, "push-320");
   await push.getByRole("button", { name: "Sluiten", exact: true }).click();
-  await page.getByRole("navigation", { name: "Instellingenonderdelen" }).getByRole("button", { name: "Account & toegang", exact: true }).click();
+  await page.getByRole("tablist", { name: "Instellingenonderdelen" }).getByRole("tab", { name: "Account & toegang", exact: true }).click();
   await page.getByRole("button", { name: "Loginflow bekijken", exact: true }).click();
   const login = page.getByRole("dialog", { name: "Inloggen met e-mailcode", exact: true });
   await inspectDialog(page, login, info, "account-320");

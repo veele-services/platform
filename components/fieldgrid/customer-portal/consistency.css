@@ -1,0 +1,36 @@
+.customer-portal .top-actions .shell-account-button{position:relative;flex:0 0 42px;width:42px;height:42px;min-width:42px;min-height:42px;border:1px solid var(--brand-border,var(--line));border-radius:50%;padding:0;background:var(--brand-surface,#fff);color:var(--brand-ink,var(--ink))}
+.customer-portal .top-actions .shell-account-button:hover{background:var(--brand-accent-soft,var(--soft))}
+.customer-portal .wordmark .fieldgrid-brand,.customer-portal .wordmark .brand-logo-image{display:flex;align-items:center;max-width:100%;min-width:0}
+.customer-portal .wordmark .brand-logo-image img{display:block;object-fit:contain;object-position:left;width:auto;max-width:170px;height:auto;max-height:48px}
+.customer-portal .mobile-brand .brand-logo-image img{max-width:130px;max-height:38px}
+.customer-portal .wordmark .brand-name-fallback{overflow-wrap:anywhere;color:inherit}
+.customer-portal .sidebar-bottom .avatar{flex-shrink:0}
+.customer-portal .sidebar-bottom .person>div{min-width:0}
+.customer-portal .sidebar-bottom .person strong{overflow-wrap:anywhere}
+.customer-portal .page-heading-title{display:flex;align-items:center;gap:10px;min-width:0}
+.customer-portal .page-heading .resource-header-actions{display:flex;align-items:center;gap:10px;flex-shrink:0;max-width:100%}
+.customer-portal .page-heading .eyebrow{font-weight:400}
+.customer-portal .content-tabs,.customer-portal .content-tab-panel{min-width:0;max-width:100%}
+.customer-portal .content-tab-panel>.card:first-child{border-top-left-radius:0}
+.customer-portal .content-tab-list button{border:1px solid var(--brand-border,var(--line))}
+.customer-portal .content-tab-list button[aria-selected=true]{border-bottom-color:var(--brand-card,#fff)}
+.customer-portal .appointment-list.customer-tab-surface{gap:0;overflow:hidden}
+.customer-portal .appointment-list.customer-tab-surface>.card{border:0;border-radius:0;box-shadow:none}
+.customer-portal .appointment-list.customer-tab-surface>.card+.card{border-top:1px solid var(--brand-border,var(--line))}
+.customer-portal .invoice-selection-controls{justify-content:flex-end;margin-bottom:12px}
+.customer-portal :is(.objects-grid,.object-preview-grid,.news-grid)>.fg-empty-state{grid-column:1/-1;background:var(--brand-card,#fff);border:1px solid var(--brand-border,var(--line));border-radius:var(--radius)}
+.customer-portal .fg-empty-state>h3{font-family:Inter,Arial,sans-serif;font-size:14px}
+.customer-portal .fg-empty-state>p{font-size:13px}
+.customer-portal .fg-action-icon.button.primary{background:var(--brand-action,var(--action));border-color:var(--brand-action,var(--action));color:var(--brand-action-foreground,#fff)}
+.customer-portal .fg-action-icon.button.primary:hover{background:var(--brand-action-hover,var(--action))}
+.customer-notification-menu{width:min(390px,calc(100vw - 24px));max-height:min(550px,calc(100dvh - 110px));overflow:auto}
+.customer-notification-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px}
+.customer-notification-heading>strong{font-size:14px;font-weight:600}
+.customer-notification-heading>button,.customer-notifications-all{border:0;background:transparent;color:var(--brand-accent-text,#327b80);font-family:inherit;font-size:12px;cursor:pointer;padding:8px}
+.customer-notification-items{display:grid;gap:4px}
+.customer-notification-items>button{display:grid;gap:5px;width:100%;border:0;border-radius:8px;background:transparent;padding:12px;text-align:left;color:var(--brand-ink,#18334a);cursor:pointer}
+.customer-notification-items>button:hover,.customer-notification-items>button.unread{background:var(--brand-accent-soft,#eef7f8)}
+.customer-notification-items strong{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.customer-notification-items span{font-size:12px;color:var(--brand-muted,#64748b);overflow-wrap:anywhere}
+@media(max-width:1000px) and (min-width:761px){.customer-portal .sidebar .wordmark .brand-logo-image img{max-width:52px}}
+@media(max-width:600px){.customer-portal .page-heading{flex-direction:row;flex-wrap:wrap;align-items:center}.customer-portal .page-heading .resource-header-actions{margin-left:auto}.customer-portal .customer-tab-surface.card-pad{padding:16px}.customer-portal .content-tab-list button{padding:12px 14px;min-height:48px}.customer-portal .document-row>.fg-action-icon{min-height:40px;min-width:40px}}

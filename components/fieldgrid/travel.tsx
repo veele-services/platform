@@ -49,13 +49,16 @@ async function request(body: unknown, signal?: AbortSignal) {
   if (!r.ok) throw new Error(d.error || "Reistijd onbekend. Probeer opnieuw.");
   return d;
 }
-export function useTravelDay(day: string, personId?: string, planKey = "") {
+export function useTravelDay(day: string, personId?: string, planKey = "", enabled = true) {
   const [data, setData] = useState<DayData | null>(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [generation, setGeneration] = useState(0);
   const refresh = useCallback(() => setGeneration((n) => n + 1), []);
   useEffect(() => {
+    // An empty planboard has no people whose routes can be estimated. Start
+    // lazily when its authorised snapshot gains a person; keep other callers on.
+    if (!enabled) return;
     let alive = true,
       working = false;
     const abort = new AbortController();
@@ -93,14 +96,14 @@ export function useTravelDay(day: string, personId?: string, planKey = "") {
       clearInterval(timer);
       window.removeEventListener("focus", load);
     };
-  }, [day, personId, planKey, generation]);
+  }, [day, personId, planKey, generation, enabled]);
   return {
     data:
-      data?.requestKey === JSON.stringify([day, personId, planKey, generation])
+      enabled && data?.requestKey === JSON.stringify([day, personId, planKey, generation])
         ? data
         : null,
-    error,
-    loading,
+    error: enabled ? error : "",
+    loading: enabled && loading,
     refresh,
   };
 }

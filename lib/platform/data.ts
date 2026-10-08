@@ -42,6 +42,7 @@ export type PlatformTenant = {
 
 export type PlatformData = {
   currentUserEmail: string | null;
+  currentUserName?: string | null;
   tenants: PlatformTenant[];
 };
 
@@ -104,7 +105,7 @@ export async function getPlatformData(): Promise<PlatformData> {
       invitationStatus: invitation?.status ?? null,
       primaryColor: branding?.primary_color ?? "#222C35",
       accentColor: branding?.accent_color ?? "#41AC42",
-      logoUrl: await getBrandingLogoUrl(admin, branding?.logo_path),
+      logoUrl: await getBrandingLogoUrl(admin, branding?.logo_path, { absolute: true }),
       senderName: branding?.sender_name ?? tenant.name,
       senderEmail: branding?.sender_email ?? "",
       whiteLabelEnabled: settings?.white_label_enabled ?? false,
@@ -122,5 +123,5 @@ export async function getPlatformData(): Promise<PlatformData> {
     };
   }));
 
-  return { currentUserEmail: context.user.email, tenants };
+  return { currentUserEmail: context.user.email, currentUserName: context.user.displayName, tenants };
 }

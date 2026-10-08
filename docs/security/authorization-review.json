@@ -340,6 +340,14 @@
       ]
     },
     {
+      "id": "code:app/api/search/route.ts",
+      "surfaceFingerprint": "a97ed02e5ab3651fdf9b57826340e4a5e5449329d0d334e5807813d6c6c64b70",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
+      ]
+    },
+    {
       "id": "code:app/api/tickets/files/[id]/route.ts",
       "surfaceFingerprint": "c7447871f03a9396e84220a9c1c9afd21ce08039331e8107b71e1ce8fac2da76",
       "status": "controlled",
@@ -456,13 +464,10 @@
     },
     {
       "id": "code:app/app/dossier-actions.ts",
-      "surfaceFingerprint": "9ed832028573e6b66f584baaa6ed2d4cf3ff7c46dd8a9e8de80e448935822581",
-      "status": "controlled",
+      "surfaceFingerprint": "d8e3fb2ffeedddeb6aadf7db8a36a7e4c7eb01eb78369f97ad7e43583099b38a",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {
@@ -655,12 +660,10 @@
     },
     {
       "id": "code:app/app/opvolging/page.tsx",
-      "surfaceFingerprint": "84d55ed6276234861dbedc3fdf9fc10ce0e2f62db35a1e35919e205c67d599ae",
-      "status": "controlled",
+      "surfaceFingerprint": "90437ae2683cc37d7829af86c28ac62fe913f06eec6d8a639cb745d0f7684bb5",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Reviewed unchanged live workspace/RPC actor boundaries and tenant data sources; presentation, real existing commands and fixed account guide keys only. No new privileged client, membership or general customer role.",
-        "tests/e2e/planboard.spec.ts; tests/e2e/staff-popups.spec.ts; tests/e2e/list-consistency.spec.ts; tests/e2e/account-guides.spec.ts; lib/staff/work-order-completion.test.ts."
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {
@@ -724,13 +727,10 @@
     },
     {
       "id": "code:app/app/planning/page.tsx",
-      "surfaceFingerprint": "6c55f482f43e6740e85a66540085b433ad54c417086ba2e7fe135f6664c9a5b9",
-      "status": "controlled",
+      "surfaceFingerprint": "9f141908e2d211d30f4c9c91020e73873b3e0ed6f0fa0bdd84e73a9fe2d4f398",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {
@@ -1060,12 +1060,10 @@
     },
     {
       "id": "code:app/layout.tsx",
-      "surfaceFingerprint": "05c29a61bbc3cc7db4276114a2eb958e615705d6e0bfecc4fe7f2525264d872b",
-      "status": "controlled",
+      "surfaceFingerprint": "77ea4fd56895fbce88aba974792defbd35a71699d4f6f1c5d96a0fc511a7cbdf",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Reviewed own auth.uid live-session preference only, 65 constrained keys, RLS/FORCE and authenticated-only read/command grants; no business capability or caller account/tenant parameter. Existing verified account boundary retained.",
-        "scripts/test-account-guides.mjs: independent account/device sessions, idempotence, own-only RLS, direct DML/anonymous/service/expired/banned/revoked rejection; tests/e2e/account-guides.spec.ts and tests/e2e/customer-portal.spec.ts: persistence, transport retry and independent devices."
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {
@@ -1082,14 +1080,10 @@
     },
     {
       "id": "code:app/login/page.tsx",
-      "surfaceFingerprint": "eb6379ec9ff3ef3e91c08f2b258386137737fc48951d704805894234dd9e9ca7",
+      "surfaceFingerprint": "9d83958181d3ad292486dd230710e052b58bef8a350941496e3f98b2bba1ef01",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
-        "app/api/addresses/route.test.ts",
-        "lib/addresses/form.test.ts",
-        "scripts/test-customer-portal.mjs",
-        "tests/e2e/login-branding.spec.ts"
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {
@@ -1449,22 +1443,18 @@
     },
     {
       "id": "code:components/fieldgrid/notifications/routes.tsx",
-      "surfaceFingerprint": "cabe507352d0bd708317cf5e1345f946bce11c63cbcf31c70602fd43222a9caf",
-      "status": "controlled",
+      "surfaceFingerprint": "f2bfc53715c330e4aad3aa09d456934e6e3f2a308b9c368f01c14d57d8e0b92b",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Reviewed same workspace actor/detail UUID RPC and allowed actions; compact modal/direct canonical route retain current notification authorization, filters and inbox semantics. Customer explanation grants no new customer capability.",
-        "tests/e2e/notifications.spec.ts; scripts/test-notifications.mjs and scripts/test-notification-boundaries.mjs."
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
-      "surfaceFingerprint": "e260d02b02f90ddeae1467744e5835b088ec5853501a8a452576f5b9490f436d",
-      "status": "controlled",
+      "surfaceFingerprint": "0ff7fa816a9a01a241db87fb18054b5b83dc9e7463ee0a33313702b8df9af8f2",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Reviewed unchanged live workspace/RPC actor boundaries and tenant data sources; presentation, real existing commands and fixed account guide keys only. No new privileged client, membership or general customer role.",
-        "tests/e2e/planboard.spec.ts; tests/e2e/staff-popups.spec.ts; tests/e2e/list-consistency.spec.ts; tests/e2e/account-guides.spec.ts; lib/staff/work-order-completion.test.ts."
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {
@@ -1479,15 +1469,10 @@
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "5ca6db5c02e5c5dfd7d4aec172d03fb16f0e48682f50b6f6c3968bb2f45a24d5",
+      "surfaceFingerprint": "b5c2d25c22284417f50327a32623e6be1c8c7939298c3de4d5b40581174aa57f",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/planning-intake-mobile-dossiers-review-2026-10-07.md",
-        "scripts/test-customer-portal.mjs",
-        "lib/customer-portal/request-action.test.ts",
-        "tests/e2e/fieldgrid.spec.ts",
-        "tests/e2e/customer-objectless-intake.spec.ts",
-        "lib/staff/time.test.ts"
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {
@@ -1539,13 +1524,10 @@
     },
     {
       "id": "code:lib/auth/context.ts",
-      "surfaceFingerprint": "c05b29d689e56081bb1b042d983de52f159d3a65710aee9caf880991a88913a5",
-      "status": "controlled",
+      "surfaceFingerprint": "c24b545427b19affb72c4daaa21da50e897539e81247ab26fc3839f35e1dab27",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {
@@ -1591,11 +1573,10 @@
     },
     {
       "id": "code:lib/branding/logo.ts",
-      "surfaceFingerprint": "84c7eb4d07c4b203b44f10a8fc530ce7b5e3e33cd4dab5a2bda97737ab070421",
-      "status": "controlled",
+      "surfaceFingerprint": "e8d8ea28300da8f9e61d7e9845658cb5838208c07a4918d75e1bdbea71ce8028",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/branding-management-verification-2026-10-05.md"
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {
@@ -1812,6 +1793,14 @@
         "docs/security/dashboard-release-verification-2026-10-06.md",
         "Reviewed bounded page size/offset with retained actor, tenant, filter and stable order predicates; full authorized collections use existing RLS client with stable id ties. Concepts additionally require actual same tenant and finance permission.",
         "scripts/test-list-pagination.mjs: 37 real rows, complete nonduplicate traversal, empty results/100 limit, foreign tenant and staff rejection; tests/e2e/list-consistency.spec.ts: 35 real rows and persisted page-size preference."
+      ]
+    },
+    {
+      "id": "code:lib/dossiers/data.ts",
+      "surfaceFingerprint": "62a9aae2b2312630b2582c6c0c781046b55f7b2ff2b932649348a7709823cdb0",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {
@@ -2061,13 +2050,10 @@
     },
     {
       "id": "code:lib/platform/data.ts",
-      "surfaceFingerprint": "b79ec535970b0f45b825923ff135a01e910740289947cbb22efe16dfc0f16f97",
-      "status": "controlled",
+      "surfaceFingerprint": "a420be9d43a42f632aba2e383228590d0dfad37343de1fc2fd24e7319b9d80ff",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/dashboard-consistency-review-2026-10-08.md"
       ]
     },
     {

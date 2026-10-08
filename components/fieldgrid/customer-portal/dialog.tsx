@@ -3,6 +3,7 @@ import { GuideBanner, GuideForTitle } from "@/components/fieldgrid/guides/guide"
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { ActionIcon } from "../action-icon";
 
 /** Native top-layer dialog keeps the rest of the page inert, including keyboard
  * focus. Its dimensions/scrolling mirror the supplied fixed-frame prototype. */
@@ -28,7 +29,7 @@ export function CustomerDialog({ title, kicker, description, children, footer, c
   onClick={event=>{if(event.target!==event.currentTarget)return;const bounds=event.currentTarget.getBoundingClientRect();
    if(event.clientX<bounds.left||event.clientX>bounds.right||event.clientY<bounds.top||event.clientY>bounds.bottom)dismiss();}}>
   <div className="modal-shell"><header className="modal-head"><div><span className="eyebrow">{kicker}</span><h2 id={titleId}>{title}</h2>
-   {description&&<p id={descriptionId}>{description}</p>}</div><button className="icon-btn" type="button" aria-label="Sluiten" disabled={busy} onClick={dismiss}><X/></button></header>
+   {description&&<p id={descriptionId}>{description}</p>}</div><ActionIcon className="icon-btn" label="Sluiten" icon={<X/>} disabled={busy} onClick={dismiss}/></header>
    <div className="modal-body">{guideKey?<GuideBanner guideKey={guideKey}/>:<GuideForTitle title={title}/>}{children}</div>{footer&&<footer className="modal-footer">{footer}</footer>}
   </div>
  </dialog>;

@@ -121,6 +121,64 @@ async function open(page: Page) {
     await page.setViewportSize(originalViewport);
   }
 }
+test("een handmatig gekozen dag blijft geselecteerd bij focus en realtime wijzigingen", async ({ page }) => {
+  test.setTimeout(90000);
+  const requestedDays: string[] = [];
+  page.on("request", request => {
+    if (request.method() !== "POST" || !request.headers()["next-action"]) return;
+    try {
+      const body = JSON.parse(request.postData() ?? "null");
+      if (Array.isArray(body) && body[0]?.day && body[0]?.view && typeof body[0]?.page === "number") requestedDays.push(body[0].day);
+    } catch { /* Other actions can use a multipart body. */ }
+  });
+  await open(page);
+  const chosenDay = "2031-03-05";
+  const dateInput = page.getByRole("main").getByLabel("Planningsdag");
+  await dateInput.fill(chosenDay);
+  await expect.poll(() => requestedDays.at(-1)).toBe(chosenDay);
+  await expect(page.locator(".pb-board:visible")).toHaveAttribute("aria-busy", "false");
+  const afterChange = requestedDays.length;
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect.poll(() => requestedDays.length).toBeGreaterThan(afterChange);
+  await expect(dateInput).toHaveValue(chosenDay);
+  expect(requestedDays.slice(afterChange).every(value => value === chosenDay)).toBe(true);
+
+  const afterFocus = requestedDays.length;
+  try {
+    await db.query("update public.work_orders set day_instructions=$2 where id=$1", [orders[1], "FICTITIOUS realtime date preservation"]);
+    await expect.poll(() => requestedDays.length, { timeout: 30000 }).toBeGreaterThan(afterFocus);
+    await expect(dateInput).toHaveValue(chosenDay);
+    expect(requestedDays.slice(afterFocus).every(value => value === chosenDay)).toBe(true);
+  } finally {
+    await db.query("update public.work_orders set day_instructions=$2 where id=$1", [orders[1], "Alleen deze uitvoering: entree controleren."]);
+  }
+});
+
+test("eerste uitleg houdt een planbord met veel medewerkers en de bonnenlijst bereikbaar", async ({ page }) => {
+  const extraPeople = Array.from({ length: 12 }, () => randomUUID());
+  try {
+    for (const [index, id] of extraPeople.entries()) await db.query(
+      "insert into public.personnel(id,tenant_id,full_name,employee_number) values($1,$2,$3,$4)",
+      [id, tenant, `Extra Medewerker ${index + 1}`, `E2E-MANY-${index}`],
+    );
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await authenticateWorkspace(page, "platform-admin@fieldgrid.test", `/app/planning?day=${day}`);
+    await expect(page.locator('[data-guide-key="backoffice.planning"]:visible')).toBeVisible();
+    await expect(page.locator(".pb-state:visible")).toHaveText(/^14 medewerkers · .*Europe\/Amsterdam$/);
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const board = page.locator(".pb-board:visible");
+      await expect.poll(() => page.locator(".pb-root:visible").evaluate(el => el.getBoundingClientRect().height <= innerHeight)).toBe(true);
+      await expect.poll(() => board.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+      await page.locator(".view-planning:visible").evaluate(el => { el.scrollTop = el.scrollHeight; });
+      const list = page.locator(".pb-list:visible");
+      await expect(list.getByRole("combobox", { name: "Bonnenweergave", exact: true })).toBeInViewport();
+      await expect.poll(() => list.evaluate(el => el.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+    }
+  } finally { await db.query("delete from public.personnel where id=any($1::uuid[])", [extraPeople]); }
+});
+
 test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bonacties", async ({
   page,
 }) => {

@@ -99,8 +99,8 @@ async function visual(page: Page, name: string, ready: () => Promise<void>) { fo
 test("notificatiewizard publiceert exacte selectie; personeel leest, bevestigt en archiveert los van bronstatus", async ({ page, browser }) => {
   test.setTimeout(180000); const title = `Fictieve teammelding ${fixture.slice(0, 8)}`;
   await login(page, "manager", "/app/notificaties"); await expect(page.getByRole("heading", { name: "Notificaties", exact: true })).toBeVisible();
-  await expect(page.locator(`.nt-inbox-item[href$='/${managerInboxId}']`)).toBeVisible();
-  await page.locator(`.nt-inbox-item[href$='/${managerInboxId}']`).click();
+  await expect(page.locator(`.nt-inbox-table td:first-child a[href$='/${managerInboxId}']`)).toBeVisible();
+  await page.locator(`.nt-inbox-table td:first-child a[href$='/${managerInboxId}']`).click();
   const detail=page.locator(".nt-detail-dialog");
   for(const width of [320,390,1440]) {
     await page.setViewportSize({width,height:960});
@@ -127,12 +127,12 @@ test("notificatiewizard publiceert exacte selectie; personeel leest, bevestigt e
   const staffContext = await browser.newContext({ baseURL: E2E_APP_ORIGIN }), otherContext = await browser.newContext({ baseURL: E2E_APP_ORIGIN });
   try {
     const staff = await staffContext.newPage(); await login(staff, "worker", "/staff/notificaties");
-    await visual(staff, "staff-inbox", async () => { await expect(staff.getByRole("heading", { name: "Mijn notificaties", exact: true })).toBeVisible(); await expect(staff.locator(`.nt-inbox-item[href$='/${notice}']`)).toContainText(title); await expect(staff.locator(".nt-page")).toHaveAttribute("aria-busy", "false"); });
-    await staff.locator(`.nt-inbox-item[href$='/${notice}']`).click(); await staff.getByRole("button", { name: "Gelezen markeren", exact: true }).click();
+    await visual(staff, "staff-inbox", async () => { await expect(staff.getByRole("heading", { name: "Mijn notificaties", exact: true })).toBeVisible(); await expect(staff.locator(`.nt-inbox-table td:first-child a[href$='/${notice}']`)).toContainText(title); await expect(staff.locator(".nt-page")).toHaveAttribute("aria-busy", "false"); });
+    await staff.locator(`.nt-inbox-table td:first-child a[href$='/${notice}']`).click(); await staff.getByRole("button", { name: "Gelezen markeren", exact: true }).click();
     await expect(staff.getByRole("button", { name: "Ongelezen markeren", exact: true })).toBeVisible(); expect((await db.query("select acknowledged_at from public.notifications where id=$1", [notice])).rows[0].acknowledged_at).toBeNull();
     await staff.getByRole("button", { name: "Ontvangst bevestigen", exact: true }).click(); await expect(staff.getByRole("button", { name: "Ontvangst bevestigen", exact: true })).toHaveCount(0);
     await staff.getByRole("button", { name: "Archiveren", exact: true }).click(); await expect(staff.getByRole("button", { name: "Terug naar inbox", exact: true })).toBeVisible();
-    await staff.goto("/staff/notificaties?view=archived"); await expect(staff.locator(`.nt-inbox-item[href$='/${notice}']`)).toBeVisible();
+    await staff.goto("/staff/notificaties?view=archived"); await expect(staff.locator(`.nt-inbox-table td:first-child a[href$='/${notice}']`)).toBeVisible();
     const colleague = await otherContext.newPage(); await login(colleague, "colleague", "/staff/notificaties"); await expect(colleague.getByText(title)).toHaveCount(0); const denied = await colleague.goto(`/staff/notificaties/${notice}`); expect(await denied!.text()).not.toContain(title); await expect(colleague.getByRole("heading", { name: "Deze pagina bestaat niet.", exact: true })).toBeVisible();
     await staff.goto("/staff/notificaties"); await expect(staff.getByRole("button", { name: /Notificaties, / })).toBeVisible(); await staff.evaluate(() => { window.dispatchEvent(new Event("notifications-account-cleared")); window.dispatchEvent(new Event("focus")); }); await expect(staff.getByRole("button", { name: /Notificaties, / })).toHaveCount(0);
   } finally { await staffContext.close(); await otherContext.close(); }
@@ -156,7 +156,7 @@ test("klant- en platforminbox tonen uitsluitend eigen context, met blijvende cen
   expect(central).toEqual({quiet_start:"21:30:00",quiet_end:"08:30:00"});
   expect((await db.query("select email from private.notification_preferences where tenant_id=$1 and user_id=$2 and context='customer' and type_code='manual.tenant'",[tenantId,users.customer.id])).rows[0].email).toBe(false);
   const platformContext = await browser.newContext({ baseURL: E2E_APP_ORIGIN });
-  try { const platform = await platformContext.newPage(); await login(platform, "platform", "/platform/notificaties"); await visual(platform, "platform-inbox", async () => { await expect(platform.getByRole("heading", { name: "Notificatiebeheer", exact: true })).toBeVisible(); await expect(platform.locator(`.nt-inbox-item[href$='/${platformInboxId}']`)).toBeVisible(); }); await expect(platform.getByText("Klantbericht alleen voor klant")).toHaveCount(0); const denied = await platform.goto(`/platform/notificaties/${customerInboxId}`); expect(await denied!.text()).not.toContain("Klantbericht alleen voor klant"); await expect(platform.getByRole("heading", { name: "Deze pagina bestaat niet.", exact: true })).toBeVisible(); }
+  try { const platform = await platformContext.newPage(); await login(platform, "platform", "/platform/notificaties"); await visual(platform, "platform-inbox", async () => { await expect(platform.getByRole("heading", { name: "Notificatiebeheer", exact: true })).toBeVisible(); await expect(platform.locator(`.nt-inbox-table td:first-child a[href$='/${platformInboxId}']`)).toBeVisible(); }); await expect(platform.getByText("Klantbericht alleen voor klant")).toHaveCount(0); const denied = await platform.goto(`/platform/notificaties/${customerInboxId}`); expect(await denied!.text()).not.toContain("Klantbericht alleen voor klant"); await expect(platform.getByRole("heading", { name: "Deze pagina bestaat niet.", exact: true })).toBeVisible(); }
   finally { await platformContext.close(); }
 });
 
@@ -243,7 +243,7 @@ test("gekozen kanalen blokkeren nulbereik en bevestigen uitsluitend het actuele 
 
 test("een notificatie opent compact boven de inbox en behoudt de lijst bij sluiten", async ({ page }) => {
   await login(page, "manager", "/app/notificaties");
-  const entry = page.locator(`.nt-inbox-item[href$='/${managerInboxId}']`);
+  const entry = page.locator(`.nt-inbox-table td:first-child a[href$='/${managerInboxId}']`);
   await entry.click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();

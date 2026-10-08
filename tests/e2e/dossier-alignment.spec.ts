@@ -121,5 +121,5 @@ test("Dossier 360: customer agreement, object programme, partial execution and l
  const lines=(await db.query("select quantity,unit_price_cents,source_snapshot from public.invoice_lines where work_order_task_id=$1",[task])).rows;expect(lines).toHaveLength(1);expect(lines[0].quantity).toBe("2.000");expect(lines[0].unit_price_cents).toBe("1200");expect(lines[0].source_snapshot.agreement.version).toBe(1);
  await page.goto(`/app/klanten?record=${customer}&tab=finance`);await expect(page.locator(".customer-dossier:visible").getByRole("link",{name:"Bekijk",exact:true})).toBeVisible();
  for(const width of [1440,768,390]){await page.setViewportSize({width,height:950});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
- await page.goto("/app/opvolging");await expect(page.getByRole("heading",{name:"Gezamenlijke opvolging"})).toBeVisible();
+ await page.goto("/app/opvolging");await expect(page.getByRole("heading",{name:"Opvolging",exact:true})).toBeVisible();
 });
