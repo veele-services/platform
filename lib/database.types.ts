@@ -5674,6 +5674,50 @@ export type Database = {
           },
         ]
       }
+      tenant_workspace_domains: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          environment: string
+          host: string
+          id: string
+          status: string
+          tenant_id: string
+          verification_token: string
+          verified_at: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          environment: string
+          host: string
+          id?: string
+          status?: string
+          tenant_id: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          environment?: string
+          host?: string
+          id?: string
+          status?: string
+          tenant_id?: string
+          verification_token?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_workspace_domains_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           created_at: string
@@ -7965,6 +8009,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      bind_personnel_account: {
+        Args: {
+          expected_email: string
+          expected_user: string
+          target_tenant: string
+        }
+        Returns: undefined
+      }
       book_appointment_slot: {
         Args: {
           target_request_id: string
@@ -8165,10 +8217,6 @@ export type Database = {
         Args: { target_order: string; target_tenant: string }
         Returns: Json
       }
-      commercial_website_intake: {
-        Args: { target_tenant: string; request_id: string; input: Json; additional_notes: string; submission_metadata: Json; client_hash: string }
-        Returns: Json
-      }
       commercial_public_intake: {
         Args: {
           client_hash: string
@@ -8202,6 +8250,17 @@ export type Database = {
       }
       commercial_save_request: {
         Args: { input: Json; target_tenant: string }
+        Returns: Json
+      }
+      commercial_website_intake: {
+        Args: {
+          additional_notes: string
+          client_hash: string
+          input: Json
+          request_id: string
+          submission_metadata: Json
+          target_tenant: string
+        }
         Returns: Json
       }
       complete_platform_admin_invitation: {
@@ -8859,6 +8918,31 @@ export type Database = {
         Args: { input: Json; target_tenant: string }
         Returns: Json
       }
+      management_command: {
+        Args: {
+          command: string
+          input: Json
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      management_context: { Args: { target_tenant: string }; Returns: Json }
+      management_invitation_access: {
+        Args: {
+          delivery_id: string
+          recipient: string
+          target_member: string
+          target_tenant: string
+          target_user: string
+        }
+        Returns: boolean
+      }
+      management_pending_transfer: {
+        Args: { target_tenant: string }
+        Returns: Json
+      }
+      management_query: { Args: { target_tenant: string }; Returns: Json }
       mutate_work_order: {
         Args: { input: Json; target_tenant: string }
         Returns: Json
@@ -9107,6 +9191,15 @@ export type Database = {
           personnel_id: string
         }[]
       }
+      platform_workspace_domain_command: {
+        Args: {
+          actor_user_id: string
+          input: Json
+          operation: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
       prepare_personnel_checklist: {
         Args: {
           checklist_type: string
@@ -9352,6 +9445,10 @@ export type Database = {
           timezone: string
           white_label_enabled: boolean
         }[]
+      }
+      resolve_workspace_hostname: {
+        Args: { requested_environment: string; requested_host: string }
+        Returns: string
       }
       review_object_visit_request: {
         Args: {

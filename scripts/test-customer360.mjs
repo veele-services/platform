@@ -122,13 +122,20 @@ test("Customer 360 uses persistent sources, guarded relationships and exact revi
       assert.deepEqual(await call("select * from public.customer_owners($1)",[tenant],staff), []);
       await db.query("update public.personnel set user_id=null where id=$1", [localPerson]);
       assert.equal((await owners())[0].label, "Fictieve Voornaam Achternaam");
-      await db.query("update auth.users set email_confirmed_at=null,raw_user_meta_data='{}' where id=$1", [manager]);
+      // Keep the actor confirmed, but remove both legitimate employee-name
+      // matches before testing the missing-name fallback.
+      await db.query("update public.personnel set email='unbound-name@customer360.test' where id=$1", [localPerson]);
+      await db.query("update auth.users set raw_user_meta_data='{}' where id=$1", [manager]);
       assert.equal((await owners())[0].label, "Naam niet vastgelegd");
       await db.query("update auth.users set email_confirmed_at=now(),raw_user_meta_data='{\"first_name\":\"Fictieve\",\"last_name\":\"Beheerder\"}' where id=$1", [manager]);
       await db.query("delete from public.personnel where id=any($1::uuid[])", [[localPerson,foreignPerson]]);
       assert.equal((await owners())[0].label, "Fictieve Beheerder");
+      // A tenant keeps an active owner when testing ordinary membership revocation.
+      const keeper = randomUUID();
+      await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())", [keeper, `${keeper}@customer360.test`]);
+      await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,array['tenant_admin']::public.app_role[],'active')", [tenant,keeper]);
       await db.query("update public.tenant_memberships set status='revoked' where tenant_id=$1 and user_id=$2", [tenant,manager]);
-      assert.deepEqual(await owners(), []);
+      await assert.rejects(owners(), error => error.code === '42501');
       await db.query("update public.tenant_memberships set status='active' where tenant_id=$1 and user_id=$2", [tenant,manager]);
     });
     await t.test(

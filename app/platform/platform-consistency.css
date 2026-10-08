@@ -53,3 +53,19 @@
  .fg-console .fg-topbar { padding-inline:15px;gap:12px; }
  .fg-console .fg-topbar>div:first-child { flex:1; }
 }
+
+.fg-console .fg-cockpit-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:20px; }
+.fg-console .fg-cockpit-grid .fg-panel { display:grid;align-content:start;gap:20px;min-width:0; }
+.fg-console .fg-cockpit-grid .fg-panel-heading { margin:0; }
+.fg-console .fg-cockpit-grid .fg-panel-description { margin:0;line-height:1.7; }
+.fg-console .fg-cockpit-grid .fg-button { justify-self:start; }
+.fg-console .fg-cockpit-facts { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0; }
+.fg-console .fg-cockpit-facts>div { padding:14px;border:1px solid var(--brand-border);border-radius:10px;background:var(--brand-surface);min-width:0; }
+.fg-console .fg-cockpit-facts dt { color:var(--brand-muted);font-size:12px;line-height:1.5; }
+.fg-console .fg-cockpit-facts dd { color:var(--brand-ink);font:600 24px/1.4 Poppins,Inter,sans-serif;margin:6px 0 0; }
+.fg-console .fg-sidebar nav { min-height:0;overflow-y:auto; }
+.fg-console .fg-sidebar-brand,.fg-console .fg-account-footer { flex-shrink:0; }
+.fg-console .ticket-workspace,.fg-console .nt-page { margin:0;max-width:none;min-width:0; }
+.fg-console .ticket-settings-tabs>.content-tabs { margin-top:0; }
+@media(max-width:850px) { .fg-console .fg-cockpit-grid { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:430px) { .fg-console .fg-cockpit-facts { grid-template-columns:minmax(0,1fr); } }

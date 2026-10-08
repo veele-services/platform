@@ -147,6 +147,16 @@ test("PDOK address selection, exact suffixes, stale response protection and mobi
   await modal.getByRole("button", { name: "Volgende" }).click();
   const address = modal.locator(".address-input").filter({ has: page.locator('[name="visitAddress"]') });
   const search = address.getByRole("combobox", { name: "Straatnaam" });
+  await expect(address.getByRole("combobox")).toHaveCount(2);
+  for (const label of ["Huisnummer", "Huisletter", "Toevoeging", "Woonplaats", "Landcode"]) {
+    const input = address.getByLabel(label, { exact: true });
+    await expect(input).not.toHaveAttribute("role", "combobox");
+    await expect(input).not.toHaveAttribute("aria-autocomplete", "list");
+  }
+  let addressRequests = 0;
+  page.on("request", (request) => {
+    if (request.url().endsWith("/api/addresses")) addressRequests++;
+  });
   let finishOld!: () => void;
   const oldFinished = new Promise<void>((resolve) => {
     finishOld = resolve;
@@ -192,6 +202,7 @@ test("PDOK address selection, exact suffixes, stale response protection and mobi
   await expect(
     address.getByText("Locatie beschikbaar voor routeberekening"),
   ).toBeVisible();
+  const requestsBeforeManualEdits = addressRequests;
   await address.getByLabel("Huisnummer", { exact: true }).fill("13");
   expect(
     JSON.parse(await address.locator('[name="visitAddress"]').inputValue())
@@ -200,10 +211,25 @@ test("PDOK address selection, exact suffixes, stale response protection and mobi
   await expect(address.getByText(/Adres controleren:/)).toBeVisible();
   await expect(address.getByLabel("Zoekmethode")).toHaveCount(0);
   await expect(address.getByLabel("Zoek een adres")).toHaveCount(0);
-  await address.getByLabel("Postcode", { exact: true }).fill("1234AB");
   await address.getByLabel("Huisnummer", { exact: true }).fill("12");
+  await address.getByLabel("Huisletter", { exact: true }).fill("B");
   await address.getByLabel("Huisletter", { exact: true }).fill("A");
+  await address.getByLabel("Toevoeging", { exact: true }).fill("achter");
   await address.getByLabel("Toevoeging", { exact: true }).fill("bis");
+  await address.getByLabel("Woonplaats", { exact: true }).fill("Testplaats");
+  await address.getByLabel("Landcode", { exact: true }).focus();
+  await page.waitForTimeout(500);
+  expect(addressRequests).toBe(requestsBeforeManualEdits);
+  await expect(page.getByRole("listbox", { name: "Adresresultaten" })).toHaveCount(0);
+  const postcodeRequest = page.waitForRequest(
+    (request) => request.url().endsWith("/api/addresses") && request.postDataJSON().query?.startsWith("1234"),
+  );
+  await address.getByRole("combobox", { name: "Postcode", exact: true }).fill("1234 AB");
+  await postcodeRequest;
+  await expect(page.getByRole("option", { name: /FICTIEF Testplein/ })).toBeVisible();
+  await address.getByLabel("Huisnummer", { exact: true }).focus();
+  await expect(page.getByRole("listbox", { name: "Adresresultaten" })).toHaveCount(0);
+  await address.getByRole("combobox", { name: "Postcode", exact: true }).focus();
   await page.getByRole("option", { name: /FICTIEF Testplein/ }).click();
   await expect(address.getByLabel("Huisnummer", { exact: true })).toHaveValue(
     "12",

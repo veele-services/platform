@@ -210,6 +210,7 @@ test("Work-order reports: individual time, immutable versions, signing and direc
    await assert.rejects(concepts(manager,randomUUID()),e=>e.code==='42501');
    for(const role of ['anon','service_role'])await assert.rejects(concepts(manager,tenant,role),e=>e.code==='42501');
    await db.query('savepoint concept_guard');try{
+    const keeper=randomUUID();await db.query("insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())",[keeper,`${keeper}@report.test`]);await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,array['tenant_admin']::public.app_role[],'active')",[tenant,keeper]);
     await db.query("update public.work_orders set status='in_progress',report_state='correction' where id=$1",[order]);assert.deepEqual(await concepts(),[]);
     await db.query("update public.tenant_memberships set status='suspended' where tenant_id=$1 and user_id=$2",[tenant,manager]);await assert.rejects(concepts(),e=>e.code==='42501');
    }finally{await db.query('rollback to savepoint concept_guard');await db.query('release savepoint concept_guard');}

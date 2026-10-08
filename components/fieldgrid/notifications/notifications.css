@@ -30,3 +30,5 @@
 .nt-detail-footer .nt-actions { flex-wrap:nowrap; }
 @media(max-width:480px) { .nt-dialog.nt-detail-dialog.nt-detail-dialog[data-slot=dialog-content] { width:calc(100vw - 24px); max-height:calc(100dvh - 24px); } .nt-detail-heading { padding:20px 40px 16px 20px; gap:10px; } .nt-detail-heading h2 { font-size:18px; } .nt-detail-icon { width:32px;height:32px; } .nt-detail-body { padding:20px; } .nt-detail-footer { padding:16px; gap:8px; } .nt-detail-footer .nt-actions { gap:6px; } .nt-detail-footer :is(.nt-detail-refresh,.nt-detail-icon-action) { width:36px!important; height:36px; min-height:36px; } }
 .nt-detail-close { position:absolute; top:12px; right:12px; width:32px; height:32px; min-height:32px; padding:0; }
+/* Keep the permissions card joined to its index-card tabs after frame theming. */
+body .fg-tabbed-content > .nt-panel.nt-permissions { border-top-left-radius:0; }

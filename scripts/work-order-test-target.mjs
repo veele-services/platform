@@ -51,14 +51,20 @@ export function safeWorkOrderConnectionError(error) {
 }
 
 /** Committing fixture suites may only target an explicitly identified local stack. */
-export function localWorkOrderTestUrl() {
+export function localWorkOrderTestConfig() {
     if (process.env.FIELDGRID_STAGING_SMOKE) throw new Error("Deze fixturetest is uitsluitend lokaal toegestaan.");
     const replay = process.env.FIELDGRID_LOCAL_REPLAY_DIR;
     if (replay && (!/^\/tmp\/fieldgrid-release-migrations\.[A-Za-z0-9]+$/.test(replay) || !readFileSync(`${replay}/supabase/config.toml`, "utf8").includes('project_id = "fieldgrid-release-audit-20261001"'))) throw new Error("Ongeldige lokale migratie-replayomgeving.");
     const local = JSON.parse(execFileSync("pnpm", ["supabase", "status", "-o", "json", ...(replay ? ["--workdir", replay] : [])], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
     const url = new URL(local.DB_URL);
     if (!["postgres:", "postgresql:"].includes(url.protocol) || url.hostname !== "127.0.0.1" || url.port !== (replay ? "60322" : "59322") || url.pathname !== "/postgres" || url.search || url.hash) throw new Error("Werkbontests vereisen de afgeschermde lokale database.");
-    return local.DB_URL;
+    const api = new URL(local.API_URL);
+    if (api.protocol !== 'http:' || api.hostname !== '127.0.0.1' || api.port !== (replay ? '60321' : '59321') || api.pathname !== '/' || api.search || api.hash) throw new Error('HTTP-tests vereisen dezelfde afgeschermde lokale database.');
+    return local;
+}
+
+export function localWorkOrderTestUrl() {
+    return localWorkOrderTestConfig().DB_URL;
 }
 
 export async function workOrderTestDatabase() {

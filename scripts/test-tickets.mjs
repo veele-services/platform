@@ -107,7 +107,9 @@ test("Tickets: current identity, exact scope, audience projections and atomic co
       assert.equal((await query("detail", { ticket_id: hrTicket.id }, "planner", "tenant")).id, hrTicket.id);
       await db.query("update public.permission_grants set enabled=false where tenant_id=$1 and user_id=$2 and capability='tickets.internal.hr'", [tenant, users.planner]);
       await assert.rejects(query("detail", { ticket_id: hrTicket.id }, "planner", "tenant"), e => e.code === "42501");
-      await call("update public.tenant_memberships set roles=array['tenant_admin','hr']::public.app_role[] where tenant_id=$1 and user_id=$2", [tenant, users.admin], "admin");
+      // Fixture setup for a historical combined role, not an authenticated
+      // bypass of the new management-role command boundary.
+      await db.query("update public.tenant_memberships set roles=array['tenant_admin','hr']::public.app_role[] where tenant_id=$1 and user_id=$2", [tenant, users.admin]);
       await db.query("select private.ticket_seed_membership(id) from public.tenant_memberships where tenant_id=$1 and user_id=$2", [tenant, users.admin]);
       await assert.rejects(query("detail", { ticket_id: hrTicket.id }, "admin", "tenant"), e => e.code === "42501");
       assert.equal(JSON.stringify(await query("list", {}, "admin", "tenant")).includes("CONFIDENTIAL-HR-CANARY"), false);
@@ -276,7 +278,9 @@ test("Tickets: current identity, exact scope, audience projections and atomic co
       await assert.rejects(query("config", {}, "staff", null), e => e.code === "42501");
       await assert.rejects(command("settings_save", { expected_revision: 2, timezone: "Europe/Amsterdam", opening_hours: { days: [1], start: "09:00", end: "10:00" } }, "staff", null), e => e.code === "42501");
       await assert.rejects(call("update public.tenant_settings set enabled_services=array['planning','personeel'] where tenant_id=$1", [tenant], "admin"), e => e.code === "42501");
-      await assert.rejects(call("update public.tenant_memberships set user_id=$1 where tenant_id=$2 and user_id=$3", [users.outsider, tenant, users.admin], "admin"), e => e.code === "23514");
+      const blocked=await call("update public.tenant_memberships set user_id=$1 where tenant_id=$2 and user_id=$3 returning user_id", [users.outsider, tenant, users.admin], "admin");
+      assert.deepEqual(blocked, []);
+      assert.equal((await db.query("select user_id from public.tenant_memberships where tenant_id=$1 and user_id=$2",[tenant,users.admin])).rows[0].user_id,users.admin);
       const invalid = { user_id: users.support, capability: "tickets.support.read", scope: { all: false, assigned_only: false }, expected_revision: 1, reason: "Do not interpret empty flags as unrestricted" };
       const verification = await verify("grant_save", invalid);
       await assert.rejects(command("grant_save", { ...invalid, verification_id: verification }, "admin", "tenant"), e => e.code === "23514");

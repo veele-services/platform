@@ -13,7 +13,7 @@ test("concurrent personnel numbers are unique, tenant-scoped and transactional",
   const sessionId = randomUUID();
   await admin.connect();
   try {
-    await admin.query("insert into auth.users (id, email) values ($1, $2)", [userId, `${userId}@fieldgrid.test`]);
+    await admin.query("insert into auth.users (id, email, email_confirmed_at) values ($1, $2, now())", [userId, `${userId}@fieldgrid.test`]);
     await admin.query("insert into auth.sessions (id, user_id) values ($1, $2)", [sessionId, userId]);
     await admin.query("insert into public.tenants (id, slug, name) values ($1, $2, 'Numbering concurrency test')", [tenantId, `number-test-${tenantId}`]);
     await admin.query("insert into public.tenant_settings (tenant_id) values ($1)", [tenantId]);

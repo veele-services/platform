@@ -11,7 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { tenantAppUrl } from "@/lib/tenancy/hostname";
 
-const moduleId = z.enum(["planning", "personeel", "rapportage", "finance", "tickets"]);
+const moduleId = z.enum(["planning", "personeel", "rapportage", "finance", "tickets", "klantportaal"]);
 const color = z.string().regex(/^#[0-9A-Fa-f]{6}$/);
 const optionalEmail = z.string().trim().email().or(z.literal(""));
 const optionalDomain = z.string().trim().toLowerCase().regex(/^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/).or(z.literal(""));
@@ -25,7 +25,7 @@ const onboardingSchema = z.object({
   adminEmail: z.string().trim().email(),
   primaryColor: color,
   accentColor: color,
-  enabledServices: z.array(moduleId).max(5),
+  enabledServices: z.array(moduleId).max(6),
   senderEmail: optionalEmail,
 });
 
@@ -196,7 +196,7 @@ export async function uploadPlatformTenantLogo(formData: FormData): Promise<Plat
 export async function updatePlatformTenantModules(input: unknown): Promise<PlatformMutationResult> {
   try {
     const context = await requirePlatformAdmin();
-    const data = z.object({ tenantId: z.string().uuid(), enabledServices: z.array(moduleId).max(5) }).parse(input);
+    const data = z.object({ tenantId: z.string().uuid(), enabledServices: z.array(moduleId).max(6) }).parse(input);
     const services = [...new Set(data.enabledServices)];
     if (services.includes("finance") && (!services.includes("planning") || !services.includes("rapportage"))) throw new Error("Facturatie vereist Planning en Rapportage.");
     if (services.includes("rapportage") && !services.includes("planning")) throw new Error("Rapportage vereist Planning.");

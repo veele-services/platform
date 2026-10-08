@@ -53,3 +53,15 @@ it("provider uncertainty is retained rather than made retryable",async()=>{
 it("database failures are not reported as a successful retry",async()=>{
  readError=true;await expect(flushCommercialMail("tenant","entity",true)).rejects.toThrow("opgehaald");expect(mocks.send).not.toHaveBeenCalled();
 });
+it("manual retries check initiating write access before service reads",async()=>{
+ const access=vi.fn().mockRejectedValue(new Error("Write permission revoked"));
+ await expect(flushCommercialMail("tenant","entity",true,access)).rejects.toThrow("Write permission revoked");
+ expect(mocks.from).not.toHaveBeenCalled();expect(mocks.rpc).not.toHaveBeenCalled();expect(mocks.send).not.toHaveBeenCalled();
+});
+it("manual retries recheck initiating access after preparation before the provider",async()=>{
+ const access=vi.fn().mockResolvedValue(undefined);
+ access.mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("Write permission revoked"));
+ await expect(flushCommercialMail("tenant","entity",true,access)).rejects.toThrow("De berichtvoorbereiding is niet voltooid");
+ expect(access).toHaveBeenCalledTimes(3);expect(mocks.rpc).toHaveBeenCalledTimes(1);expect(mocks.send).not.toHaveBeenCalled();
+ expect(updates[0].status).toBe("failed");
+});

@@ -14,7 +14,8 @@ type Snapshot={subject:string;body:string;recipients:Array<{email:string;audienc
 /** Called only after a scoped, committed action. Failure never rolls back consent.
  * Pending/failed events stay visible for an explicit retry; ambiguous sends do not retry.
  */
-export async function flushCommercialMail(tenantId:string,entityId:string,includeHistory=false){
+export async function flushCommercialMail(tenantId:string,entityId:string,includeHistory=false,confirmAccess?:()=>Promise<void>){
+ await confirmAccess?.();
  const admin=createAdminClient();const env=getServerEnv();if(!env.SENDGRID_API_KEY||!env.SENDGRID_FROM_EMAIL)throw new Error("E-mailverzending is niet geconfigureerd.");
  const batchSize=includeHistory?100:12;let lastFailure:string|null=null;
  for(let offset=0;;offset+=batchSize){
@@ -29,6 +30,7 @@ export async function flushCommercialMail(tenantId:string,entityId:string,includ
  for(const e of batch){const s=e.mail_snapshot as unknown as Snapshot;
   for(const recipient of s.recipients){
    if(settled.has(`${e.id}:${recipient.email}`))continue;
+   await confirmAccess?.();
    const claim=await admin.rpc("commercial_mail_claim",{target_tenant:tenantId,event_id:e.id,recipient_input:recipient.email});if(claim.error)throw new Error("Een bericht kon niet veilig voor verzending worden vastgelegd.");const c=claim.data as {id:string;send:boolean;key:string};if(!c.send)continue;
    let providerStarted=false;try{
     const previous=await admin.from("mail_deliveries").select("render_snapshot").eq("tenant_id",tenantId).eq("id",c.id).single();if(previous.error)throw new Error("De vaste berichtversie kon niet worden gelezen.");
@@ -42,6 +44,7 @@ export async function flushCommercialMail(tenantId:string,entityId:string,includ
     const html=renderTenantEmailHtml({kind:"commercial_event",brand:await withTenantEmailBrand(tenantId, {...s.brand,domain:new URL(tenantAppUrl(s.brand.slug)).hostname,senderEmail:env.SENDGRID_FROM_EMAIL,emailLogoUrl:logoUrl}),message:{subject,body},targetUrl:url,targetLabel:template.cta_label,allowLocalLinks:env.DEPLOY_TARGET==="local"});
     frozen=await freezeMailSnapshot(admin,tenantId,c.id,{fromEmail:env.SENDGRID_FROM_EMAIL,fromName:s.brand.company,to:recipient.email,subject,text:`${body}\n\n${url}`,html,targetUrl:url,templateRevision:template.revision,templateVersionId:template.version_id,templateBaseVersionId:template.base_version_id,attachmentPath:null,attachmentFilename:null});
     }
+    await confirmAccess?.();
     providerStarted=true;const sent=await sendEmail({...frozen,deliveryKey:c.key,disableTracking:true,policy:{kind:"notification",tenantId,type:e.kind,context:recipient.audience==="customer"?"customer":"backoffice",sourceId:c.id}});
     const stored=await admin.from("mail_deliveries").update({status:"sent",provider_message_id:sent.id,sent_at:new Date().toISOString(),locked_until:null}).eq("tenant_id",tenantId).eq("id",c.id);
     if(stored.error)throw new Error("De verzendstatus kon niet worden bevestigd.");

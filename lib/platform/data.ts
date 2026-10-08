@@ -5,6 +5,10 @@ import { getBrandingLogoUrl } from "@/lib/branding/logo";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { tenantAppUrl } from "@/lib/tenancy/hostname";
 import type { TemplateChannel, TemplateKey } from "@/lib/communications/templates";
+import { getTicketAccess, getTicketList } from "@/lib/tickets/data";
+import { ticketQuerySchema } from "@/lib/tickets/model";
+import type { PlatformSupportSummary } from "./cockpit";
+import type { WorkspaceDomain } from "@/lib/tenancy/workspace-domain";
 
 export type PlatformTemplate = {
   key: TemplateKey;
@@ -26,6 +30,8 @@ export type PlatformTenant = {
   createdAt: string;
   domain: string;
   domainVerified: boolean;
+  canonicalHost: string;
+  workspaceDomains: WorkspaceDomain[];
   staffCount: number;
   ownerName: string;
   ownerEmail: string;
@@ -44,6 +50,7 @@ export type PlatformData = {
   currentUserEmail: string | null;
   currentUserName?: string | null;
   tenants: PlatformTenant[];
+  support: PlatformSupportSummary | null;
 };
 
 export async function requirePlatformAdmin() {
@@ -59,7 +66,12 @@ function assertResult(error: { message: string } | null) {
 export async function getPlatformData(): Promise<PlatformData> {
   const context = await requirePlatformAdmin();
   const admin = createAdminClient();
-  const [tenantsResult, brandingResult, settingsResult, domainsResult, personnelResult, membershipsResult, invitationsResult, templatesResult] = await Promise.all([
+  // The authenticated ticket RPC counts only explicitly granted support scope.
+  // Platform administration alone does not open tenant conversations.
+  const supportPromise = getTicketAccess("platform").then(async access => access.allowed
+    ? (await getTicketList("platform", ticketQuerySchema.parse({ pageSize: 10 }))).counts
+    : null);
+  const [tenantsResult, brandingResult, settingsResult, domainsResult, personnelResult, membershipsResult, invitationsResult, templatesResult, workspaceDomainsResult, support] = await Promise.all([
     admin.from("tenants").select("id,name,slug,status,timezone,created_at").order("created_at", { ascending: false }),
     admin.from("tenant_branding").select("tenant_id,primary_color,accent_color,logo_path,sender_name,sender_email"),
     admin.from("tenant_settings").select("tenant_id,enabled_services,white_label_enabled"),
@@ -68,8 +80,10 @@ export async function getPlatformData(): Promise<PlatformData> {
     admin.from("tenant_memberships").select("tenant_id,user_id,roles,status").eq("status", "active").contains("roles", ["tenant_admin"]),
     admin.from("tenant_admin_invitations").select("tenant_id,full_name,email,status,auth_user_id,created_at").order("created_at", { ascending: false }),
     admin.from("tenant_message_templates").select("tenant_id,template_key,channel,subject,body,default_subject,default_body,revision,customized").order("template_key"),
+    admin.from("tenant_workspace_domains").select("id,tenant_id,host,environment,status,verification_token,verified_at").eq("environment", process.env.DEPLOY_TARGET ?? "local"),
+    supportPromise,
   ]);
-  [tenantsResult, brandingResult, settingsResult, domainsResult, personnelResult, membershipsResult, invitationsResult, templatesResult].forEach((result) => assertResult(result.error));
+  [tenantsResult, brandingResult, settingsResult, domainsResult, personnelResult, membershipsResult, invitationsResult, templatesResult, workspaceDomainsResult].forEach((result) => assertResult(result.error));
 
   const userIds = [...new Set((membershipsResult.data ?? []).map((item) => item.user_id))];
   const authUsers = new Map<string, { email: string; name: string }>();
@@ -99,9 +113,11 @@ export async function getPlatformData(): Promise<PlatformData> {
       createdAt: tenant.created_at,
       domain: domain?.host ?? new URL(tenantAppUrl(tenant.slug)).hostname,
       domainVerified: Boolean(domain?.verified_at),
+      canonicalHost: new URL(tenantAppUrl(tenant.slug)).hostname,
+      workspaceDomains: (workspaceDomainsResult.data ?? []).filter(item => item.tenant_id === tenant.id).map(item => ({ id: item.id, host: item.host, environment: item.environment, status: item.status as WorkspaceDomain["status"], verificationToken: item.verification_token, verifiedAt: item.verified_at })),
       staffCount: (personnelResult.data ?? []).filter((item) => item.tenant_id === tenant.id).length,
-      ownerName: invitation?.full_name ?? owner?.name ?? "Platformbeheer",
-      ownerEmail: invitation?.email ?? owner?.email ?? "",
+      ownerName: owner?.name || owner?.email || invitation?.full_name || "Nog geen eigenaar",
+      ownerEmail: owner?.email || invitation?.email || "",
       invitationStatus: invitation?.status ?? null,
       primaryColor: branding?.primary_color ?? "#222C35",
       accentColor: branding?.accent_color ?? "#41AC42",
@@ -123,5 +139,5 @@ export async function getPlatformData(): Promise<PlatformData> {
     };
   }));
 
-  return { currentUserEmail: context.user.email, currentUserName: context.user.displayName, tenants };
+  return { currentUserEmail: context.user.email, currentUserName: context.user.displayName, tenants, support };
 }

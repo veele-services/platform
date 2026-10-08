@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { z } from "zod";
 import { getAuthContext } from "@/lib/auth/context";
 import { getPlanningShellData } from "@/lib/planning/data";
@@ -8,7 +8,6 @@ import { getTicketAccess, getTicketDetail, getTicketList, getTicketOptions, getT
 import { ticketPaths, ticketQueryFromSearch, type TicketWorkspace } from "@/lib/tickets/model";
 import { BackofficeShell } from "@/components/fieldgrid/backoffice-shell";
 import { StaffRouteShell } from "@/components/fieldgrid/staff/route-shell";
-import { TicketStandaloneShell } from "./shell";
 import { TicketList } from "./list";
 import { TicketDetailPage } from "./detail";
 import { TicketSettingsPage } from "./settings";
@@ -17,11 +16,8 @@ import "./tickets.css";
 export type TicketSearch = Record<string, string | string[] | undefined>;
 export async function TicketRouteLayout({ workspace, children }: { workspace: TicketWorkspace; children: ReactNode }) {
   const access = await getTicketAccess(workspace);
-  if (!access.allowed && !access.canConfigure && !access.canDelegate) notFound();
-  if (workspace === "platform") {
-    const context = await getAuthContext();
-    return <TicketStandaloneShell access={access} canPlatformAdmin={context.isPlatformAdmin}>{children}</TicketStandaloneShell>;
-  }
+  if (!access.allowed && !access.canCreate && !access.canConfigure && !access.canDelegate) notFound();
+  if (workspace === "platform") return children;
   const context = await getAuthContext();
   if (!context.tenant || context.tenant.id !== access.tenant?.id) notFound();
   if (workspace === "staff") return <StaffRouteShell active="tickets">{children}</StaffRouteShell>;
@@ -30,10 +26,10 @@ export async function TicketRouteLayout({ workspace, children }: { workspace: Ti
 }
 export async function TicketIndexRoute({ workspace, searchParams }: { workspace: TicketWorkspace; searchParams: Promise<TicketSearch> }) {
   const access = await getTicketAccess(workspace);
-  if (!access.allowed) {
-    if (access.canConfigure || access.canDelegate) redirect(`${ticketPaths[workspace]}/instellingen`);
-    notFound();
-  }
+  // Configuration grants never imply conversation access. The list RPC filters
+  // every record, so a configuration-only actor gets an empty ticket landing
+  // instead of a surprising redirect into settings.
+  if (!access.allowed && !access.canCreate && !access.canConfigure && !access.canDelegate) notFound();
   const raw = await searchParams;
   let query;
   try { query = ticketQueryFromSearch(raw); } catch { return <section className="ticket-panel"><h1>Controleer de ticketfilters</h1><p className="ticket-error" role="alert">Een filter of paginanummer is ongeldig.</p><Link className="secondary-button" href={ticketPaths[workspace]}>Filters herstellen</Link></section>; }

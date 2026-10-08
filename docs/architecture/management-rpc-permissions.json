@@ -1,0 +1,590 @@
+[
+  {
+    "function": "accept_object_proposal",
+    "module": "objects",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "answer_work_order_checklist",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "assign_work_order_task",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "attach_invoice_pdf",
+    "module": "finance",
+    "action": "write",
+    "tenant": "(select tenant_id from public.invoices where id=target_invoice_id)"
+  },
+  {
+    "function": "attach_work_order_checklist",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "bind_object_customer",
+    "module": "objects",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "change_work_order_planning",
+    "module": "planning",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "change_work_order_signature_policy",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "(select tenant_id from public.work_orders where id=target_order)"
+  },
+  {
+    "function": "commercial_booking",
+    "module": "commercial",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "commercial_cancel_booking",
+    "module": "commercial",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "commercial_command",
+    "module": "commercial",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "commercial_detail",
+    "module": "commercial",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "commercial_list",
+    "module": "commercial",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "commercial_next_visit",
+    "module": "commercial",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "commercial_options",
+    "module": "commercial",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "commercial_order_context",
+    "module": "commercial",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "commercial_save_quote",
+    "module": "commercial",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "commercial_save_request",
+    "module": "commercial",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "confirm_shift_interest",
+    "module": "planning",
+    "action": "write",
+    "tenant": "(select tenant_id from public.open_shifts where id=target_shift_id)"
+  },
+  {
+    "function": "create_commercial_period_invoice",
+    "module": "finance",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "create_execution_invoice",
+    "module": "finance",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "customer_command",
+    "module": "customers",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "customer_commercial_followup",
+    "module": "customers",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "customer_document_metadata",
+    "module": "customers",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "customer_file_access",
+    "module": "customers",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "customer_history",
+    "module": "customers",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "customer_list",
+    "module": "customers",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "customer_owners",
+    "module": "customers",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "dispatch_work_order",
+    "module": "planning",
+    "action": "write",
+    "tenant": "(select tenant_id from public.work_orders where id=target_work_order_id)"
+  },
+  {
+    "function": "execution_invoice_concepts",
+    "module": "finance",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "extend_object_access",
+    "module": "objects",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "finalize_invoice",
+    "module": "finance",
+    "action": "write",
+    "tenant": "(select tenant_id from public.invoices where id=target_invoice_id)"
+  },
+  {
+    "function": "get_planboard",
+    "module": "planning",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "get_planboard_order",
+    "module": "planning",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "manage_work_order",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "mutate_work_order",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "object_agreement_options",
+    "module": "objects",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "object_customer_accounts",
+    "module": "objects",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "object_dossier_owners",
+    "module": "objects",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "personnel_availability",
+    "module": "personnel",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "personnel_document_file",
+    "module": "personnel",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "personnel_dossier_owners",
+    "module": "personnel",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "personnel_dossier_staff_projection",
+    "module": "personnel",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "personnel_dossier_summary",
+    "module": "personnel",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "personnel_mobility",
+    "module": "personnel",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "personnel_qualification_gaps",
+    "module": "personnel",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "prepare_work_order_signature",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "(select tenant_id from public.work_orders where id=target_work_order_id)"
+  },
+  {
+    "function": "publish_announcement",
+    "module": "news",
+    "action": "write",
+    "tenant": "(select tenant_id from public.announcements where id=target_announcement_id)"
+  },
+  {
+    "function": "record_customer_agreement",
+    "module": "customers",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "register_manual_payment",
+    "module": "finance",
+    "action": "write",
+    "tenant": "target_tenant_id"
+  },
+  {
+    "function": "reschedule_work_order",
+    "module": "planning",
+    "action": "write",
+    "tenant": "(select tenant_id from public.work_orders where id=target_work_order_id)"
+  },
+  {
+    "function": "review_object_visit_request",
+    "module": "objects",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "review_staff_leave_request",
+    "module": "personnel",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "review_staff_leave_request",
+    "module": "personnel",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "review_staff_time_correction",
+    "module": "personnel",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "review_work_order",
+    "module": "reports",
+    "action": "write",
+    "tenant": "(select tenant_id from public.work_orders where id=target_work_order_id)"
+  },
+  {
+    "function": "review_work_order_report",
+    "module": "reports",
+    "action": "write",
+    "tenant": "(select tenant_id from public.work_orders where id=target_work_order_id)"
+  },
+  {
+    "function": "save_object_dossier",
+    "module": "objects",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "save_work_order",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "set_staff_availability_permission",
+    "module": "personnel",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "set_staff_leave_entitlement",
+    "module": "personnel",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "submit_work_order_report",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "(select tenant_id from public.work_orders where id=target_work_order_id)"
+  },
+  {
+    "function": "task_catalogue",
+    "module": "tasks",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "task_catalogue_command",
+    "module": "tasks",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "transition_work_order",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "(select tenant_id from public.work_orders where id=target_work_order_id)"
+  },
+  {
+    "function": "travel_day_departure",
+    "module": "planning",
+    "action": "read",
+    "tenant": "t"
+  },
+  {
+    "function": "waive_work_order_signature",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "(select tenant_id from public.work_order_report_versions where id=target_report_id)"
+  },
+  {
+    "function": "work_order_communication",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_dossier",
+    "module": "work_orders",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_exception_command",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_exceptions",
+    "module": "work_orders",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_list",
+    "module": "work_orders",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_operational_rows",
+    "module": "work_orders",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_operational_task_data",
+    "module": "work_orders",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_options",
+    "module": "work_orders",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_related_command",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_related_context",
+    "module": "work_orders",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_report",
+    "module": "work_orders",
+    "action": "read",
+    "tenant": "(select tenant_id from public.work_orders where id=target_work_order_id)"
+  },
+  {
+    "function": "work_order_report_file",
+    "module": "work_orders",
+    "action": "read",
+    "tenant": "(select tenant_id from public.work_order_report_versions where id=target_report_id)"
+  },
+  {
+    "function": "work_order_series_command",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_signature_settings",
+    "module": "work_orders",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_task_context",
+    "module": "work_orders",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "work_order_template_command",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "customer_portal_bind",
+    "module": "customers",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "customer_portal_management",
+    "module": "customers",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "object_visit_context",
+    "module": "objects",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "object_visit_signals",
+    "module": "objects",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "get_object_document",
+    "module": "objects",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "customer_extra_agreements",
+    "module": "customers",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "customer_object_visits",
+    "module": "objects",
+    "action": "read",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "submit_object_visit_request",
+    "module": "objects",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "update_object_visit_request",
+    "module": "objects",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "acknowledge_object_instruction",
+    "module": "objects",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "acknowledge_object_request",
+    "module": "objects",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "withdraw_object_request",
+    "module": "objects",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "register_visit_attachment",
+    "module": "objects",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "record_task_execution",
+    "module": "work_orders",
+    "action": "write",
+    "tenant": "target_tenant"
+  },
+  {
+    "function": "prepare_personnel_checklist",
+    "module": "personnel",
+    "action": "write",
+    "tenant": "target_tenant"
+  }
+]

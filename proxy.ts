@@ -1,7 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
-import { HOST_KIND_HEADER, resolveHostContext, TENANT_SLUG_HEADER } from "@/lib/tenancy/hostname";
+import { HOST_KIND_HEADER, REQUEST_PATH_HEADER, resolveHostContext, TENANT_SLUG_HEADER } from "@/lib/tenancy/hostname";
+import { resolveCustomWorkspaceHost } from "@/lib/tenancy/workspace-domain";
 import { isAuthenticatedWorkerRequest } from "@/lib/operations/worker-request";
 import { BROWSER_SESSION_HEADER, isProtectedPage, PROTECTED_PAGE_HEADER } from "@/lib/auth/session-signal";
 import { deriveBrowserSessionKey } from "@/lib/auth/session-key";
@@ -15,11 +16,21 @@ export async function proxy(request: NextRequest) {
     const workerHeaders = new Headers(request.headers);
     workerHeaders.delete(TENANT_SLUG_HEADER);
     workerHeaders.delete(BROWSER_SESSION_HEADER);
+    workerHeaders.delete(REQUEST_PATH_HEADER);
     workerHeaders.set(HOST_KIND_HEADER, "platform");
     workerHeaders.set(PROTECTED_PAGE_HEADER, "0");
     return NextResponse.next({ request: { headers: workerHeaders } });
   }
-  const hostContext = resolveHostContext(request.headers.get("host"), process.env.APP_URL!, process.env.DEPLOY_TARGET ?? "local");
+  let hostContext = resolveHostContext(request.headers.get("host"), process.env.APP_URL!, process.env.DEPLOY_TARGET ?? "local");
+  let customWorkspace = false;
+  if (hostContext.kind === "invalid") {
+    const custom = await resolveCustomWorkspaceHost(hostContext.hostname, process.env.DEPLOY_TARGET ?? "local");
+    if (custom.unavailable) return new NextResponse("Tenantcontrole tijdelijk niet beschikbaar", { status: 503, headers: { "cache-control": "no-store" } });
+    if (custom.slug && hostContext.hostname) {
+      hostContext = { kind: "tenant", hostname: hostContext.hostname, slug: custom.slug };
+      customWorkspace = true;
+    }
+  }
   if (hostContext.kind === "invalid") {
     return new NextResponse("Onbekende Fieldgrid-host", { status: 404, headers: { "cache-control": "no-store" } });
   }
@@ -46,8 +57,13 @@ export async function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.delete(BROWSER_SESSION_HEADER);
+  requestHeaders.set(REQUEST_PATH_HEADER, request.nextUrl.pathname);
   const publicPath = new URL(request.url).pathname;
-  const marketing = hostContext.kind === "tenant" && hostContext.slug === VEELE_WEBSITE_SLUG && ["GET", "HEAD"].includes(request.method) && publicMarketingPath(publicPath);
+  if (customWorkspace && publicPath === "/" && ["GET", "HEAD"].includes(request.method)) {
+    const url = new URL(process.env.APP_URL!); url.hostname = hostContext.hostname!; url.pathname = "/app";
+    return NextResponse.redirect(url, 307);
+  }
+  const marketing = !customWorkspace && hostContext.kind === "tenant" && hostContext.slug === VEELE_WEBSITE_SLUG && ["GET", "HEAD"].includes(request.method) && publicMarketingPath(publicPath);
   const path = publicPath;
   if (marketing && path !== "/" && !path.endsWith("/") && !/\.[^/]+$/.test(path)) {
     const url = new URL(process.env.APP_URL!); url.hostname = hostContext.hostname; url.pathname = path + "/"; url.search = request.nextUrl.search;

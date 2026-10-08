@@ -62,3 +62,16 @@ describe("bounded tenant global search", () => {
     expect(await (await POST(request())).json()).toEqual({ groups: [] });
   });
 });
+it('filters managed compatibility roles by live page permissions and operational RPC rights',async()=>{
+ const managed={...actor(['management','planner','finance','hr']),tenant:{...actor().tenant,roles:['management','planner','finance','hr'],permissions:['backoffice.access','backoffice.customers.read','backoffice.work_orders.read']}};
+ mocks.context.mockResolvedValue(managed);mocks.results.set('customers',[{id:'customer-one',name:'Kantine',customer_number:'KL-001'}]);
+ expect((await POST(request())).status).toBe(200);expect(mocks.from.mock.calls.map(call=>call[0])).toEqual(['customers']);expect(mocks.rpc.mock.calls.some(call=>call[0]==='work_order_list')).toBe(false);
+});
+it('does not return labels after a managed page or backoffice access right is revoked during lookup',async()=>{
+ const permissions=['backoffice.access','backoffice.customers.read'];const managed={...actor(),tenant:{...actor().tenant,permissions}};
+ mocks.results.set('customers',[{id:'customer-one',name:'Kantine',customer_number:'KL-001'}]);
+ mocks.context.mockResolvedValueOnce(managed).mockResolvedValueOnce({...managed,tenant:{...managed.tenant,permissions:['backoffice.access']}});
+ expect(await(await POST(request())).json()).toEqual({groups:[]});
+ mocks.context.mockResolvedValueOnce(managed).mockResolvedValueOnce({...managed,tenant:{...managed.tenant,permissions:[]}});
+ expect((await POST(request())).status).toBe(403);
+});

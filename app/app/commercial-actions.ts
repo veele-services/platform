@@ -3,6 +3,8 @@ import { flushCommercialMail } from "@/lib/commercial/mail";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { getObjectActor } from "@/lib/objects/auth";
+import { requireBackofficePermission } from "@/lib/management/auth";
+import { hasManagementPermission } from "@/lib/management/model";
 import type { Json } from "@/lib/database.types";
 import type { ActionResult } from "@/lib/actions/result";
 import { filtersSchema,type CommercialList,type CommercialOptions,type CommercialDetail,type VisitDetail,type SourceKind } from "@/lib/commercial/model";
@@ -36,7 +38,15 @@ export async function commercialAction(command:string,input:Record<string,unknow
 }
 
 export async function retryCommercialMessages(id:string,kind:"request"|"quote"):Promise<ActionResult>{
- try{const {db,tenant}=await getObjectActor();z.uuid().parse(id);const access=await db.rpc("commercial_detail",{target_tenant:tenant.id,target_id:id,source_kind:kind});if(access.error)throw access.error;await flushCommercialMail(tenant.id,id,true);return{ok:true};}catch(e){return{ok:false,error:errorText(e)};}
+ try{
+  const {db,tenant,user}=await getObjectActor();z.uuid().parse(id);z.enum(["request","quote"]).parse(kind);
+  const confirmAccess=async()=>{
+   const context=await requireBackofficePermission("backoffice.commercial.write");
+   if(context.tenant?.id!==tenant.id||context.user.id!==user.id||!hasManagementPermission(context.tenant,"backoffice.functions.retry_commercial_messages"))throw new Error("Geen toegang tot deze verzendfunctie.");
+   const access=await db.rpc("commercial_detail",{target_tenant:tenant.id,target_id:id,source_kind:kind});if(access.error||!access.data)throw new Error("Geen actuele toegang tot dit dossier.");
+  };
+  await flushCommercialMail(tenant.id,id,true,confirmAccess);return{ok:true};
+ }catch(e){return{ok:false,error:errorText(e)};}
 }
 
 export async function createNextCommercialVisit(id:string,day:string,commandId:string):Promise<ActionResult<{id:string}>>{

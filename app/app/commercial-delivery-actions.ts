@@ -21,6 +21,13 @@ import type {CommercialDetail,QuoteSnapshot} from "@/lib/commercial/model";
 import {localToInstant} from "@/lib/planning/time";
 import {assertPrivateFile} from "@/lib/files/private-download";
 import {readMailAttachment} from "@/lib/notifications/mail-attachment";
+import { requireBackofficePermission } from "@/lib/management/auth";
+import { hasManagementPermission } from "@/lib/management/model";
+
+async function confirmCommercialWrite(actor: Awaited<ReturnType<typeof getObjectActor>>, operation: "send_commercial_quote" | "upload_commercial_attachment") {
+ const context=await requireBackofficePermission("backoffice.commercial.write");
+ if(context.tenant?.id!==actor.tenant.id||context.user.id!==actor.user.id||!hasManagementPermission(context.tenant,`backoffice.functions.${operation}`)) throw new Error("Je rol geeft geen toegang tot deze functie.");
+}
 
 export async function createCommercialBooking(form:FormData):Promise<ActionResult<{url:string}>>{
  try{const {db,tenant}=await getObjectActor();const id=z.uuid().parse(form.get("commandId"));const key=getServerEnv().ADMIN_API_SECRET;if(!key)throw new Error("Beveiligde links zijn niet geconfigureerd.");const token=createHmac("sha256",key).update(`fieldgrid:booking:${tenant.id}:${id}`).digest("base64url");const r=await db.rpc("commercial_booking",{target_tenant:tenant.id,command_id:id,input:{work_order_id:z.uuid().parse(form.get("workOrderId")),starts_at:localToInstant(z.string().parse(form.get("start")),tenant.timezone),ends_at:localToInstant(z.string().parse(form.get("end")),tenant.timezone),capacity:z.coerce.number().int().min(1).max(20).parse(form.get("capacity")),token_hash:createHash("sha256").update(token).digest("hex")}});if(r.error)throw new Error(r.error.code==="23514"?r.error.message:"Boekingslink kon niet worden vastgelegd.");return{ok:true,url:tenantAppUrl(tenant.slug,`/booking/${token}`)};}catch(e){return{ok:false,error:e instanceof Error?e.message:"Controleer het tijdvak."};}
@@ -28,13 +35,15 @@ export async function createCommercialBooking(form:FormData):Promise<ActionResul
 
 export async function uploadCommercialAttachment(form:FormData):Promise<ActionResult>{
  try{
-  const {db,admin,tenant,user}=await getObjectActor();const id=z.uuid().parse(form.get("entityId"));const kind=z.enum(["request","quote"]).parse(form.get("kind"));
+  const actor=await getObjectActor();await confirmCommercialWrite(actor,"upload_commercial_attachment");
+  const {db,admin,tenant,user}=actor;const id=z.uuid().parse(form.get("entityId"));const kind=z.enum(["request","quote"]).parse(form.get("kind"));
   const access=await db.rpc("commercial_detail",{target_tenant:tenant.id,target_id:id,source_kind:kind});if(access.error)throw new Error("Geen toegang tot dit dossier.");
   const file=form.get("file");if(!(file instanceof File)||file.size<1||file.size>CUSTOMER_DOCUMENT_MAX_BYTES)throw new Error("Gebruik een bestand van maximaal 10 MB.");
   const title=z.string().trim().min(2).max(250).parse(form.get("title"));validateDossierDocumentName(title,file.name);const bytes=new Uint8Array(await file.arrayBuffer());const ext=customerDocumentExtension(file.type,bytes);const hash=createHash("sha256").update(bytes).digest("hex");
 	  const path=`${tenant.id}/${kind}/${id}/${hash}.${ext}`;
 	  const existing=await admin.from("commercial_attachments").select("id").eq("tenant_id",tenant.id).eq("storage_path",path).maybeSingle();if(existing.data)return{ok:true};
 	  await uploadScannedFile(db,"commercial-documents",path,bytes,file.type);
+	  await confirmCommercialWrite(actor,"upload_commercial_attachment");
 	  const currentAccess=await db.rpc("commercial_detail",{target_tenant:tenant.id,target_id:id,source_kind:kind});if(currentAccess.error||!currentAccess.data)throw new Error("Je toegang is gewijzigd. De bijlage is niet gekoppeld.");
 	  const inserted=await admin.from("commercial_attachments").insert({id:randomUUID(),tenant_id:tenant.id,request_id:kind==="request"?id:null,quote_id:kind==="quote"?id:null,title,storage_path:path,mime_type:file.type,size_bytes:file.size,sha256:hash,public_in_offer:kind==="quote"&&form.get("public")==="true",created_by:user.id});
   if(inserted.error){const replay=await admin.from("commercial_attachments").select("id").eq("tenant_id",tenant.id).eq("storage_path",path).maybeSingle();if(!replay.data)throw new Error("De bijlage is niet gekoppeld. Een aangeboden offerteversie kan niet meer worden gewijzigd.");}
@@ -45,7 +54,7 @@ export async function uploadCommercialAttachment(form:FormData):Promise<ActionRe
 export async function sendCommercialQuote(id:string,commandId:string,reminder=false):Promise<ActionResult>{
  let beforeProviderFailure:(()=>Promise<void>)|null=null;let providerStarted=false;
  try{
-  z.uuid().parse(id);z.uuid().parse(commandId);const {db,admin,tenant,user}=await getObjectActor();const env=getServerEnv();
+  z.uuid().parse(id);z.uuid().parse(commandId);const actor=await getObjectActor();await confirmCommercialWrite(actor,"send_commercial_quote");const {db,admin,tenant,user}=actor;const env=getServerEnv();
   if(!env.SENDGRID_API_KEY||!env.SENDGRID_FROM_EMAIL||!env.ADMIN_API_SECRET)throw new Error("E-mailverzending is niet beschikbaar. Vraag de platformbeheerder om de configuratie te controleren.");
   const access=await db.rpc("commercial_detail",{target_tenant:tenant.id,target_id:id,source_kind:"quote"});if(access.error)throw new Error("Geen toegang tot deze offerte.");
   const detail=access.data as unknown as CommercialDetail;let q=detail.record;if(!("quote_number"in q))throw new Error("Offerte niet gevonden.");
@@ -75,7 +84,7 @@ export async function sendCommercialQuote(id:string,commandId:string,reminder=fa
   if(storedPdf)pdf=storedPdf.bytes;else{if(saved.success)throw new Error("Het vastgelegde offertedocument is niet beschikbaar.");pdf=await renderQuotePdf(snapshot,logo);await uploadScannedFile(db,"commercial-documents",pdfPath,pdf,"application/pdf");}
   // Existing-file/lazy-scan retries must reauthorize the initiating actor too,
   // not only the later service-role mail source and intended recipient.
-  const confirmAccess=async()=>{const current=await db.rpc("commercial_detail",{target_tenant:tenant.id,target_id:id,source_kind:"quote"});if(current.error||!current.data)throw new Error("Je toegang is gewijzigd. De offerte is niet verzonden.");};
+  const confirmAccess=async()=>{await confirmCommercialWrite(actor,"send_commercial_quote");const current=await db.rpc("commercial_detail",{target_tenant:tenant.id,target_id:id,source_kind:"quote"});if(current.error||!current.data)throw new Error("Je toegang is gewijzigd. De offerte is niet verzonden.");};
   await confirmAccess();
   const attach=await admin.from("quotes").update({pdf_path:pdfPath,logo_path:logoPath}).eq("tenant_id",tenant.id).eq("id",id);if(attach.error)throw new Error("Het document kon niet aan de offerte worden gekoppeld.");
   const token=createHmac("sha256",env.ADMIN_API_SECRET).update(`fieldgrid:quote:v1:${tenant.id}:${id}:${recipient}`).digest("base64url");const tokenHash=createHash("sha256").update(token).digest("hex");

@@ -1,10 +1,11 @@
 begin;
 select no_plan();
 
-insert into auth.users (id, email) values
-  ('f1000000-0000-4000-8000-000000000001', 'number-admin@fieldgrid.test'),
-  ('f1000000-0000-4000-8000-000000000002', 'number-hr@fieldgrid.test'),
-  ('f1000000-0000-4000-8000-000000000003', 'number-staff@fieldgrid.test');
+-- Confirmed actors keep permission denials independent of Auth activation.
+insert into auth.users (id, email, email_confirmed_at) values
+  ('f1000000-0000-4000-8000-000000000001', 'number-admin@fieldgrid.test', now()),
+  ('f1000000-0000-4000-8000-000000000002', 'number-hr@fieldgrid.test', now()),
+  ('f1000000-0000-4000-8000-000000000003', 'number-staff@fieldgrid.test', now());
 -- Real sessions: authenticated RLS must reject stale or missing sessions.
 insert into auth.sessions(id,user_id) select id,id from auth.users where id in ('f1000000-0000-4000-8000-000000000001','f1000000-0000-4000-8000-000000000002','f1000000-0000-4000-8000-000000000003');
 

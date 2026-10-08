@@ -1,14 +1,12 @@
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
 import {createHash,randomUUID} from 'node:crypto';
 import test from 'node:test';
 import {createClient} from '@supabase/supabase-js';
-import {workOrderTestDatabase} from './work-order-test-target.mjs';
+import {localWorkOrderTestConfig,workOrderTestDatabase} from './work-order-test-target.mjs';
 
 test('real local Auth, Data API and Storage enforce report ownership and revocation',async t=>{
   if(process.env.FIELDGRID_STAGING_SMOKE)throw Error('Synthetic HTTP fixtures are local only');
-  const local=JSON.parse(execFileSync('pnpm',['supabase','status','-o','json'],{encoding:'utf8',stdio:['ignore','pipe','ignore']}));
-  const api=new URL(local.API_URL);assert.equal(api.hostname,'127.0.0.1');assert.equal(api.port,'59321');
+  const local=localWorkOrderTestConfig();
   Object.assign(process.env,{APP_ENV:'development',DEPLOY_TARGET:'local',APP_URL:'http://127.0.0.1:3000',SUPABASE_URL:local.API_URL,NEXT_PUBLIC_SUPABASE_URL:local.API_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY:local.ANON_KEY,SUPABASE_SERVICE_ROLE_KEY:local.SERVICE_ROLE_KEY});
   const {publishScannedFile,uploadScannedFile,readScannedFile}=await import('../lib/files/scanned-storage.ts');
   const options={auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}};

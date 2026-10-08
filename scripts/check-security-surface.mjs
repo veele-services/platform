@@ -68,6 +68,7 @@ const baseOperationalPaths = [
   "scripts/bootstrap-platform-admin.ts",
   "scripts/check-authorization-review.mjs",
   "scripts/check-clamav-socket.mjs",
+  "scripts/check-mail-provider.ts",
   "scripts/check-release-secrets.mjs",
   "scripts/check-routing-provider.ts",
   "scripts/check-security-surface.mjs",

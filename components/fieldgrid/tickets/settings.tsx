@@ -11,6 +11,7 @@ import { TicketPushControl } from "./push";
 import { ticketDate } from "./presentation";
 import { PageHeading } from "../page-heading";
 import { ContentSection } from "../content-section";
+import { ContentTabs } from "../content-tabs";
 import { ActionIcon } from "../action-icon";
 import { EmptyState } from "../empty-state";
 import "./tickets.css";
@@ -18,28 +19,33 @@ import "./tickets.css";
 export function TicketSettingsPage({ access, data }: { access: TicketAccess; data: TicketSettings }) {
   const router = useRouter();
   const [category, setCategory] = useState<TicketCategory | "new" | null>(null), [grant, setGrant] = useState<TicketGrant | "new" | null>(null);
+  const routing = <div className="ticket-settings-tab-surface">
+    <ContentSection title="Categorieën & routing" description="Orden nieuwe meldingen en verdeel ze naar bevoegde behandelaars." help="Een behandelaarsgroep verdeelt de meldingen. Elk groepslid heeft daarnaast leesrecht nodig." bodyClassName="ticket-settings-category-body" actions={<ActionIcon label="Categorie" icon={<Plus size={18}/>} onClick={() => setCategory("new")}/>}>
+      <div className="ticket-category-grid">{data.categories.map(item => <article className="ticket-category-card" key={item.id}>
+        <header><button className="ticket-record-link" onClick={() => setCategory(item)}>{item.name}{item.confidential && <LockKeyhole size={13} aria-label="Vertrouwelijk"/>}</button><ActionIcon label={`${item.name} bewerken`} icon={<Pencil size={16}/>} onClick={() => setCategory(item)}/></header>
+        <span className="ticket-status" data-tone={item.active ? "green" : "muted"}>{item.active ? "Actief" : "Gearchiveerd"}</span><dl><div><dt>Behandelaarsgroep</dt><dd>{item.groupLabel || "Geen behandelaarsgroep"}</dd></div><div><dt>Reactietermijn</dt><dd>{item.responseMinutes} werkminuten</dd></div></dl>{item.warning && <p className="ticket-muted">{item.warning}</p>}
+      </article>)}</div>{!data.categories.length && <EmptyState title="Nog geen categorieën" description="Voeg een categorie toe om nieuwe meldingen te ordenen en naar de juiste behandelaars te sturen."/>}
+    </ContentSection><TicketGroups access={access} data={data}/>
+  </div>;
+  const permissions = <div className="ticket-settings-tab-surface"><ContentSection title="Expliciete bevoegdheden" help="Ken een geregistreerd recht met een begrensd bereik toe. Gevoelige wijzigingen vereisen recente verificatie." bodyClassName="ticket-settings-table-body" actions={<ActionIcon label="Bevoegdheid toekennen" icon={<Plus size={18}/>} onClick={() => setGrant("new")}/>}>
+    <div className="table-scroll"><table className="resource-table ticket-settings-table"><thead><tr><th scope="col">Gebruiker</th><th scope="col">Bevoegdheid</th><th scope="col">Bereik</th><th scope="col">Acties</th></tr></thead><tbody>{data.grants.filter(item => item.active).map(item => <tr key={item.id}><td>{item.userLabel}</td><td>{data.permissions.find(permission => permission.key === item.permission)?.label ?? item.permission}</td><td>{scopeSummary(item.scope, data)}</td><td><ActionIcon label={`Bevoegdheid intrekken voor ${item.userLabel}`} icon={<ShieldMinus size={16}/>} onClick={() => setGrant(item)}/></td></tr>)}</tbody></table></div>
+    {!data.grants.some(item => item.active) && <EmptyState title="Geen aanvullende bevoegdheden" description="Standaardrechten gelden vanuit het centrale register. Voeg alleen aanvullende toegang toe wanneer die nodig is."/>}
+  </ContentSection></div>;
+  const audit = <div className="ticket-settings-tab-surface"><ContentSection title="Beheergeschiedenis" help="Bekijk toegestane beheerhandelingen. Gespreksinhoud en verificatiegegevens staan hier niet." bodyClassName="ticket-settings-table-body">
+    <div className="table-scroll"><table className="resource-table ticket-settings-table"><thead><tr><th scope="col">Handeling</th><th scope="col">Uitgevoerd door</th><th scope="col">Datum</th></tr></thead><tbody>{data.audit.map(event => <tr key={event.id}><td>{event.label}{event.targetId && <small>Referentie: {event.targetId}</small>}</td><td>{event.actorName}</td><td><time dateTime={event.createdAt}>{ticketDate(event.createdAt, data.timezone)}</time></td></tr>)}</tbody></table></div>
+    {!data.audit.length && <EmptyState title="Nog geen beheerhandelingen" description="Wijzigingen aan de instellingen verschijnen hier zodra ze zijn vastgelegd."/>}
+  </ContentSection></div>;
+  const tabs = [
+    ...(data.canConfigure ? [{ id: "routing", title: "Categorieën & routing", content: routing }, { id: "hours", title: "Openingstijden", content: <div className="ticket-settings-tab-surface ticket-settings-narrow"><TicketHours key={`${data.timezone}:${data.openingHours.start}:${data.openingHours.end}`} access={access} data={data}/></div> }] : []),
+    { id: "preferences", title: "Mijn notificaties", content: <div className="ticket-settings-tab-surface ticket-settings-narrow"><TicketPreferences access={access} data={data}/></div> },
+    ...(data.canDelegate ? [{ id: "permissions", title: "Bevoegdheden", content: permissions }] : []),
+    ...(access.canAudit ? [{ id: "audit", title: "Beheergeschiedenis", content: audit }] : []),
+  ];
   return <div className="ticket-workspace ticket-settings-workspace">
-    <Link className="ticket-back" href={ticketPaths[access.workspace]}><ArrowLeft size={14}/>Terug naar meldingen</Link>
-    <PageHeading eyebrow="INRICHTING & OPVOLGING" title="Meldingsinstellingen" help="Stel categorieën, reactietermijnen en toegang tot meldingen in. Beheerders krijgen niet automatisch toegang tot alle gesprekken."/>
+    <Link className="ticket-back" href={ticketPaths[access.workspace]}><ArrowLeft size={14}/>{access.workspace === "platform" || access.workspace === "support" ? "Terug naar support" : "Terug naar meldingen"}</Link>
+    <PageHeading eyebrow="INRICHTING & OPVOLGING" title={access.workspace === "platform" ? "Supportinstellingen" : "Meldingsinstellingen"} help="Stel categorieën, reactietermijnen en toegang tot meldingen in. Beheerders krijgen niet automatisch toegang tot alle gesprekken."/>
     {data.warnings.map(warning => <p className="ticket-notice" key={warning}>{warning}</p>)}
-    <div className="ticket-settings-layout">
-      {data.canConfigure && <ContentSection title="Categorieën & routing" help="Een behandelaarsgroep verdeelt de meldingen. Elk groepslid heeft daarnaast leesrecht nodig." bodyClassName="ticket-settings-table-body" actions={<ActionIcon label="Categorie" icon={<Plus size={18}/>} onClick={() => setCategory("new")}/>}>
-        <div className="table-scroll"><table className="resource-table ticket-settings-table"><thead><tr><th scope="col">Categorie</th><th scope="col">Routing / reactietermijn</th><th scope="col">Acties</th></tr></thead><tbody>
-          {data.categories.map(item => <tr key={item.id}><td><button className="ticket-record-link" onClick={() => setCategory(item)}>{item.name}{item.confidential && <LockKeyhole size={13} aria-label="Vertrouwelijk"/>}</button><small>{item.active ? "Actief" : "Gearchiveerd"}</small></td><td>{item.groupLabel || "Geen behandelaarsgroep"}<small>{item.responseMinutes} werkminuten</small>{item.warning && <small>{item.warning}</small>}</td><td><ActionIcon label={`${item.name} bewerken`} icon={<Pencil size={16}/>} onClick={() => setCategory(item)}/></td></tr>)}
-        </tbody></table></div>{!data.categories.length && <EmptyState title="Nog geen categorieën" description="Voeg een categorie toe om nieuwe meldingen te ordenen en naar de juiste behandelaars te sturen."/>}
-      </ContentSection>}
-      {data.canConfigure && <TicketHours key={`${data.timezone}:${data.openingHours.start}:${data.openingHours.end}`} access={access} data={data}/>}
-      {data.canConfigure && <TicketGroups access={access} data={data}/>}
-      <TicketPreferences access={access} data={data}/>
-      {data.canDelegate && <ContentSection title="Expliciete bevoegdheden" className="ticket-wide" help="Ken een geregistreerd recht met een begrensd bereik toe. Gevoelige wijzigingen vereisen recente verificatie." bodyClassName="ticket-settings-table-body" actions={<ActionIcon label="Bevoegdheid toekennen" icon={<Plus size={18}/>} onClick={() => setGrant("new")}/>}>
-        <div className="table-scroll"><table className="resource-table ticket-settings-table"><thead><tr><th scope="col">Gebruiker</th><th scope="col">Bevoegdheid</th><th scope="col">Bereik</th><th scope="col">Acties</th></tr></thead><tbody>{data.grants.filter(item => item.active).map(item => <tr key={item.id}><td>{item.userLabel}</td><td>{data.permissions.find(permission => permission.key === item.permission)?.label ?? item.permission}</td><td>{scopeSummary(item.scope, data)}</td><td><ActionIcon label={`Bevoegdheid intrekken voor ${item.userLabel}`} icon={<ShieldMinus size={16}/>} onClick={() => setGrant(item)}/></td></tr>)}</tbody></table></div>
-        {!data.grants.some(item => item.active) && <EmptyState title="Geen aanvullende bevoegdheden" description="Standaardrechten gelden vanuit het centrale register. Voeg alleen aanvullende toegang toe wanneer die nodig is."/>}
-      </ContentSection>}
-      {access.canAudit && <ContentSection title="Beheergeschiedenis" className="ticket-wide" help="Bekijk toegestane beheerhandelingen. Gespreksinhoud en verificatiegegevens staan hier niet." bodyClassName="ticket-settings-table-body">
-        <div className="table-scroll"><table className="resource-table ticket-settings-table"><thead><tr><th scope="col">Handeling</th><th scope="col">Uitgevoerd door</th><th scope="col">Datum</th></tr></thead><tbody>{data.audit.map(event => <tr key={event.id}><td>{event.label}{event.targetId && <small>Referentie: {event.targetId}</small>}</td><td>{event.actorName}</td><td><time dateTime={event.createdAt}>{ticketDate(event.createdAt, data.timezone)}</time></td></tr>)}</tbody></table></div>
-        {!data.audit.length && <EmptyState title="Nog geen beheerhandelingen" description="Wijzigingen aan de instellingen verschijnen hier zodra ze zijn vastgelegd."/>}
-      </ContentSection>}
-    </div>
+    <div className="ticket-settings-tabs"><ContentTabs label="Meldingsinstellingen" tabs={tabs}/></div>
     {category && <TicketCategoryForm access={access} data={data} category={category === "new" ? null : category} onClose={() => setCategory(null)} onSaved={() => { setCategory(null); router.refresh(); }}/>}
     {grant && <TicketGrantForm access={access} data={data} grant={grant === "new" ? null : grant} onClose={() => setGrant(null)} onSaved={() => { setGrant(null); router.refresh(); }}/>}
   </div>;
