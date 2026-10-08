@@ -6953,7 +6953,7 @@
     {
       "id": "operation:scripts/verify-production-website.mjs",
       "classification": "operation",
-      "source_sha256": "c434fbb95c90f855a1043ddb4e69f435b2bca2c93da8a1b6cb890c82cb7d6acd"
+      "source_sha256": "5eb2bf1fdf33f905e0bf53ed47db73b34d17159d9de5e742dbde448644db0309"
     },
     {
       "id": "operation:scripts/verify-public-auth-redirect.mjs",

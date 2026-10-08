@@ -16,7 +16,8 @@ for(const path of Object.keys(pages).filter(p=>p!=="404")){
   const body=await response.text();assert.ok(!response.headers.get("x-robots-tag")?.includes("noindex"));
   assert.ok(body.includes('alt="Veele Services"'));assert.ok(body.includes("4f6ad4d83eab08614126603fe68"));assert.ok(!body.includes("dgwebserv.chatgpt.site"));assert.ok(body.includes("/login?next=%2Fklant"));
 }
-assert.equal((await request("/not-a-real-marketing-page")).status,404);
+// Marketing pages have canonical trailing slashes; keep rejecting unexpected redirects.
+assert.equal((await request("/not-a-real-marketing-page/")).status,404);
 assert.ok(!(await(await request("/robots.txt")).text()).includes("Disallow: /\n"));
 assert.equal(((await(await request("/sitemap.xml")).text()).match(/<url>/g)||[]).length,28);
 for(const next of["app","staff","klant"]){const r=await request(`/login?next=%2F${next}`);assert.equal(r.status,200);}
