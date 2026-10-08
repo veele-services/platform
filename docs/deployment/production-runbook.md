@@ -106,8 +106,11 @@ Er draaien straks twee Next.js-runtimes plus één gedeelde ClamAV-daemon. Houd
 3301 en 3302 uitsluitend op loopback en behoud bestaande stagingroutes en units.
 
 Voer onderstaande stappen als operator/root uit vanaf de gereviewde source-SHA.
-De gedeelde templates zijn al op staging in gebruik; vergelijk hun inhoud vóór
-installatie en verander de staging-instance niet.
+Installeer voor productie eigen web-, worker- en timer-instancebestanden vanuit
+de V1-templates in die SHA. Neem bestaande hosttemplates niet over: tijdens de
+eerste hostcontrole verwees de geïnstalleerde worker-template naar `fieldgrid.env`
+en ontbrak zijn werkmap. V1 vereist `shared/runtime.env` en `current`. De eigen
+productiebestanden vervangen geen gedeelde template of staging-instance.
 
 ```sh
 useradd --system --user-group --home-dir /nonexistent --shell /usr/sbin/nologin fieldgrid-production
@@ -122,6 +125,9 @@ install -o root -g root -m 0755 deploy/fieldgrid-install-production-release /usr
 install -o root -g root -m 0755 deploy/fieldgrid-install-staging-release /usr/local/sbin/fieldgrid-install-staging-release
 install -o root -g root -m 0440 deploy/fieldgrid-production-runner.sudoers /etc/sudoers.d/fieldgrid-production-runner
 visudo -cf /etc/sudoers.d/fieldgrid-production-runner
+install -o root -g root -m 0644 deploy/fieldgrid@.service /etc/systemd/system/fieldgrid@production.service
+install -o root -g root -m 0644 deploy/fieldgrid-worker@.service /etc/systemd/system/fieldgrid-worker@production.service
+install -o root -g root -m 0644 deploy/fieldgrid-worker@.timer /etc/systemd/system/fieldgrid-worker@production.timer
 install -d -o root -g root -m 0755 /etc/systemd/system/fieldgrid@production.service.d /etc/systemd/system/fieldgrid-worker@production.service.d
 install -o root -g root -m 0644 deploy/fieldgrid@production.service.d/identity.conf /etc/systemd/system/fieldgrid@production.service.d/identity.conf
 install -o root -g root -m 0644 deploy/fieldgrid-worker@production.service.d/identity.conf /etc/systemd/system/fieldgrid-worker@production.service.d/identity.conf
@@ -166,9 +172,12 @@ toont geen secrets, controleert de scanner en bewijst dat beide runtimeaccounts
 en beide runners elkaars beschermde directories niet kunnen benaderen. Voer
 `check-production-runner-contract.sh` daarna als de nieuwe runner uit met de vaste
 DEPLOY_TARGET/root/service/scannerwaarden. Dit is ook de workflow-preflight.
-Installeer de bestaande worker-template en timer indien nog niet aanwezig;
-`fieldgrid-worker@production.timer` moet geladen zijn, maar wacht met starten tot
-runtime en health van de eerste release gecontroleerd zijn.
+De hierboven geïnstalleerde `fieldgrid-worker@production.timer` moet geladen
+zijn, maar wacht met starten tot runtime en health van de eerste release
+gecontroleerd zijn. Controleer met `systemctl show` uitsluitend de unitmetadata,
+niet de inhoud van `runtime.env`; beide productie-services moeten verwijzen naar
+`/opt/fieldgrid/production/shared/runtime.env` en als werkmap
+`/opt/fieldgrid/production/current` gebruiken.
 
 ## 4. DNS, TLS en providers
 

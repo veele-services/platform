@@ -36,8 +36,11 @@ Staging behoudt poort 3301, zijn runtimegebruiker `fieldgrid`, runner
 releases, environmentbestand, encryptiecertificaat en privésleutel. Geen van de
 runners is lid van een runtimegroep of `clamav`; geen runner kan plaintext
 runtimeconfiguratie, backups of de scanner benaderen. De runtimeaccounts kunnen
-elkaars configuratie niet lezen. De productiedrop-ins vervangen expliciet User en
-Group van de gedeelde systemdtemplates; staging wordt hierdoor niet aangepast.
+elkaars configuratie niet lezen. De operator installeert de productie-webservice,
+worker en timer als eigen instancebestanden vanuit de gereviewde V1-templates.
+Reeds geïnstalleerde hosttemplates zijn geen bron voor deze nieuwe omgeving.
+De productiedrop-ins vervangen expliciet User en Group van de V1-templates;
+stagingbestanden en -instances worden hierdoor niet aangepast.
 
 De bestaande root-beheerde ClamAV-daemon en definities mogen worden gedeeld.
 Alleen web-runtimeaccounts krijgen de aanvullende groep `clamav`. De scanner
