@@ -1,4 +1,10 @@
 "use client";
+import { AccountMenu } from "../account-menu";
+import { ActionIcon } from "../action-icon";
+import { EmptyState } from "../empty-state";
+import { PageHeading } from "../page-heading";
+import { ContentTabs } from "../content-tabs";
+import "./portal-consistency.css";
 import { AddressInput } from "../address-input";
 import { addressSchema } from "@/lib/addresses/model";
 import { GuideBanner, GuideForTitle } from "@/components/fieldgrid/guides/guide";
@@ -14,7 +20,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
   List, LockKeyhole, LogOut, MoreHorizontal,
-  Info, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Settings2, Square, TicketCheck, Umbrella, UserRound,
+  Info, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Square, TicketCheck, Umbrella, UserRound,
   X,
 } from "lucide-react";
 import {
@@ -26,7 +32,6 @@ import {
   type ComponentType,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
-  type RefObject,
   type ReactNode,
 } from "react";
 import { Toaster, toast } from "sonner";
@@ -73,29 +78,6 @@ const objectAddress = (value: unknown) => {
 const jsonObject = (value: Json | undefined | null) => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, Json> : {};
 const asText = (value: Json | undefined) => typeof value === "string" ? value : "";
 
-function useProfileMenu(wrap: RefObject<HTMLDivElement | null>) {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: MouseEvent) => { if (!wrap.current?.contains(event.target as Node)) setOpen(false); };
-    const closeOnFocusLoss = (event: FocusEvent) => { if (!wrap.current?.contains(event.target as Node)) setOpen(false); };
-    const key = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { setOpen(false); wrap.current?.querySelector<HTMLElement>("button")?.focus(); return; }
-      const items = [...(wrap.current?.querySelectorAll<HTMLElement>("[role=menuitem]") ?? [])];
-      const current = items.indexOf(document.activeElement as HTMLElement);
-      if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); items[(current + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length]?.focus(); }
-      if (event.key === "Home") { event.preventDefault(); items[0]?.focus(); }
-      if (event.key === "End") { event.preventDefault(); items.at(-1)?.focus(); }
-    };
-    wrap.current?.querySelector<HTMLElement>("[role=menuitem]")?.focus();
-    document.addEventListener("mousedown", close);
-    document.addEventListener("focusin", closeOnFocusLoss);
-    document.addEventListener("keydown", key);
-    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("focusin", closeOnFocusLoss); document.removeEventListener("keydown", key); };
-  }, [open, wrap]);
-  return [open, setOpen] as const;
-}
-
 export function PersonnelApp({ context, data, personnel, notificationPreferences }: {
   context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> };
   data: StaffWorkspaceData;
@@ -110,10 +92,8 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sync, setSync] = useState<SyncState>("connecting");
   const [pending, startTransition] = useTransition();
-  const profileMenuWrap = useRef<HTMLDivElement>(null);
   const pendingRefresh = useRef(false);
   const subscriptionReady = useRef(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useProfileMenu(profileMenuWrap);
   const profile = personnel;
   const assignments = useMemo(() => profile ? data.assignments.filter((item) => item.personnel_id === profile.id && item.status !== "cancelled") : [], [data.assignments, profile]);
   const assignmentByOrder = useMemo(() => new Map(assignments.map((item) => [item.work_order_id, item])), [assignments]);
@@ -193,7 +173,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
     return () => { alive = false; subscriptionReady.current = false; window.clearTimeout(refreshTimer); window.clearInterval(interval); window.removeEventListener("online", online); window.removeEventListener("offline", offline); window.removeEventListener("focus", refresh); if (channel) void supabase.removeChannel(channel); };
   }, [router, tenant.id]);
 
-  const navigate = (next: MainView) => { setView(next); setMoreView("menu"); setProfileMenuOpen(false); };
+  const navigate = (next: MainView) => { setView(next); setMoreView("menu"); };
   const openOrder = (order: StaffOrder) => {
     if (profile && "onboarding_completed_at" in profile && !profile.onboarding_completed_at) { toast.error("Rond eerst je profielinstelling af."); return; }
     setSelectedId(order.id);
@@ -232,18 +212,11 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         </div>
         <div className="ps-top-actions">
           <NotificationBell workspace="staff" actorKey={`${tenant.id}:${context.user.id}`}/>
-          <div className="ps-profile-wrap" ref={profileMenuWrap}>
-            <button className="ps-profile-button" aria-label={`Profielmenu van ${profile.preferred_name || profile.full_name}`} aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={() => setProfileMenuOpen(!profileMenuOpen)}><span>{initials(profile.preferred_name || profile.full_name)}</span><small>{profile.preferred_name || profile.full_name}</small><ChevronRight/></button>
-            {profileMenuOpen && <div className="ps-profile-menu" role="menu">
-              <button role="menuitem" onClick={() => { setView("meer"); setMoreView("profiel"); setProfileMenuOpen(false); }}><UserRound/>Profiel</button>
-              <button role="menuitem" onClick={() => { setView("meer"); setMoreView("instellingen"); setProfileMenuOpen(false); }}><Settings2/>Instellingen</button>
-              <form action="/auth/signout" method="post"><button role="menuitem"><LogOut/>Uitloggen</button></form>
-            </div>}
-          </div>
+          <AccountMenu name={profile.preferred_name || profile.full_name} email={context.user.email ?? profile.email ?? null} role="Medewerker" triggerLabel={`Profielmenu van ${profile.preferred_name || profile.full_name}`} profileLabel="Profiel" onProfile={() => {setView("meer");setMoreView("profiel");}} onSettings={() => {setView("meer");setMoreView("instellingen");}} preferencesHref="/staff/notificaties/instellingen"/>
         </div>
       </header>
       <main className="ps-content"><GuideBanner guideKey={`staff.${view === "meer" && moreView !== "menu" ? moreView : view}`}/>
-        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid", "instellingen"].includes(moreView)) && <header className="ps-page-heading"><div><div className="ps-page-title-row"><h1>{title}</h1><HelpTip label={`Informatie over ${title}`}>{view === "nieuws" ? "Berichten komen van je organisatie. Markeer een bericht als gelezen nadat je het hebt bekeken." : moreView === "menu" ? "Je personeelsgegevens, verlof, beschikbaarheid en voorkeuren vind je hier. De beschikbare acties volgen de instellingen van je organisatie." : moreView === "documenten" ? "Hier staan de documenten die je organisatie met jou heeft gedeeld." : "Werk je contact- en vervoersgegevens bij voor je organisatie."}</HelpTip></div><p>{view === "nieuws" ? "Het laatste van jouw organisatie." : moreView === "menu" ? "Personeelszaken en jouw instellingen." : moreView === "documenten" ? "Alles wat je nodig hebt voor je werk." : "Jouw contactgegevens en vervoer."}</p></div>{moreView !== "menu" && view === "meer" && <button className="ps-secondary" onClick={() => setMoreView("menu")}><ChevronLeft/>Terug</button>}</header>}
+        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid", "instellingen"].includes(moreView)) && <PageHeading eyebrow="PERSONEEL" title={title} help={view === "nieuws" ? "Berichten komen van je organisatie. Markeer een bericht als gelezen nadat je het hebt bekeken." : moreView === "menu" ? "Je personeelsgegevens, verlof, beschikbaarheid en voorkeuren vind je hier." : moreView === "documenten" ? "Hier staan de documenten die je organisatie met jou heeft gedeeld." : "Werk je contact- en vervoersgegevens bij voor je organisatie."} className="ps-page-heading" actions={moreView !== "menu" && view === "meer" ? <ActionIcon className="ps-secondary" label="Terug" icon={<ChevronLeft/>} onClick={() => setMoreView("menu")}/> : undefined}/>}
         {view === "planning" && (tenant.enabledServices.includes("planning") ? <PlanningScreen orders={assigned} assignments={assignments} data={data} timezone={tenant.timezone} onOpen={openOrder} onHours={() => navigate("uren")} onNews={() => navigate("nieuws")}/> : <Empty icon={CalendarDays} title="Planning niet ingeschakeld">Vraag je beheerder om de module Planning te activeren.</Empty>)}
         {view === "nieuws" && <NewsScreen data={data} onRead={(id) => run(() => markAnnouncementRead(id), "Gemarkeerd als gelezen")}/>}
         {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run}/>}
@@ -397,7 +370,7 @@ function HoursScreen({ data, personnelId, timezone, pending, run }: { data: Staf
     else setChooseCorrection(true);
   };
   return <>
-    <header className="ps-page-heading ps-hours-heading"><div><div className="ps-page-title-row"><h1>Mijn uren</h1><HelpTip label="Informatie over Mijn uren">Werk, reistijd en overige werktijd blijven apart zichtbaar. Pauzes tellen niet mee in het totaal.</HelpTip></div><p>Je volledige werkdag, met reistijd apart geregistreerd.</p></div><button className="ps-secondary" disabled={pending || !canClose} title={closeHint} onClick={() => runDayCommand(`close:${selectedDay}`, { command: "close", workDay: selectedDay, note: null }, "Werkdag afgesloten")}><Square/>{closed ? "Werkdag afgesloten" : "Werkdag afsluiten"}</button></header>
+    <PageHeading eyebrow="URENREGISTRATIE" title="Mijn uren" help="Werk, reistijd en overige werktijd blijven apart zichtbaar. Pauzes tellen niet mee in het totaal." className="ps-page-heading ps-hours-heading" actions={<button className="ps-secondary" disabled={pending || !canClose} title={closeHint} onClick={() => runDayCommand(`close:${selectedDay}`, { command: "close", workDay: selectedDay, note: null }, "Werkdag afgesloten")}><Square/>{closed ? "Werkdag afgesloten" : "Werkdag afsluiten"}</button>}/>
     <div className="ps-hours-metrics" aria-label="Geregistreerde dagtotalen">
       <section className="ps-panel"><span>Werkdag</span><strong>{staffDuration(totals.paid)}</strong><small>{rows[0] ? `Vanaf ${staffClock(rows[0].starts_at, timezone)}${running ? " tot nu" : " · geregistreerde tijd"}` : "Nog geen geregistreerde tijd"}</small></section>
       <section className="ps-panel"><span>Op locatie</span><strong>{staffDuration(totals.work)}</strong><small>Uit je werkbonnen</small></section>
@@ -407,7 +380,7 @@ function HoursScreen({ data, personnelId, timezone, pending, run }: { data: Staf
       <div className="ps-hours-main">
         <section className="ps-panel ps-hours-day" aria-labelledby="ps-hours-day-title">
           <div className="ps-panel-heading"><h2 id="ps-hours-day-title">{dayLabel}</h2><span className="ps-status" data-status={hasPendingCorrection ? "correction_requested" : review?.state ?? "open"}>{hasPendingCorrection ? "Correctie in behandeling" : review?.state === "confirmed" ? "Door mij akkoord" : closed ? "Afgesloten" : !rows.length ? "Nog geen uren" : selectedDay === today ? "Dag loopt" : "Nog af te sluiten"}</span></div>
-          {!rows.length && <p className="ps-hours-empty">Er zijn nog geen uren voor deze dag. Start een werkbon om uren te registreren of kies een andere dag.</p>}
+          {!rows.length && <EmptyState title="Nog geen uren voor deze dag" description="Start een werkbon om uren te registreren of kies een andere dag."/>}
           {pagination.items.filter(entry => entry.kind !== "break").map(entry => <div className="ps-hour-row" key={entry.id}>
             <time>{staffClock(entry.starts_at, timezone)} – {entry.ends_at ? staffClock(entry.ends_at, timezone) : "nu"}</time>
             <div className="ps-hour-detail" data-kind={entry.kind}><strong>{entry.kind === "work" ? "Werk op locatie" : entry.kind === "travel" ? "Reistijd" : "Overige werktijd"}</strong><small>{entryContext(entry)}</small>{correctionStatus(entry)}</div>
@@ -549,7 +522,7 @@ function LeaveScreen({ requests, entitlements, timezone, pending, run }: { reque
   const dateLabel = (day: string) => new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`));
   const requestYears = new Set(requests.flatMap(request => [request.starts_on.slice(0, 4), request.ends_on.slice(0, 4)]));
   return <div className="ps-leave-screen">
-    <header className="ps-page-heading"><div><div className="ps-page-title-row"><h1>Verlof</h1><HelpTip label="Informatie over Verlof">Een aanvraag reserveert nog geen verlof. Je ontvangt een melding wanneer je manager een besluit neemt.</HelpTip></div><p>Even tijd voor jezelf. Regel je aanvraag hier.</p></div><button className="ps-primary" onClick={() => setOpen(true)}><Plus/>Verlof aanvragen</button></header>
+    <PageHeading eyebrow="PERSONEELSZAKEN" title="Verlof" help="Een aanvraag reserveert nog geen verlof. Je ontvangt een melding wanneer je manager een besluit neemt." className="ps-page-heading" actions={<ActionIcon className="ps-primary" label="Verlof aanvragen" icon={<Plus/>} onClick={() => setOpen(true)}/> }/>
     <div className="ps-stat-grid" aria-label="Verlofoverzicht"><div><small>Beschikbaar saldo</small><strong>{availableMinutes === null ? "Nog niet ingesteld" : leaveDuration(Math.max(0, availableMinutes))}</strong><small>{year}</small></div><div><small>Goedgekeurd</small><strong>{leaveDuration(approvedMinutes)}</strong><small>Dit kalenderjaar</small></div><div><small>In afwachting</small><strong>{pendingCount}</strong><small>{pendingCount === 1 ? "Aanvraag" : "Aanvragen"}</small></div></div>
     <section className="ps-panel ps-leave-list" aria-labelledby="ps-leave-list-title">
       <div className="ps-panel-heading"><h2 id="ps-leave-list-title">Mijn aanvragen</h2><span className="ps-leave-year">{requestYears.size > 1 ? "Alle jaren" : [...requestYears][0] ?? year}</span></div>
@@ -560,7 +533,7 @@ function LeaveScreen({ requests, entitlements, timezone, pending, run }: { reque
         {request.note && <p>{request.note}</p>}
         {request.status === "pending" && <button className="ps-secondary" disabled={pending} onClick={() => withdraw(request)}>Aanvraag intrekken</button>}
       </article>)}
-      {!requests.length && <div className="ps-leave-empty"><CalendarDays/><h3>Nog geen verlofaanvragen</h3><p>Je aanvragen en besluiten verschijnen hier.</p></div>}
+      {!requests.length && <EmptyState title="Nog geen verlofaanvragen" description="Je aanvragen en besluiten verschijnen hier."/>}
     </section>
     <ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="aanvragen" busy={pending} preferenceKey="staff:leave"/>
     <p className="ps-hours-info"><Info/><span>Een aanvraag reserveert nog geen verlof. Je ontvangt een melding zodra je manager een besluit heeft genomen.</span></p>
@@ -603,7 +576,7 @@ function AvailabilityScreen({ profile, pending, run, onLeave }: { profile: Staff
     }, "Beschikbaarheid opgeslagen");
   };
   return <div className="ps-availability-screen">
-    <header className="ps-page-heading"><div><div className="ps-page-title-row"><h1>Beschikbaarheid</h1><HelpTip label="Informatie over Beschikbaarheid">Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan.</HelpTip></div><p>Geef aan wanneer je doorgaans kunt werken.</p></div></header>
+    <PageHeading eyebrow="PERSONEELSZAKEN" title="Beschikbaarheid" help="Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan." className="ps-page-heading"/>
     <div className="ps-availability-grid">
       <section className="ps-panel ps-availability-week" aria-labelledby="ps-availability-title"><form onSubmit={submit}>
         <div className="ps-panel-heading"><h2 id="ps-availability-title">Mijn vaste week</h2><span className="ps-status" data-status={enabled ? "approved" : "managed"}>{enabled ? "Bewerken toegestaan" : "Beheerd door planning"}</span></div>
@@ -718,12 +691,9 @@ function SettingsScreen({ profile, email, tenantName, notificationPreferences, p
     }, "Meldingsvoorkeuren opgeslagen");
   };
   return <div className="ps-settings-screen">
-    <header className="ps-page-heading"><div><div className="ps-page-title-row"><h1>Instellingen</h1><HelpTip label="Informatie over Instellingen">Beheer je persoonlijke voorkeuren. Je e-mailadres wordt beheerd door personeelszaken.</HelpTip></div><p>Jouw gegevens en voorkeuren.</p></div></header>
-    <div className="ps-settings-layout">
-      <nav className="ps-settings-nav" aria-label="Instellingenonderdelen">
-        {([["profile", "Mijn profiel"], ["notifications", "Meldingen"], ["account", "Account & toegang"]] as const).map(([key, label]) => <button type="button" key={key} aria-current={section === key ? "page" : undefined} onClick={() => setSection(key)}>{label}</button>)}
-      </nav>
-      {section === "profile" && <section className="ps-panel ps-settings-profile" aria-label="Mijn profiel">
+    <PageHeading eyebrow="MIJN ACCOUNT" title="Instellingen" help="Beheer je persoonlijke voorkeuren. Je e-mailadres wordt beheerd door personeelszaken." className="ps-page-heading"/>
+    <ContentTabs label="Instellingenonderdelen" value={section} onValueChange={value => setSection(value as typeof section)} tabs={[
+      {id:"profile",title:"Mijn profiel",content:<section className="ps-panel ps-settings-profile" aria-label="Mijn profiel">
         <div className="ps-settings-identity"><span>{initials(profile.full_name)}</span><div><h2>{profile.full_name}</h2><p>Medewerker · {tenantName}</p></div></div>
         <form onSubmit={saveContact}>
           <label className="ps-field">Naam<input autoComplete="name" required minLength={2} maxLength={160} disabled={pending} value={contact.fullName} onChange={(event) => setContact({ ...contact, fullName: event.target.value })}/></label>
@@ -731,21 +701,21 @@ function SettingsScreen({ profile, email, tenantName, notificationPreferences, p
           <label className="ps-field">Telefoonnummer<input type="tel" autoComplete="tel" maxLength={50} disabled={pending} value={contact.mobilePhone} onChange={(event) => setContact({ ...contact, mobilePhone: event.target.value })}/></label>
           <button type="submit" className="ps-primary" disabled={pending}>Gegevens opslaan</button>
         </form>
-      </section>}
-      {section === "notifications" && <section className="ps-panel ps-settings-notifications" aria-label="Meldingen">
+      </section>},
+      {id:"notifications",title:"Meldingen",content:<section className="ps-panel ps-settings-notifications" aria-label="Meldingen">
         <h2>Meldingen</h2>
         {([["push", "Pushmeldingen", "Nieuwe werkbonnen en belangrijke updates"], ["email", "E-mail", "Nieuws en personeelszaken"], ["quietEnabled", "Stille uren", `Van ${preferences.quietStart} tot ${preferences.quietEnd}`]] as const).map(([field, label, description]) => <div className="ps-settings-row" key={field}><div><strong>{label}</strong><small>{description}</small></div><input className="ps-settings-switch" role="switch" type="checkbox" aria-label={label} checked={preferences[field]} disabled={pending} onChange={(event) => togglePreference(field, event.target.checked)}/></div>)}
         <p className="ps-hours-info"><Info aria-hidden="true"/><span>Push werkt op apparaten waarvoor je toestemming hebt gegeven. Je ontvangt meldingen volgens je voorkeuren en het beleid van je organisatie.</span></p>
         <div className="ps-settings-notification-actions"><button type="button" className="ps-secondary" onClick={() => toast("Testmelding", { description: "Dit is een testmelding in je personeelsapp." })}><Bell/>Testmelding tonen</button><button type="button" className="ps-text-button" onClick={() => setDialog("push")}>Apparaat instellen</button><Link className="ps-text-button" href="/staff/notificaties/instellingen">Per onderwerp</Link></div>
-      </section>}
-      {section === "account" && <section className="ps-panel ps-settings-account" aria-label="Account & toegang">
+      </section>},
+      {id:"account",title:"Account & toegang",content:<section className="ps-panel ps-settings-account" aria-label="Account & toegang">
         <h2>Account & toegang</h2>
         <div className="ps-settings-row"><div><strong>Inloggen met e-mailcode</strong><small>Geen wachtwoord onthouden</small></div><span className="ps-status" data-status="approved">OTP</span></div>
         <div className="ps-settings-row"><div><strong>Dit apparaat</strong><small>Browser · huidige sessie</small></div><span className="ps-status" data-status="approved">Actief</span></div>
         <button type="button" className="ps-secondary" onClick={() => setDialog("login")}><LockKeyhole/>Loginflow bekijken</button>
         <form action="/auth/signout" method="post"><button className="ps-danger"><LogOut/>Uitloggen</button></form>
-      </section>}
-    </div>
+      </section>},
+    ]}/>
     {dialog === "push" && <Dialog title="Pushmeldingen instellen" kicker="DIT APPARAAT" close={() => setDialog(null)}><NotificationPushControl workspace="staff"/></Dialog>}
     {dialog === "login" && <Dialog title="Inloggen met e-mailcode" kicker="ACCOUNT & TOEGANG" close={() => setDialog(null)}><p className="ps-settings-login-intro">Je logt in met een eenmalige code op je e-mailadres: <strong>{email}</strong>.</p><ol className="ps-settings-login-steps"><li>Vul je e-mailadres in op het inlogscherm.</li><li>Vraag een inlogcode aan en open de e-mail.</li><li>Voer de code in om naar je werkplek te gaan.</li></ol></Dialog>}
   </div>;
@@ -773,9 +743,9 @@ function Dialog({ title, kicker, close, children, footer }: { title: string; kic
     document.addEventListener("keydown", key);
     return () => { document.removeEventListener("keydown", key); document.body.style.overflow = previousOverflow; previous?.focus(); };
   }, []);
-  return <div className="ps-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}><section ref={panel} className="ps-modal" role="dialog" aria-modal="true" aria-labelledby="ps-dialog-title"><header className="ps-modal-header"><div><span>{kicker}</span><h2 id="ps-dialog-title">{title}</h2></div><button className="ps-icon-button" onClick={close} aria-label="Sluiten"><X/></button></header><div className="ps-modal-body"><GuideForTitle title={title}/>{children}</div>{footer && <footer className="ps-modal-footer">{footer}</footer>}</section></div>;
+  return <div className="ps-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}><section ref={panel} className="ps-modal" role="dialog" aria-modal="true" aria-labelledby="ps-dialog-title"><header className="ps-modal-header"><div><span>{kicker}</span><h2 id="ps-dialog-title">{title}</h2></div><ActionIcon className="ps-icon-button" onClick={close} label="Sluiten" icon={<X/>}/></header><div className="ps-modal-body"><GuideForTitle title={title}/>{children}</div>{footer && <footer className="ps-modal-footer">{footer}</footer>}</section></div>;
 }
 
-function Empty({ icon: Icon, title, children }: { icon: ComponentType<{ size?: number }>; title: string; children: ReactNode }) {
-  return <div className="ps-empty"><Icon size={34}/><h2>{title}</h2><p>{children}</p></div>;
+function Empty({ title, children }: { icon: ComponentType<{ size?: number }>; title: string; children: ReactNode }) {
+  return <EmptyState title={title} description={children}/>;
 }

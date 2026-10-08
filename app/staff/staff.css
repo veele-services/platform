@@ -3776,3 +3776,38 @@
   .personnel-app .ps-sidebar-brand .ps-sidebar-logo .brand-logo-image img {width:100%;height:auto;max-height:36px;object-fit:contain;}
   .personnel-app .ps-sidebar-brand .ps-sidebar-logo .brand-name-fallback {max-width:60px;font-size:11px;}
 }
+
+/* Narrow/short screens need natural document flow: guide text and paging
+ * controls must never squeeze the interactive work-order list to zero height. */
+@media (max-width: 800px), (max-height: 700px) {
+  .personnel-app.ps-planning-screen {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .personnel-app.ps-planning-screen .ps-workspace {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .personnel-app.ps-planning-screen .ps-content {
+    display: block;
+    flex: none;
+    overflow: visible;
+  }
+
+  .personnel-app.ps-planning-screen .ps-planning-grid {
+    flex: none;
+    grid-template-rows: auto;
+  }
+
+  .personnel-app.ps-planning-screen .ps-planning-main {
+    display: block;
+  }
+
+  .personnel-app.ps-planning-screen :where(.ps-order-list, .ps-agenda, .ps-empty, .fg-empty-state),
+  .personnel-app.ps-planning-screen .ps-planning-aside {
+    overflow-y: visible;
+  }
+}

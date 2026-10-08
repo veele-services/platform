@@ -1,9 +1,12 @@
 "use client";
 import { GuideBanner } from "@/components/fieldgrid/guides/guide";
+import { ActionIcon } from "./action-icon";
+import { AccountMenu, accountInitials } from "./account-menu";
+import { GlobalSearch } from "./global-search";
+import { EmptyState } from "./empty-state";
 import { WorkOrderDialog } from "./work-orders/dialog";
 import { ListPagination, useListPagination } from "./list-pagination";
 import { CompactFilterMenu } from "./compact-filter-menu";
-import { ContentSection } from "./content-section";
 import { TaskCatalogue } from "./tasks/catalogue";
 import { ContentTabs } from "./content-tabs";
 import { PageHeading } from "./page-heading";
@@ -17,9 +20,9 @@ import { useEffect,useMemo,useRef,useState,useTransition,type FormEvent,type Rea
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Bell, BriefcaseBusiness, Building2, CalendarDays, ChevronRight, ClipboardCheck,
-  Clock3, CreditCard, FileText, LayoutDashboard, LogOut, Megaphone,
-  Menu, PackageCheck, Search, Settings,
+  Archive, ArrowDownAZ, Bell, BriefcaseBusiness, Building2, CalendarDays, ChevronRight, ClipboardCheck,
+  Clock3, CreditCard, FileText, LayoutDashboard, Megaphone,
+  Menu, PackageCheck, Settings,
   UsersRound, Wrench,X, Plus, Eye,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
@@ -33,6 +36,7 @@ import { BackofficeLive } from "@/components/fieldgrid/backoffice-live";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { formatPersonnelNumber, PERSONNEL_NUMBER_MAX } from "@/lib/personnel/numbering";
 import "./backoffice-portal.css";
+import "./shell-chrome.css";
 import { CustomersPage, InvoicesPage, ObjectsPage, PersonnelPage, ReportsPage } from "@/components/fieldgrid/resource-pages";
 import { switchTenant } from "@/app/app/actions";
 import {
@@ -83,9 +87,8 @@ const statusLabel: Record<string, string> = {
 
 const money = (cents: number | null | undefined) => new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format((cents ?? 0) / 100);
 const dateTime = (value: string | null | undefined, timezone = "Europe/Amsterdam") => value ? new Intl.DateTimeFormat("nl-NL", { dateStyle: "short", timeStyle: "short", timeZone: timezone }).format(new Date(value)) : "—";
-const initials = (name: string) => name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
-function ActionForm({ action, children, className, success = "Opgeslagen", onSuccess }: { action: (data: FormData) => Promise<ActionResult<Record<string, unknown>>> | Promise<ActionResult>; children: ReactNode; className?: string; success?: string; onSuccess?: (result: ActionResult<Record<string, unknown>> | ActionResult) => void }) {
+function ActionForm({ action, children, className, success = "Opgeslagen", onSuccess, submitIcon }: { action: (data: FormData) => Promise<ActionResult<Record<string, unknown>>> | Promise<ActionResult>; children: ReactNode; className?: string; success?: string; submitIcon?: ReactNode; onSuccess?: (result: ActionResult<Record<string, unknown>> | ActionResult) => void }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -103,7 +106,7 @@ function ActionForm({ action, children, className, success = "Opgeslagen", onSuc
       router.refresh();
     });
   };
-  return <form className={className} onSubmit={submit}>{children}<button className="primary-button" disabled={pending}>{pending ? "Bezig…" : success}</button></form>;
+  return <form className={className} onSubmit={submit}>{children}<button className={submitIcon ? "fg-action-icon" : "primary-button"} aria-label={submitIcon ? success : undefined} title={submitIcon ? success : undefined} disabled={pending}>{submitIcon ?? (pending ? "Bezig…" : success)}</button></form>;
 }
 
 function PageIntro({ eyebrow, title, description, children }: { eyebrow: string; title: string; description: string; children?: ReactNode }) {
@@ -116,14 +119,15 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
   const view = initialView;
   const [mobileNav, setMobileNav] = useState(false);
   const sidebar=useRef<HTMLElement>(null);
-  const [search, setSearch] = useState("");
   const tenant = context.tenant;
   const visibleNav = nav.filter((item) => !["meldingen", "support", "notificaties"].includes(item.id) && (!serviceByView[item.id] || tenant.enabledServices.includes(serviceByView[item.id]!)));
   const customerById = useMemo(() => new Map(data.customers.map((item) => [item.id, item])), [data.customers]);
   const objectById = useMemo(() => new Map(data.objects.map((item) => [item.id, item])), [data.objects]);
   const current = nav.find((item) => item.id === view)!;
-  const q = search.trim().toLowerCase();
-  const visibleOrders = q ? data.workOrders.filter((order) => [order.work_order_number, order.discipline, customerById.get(order.customer_id)?.name, objectById.get(order.object_id)?.name].some((value) => value?.toLowerCase().includes(q))) : data.workOrders;
+  const visibleOrders = data.workOrders;
+  const person = data.personnel.find(item => item.user_id === context.user.id);
+  const accountName = person?.full_name || context.user.displayName || context.user.email || "Mijn account";
+  const accountRole = tenant.roles.includes("tenant_admin") ? "Eigenaar" : tenant.roles.includes("management") ? "Management" : tenant.roles.includes("planner") ? "Planner" : tenant.roles.includes("hr") ? "Personeelsbeheer" : tenant.roles.includes("finance") ? "Financieel beheer" : "Medewerker";
   const attention = data.workOrders.filter((order) => ["returned", "correction_required", "under_review"].includes(order.status));
   const navLink = (item: typeof nav[number]) => <Link
     aria-label={item.label} title={item.label} aria-current={view === item.id ? "page" : undefined}
@@ -206,21 +210,22 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
         </div>
       </nav>
       <footer>
-        <span className="workspace-organisation-label">Jouw organisatie</span>
-        <div className="workspace-organisation"><span className="workspace-organisation-avatar" aria-hidden="true">{initials(tenant.name)}</span><div><strong>{tenant.name}</strong><small>Tenantomgeving</small></div></div>
+        <span className="workspace-organisation-label">Mijn account</span>
+        <div className="workspace-organisation"><span className="workspace-organisation-avatar" aria-hidden="true">{accountInitials(accountName)}</span><div><strong>{accountName}</strong><small>{accountRole}</small></div></div>
         {!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}
       </footer>
     </aside>
-    <div className="workspace-main" inert={mobileNav||undefined}><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu" aria-expanded={mobileNav}><Menu size={20}/></button><span className="breadcrumb"><span className="workspace-origin-dot" aria-hidden="true"/><span className="workspace-origin-label">Mijn omgeving</span><span aria-hidden="true">/</span><strong>{current.label}</strong></span></div><div className="global-search"><Search size={16}/><input aria-label="Zoek werkbon" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Zoek werkbon…"/></div><div><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><span className="top-avatar">{initials(context.user.email ?? "FG")}</span><form action="/auth/signout" method="post"><button className="icon-button" aria-label="Uitloggen"><LogOut size={17}/></button></form></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select aria-label="Tenant kiezen" name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}><GuideBanner guideKey={`backoffice.${view}`}/>{content}</main></div><Toaster richColors position="top-right"/>
+    <div className="workspace-main" inert={mobileNav||undefined}><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu" aria-expanded={mobileNav}><Menu size={20}/></button><span className="breadcrumb"><span className="workspace-origin-dot" aria-hidden="true"/><span className="workspace-origin-label">Mijn omgeving</span><span aria-hidden="true">/</span><strong>{current.label}</strong></span></div><GlobalSearch key={`${tenant.id}:${context.user.id}`} actorKey={`${tenant.id}:${context.user.id}`}/><div className="shell-account-actions"><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><AccountMenu name={accountName} email={context.user.email} role={accountRole} settingsHref="/app/instellingen" preferencesHref="/app/notificaties/instellingen"/></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select aria-label="Tenant kiezen" name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}><GuideBanner guideKey={`backoffice.${view}`}/>{content}</main></div><Toaster richColors position="top-right"/>
   </div></TenantThemeProvider>;
 }
 
 function NewsPage({tenant,data}:{tenant:NonNullable<AuthContext["tenant"]>;data:WorkspaceData}) {
- const router=useRouter(),[creating,setCreating]=useState(false),[selected,setSelected]=useState<WorkspaceData["announcements"][number]|null>(null),[query,setQuery]=useState(""),[state,setState]=useState("active");
- const rows=data.announcements.filter(item=>(state==="all"||state==="withdrawn"?state==="all"||!!item.withdrawn_at:!item.withdrawn_at)&&`${item.title} ${item.body}`.toLowerCase().includes(query.toLowerCase())).sort((a,b)=>(b.published_at??b.created_at).localeCompare(a.published_at??a.created_at));
+ const router=useRouter(),[creating,setCreating]=useState(false),[selected,setSelected]=useState<WorkspaceData["announcements"][number]|null>(null),[query,setQuery]=useState(""),[state,setState]=useState("active"),[sort,setSort]=useState<"date"|"title">("date"),[descending,setDescending]=useState(true);
+ const rows=data.announcements.filter(item=>(state==="all"||state==="withdrawn"?state==="all"||!!item.withdrawn_at:!item.withdrawn_at)&&`${item.title} ${item.body}`.toLowerCase().includes(query.toLowerCase())).sort((a,b)=>(sort==="title" ? a.title.localeCompare(b.title,"nl") : (a.published_at??a.created_at).localeCompare(b.published_at??b.created_at))*(descending?-1:1));
+ const toggleSort=(key:"date"|"title")=>{setDescending(sort===key?!descending:key==="date");setSort(key);};
  const pagination=useListPagination(rows),canManage=tenant.roles.some(role=>["tenant_admin","management"].includes(role));
- return <><PageIntro eyebrow="COMMUNICATIE" title="Nieuws" description="Publiceer tenantnieuws en stuur optioneel een pushmelding."><CompactFilterMenu activeCount={(query?1:0)+(state!=="active"?1:0)}><div className="compact-filter-grid"><label>Zoeken<input type="search" value={query} onChange={e=>{setQuery(e.target.value);pagination.setPage(1);}} placeholder="Titel of bericht…"/></label><label>Weergave<select value={state} onChange={e=>{setState(e.target.value);pagination.setPage(1);}}><option value="active">Actieve berichten</option><option value="all">Alle berichten</option><option value="withdrawn">Ingetrokken berichten</option></select></label></div></CompactFilterMenu>{canManage&&<button className="primary-button" onClick={()=>setCreating(true)}><Plus size={16}/>Voeg toe</button>}</PageIntro>
- <ContentSection title="Nieuwsberichten" bodyClassName="resource-table-panel"><div className="table-scroll"><table className="resource-table"><thead><tr><th>Bericht</th><th>Gepubliceerd</th><th>Gelezen</th><th>Status</th><th>Acties</th></tr></thead><tbody>{pagination.items.map(item=><tr key={item.id}><td><strong>{item.title}</strong><small>{item.body.length>180?`${item.body.slice(0,180)}…`:item.body}</small></td><td>{item.published_at?dateTime(item.published_at,tenant.timezone):"Concept"}</td><td>{data.announcementReads.filter(read=>read.announcement_id===item.id).length}</td><td><span className="resource-status">{item.withdrawn_at?"Ingetrokken":item.published_at?"Gepubliceerd":"Concept"}</span></td><td><div className="resource-actions"><button className="resource-action" onClick={()=>setSelected(item)}><Eye size={14}/>Bekijk</button>{canManage&&!item.withdrawn_at&&<ActionForm action={withdrawAnnouncement} success="Intrekken" className="inline-server-form"><input type="hidden" name="announcementId" value={item.id}/></ActionForm>}</div></td></tr>)}</tbody></table></div>{!rows.length&&<div className="resource-empty"><Megaphone size={24}/><strong>Geen nieuwsberichten binnen deze selectie.</strong></div>}</ContentSection>
+ return <><PageIntro eyebrow="COMMUNICATIE" title="Nieuws" description="Publiceer tenantnieuws en stuur optioneel een pushmelding."><CompactFilterMenu activeCount={(query?1:0)+(state!=="active"?1:0)}><div className="compact-filter-grid"><label>Zoeken<input type="search" value={query} onChange={e=>{setQuery(e.target.value);pagination.setPage(1);}} placeholder="Titel of bericht…"/></label><label>Weergave<select value={state} onChange={e=>{setState(e.target.value);pagination.setPage(1);}}><option value="active">Actieve berichten</option><option value="all">Alle berichten</option><option value="withdrawn">Ingetrokken berichten</option></select></label></div></CompactFilterMenu>{canManage&&<ActionIcon label="Nieuw nieuwsbericht" className="primary-button" icon={<Plus size={18}/>} onClick={()=>setCreating(true)}/>}</PageIntro>
+ <section aria-label="Nieuwsberichten" className="resource-table-panel panel"><div className="table-scroll"><table className="resource-table"><thead><tr><th scope="col" aria-sort={sort==="title"?descending?"descending":"ascending":"none"}><button onClick={()=>toggleSort("title")}>Bericht<ArrowDownAZ size={13}/></button></th><th scope="col" aria-sort={sort==="date"?descending?"descending":"ascending":"none"}><button onClick={()=>toggleSort("date")}>Gepubliceerd<ArrowDownAZ size={13}/></button></th><th scope="col">Gelezen</th><th scope="col">Status</th><th scope="col">Acties</th></tr></thead><tbody>{pagination.items.map(item=><tr key={item.id}><td><button className="table-record-link" onClick={()=>setSelected(item)}>{item.title}</button><small>{item.body.length>180?`${item.body.slice(0,180)}…`:item.body}</small></td><td>{item.published_at?dateTime(item.published_at,tenant.timezone):"Concept"}</td><td>{data.announcementReads.filter(read=>read.announcement_id===item.id).length}</td><td><span className="resource-status">{item.withdrawn_at?"Ingetrokken":item.published_at?"Gepubliceerd":"Concept"}</span></td><td><div className="resource-actions"><ActionIcon label="Nieuwsbericht bekijken" icon={<Eye size={15}/>} onClick={()=>setSelected(item)}/>{canManage&&!item.withdrawn_at&&<ActionForm action={withdrawAnnouncement} success="Nieuwsbericht intrekken" submitIcon={<Archive size={15}/>} className="inline-server-form"><input type="hidden" name="announcementId" value={item.id}/></ActionForm>}</div></td></tr>)}</tbody></table></div>{!rows.length&&<EmptyState title="Nog geen nieuwsberichten" description="Gebruik de knop bovenaan om een nieuwsbericht toe te voegen."/>}</section>
  <ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="berichten" preferenceKey={`backoffice:${tenant.id}:news`}/>
  {creating&&canManage&&<AnnouncementEditor tenant={tenant} onClose={()=>setCreating(false)} onSaved={()=>{setCreating(false);router.refresh();}}/>}
  {selected&&<WorkOrderDialog tenant={tenant} eyebrow="NIEUWS" title={selected.title} description={selected.published_at?dateTime(selected.published_at,tenant.timezone):"Concept"} onClose={()=>setSelected(null)}><div className="wo-dialog-body"><p style={{whiteSpace:"pre-wrap",margin:0,lineHeight:1.7}}>{selected.body}</p></div></WorkOrderDialog>}

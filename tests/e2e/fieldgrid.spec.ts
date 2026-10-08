@@ -33,19 +33,19 @@ test("beschermde routes vereisen een sessie en foutieve login lekt geen accounts
 test("platform backoffice beheert tenants, huisstijl en berichttemplates professioneel", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await login(page, "platform-admin@fieldgrid.test", "/platform");
-  await expect(page.getByRole("heading", { name: "Grip op iedere tenant." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Platformoverzicht" })).toBeVisible();
   await expect(page.getByText("FIELDGRID PLATFORM", { exact: true })).toBeVisible();
   await expect(page.getByText("Demo Organisatie").first()).toBeVisible();
   await expect(page).toHaveScreenshot("platform-overview-1440.png", { fullPage: true });
 
   await page.getByRole("button", { name: /Demo Organisatie/ }).first().click();
   await expect(page.getByRole("heading", { name: "Demo Organisatie" })).toBeVisible();
-  await page.getByRole("button", { name: "Huisstijl", exact: true }).click();
+  await page.getByRole("tablist", { name: "Tenantinstellingen" }).getByRole("tab", { name: "Huisstijl", exact: true }).click();
   await expect(page.getByLabel("Primaire kleur").last()).toHaveValue("#214e72");
   await expect(page.getByLabel("Secundaire kleur").last()).toHaveValue("#c65d21");
   await expect(page.getByRole("button", { name: "Volledig whitelabel" })).toHaveAttribute("aria-pressed", "false");
   await expect(page).toHaveScreenshot("platform-branding-1440.png", { fullPage: true });
-  await page.getByRole("button", { name: "Communicatie", exact: true }).click();
+  await page.getByRole("tablist", { name: "Tenantinstellingen" }).getByRole("tab", { name: "Communicatie", exact: true }).click();
   await page.getByRole("button", { name: /Templates beheren/ }).click();
   await expect(page.getByRole("heading", { name: "Templates", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Factuur verzonden" })).toBeVisible();
@@ -131,7 +131,7 @@ test("afgeleide kleurenpaletten zijn rustig, consistent en live zichtbaar zonder
 
   await page.goto("/platform");
   await page.getByRole("button", { name: /Demo Organisatie/ }).first().click();
-  await page.getByRole("button", { name: "Huisstijl", exact: true }).click();
+  await page.getByRole("tablist", { name: "Tenantinstellingen" }).getByRole("tab", { name: "Huisstijl", exact: true }).click();
   await page.getByLabel("Primaire kleur").last().fill("#315794");
   await page.getByLabel("Secundaire kleur").last().fill("#52b3b7");
   await expect(page.locator(".fg-preview-sidebar")).toHaveCSS("background-image", new RegExp(rgb(createBrandPalette("#315794", "#52b3b7").sidebar).replace(/[()]/g, "\\$&")));
@@ -154,7 +154,7 @@ test("resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare v
   await expect(page.getByRole("link", { name: "Bekijk" }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Bewerk" }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Verwijder" }).first()).toBeVisible();
-  await expect(page.getByText("Meer", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Meer", exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Nieuwe klant" }).click();
   await expect(page.getByRole("dialog", { name: "Nieuwe klant" })).toBeVisible();
   await expect(page.getByText("Identiteit", { exact: true })).toBeVisible();
@@ -262,7 +262,8 @@ test("Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel", asy
       await expect.poll(() => table.evaluate((element) => element.scrollHeight)).toBe(scrollHeight);
       await expect.poll(() => overlay.evaluate((element) => {
         const rect = element.getBoundingClientRect();
-        const inset = 4;
+        // Probe inside rounded corners; their transparent cutouts are not occlusion.
+        const inset = Math.max(4, parseFloat(getComputedStyle(element).borderTopLeftRadius) / 2);
         return rect.left >= 0 && rect.right <= window.innerWidth && rect.top >= 0 && rect.bottom <= window.innerHeight
           && [[rect.left + inset, rect.top + inset], [rect.right - inset, rect.bottom - inset]]
             .every(([x, y]) => element.contains(document.elementFromPoint(x, y)));

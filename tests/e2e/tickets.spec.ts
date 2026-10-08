@@ -271,7 +271,8 @@ test("personeelsmelding met echte scan, private notitie, bewuste escalatie en on
   await screenshotSizes(manager, "tenant-list", () => expectTicketListReady(manager, "tenant", subject));
   const cachedUrls = await page.evaluate(async () => (await Promise.all((await caches.keys()).map(async name => (await (await caches.open(name)).keys()).map(request => request.url)))).flat());
   expect(cachedUrls.filter(url => /\/(meldingen|support)(?:\/|\?|$)/.test(url))).toEqual([]);
-  await manager.getByRole("button", { name: "Uitloggen", exact: true }).click();
+  await manager.locator(".shell-account-button").click();
+  await manager.getByRole("menuitem", { name: "Uitloggen", exact: true }).click();
   await expect(manager).toHaveURL(/\/login/);
   const signedOut = await manager.request.get(`/app/meldingen/${ticketId}`);
   const signedOutHtml = await signedOut.text();
@@ -327,9 +328,11 @@ test("configuratiebevoegdheid geeft geen gesprekstoegang; personeel ziet alleen 
   await login(page, "config", "/platform/support");
   await expect(page).toHaveURL(/\/platform\/support\/instellingen$/);
   await expect(page.getByRole("heading", { name: "Categorieën & routing", exact: true })).toBeVisible();
-  await expect(page.getByRole("table")).toHaveCount(0);
+  // Configuration uses tables too; it must never render the ticket inbox.
+  await expect(page.locator(".ticket-table")).toHaveCount(0);
   const tickets = (await db.query("select id,title from public.tickets where tenant_id=$1 and route='platform_support'", [tenantId])).rows;
   for (const ticket of tickets) {
+    await expect(page.getByText(ticket.title, { exact: true })).toHaveCount(0);
     const response = await page.request.get(`/platform/support/${ticket.id}`);
     expect(await response.text()).not.toContain(ticket.title);
   }

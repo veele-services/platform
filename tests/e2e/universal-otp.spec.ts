@@ -77,13 +77,13 @@ test("management zonder platformrol logt met een echte achtcijferige e-mailcode 
 
 test("platformbeheerder zonder tenantlidmaatschap logt met een echte achtcijferige e-mailcode in op het platform", async ({ page }) => {
   await signInWithEmailOtp(page, emails.platform, "/platform");
-  await expect(page.getByRole("heading", { name: "Grip op iedere tenant.", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Platformoverzicht", exact: true })).toBeVisible();
 });
 
 test("klant zonder personeelslidmaatschap logt met een echte achtcijferige e-mailcode in op uitsluitend het eigen klantportaal", async ({ page }) => {
   await page.context().addCookies([{ name: "fieldgrid_tenant_id", value: tenant, url: "http://127.0.0.1:3000" }]);
   await signInWithEmailOtp(page, emails.customer, "/klant");
   await expect(page.locator(".customer-portal")).toBeVisible();
-  await expect(page.getByText("Fictieve OTP klant", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Fictieve OTP contactpersoon", { exact: true })).toBeVisible();
   await expect(page.getByText("Fictieve OTP locatie", { exact: true })).toBeVisible();
 });

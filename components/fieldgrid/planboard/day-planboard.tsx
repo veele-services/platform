@@ -21,7 +21,8 @@ import {
   MoreHorizontal,
   SlidersHorizontal,
   Undo2,
-  UsersRound,
+  CalendarPlus,
+  Eye,
   X,
   AlertTriangle,
 } from "lucide-react";
@@ -46,6 +47,8 @@ import {
   filterCount,
   initialProposal,
   planningViews,
+  initialPlanningQuery,
+  samePlanningQuery,
   type PlanboardData,
   type PlanningOrder,
   type PlanningQuery,
@@ -61,6 +64,8 @@ import {
 import { PlanningDetail } from "./detail-panel";
 import { StatusLegend } from "./status-legend";
 import { PageHeading } from "../page-heading";
+import { EmptyState } from "../empty-state";
+import { ActionIcon } from "../action-icon";
 import { assignmentStatus, assignmentStatusStyle } from "@/lib/planning/assignment-status";
 import {
   HEADER_HEIGHT,
@@ -139,15 +144,10 @@ export function DayPlanboard({
 }) {
   const [data, setData] = useState(initial);
   const [prefs, setPrefs] = useState(defaults);
-  const [query, setQuery] = useState<PlanningQuery>({
-    day: initial.day,
-    view: "unassigned",
-    search: "",
-    status: "",
-    page: 1,
-  });
+  const [query, setQuery] = useState<PlanningQuery>(() => initialPlanningQuery(initial.day));
+  const lastRequestedQuery = useRef(initialPlanningQuery(initial.day));
   const planKey = JSON.stringify(data.board.map(w=>[w.id,w.version,w.assignments.map(a=>[a.id,a.version,a.personnelId,a.start,a.end])]));
-  const travel = useTravelDay(query.day, undefined, planKey);
+  const travel = useTravelDay(query.day, undefined, planKey, data.people.length > 0);
   const [travelSelection,setTravelSelection]=useState<{assignmentId?:string;personnelId?:string;mode?:string}|null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -199,6 +199,7 @@ export function DayPlanboard({
     scopeChoiceRef.current = scopeChoice;
   }, [query, selected, confirmation, scopeChoice]);
   const refresh = useCallback(async (q: PlanningQuery, quiet = false) => {
+    lastRequestedQuery.current = q;
     const sequence = ++requestNumber.current;
     if (!quiet) setLoading(true);
     try {
@@ -269,6 +270,9 @@ export function DayPlanboard({
   }, [prefs, query.view, query.search, query.status, storageKey, hydrated]);
   useEffect(() => {
     if (!hydrated) return;
+    // Cosmetic preferences do not invalidate the server-loaded day. The live
+    // subscription still reconciles once connected, closing the snapshot race.
+    if (samePlanningQuery(lastRequestedQuery.current, query)) return;
     const timer = setTimeout(() => refresh(query), 180);
     return () => clearTimeout(timer);
   }, [query, hydrated, refresh]);
@@ -1014,12 +1018,11 @@ export function DayPlanboard({
           )}
           {!data.people.length && (
             <div className="pb-empty-people">
-              <UsersRound />
-              <h2>Nog geen medewerkers</h2>
-              <p>Voeg medewerkers toe voordat je personeel inplant.</p>
+              <EmptyState title="Nog geen medewerkers" description="Voeg medewerkers toe voordat je personeel inplant.">
               <Link prefetch={false} href="/app/personeel">
                 Naar personeel
               </Link>
+              </EmptyState>
             </div>
           )}
         </div>
@@ -1249,12 +1252,11 @@ export function DayPlanboard({
                         )}
                       </td>
                       <td>
-                        <button
-                          className="pb-row-action"
+                        <ActionIcon
+                          label={canPlan(order) ? "Plan" : "Bekijk"}
+                          icon={canPlan(order) ? <CalendarPlus size={16}/> : <Eye size={16}/>}
                           onClick={() => open(order)}
-                        >
-                          {canPlan(order) ? "Plan" : "Bekijk"}
-                        </button>
+                        />
                       </td>
                     </tr>
                   ))}
@@ -1262,14 +1264,11 @@ export function DayPlanboard({
               </table>
               {!data.orders.length && (
                 <div className="pb-list-empty">
-                  {activeFilters ? (
-                    <>
-                      Geen zoekresultaten.{" "}
+                  <EmptyState title={activeFilters ? "Geen werkbonnen gevonden" : "Nog geen werkbonnen"} description={activeFilters ? "Pas je zoekopdracht of filters aan om andere werkbonnen te bekijken." : "Werkbonnen voor de gekozen dag verschijnen hier zodra ze beschikbaar zijn."}>
+                    {activeFilters ? (
                       <button onClick={clearFilters}>Wis filters</button>
-                    </>
-                  ) : (
-                    "Geen bonnen in deze weergave voor de gekozen dag of zonder datum."
-                  )}
+                    ) : null}
+                  </EmptyState>
                 </div>
               )}
             </div>

@@ -32,7 +32,8 @@ test("logout removes legacy searches, fences another tab before logout completes
     await expect(other.getByRole("heading",{name:"Planbord",exact:true})).toBeVisible();
     const held=new Promise<void>(resolve=>{release=resolve;});
     await page.route("**/auth/signout",async route=>{await held;await route.continue();});
-    const logout=page.getByRole("button",{name:"Uitloggen",exact:true}).click();
+    await page.locator(".shell-account-button").click();
+    const logout=page.getByRole("menuitem",{name:"Uitloggen",exact:true}).click();
     await expect(other.locator("html")).toHaveAttribute("data-account-blocked","true");
     await expect(other.getByRole("heading",{name:"Klanten",exact:true})).not.toBeVisible();
     await test.step("Restore the prior document while logout is pending",async()=>{
@@ -94,7 +95,8 @@ test("delayed hydration cannot attach a new account to an old rendered document"
     await delayed.goto("/app/klanten",{waitUntil:"commit"});
     await expect(delayed.locator("html")).toHaveAttribute("data-account-blocked","true");
     await expect(delayed.getByRole("heading",{name:"Klanten",exact:true})).not.toBeVisible();
-    await page.getByRole("button",{name:"Uitloggen",exact:true}).click();
+    await page.locator(".shell-account-button").click();
+    await page.getByRole("menuitem",{name:"Uitloggen",exact:true}).click();
     await page.waitForURL(url=>url.pathname==="/login");
     await login(page,email,password);
     release();

@@ -401,6 +401,22 @@
       "source_sha256": "f0ef22c5eef57f7232806cd86be3ea2448479313316f640e618c1ab354f56cf4"
     },
     {
+      "id": "code:app/api/search/route.ts",
+      "exports": [
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [
+        "rpc:travel_session_active",
+        "rpc:work_order_list"
+      ],
+      "source_sha256": "bfa01e4a38def005f12d7c635ed12087a588d565b19c337a6bbf970655247c88"
+    },
+    {
       "id": "code:app/api/tickets/files/[id]/route.ts",
       "exports": [
         "DELETE",
@@ -577,12 +593,11 @@
       ],
       "resources": [
         "rpc:assign_work_order_task",
-        "rpc:dossier_chain",
         "rpc:record_customer_agreement",
         "rpc:record_task_execution",
         "rpc:work_order_task_context"
       ],
-      "source_sha256": "6c7a6102140554d9e9fd97a0b21f067276bc863b6f11030dd618e02054b9646a"
+      "source_sha256": "29e710fabc6a6cb609a2e6626b32cf7d3609c77b16f4f1a830fd41dda1434f6b"
     },
     {
       "id": "code:app/app/finance-actions.ts",
@@ -925,7 +940,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "f317f68a1ab6f569241fbcc778dbaf557bfd70de5bb5f881474a15016f8bbfe1"
+      "source_sha256": "034b1734125d3efde9437d0c887ee7a0676765c2de696caf6cdfadc8e98423a5"
     },
     {
       "id": "code:app/app/page.tsx",
@@ -1040,7 +1055,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "d074b0a1f9acb04011be749e257a93b7962abdaba8dd97d1970755913433d62a"
+      "source_sha256": "5ba32e315a149cabcae20f5db589a7883c3d6c64f7eb15f930d58eee974b73df"
     },
     {
       "id": "code:app/app/support/[id]/page.tsx",
@@ -1492,7 +1507,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "5be250b13b733ffae5a78d05c88d984d4fd0876af66cfd23f3edaedfcca980eb"
+      "source_sha256": "ffcc8ba3cc08aeabaa8b0ea014b5de6b86b9ebc3d3a6822c80c5f48994ed79d2"
     },
     {
       "id": "code:app/login/actions.ts",
@@ -1520,7 +1535,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "7c9e13f2512306dd091b554e4abfffdc119ad97c59cda032e45cdab2616a18f4"
+      "source_sha256": "1bf8300603f2a93f36cdd7ae0b63a7a623cc911b76fd88855132463a2f1229f8"
     },
     {
       "id": "code:app/notifications/actions.ts",
@@ -1960,7 +1975,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "4b6836c3dc067eefdc0b093d2df437329cd812c5c3f367f1a62207fcf12675e8"
+      "source_sha256": "3e7a32c9ed7936aeae713e04d0b077a7aaa5290e8addd80a8e287cb7e0b30c87"
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
@@ -1972,7 +1987,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "bf8d0b8d573f2d49711fd6c56cc3ae19f7f0b46a685222df9c313528305bcf3e"
+      "source_sha256": "d46a6446be1b0003c8dee14177dba261ff5c95de68c4f45e9439fb01a05e80fc"
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
@@ -1997,7 +2012,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "af20a79f173c680cd2ec25df1cb732aec8cd5d77dc3c307ce4830b8af33e0a00"
+      "source_sha256": "bb1714475aa1b0e950f5f0849cd1b094690255366fddef245a05771af49dd7d4"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
@@ -2071,7 +2086,7 @@
         "from:tenants",
         "rpc:resolve_tenant_context"
       ],
-      "source_sha256": "21721f2ba1eadbb668b7daec4436ab54f9dcf3232cb3609f516ffaaaebe16697"
+      "source_sha256": "ebf4e4f7da117ef151982b4c83acc7af7e648360bb9217edbd0530c3ebdbabc3"
     },
     {
       "id": "code:lib/auth/login-access.ts",
@@ -2140,7 +2155,7 @@
         "readScannedFile"
       ],
       "resources": [],
-      "source_sha256": "bf76079359b9032eaa2ced09c15bcfb81a5906d4b8c6db12df238c820bc241ef"
+      "source_sha256": "0d691234c183929f0de2c014f15d78a56791476eb441d69dc9bcb37413fe036c"
     },
     {
       "id": "code:lib/commercial/access.ts",
@@ -2495,6 +2510,20 @@
         "rpc:personnel_dossier_summary"
       ],
       "source_sha256": "b33729185107aa0a4b33d3706e5a180990cdbba1f50992e6e25749ef2dff256e"
+    },
+    {
+      "id": "code:lib/dossiers/data.ts",
+      "exports": [
+        "loadDossierChain"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createClient"
+      ],
+      "resources": [
+        "rpc:dossier_chain"
+      ],
+      "source_sha256": "385946cf3e3ff84026a2dd37106f26faa630ab4eeb9175b1244ec8723e2be546"
     },
     {
       "id": "code:lib/dossiers/download.ts",
@@ -2891,7 +2920,7 @@
         "from:tenant_settings",
         "from:tenants"
       ],
-      "source_sha256": "e1405782c663686c5751bbcc5fd9bf45aa0ee67cbe8831bb92ac6bb5263ca900"
+      "source_sha256": "ab0f42b631d033013879e9faf3c8371dcb6c1681b936235a996bff437ac4e7d9"
     },
     {
       "id": "code:lib/providers/mollie.ts",

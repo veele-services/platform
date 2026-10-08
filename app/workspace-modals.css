@@ -251,41 +251,51 @@ body:has(.workspace-shell,.personnel-app,.customer-portal) :is([data-slot="dialo
   min-height:0;
   gap:0;
 }
+/* Modal tabs use the same attached cards as page tabs. */
 :is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme] [role="tablist"] {
   display:flex;
   flex:0 0 auto;
   justify-content:flex-start;
+  align-items:stretch;
   width:100%;
   height:auto;
-  min-height:54px;
-  gap:22px;
+  min-height:50px;
+  gap:4px;
   overflow-x:auto;
   overflow-y:hidden;
-  padding:0 var(--modal-space);
+  padding:6px var(--modal-space) 0;
+  margin-bottom:-1px;
   border-bottom:1px solid var(--modal-line);
   border-radius:0;
-  background:white;
+  background:transparent;
 }
 :is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme] [role="tab"] {
   flex:0 0 auto;
   height:auto;
-  min-height:54px;
-  border:0;
-  border-bottom:2px solid transparent;
-  border-radius:0;
-  padding:15px 0;
-  background:transparent;
+  min-height:44px;
+  border:1px solid var(--modal-line);
+  border-radius:11px 11px 0 0;
+  padding:12px 18px;
+  background:var(--brand-surface,#f5f7f8);
   color:var(--modal-muted);
   font-weight:500;
   box-shadow:none;
 }
-:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme] [role="tab"][data-state="active"] {
-  border-color:var(--modal-action);
+:is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme] [role="tab"]:is([data-state="active"],[aria-selected="true"]) {
+  border-bottom-color:var(--brand-card,#fff);
+  background:var(--brand-card,#fff);
   color:var(--modal-action);
   font-weight:600;
-  box-shadow:none;
+  box-shadow:0 -2px 0 var(--modal-action);
 }
-.resource-modal[data-tenant-theme] [role="tablist"] {padding:0;}
+.resource-modal[data-tenant-theme] [role="tablist"] {padding:6px 0 0;}
+.dossier-dialog[data-tenant-theme] .content-tabs>[role="tablist"] {padding-inline:0;}
+.dossier-dialog[data-tenant-theme] .content-tab-panel:not([hidden]) {
+  padding:20px;
+  border:1px solid var(--modal-line);
+  border-radius:0 0 var(--fg-card-radius,18px) var(--fg-card-radius,18px);
+  background:var(--brand-card,#fff);
+}
 .resource-modal[data-tenant-theme] .customer-tabs-scroll {padding:0;}
 :is(.dossier-dialog,.commercial-dialog,.resource-modal,.ticket-dialog,.nt-dialog)[data-tenant-theme] [role="tabpanel"] {
   align-content:start;
@@ -416,7 +426,7 @@ body:has(.workspace-shell,.personnel-app,.customer-portal) :is([data-slot="dialo
     display:none;
   }
   .commercial-dialog[data-tenant-theme] .commercial-detail-tabs>[role="tablist"] {
-    gap:20px;
+    gap:4px;
   }
   .commercial-dialog[data-tenant-theme]>.commercial-detail-actions {
     gap:8px;

@@ -50,7 +50,7 @@ test("signed Auth hook sends one branded eight-digit OTP without a login link; o
     expect((await input.inputValue()).length, "The login form must retain the full provider-issued Auth code").toBe(8);
     await page.getByRole("button", { name: "Code controleren", exact: true }).click();
     await page.waitForURL("**/platform");
-    await expect(page.getByRole("heading", { name: "Grip op iedere tenant.", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Platformoverzicht", exact: true })).toBeVisible();
     await request.post("/auth/signout");
     await page.context().clearCookies();
     const anonymous = createClient(url.href, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false, autoRefreshToken: false } });

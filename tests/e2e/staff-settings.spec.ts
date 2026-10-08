@@ -29,18 +29,18 @@ test("Instellingen toont de prototypeonderdelen en bewaart alleen naam en mobiel
     const initial = await profile();
     await authenticateStaff(page, "field-worker@fieldgrid.test", "/staff?tab=meer&section=instellingen");
     const screen = page.locator(".ps-settings-screen");
-    const nav = screen.getByRole("navigation", { name: "Instellingenonderdelen", exact: true });
-    await expect(nav.getByRole("button")).toHaveText(["Mijn profiel", "Meldingen", "Account & toegang"]);
+    const nav = screen.getByRole("tablist", { name: "Instellingenonderdelen", exact: true });
+    await expect(nav.getByRole("tab")).toHaveText(["Mijn profiel", "Meldingen", "Account & toegang"]);
     await expect(screen.getByLabel("E-mailadres", { exact: true })).toHaveValue("field-worker@fieldgrid.test");
     await expect(screen.getByLabel("E-mailadres", { exact: true })).toHaveAttribute("readonly", "");
     for (const width of [1920, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 944 });
       for (const [name, image] of [["Mijn profiel", "profile"], ["Meldingen", "notifications"], ["Account & toegang", "account"]]) {
-        await nav.getByRole("button", { name, exact: true }).click();
+        await nav.getByRole("tab", { name, exact: true }).click();
         await capture(page, info, `settings-${image}-${width}`);
       }
     }
-    await nav.getByRole("button", { name: "Mijn profiel", exact: true }).click();
+    await nav.getByRole("tab", { name: "Mijn profiel", exact: true }).click();
     const save = screen.getByRole("button", { name: "Gegevens opslaan", exact: true });
     await screen.getByLabel("Naam", { exact: true }).fill("Robin Fictieve profielcontrole");
     await screen.getByLabel("Telefoonnummer", { exact: true }).fill("+31612345678");
@@ -83,8 +83,8 @@ test("Meldingsschakelaars bewaren echte voorkeuren en accountacties gebruiken de
     const saved = async () => (await db.query("select email,push,quiet_start::text,quiet_end::text,revision::int as revision from private.notification_preferences where tenant_id=$1 and user_id=$2 and context='staff' and type_code is null", [person!.tenant_id, person!.user_id])).rows[0];
     await authenticateStaff(page, "field-worker@fieldgrid.test", "/staff?tab=meer&section=instellingen");
     const screen = page.locator(".ps-settings-screen");
-    const nav = screen.getByRole("navigation", { name: "Instellingenonderdelen", exact: true });
-    await nav.getByRole("button", { name: "Meldingen", exact: true }).click();
+    const nav = screen.getByRole("tablist", { name: "Instellingenonderdelen", exact: true });
+    await nav.getByRole("tab", { name: "Meldingen", exact: true }).click();
     await expect(screen.getByRole("switch", { name: "Pushmeldingen", exact: true })).not.toBeChecked();
     await expect(screen.getByRole("switch", { name: "E-mail", exact: true })).toBeChecked();
     await expect(screen.getByRole("switch", { name: "Stille uren", exact: true })).toBeChecked();
@@ -100,7 +100,7 @@ test("Meldingsschakelaars bewaren echte voorkeuren en accountacties gebruiken de
     expect((await saved()).quiet_end).toBe("07:00:00");
     await expect(screen.getByRole("switch", { name: "Stille uren", exact: true })).toBeEnabled();
     await page.reload();
-    await nav.getByRole("button", { name: "Meldingen", exact: true }).click();
+    await nav.getByRole("tab", { name: "Meldingen", exact: true }).click();
     await expect(screen.getByRole("switch", { name: "Pushmeldingen", exact: true })).toBeChecked();
     await expect(screen.getByRole("switch", { name: "E-mail", exact: true })).not.toBeChecked();
     await expect(screen.getByRole("switch", { name: "Stille uren", exact: true })).toBeChecked();
@@ -118,7 +118,7 @@ test("Meldingsschakelaars bewaren echte voorkeuren en accountacties gebruiken de
     await expect(page.getByText("Deze gegevens zijn intussen gewijzigd. Vernieuw en controleer je invoer; er is niets overschreven.", { exact: true })).toBeVisible();
     await expect(screen.getByRole("switch", { name: "E-mail", exact: true })).not.toBeChecked();
     expect((await saved()).email).toBe(false);
-    await nav.getByRole("button", { name: "Account & toegang", exact: true }).click();
+    await nav.getByRole("tab", { name: "Account & toegang", exact: true }).click();
     await screen.getByRole("button", { name: "Loginflow bekijken", exact: true }).click();
     const login = page.getByRole("dialog", { name: "Inloggen met e-mailcode", exact: true });
     await expect(login).toContainText("field-worker@fieldgrid.test");

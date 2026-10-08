@@ -1,0 +1,9 @@
+/* Route-driven dossiers share the same attached card tabs as workspace lists. */
+.dossier-tabbed-content{display:grid;gap:0;min-width:0;max-width:100%;align-content:start}
+.dossier-tab-surface{display:grid;gap:24px;align-content:start;min-width:0;max-width:100%;padding:24px;border:1px solid var(--brand-border,#dce4e8);border-radius:0 var(--fg-radius,18px) var(--fg-radius,18px);background:var(--brand-card,#fff)}
+.dossier-tab-surface>.fg-empty-state{border:1px solid var(--brand-border,#dce4e8);border-radius:var(--fg-radius,18px)}
+.dossier-tab-surface>:is(.compact-filter-bar,.dossier-toolbar){margin:0}
+:is(.customer-dossier,.personnel-dossier) .dossier-card:has(>.table-scroll){padding:0;overflow:hidden}
+:is(.customer-dossier,.personnel-dossier) .dossier-card:has(>.table-scroll)>:is(p,.dossier-toolbar){margin:20px 24px}
+:is(.customer-dossier,.personnel-dossier) .dossier-header-actions .fg-action-icon{width:var(--fg-control-size,42px);height:var(--fg-control-size,42px);min-width:var(--fg-control-size,42px);min-height:var(--fg-control-size,42px);padding:0}
+@media(max-width:640px){.dossier-tab-surface{gap:20px;padding:16px}.dossier-tab-surface .dossier-columns{grid-template-columns:minmax(0,1fr)}:is(.customer-dossier,.personnel-dossier) .dossier-card:has(>.table-scroll)>:is(p,.dossier-toolbar){margin:16px}}

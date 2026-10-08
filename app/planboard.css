@@ -1155,6 +1155,17 @@
     width: 86px;
   }
 }
+/* Give tablet planning controls the full content width. A narrow action column
+   otherwise wraps them into several rows and consumes the board's workspace. */
+@media (min-width: 601px) and (max-width: 1100px) {
+  .workspace-shell .backoffice-content .pb-root .pb-page-heading.unified-page-heading {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pb-root .pb-page-heading.unified-page-heading > .resource-header-actions {
+    grid-column: 1;
+    grid-row: 3;
+  }
+}
 @media (max-width: 440px) {
   .pb-toolbar {
     gap: 7px;

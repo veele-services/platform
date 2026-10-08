@@ -1,4 +1,6 @@
 "use client";
+import { ActionIcon, ActionLink } from "../action-icon";
+import { EmptyState } from "../empty-state";
 import { PageHeading } from "../page-heading";
 import { ListPagination } from "../list-pagination";
 import { useEffect, useState, useTransition } from "react";
@@ -90,6 +92,7 @@ export function CustomersList({
     ([k, v]) => !["page", "pageSize", "sort"].includes(k) && v,
   );
   const active = activeFilters.length > 0;
+  const columnSort: Record<string, string> = {"Nummer / klant":"name",Status:"status",Plaats:"city","Volgende afspraak":"next_visit",Aandacht:"attention"};
   return (
     <div className="customer-workspace">
       <PageHeading eyebrow="RELATIES" title="Klanten" help="Relaties, contactpersonen en opvolging. Open een klant voor het volledige dossier." actions={<>
@@ -194,7 +197,7 @@ export function CustomersList({
         </div>
       </form>
         </CompactFilterMenu>
-        <button className="primary-button" onClick={() => setWizard(true)}><Plus size={17}/>Nieuwe klant</button>
+        <ActionIcon className="primary-button" label="Nieuwe klant" icon={<Plus size={17}/>} onClick={() => setWizard(true)}/>
       </>}/>
       <section className="panel resource-table-panel" aria-label="Klantenlijst">
         <div className="table-scroll">
@@ -213,28 +216,18 @@ export function CustomersList({
                   "Aandacht",
                   ...(data.finance ? ["Financieel"] : []),
                   "Acties",
-                ].map((t, i) => (
-                  <th key={t}>
-                    {i === 0 ? (
-                      <button
-                        onClick={() => {
-                          const p = new URLSearchParams(params);
-                          p.set(
-                            "sort",
-                            filters.sort === "name" ? "name_desc" : "name",
-                          );
-                          p.delete("page");
-                          router.push(`${path}?${p}`);
-                        }}
-                      >
-                        {t}
-                        <ArrowDownAZ size={14} />
-                      </button>
-                    ) : (
-                      t
-                    )}
-                  </th>
-                ))}
+                ].map(t => {
+                  const sort=columnSort[t];
+                  const selected=filters.sort===sort || sort==="name" && filters.sort==="name_desc";
+                  return <th key={t} scope="col" aria-sort={sort ? selected ? filters.sort==="name_desc" || filters.sort==="attention" ? "descending" : "ascending" : "none" : undefined}>
+                    {sort ? <button onClick={() => {
+                      const p=new URLSearchParams(params);
+                      p.set("sort",sort==="name" && filters.sort==="name" ? "name_desc" : sort);
+                      p.delete("page");
+                      router.push(`${path}?${p}`);
+                    }}>{t}<ArrowDownAZ size={14}/></button> : t}
+                  </th>;
+                })}
               </tr>
             </thead>
             <tbody>
@@ -284,38 +277,12 @@ export function CustomersList({
                   )}
                   <td>
                     <div className="resource-actions">
-                      <Link
-                        className="resource-action"
-                        onClick={remember}
-                        href={href(c.id)}
-                      >
-                        <Eye size={13} />
-                        <span>Bekijk</span>
-                      </Link>
-                      <Link
-                        className="resource-action"
-                        onClick={remember}
-                        href={href(c.id, true)}
-                      >
-                        <Pencil size={13} />
-                        <span>Bewerk</span>
-                      </Link>
-                      {canDelete && (
-                        <button
-                          className="resource-action danger"
-                          disabled={pending}
-                          onClick={() => remove(c, false)}
-                        >
-                          <Trash2 size={13} />
-                          <span>Verwijder</span>
-                        </button>
-                      )}
+                      <ActionLink className="resource-action" label="Bekijk" title={`Bekijk ${c.name}`} icon={<Eye size={14}/>} onClick={remember} href={href(c.id)}/>
+                      <ActionLink className="resource-action" label="Bewerk" title={`Bewerk ${c.name}`} icon={<Pencil size={14}/>} onClick={remember} href={href(c.id, true)}/>
+                      {canDelete && <ActionIcon className="resource-action danger" label="Verwijder" title={`Verwijder ${c.name}`} icon={<Trash2 size={14}/>} disabled={pending} onClick={() => remove(c, false)}/>}
                       <Popover>
                         <PopoverTrigger asChild>
-                          <button className="resource-action">
-                            <MoreHorizontal size={13} />
-                            <span>Meer</span>
-                          </button>
+                          <ActionIcon className="resource-action" label="Meer" title={`Meer acties voor ${c.name}`} icon={<MoreHorizontal size={14}/>} />
                         </PopoverTrigger>
                         <PopoverContent
                           className="resource-more-content"
@@ -353,19 +320,7 @@ export function CustomersList({
           </table>
         </div>
         {!data.rows.length && (
-          <div className="resource-empty">
-            <Search size={26} />
-            <strong>
-              {active
-                ? "Geen resultaten voor deze filters"
-                : "Nog geen klanten"}
-            </strong>
-            <span>
-              {active
-                ? "Pas je zoekopdracht aan of wis de filters."
-                : "Maak een eerste klant of prospect aan."}
-            </span>
-          </div>
+          <EmptyState title={active ? "Geen resultaten voor deze filters" : "Nog geen klanten"} description={active ? "Pas je zoekopdracht aan of wis de filters." : "Gebruik de plusknop bovenaan om een klant of prospect toe te voegen."}/>
         )}
       </section>
       <ListPagination total={data.total} page={data.page} pageSize={data.pageSize ?? filters.pageSize} noun="klanten" preferenceKey={`backoffice:${tenant.id}:customers`} href={back}/>

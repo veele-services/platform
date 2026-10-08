@@ -29,7 +29,10 @@
   .pb-filter-popover,
   .pb-action-menu,
   .pb-person-popover,
-  .address-suggestions
+  .address-suggestions,
+  [data-tenant-theme=true],
+  .shell-account-menu,
+  .shell-search-results
 ) {
   --dashboard-font-scale: .8;
   /* Utility text in shared UI components follows the same scale. */

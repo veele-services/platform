@@ -121,6 +121,39 @@ async function open(page: Page) {
     await page.setViewportSize(originalViewport);
   }
 }
+test("een handmatig gekozen dag blijft geselecteerd bij focus en realtime wijzigingen", async ({ page }) => {
+  test.setTimeout(90000);
+  const requestedDays: string[] = [];
+  page.on("request", request => {
+    if (request.method() !== "POST" || !request.headers()["next-action"]) return;
+    try {
+      const body = JSON.parse(request.postData() ?? "null");
+      if (Array.isArray(body) && body[0]?.day && body[0]?.view && typeof body[0]?.page === "number") requestedDays.push(body[0].day);
+    } catch { /* Other actions can use a multipart body. */ }
+  });
+  await open(page);
+  const chosenDay = "2031-03-05";
+  const dateInput = page.getByRole("main").getByLabel("Planningsdag");
+  await dateInput.fill(chosenDay);
+  await expect.poll(() => requestedDays.at(-1)).toBe(chosenDay);
+  await expect(page.locator(".pb-board:visible")).toHaveAttribute("aria-busy", "false");
+  const afterChange = requestedDays.length;
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect.poll(() => requestedDays.length).toBeGreaterThan(afterChange);
+  await expect(dateInput).toHaveValue(chosenDay);
+  expect(requestedDays.slice(afterChange).every(value => value === chosenDay)).toBe(true);
+
+  const afterFocus = requestedDays.length;
+  try {
+    await db.query("update public.work_orders set day_instructions=$2 where id=$1", [orders[1], "FICTITIOUS realtime date preservation"]);
+    await expect.poll(() => requestedDays.length, { timeout: 30000 }).toBeGreaterThan(afterFocus);
+    await expect(dateInput).toHaveValue(chosenDay);
+    expect(requestedDays.slice(afterFocus).every(value => value === chosenDay)).toBe(true);
+  } finally {
+    await db.query("update public.work_orders set day_instructions=$2 where id=$1", [orders[1], "Alleen deze uitvoering: entree controleren."]);
+  }
+});
+
 test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bonacties", async ({
   page,
 }) => {
