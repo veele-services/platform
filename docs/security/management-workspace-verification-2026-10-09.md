@@ -240,8 +240,11 @@ source review found no outstanding concrete P1/P2 finding.
 The real browser management flow passed mail invitation, OTP login, live role
 revocation/restoration, finance access, accepted ownership transfer, former-owner
 access and platform denial. The focused layout, platform and address flows
-passed; the complete browser regression remains a separate final check. Platform
-baselines were visually reviewed on desktop and mobile.
+passed. The complete 121-case browser regression is covered: the initial run
+passed 117 cases, and four affected cases then passed in a serial rerun after
+fixing two test readiness conditions, removing a fixture cleanup contention and
+reviewing the palette baselines. Platform baselines were visually reviewed on
+desktop and mobile. Exact-head GitHub CI remains a separate promotion gate.
 
 The evidence map groups each changed surface with its source and relevant tests.
 The final ledger preserves unchanged entries only when their fingerprints match;
