@@ -170,3 +170,14 @@ provider settings and database schema are unchanged. Evidence: all 1,645 unit
 tests, lint/typecheck and production dependency audit pass locally; full reusable
 CI again checks build/artifact startup and browser flows for this dependency
 update. Actual promotion still requires green exact-SHA main and staging runs.
+
+## Public website acceptance correction — 8 October 2026
+
+The missing-page fixture in `verify-production-website.mjs` now requests the
+canonical trailing-slash URL, matching the existing marketing proxy contract.
+The previous URL received the intentional 308 normalization redirect before its
+404 response, which conflicted with the verifier's strict redirect rejection.
+Redirect rejection, exact-release health, all 28 marketing pages, robots,
+sitemap and portal-login assertions remain intact. The corrected read-only
+verifier passed against production release `53a9b153b07c358be6e30c032ed26160388f7ea3`.
+No application routing, authorization, database or host configuration changes.

@@ -5498,7 +5498,7 @@
     },
     {
       "id": "operation:scripts/verify-production-website.mjs",
-      "surfaceFingerprint": "14cce2da60445cde029894d5c5d81e3366d8fe3341d4c165544e896c1304abce",
+      "surfaceFingerprint": "440b0f6885bfb623f3fe995440ef905bb6a3e63be56b740b3911c423e87c0c45",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
