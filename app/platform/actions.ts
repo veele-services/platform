@@ -2,6 +2,7 @@
 import { uploadScannedFile } from "@/lib/files/scanned-storage";
 
 import { revalidatePath } from "next/cache";
+import sharp from "sharp";
 import { z } from "zod";
 import type { ActionResult } from "@/lib/actions/result";
 import { message } from "@/lib/actions/result";
@@ -10,6 +11,7 @@ import { requirePlatformAdmin } from "@/lib/platform/data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { tenantAppUrl } from "@/lib/tenancy/hostname";
+import { BRANDING_LOGO_MAX_BYTES, BRANDING_LOGO_MAX_PIXELS, rejectLogoAnimation, validateLogoMetadata } from "@/lib/branding/validation";
 
 const moduleId = z.enum(["planning", "personeel", "rapportage", "finance", "tickets", "klantportaal"]);
 const color = z.string().regex(/^#[0-9A-Fa-f]{6}$/);
@@ -176,10 +178,14 @@ export async function uploadPlatformTenantLogo(formData: FormData): Promise<Plat
     if (!(file instanceof File) || !file.size) throw new Error("Selecteer een logo.");
     const extensions = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" } as const;
     const extension = extensions[file.type as keyof typeof extensions];
-    if (!extension || file.size > 2 * 1024 * 1024) throw new Error("Gebruik PNG, JPG of WebP van maximaal 2 MB.");
+    if (!extension || file.size > BRANDING_LOGO_MAX_BYTES) throw new Error("Gebruik PNG, JPG of WebP van maximaal 2 MB.");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    rejectLogoAnimation(bytes, file.type);
+    const image = sharp(bytes, { limitInputPixels: BRANDING_LOGO_MAX_PIXELS });
+    validateLogoMetadata(await image.metadata(), file.type);
+    await image.stats(); // Fully decode before publishing a logo used by PWA icons.
     const admin = createAdminClient();
     const path = `${tenantId}/logo-${crypto.randomUUID()}.${extension}`;
-    const bytes = new Uint8Array(await file.arrayBuffer());
     await uploadScannedFile(await createClient(), "branding", path, bytes, file.type);
     const currentContext = await requirePlatformAdmin();
     if (currentContext.user.id !== context.user.id) throw new Error("Je platformtoegang is gewijzigd. Het logo is niet gekoppeld.");

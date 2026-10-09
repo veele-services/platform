@@ -712,7 +712,7 @@
     },
     {
       "id": "code:app/app/operations-actions.ts",
-      "surfaceFingerprint": "2fb538db90dcbe6f3b83a4bea8689e4b893d0fcfde3ebda877d37653536e3a21",
+      "surfaceFingerprint": "54e490787657110d2dd9e16229f378fbebc560d7d99f72ef576d7ef7a89b5438",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/management-workspace-verification-2026-10-09.md#live-route-search-and-provider-boundaries",
@@ -726,7 +726,11 @@
         "lib/personnel/invitation-delivery.test.ts",
         "lib/finance/service-permissions.test.ts",
         "lib/commercial/delivery-authorization.test.ts",
-        "lib/commercial/mail.test.ts"
+        "lib/commercial/mail.test.ts",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/branding/logo-upload-actions.test.ts",
+        "lib/branding/validation.test.ts",
+        "lib/files/scanned-storage.test.ts"
       ]
     },
     {
@@ -1197,8 +1201,8 @@
     },
     {
       "id": "code:app/platform/actions.ts",
-      "surfaceFingerprint": "8134d48607ccfac6bb7f5d73840f914fa957e49453e1d2bbc18647be0d0b0063",
-      "status": "controlled",
+      "surfaceFingerprint": "b239b7a60611f2d1dab30bb93f0dc29400ff53aadfb3dfd13cb304b8ae649109",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/management-workspace-verification-2026-10-09.md#tickets-notifications-and-platform-scope",
         "app/platform/actions.ts",
@@ -1207,7 +1211,11 @@
         "app/platform/layout.test.ts",
         "lib/platform/cockpit.test.ts",
         "scripts/test-tickets.mjs",
-        "tests/e2e/fieldgrid.spec.ts"
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/branding/logo-upload-actions.test.ts",
+        "lib/branding/validation.test.ts",
+        "lib/files/scanned-storage.test.ts"
       ]
     },
     {

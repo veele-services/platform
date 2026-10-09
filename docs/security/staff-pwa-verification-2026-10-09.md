@@ -24,6 +24,19 @@ bestanden hebben geen vrijstelling. PNG/JPEG/WebP, maximaal 2 MB, 4096 pixels pe
 zijde en 16 miljoen pixels, een stilstaand beeld en een correcte decoder worden
 opnieuw getoetst voordat een PNG wordt geproduceerd.
 
+De twee bestaande directe logo-uploadacties in de tenant- en platformbackoffice
+gebruiken nu dezelfde gedeelde beeldgrenzen als de actuele huisstijlactie en PWA.
+Echte Sharp-metadata, containercontrole op animatie en volledige pixeldecodering
+via `stats()` vinden plaats vóór scanner, Storage of koppeling van het logo.
+Ook een sterk gecomprimeerde 4097×1-afbeelding, meer dan 16 miljoen pixels,
+afgebroken beelddata of een vervalst MIME wordt zo geweigerd vóór bijwerkingen.
+De bestaande toegangscontrole, actuele platformidentiteit na upload,
+tenantgebonden onveranderlijk pad en scannerpublicatie blijven gelijk.
+`uploadScannedFile` controleert de actuele uploadbevoegdheid vóór en na scannen
+en na Storage-I/O; de werkelijke opgeslagen bytes en versiegebonden scanreceipt
+blijven leidend. De afzonderlijke moderne huisstijlactie behoudt haar bestaande
+versiecontrole/CAS; deze aansluiting wijzigt geen DB-, RLS- of Storagegrant.
+
 Na Storage-, scan- en decoder-I/O wordt opnieuw dezelfde actieve hosttenant,
 white-label-entitlement, logo-pad en identiteit geladen. Wijziging of intrekking
 geeft geen bytes terug. Fieldgrid-afbeeldingen komen uitsluitend uit vaste
@@ -170,8 +183,8 @@ definitieve unit/browserchecks en exacte deployacceptatie worden afzonderlijk
 door de release-integrator vastgelegd. Dit bronreviewbewijs is geen claim van
 fysieke Samsung-/iPhone-installatie of hosted-provideracceptatie.
 
-De volledige lokale broncontrole slaagde: lint, TypeScript, 1.816 unitcontroles
-over 183 bestanden en de productiebuild. Twaalf gerichte Chromium-browsergevallen
+De volledige lokale broncontrole slaagde: lint, TypeScript, 1.843 unitcontroles
+over 184 bestanden en de productiebuild. Twaalf gerichte Chromium-browsergevallen
 toetsen de opgeslagen onboarding vóór de installatievraag, overslaan en precies
 één volgende loginherinnering, stille herlaad-/realtimebezoeken, latere installatie
 via instellingen, native click-activatie en annuleren, iOS-instructies,
@@ -185,9 +198,17 @@ standalone-detectie en manifest-/Apple-assets; dit is geen fysieke iOS-installat
 De white-labelfixture gebruikt echte actuele ClamAV-definities en controleert
 de resulterende scanreceipt; de veiligheidsgrens wordt niet omzeild.
 
+De aanvullende logo-uploadbatch slaagde met 101 controles over vijf bestanden.
+`lib/branding/logo-upload-actions.test.ts` gebruikt werkelijk gedecodeerde
+PNG/JPEG/WebP voor beide bestaande acties en toetst afmetingen, pixels, animatie,
+truncatie, MIME, bytegrens, bevoegdheid, scannerfout en intrekking van de
+platformidentiteit vóór de uiteindelijke koppeling. De echte decoder wordt
+niet vervangen; bestaande huisstijl-, PWA- en scannerpublicatietests blijven
+onderdeel van deze gerichte batch.
+
 Na bronreview zijn de metadata en fingerprintgebonden authorization ledger
-bijgewerkt voor exact twaalf veranderde oppervlakken, waaronder vier nieuwe
-server-entrypoints. De 1102 ongewijzigde reviews behouden hun fingerprint en
+bijgewerkt voor exact veertien veranderde oppervlakken, waaronder vier nieuwe
+server-entrypoints. De 1100 ongewijzigde reviews behouden hun fingerprint en
 bewijs; alle 1114 oppervlakken hebben een afgeronde status. De reproduceerbare
 metadata- en ledgercheck slaagden lokaal. Alle bestaande DB/RLS/RPC-grants,
 scanner- en sessiegrenzen blijven gelijk; deze wijziging voegt geen migratie of
