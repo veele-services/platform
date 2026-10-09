@@ -17,7 +17,7 @@ export function hasManagementPermission(tenant: { permissions?: string[] | null 
   return tenant.permissions == null || tenant.permissions.includes(capability);
 }
 export const backofficePagePermission: Record<string, string> = {
-  aanvragen: "commercial", planning: "planning", werkbonnen: "work_orders", taken: "tasks", klanten: "customers", objecten: "objects", personeel: "personnel", rapporten: "reports", facturen: "finance", nieuws: "news", opvolging: "followup", instellingen: "settings",
+  aanvragen: "commercial", planning: "planning", werkbonnen: "work_orders", taken: "tasks", klanten: "customers", objecten: "objects", personeel: "personnel", rapporten: "reports", facturen: "finance", nieuws: "news", opvolging: "followup", instellingen: "settings", updates: "product",
 };
 export function permissionForPath(pathname: string): string | null {
   const parts = pathname.split("/").filter(Boolean);
@@ -27,4 +27,4 @@ export function permissionForPath(pathname: string): string | null {
   const pageModule = parts[1] ? backofficePagePermission[parts[1]] : "overview";
   return pageModule ? `backoffice.${pageModule}.read` : "backoffice.access";
 }
-export const managementModuleNames: Record<string, string> = { access: "Toegang", overview: "Overzicht", commercial: "Aanvragen en offertes", planning: "Planbord", work_orders: "Werkbonnen", tasks: "Taken en tarieven", customers: "Klanten", objects: "Objecten", personnel: "Personeel", reports: "Rapportcontrole", finance: "Facturen en betalingen", news: "Nieuws", followup: "Opvolging", settings: "Instellingen", tickets: "Tickets en support", notifications: "Notificaties", management: "Gebruikers en eigenaarschap" };
+export const managementModuleNames: Record<string, string> = { product: "Roadmap en updates", access: "Toegang", overview: "Overzicht", commercial: "Aanvragen en offertes", planning: "Planbord", work_orders: "Werkbonnen", tasks: "Taken en tarieven", customers: "Klanten", objects: "Objecten", personnel: "Personeel", reports: "Rapportcontrole", finance: "Facturen en betalingen", news: "Nieuws", followup: "Opvolging", settings: "Instellingen", tickets: "Tickets en support", notifications: "Notificaties", management: "Gebruikers en eigenaarschap" };

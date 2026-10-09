@@ -49,7 +49,7 @@ import {
 
 } from "@/app/app/operations-actions";
 
-export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging" | "meldingen" | "support" | "notificaties" | "gebruikers";
+export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging" | "meldingen" | "support" | "notificaties" | "gebruikers" | "updates";
 
 const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboard; href: string }> = [
   { id: "overzicht", label: "Overzicht", icon: LayoutDashboard, href: "/app" },
@@ -64,6 +64,7 @@ const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboa
   { id: "facturen", label: "Facturen", icon: CreditCard, href: "/app/facturen" },
   { id: "nieuws", label: "Nieuws", icon: Megaphone, href: "/app/nieuws" },
   { id: "opvolging", label: "Opvolging", icon: ClipboardCheck, href: "/app/opvolging" },
+  { id: "updates", label: "Roadmap & updates", icon: Megaphone, href: "/app/updates" },
   { id: "gebruikers", label: "Gebruikers en rollen", icon: UsersRound, href: "/app/gebruikers" },
   { id: "instellingen", label: "Instellingen", icon: Settings, href: "/app/instellingen" },
   { id: "meldingen", label: "Personeelsmeldingen", icon: Bell, href: "/app/meldingen" },
@@ -77,7 +78,7 @@ const serviceByView: Partial<Record<BackofficeView, string>> = {
   controle: "rapportage", facturen: "finance",
 };
 
-const organisationViews: BackofficeView[] = ["nieuws", "opvolging", "instellingen", "gebruikers"];
+const organisationViews: BackofficeView[] = ["nieuws", "opvolging", "instellingen", "gebruikers", "updates"];
 
 const statusLabel: Record<string, string> = {
   planned: "Gepland", released: "Vrijgegeven", seen: "Gezien", travelling: "Onderweg",

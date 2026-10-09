@@ -18,8 +18,9 @@ ticket-RPC's, accountinrichting en gedeelde dashboardcomponenten.
 | Notificaties | Inbox, voorkeuren en beheeronderdelen naar actuele rechten; gedeelde platformshell |
 
 Platformbeheer geeft geen algemene toegang tot personeels- of klantgesprekken.
-De supportdesk gebruikt het expliciete rechtenregister en uitsluitend de inhoud
-die de tenant voor Fieldgrid heeft gedeeld.
+De supportdesk gebruikt het expliciete rechtenregister en uitsluitend gesprekken
+die voor Fieldgrid zijn bestemd: expliciet gedeelde tenantescalaties of toegestane
+directe technische meldingen.
 
 ## Wat deze release toevoegt
 
@@ -78,7 +79,8 @@ voor zulke onzekere uitnodigingen. Deze operationele verbetering hoort bij prior
 ## Verificatie en grenzen
 
 De releasecontrole omvat unit-/type-/lintcontrole, een schone replay van 135
-migraties, 483 databasechecks en tien echte HTTP-privacychecks. De nieuwe
+migraties, 881 databasechecks (398 pgTAP en 483 Node-contractchecks) en tien echte
+HTTP-privacychecks. De nieuwe
 supportteamchecks testen actuele OTP, tenantbereik, revisies, herhaalde opdrachten,
 eenmalige verzendclaims, intrekking en afgeschermde notities. De ticketketen is
 afzonderlijk getest voor personeel en klanten. Browserflows controleren de

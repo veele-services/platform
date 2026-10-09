@@ -676,6 +676,11 @@
       "version": "20261009190000",
       "name": "platform_support_team",
       "sha256": "abcc41c520c3f969df0dcd613d60c2874e653e20ee59c146e2295c937e774580"
+    },
+    {
+      "version": "20261009220000",
+      "name": "product_management",
+      "sha256": "3c9bc9a55cde8ae077d3ecdf89f29d933eb0e7fd477a11a1f9f118bbdde5f6d6"
     }
   ]
 }

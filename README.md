@@ -1,4 +1,4 @@
-# Fieldgrid 1.0.0
+# Fieldgrid
 
 Fieldgrid V1 is a new, tenant-neutral implementation. Legacy applications and
 their migrations, services, deployment structures and proxy rules are not a
@@ -35,6 +35,12 @@ Tenant portals remain on one tenant hostname:
 
 Product releases follow [semantic versioning](docs/releases/versioning.md), with
 an immutable Git tag on the exact deployed SHA and a [changelog](CHANGELOG.md).
+The released functionality, verification and next priorities are recorded in
+the [Fieldgrid 1.0.0 codebase analysis](docs/releases/fieldgrid-1.0.0-codebase-analyse.md).
+The next release candidate is `1.1.0-rc.1`; its integrated product management,
+roadmap, tenant ideas and targeted updates are documented in
+[Productbeheer V1](docs/architecture/product-management.md). Production remains
+on the accepted `1.0.0` baseline until a separate production approval.
 
 Tenant resolution is hostname-only and fail-closed. The platform hostname never
 silently selects a tenant, and an unknown tenant hostname never falls back to a

@@ -14,7 +14,7 @@ import { NotificationBell } from "@/components/fieldgrid/notifications/inbox";
 import { createClient } from "@/lib/supabase/client";
 import { StaffTicketsEntry } from "./tickets-entry";
 
-type StaffRoute = "tickets" | "notifications";
+type StaffRoute = "tickets" | "notifications" | "updates";
 type SyncState = "offline" | "connecting" | "syncing" | "current";
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
@@ -52,7 +52,7 @@ export function StaffRouteShellClient({
   const profileMenuWrap = useRef<HTMLDivElement>(null);
   const refreshRequested = useRef(false);
   const subscriptionReady = useRef(false);
-  const title = active === "tickets" ? "Tickets" : "Notificaties";
+  const title = active === "updates" ? "Wat is er nieuw?" : active === "tickets" ? "Tickets" : "Notificaties";
 
   const refresh = useCallback(() => {
     if (!navigator.onLine) {
@@ -182,7 +182,7 @@ export function StaffRouteShellClient({
         <Link className="ps-nav-button" href="/staff?tab=planning"><CalendarDays/><span>Dagplanning</span></Link>
         <Link className="ps-nav-button" href="/staff?tab=nieuws"><Newspaper/><span>Nieuws</span></Link>
         <Link className="ps-nav-button" href="/staff?tab=uren"><Clock3/><span>Mijn uren</span></Link>
-        <StaffTicketsEntry className={`ps-nav-button${active === "tickets" ? " active" : ""}`} active={active === "tickets"} enabled={ticketsEnabled}/>
+        <Link className={`ps-nav-button${active === "updates" ? " active" : ""}`} href="/staff/updates"><Newspaper/><span>Wat is er nieuw?</span></Link><StaffTicketsEntry className={`ps-nav-button${active === "tickets" ? " active" : ""}`} active={active === "tickets"} enabled={ticketsEnabled}/>
         <span className="ps-nav-section">PERSONEELSZAKEN</span>
         <Link className="ps-nav-button" href="/staff?tab=meer&section=verlof"><Umbrella/><span>Verlof</span></Link>
         <Link className="ps-nav-button" href="/staff?tab=meer&section=beschikbaarheid"><CalendarCheck/><span>Beschikbaarheid</span></Link>

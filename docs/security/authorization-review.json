@@ -318,6 +318,32 @@
       ]
     },
     {
+      "id": "code:app/api/product/files/[id]/route.ts",
+      "surfaceFingerprint": "4c104057b3d282da413e6483a5191e631895154f5ea848a75fbc74fa60cd8c1d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
+      ]
+    },
+    {
+      "id": "code:app/api/product/route.ts",
+      "surfaceFingerprint": "203c7d260c60f758fd3584dd90f9d195938781e6b9b244b7fe3447f649367e3e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
+      ]
+    },
+    {
       "id": "code:app/api/push/subscribe/route.ts",
       "surfaceFingerprint": "34885dd04bbfd455062fc9c699154c374965cdeff43aacfcd2a35d1431963632",
       "status": "controlled",
@@ -873,6 +899,19 @@
       ]
     },
     {
+      "id": "code:app/app/updates/page.tsx",
+      "surfaceFingerprint": "e750e863cb4739ec5ec7f779ced4cc904821258651477831fe2fae327d000610",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
+      ]
+    },
+    {
       "id": "code:app/app/werkbonnen/[workOrderId]/page.tsx",
       "surfaceFingerprint": "06be590b014058ac1fed07acdc590758cf6f13b7d4891997f53f73ad2cdb7f1e",
       "status": "controlled",
@@ -964,7 +1003,7 @@
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
         "docs/security/otp-activity-verification-2026-10-05.md",
-        "docs/security/release-security-inventory.md#portaalreeks-bronreview-v\u00f3\u00f3r-deployment--5-oktober-2026"
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
       ]
     },
     {
@@ -1128,6 +1167,19 @@
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
         "docs/security/customer-portal-verification-2026-10-05.md"
+      ]
+    },
+    {
+      "id": "code:app/klant/updates/page.tsx",
+      "surfaceFingerprint": "e20d88e035fa885163f154383474b1414c247e1ef28382f7c81f550dc531cb41",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
       ]
     },
     {
@@ -1302,6 +1354,19 @@
       "evidence": [
         "docs/security/platform-support-team-verification-2026-10-09.md",
         "tests/e2e/platform-team.spec.ts"
+      ]
+    },
+    {
+      "id": "code:app/platform/productbeheer/page.tsx",
+      "surfaceFingerprint": "d204597b0f4024ccc68af8fd2f51c0a76c78b2b9a99e058ebf098285dedbd468",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
       ]
     },
     {
@@ -1565,6 +1630,19 @@
       ]
     },
     {
+      "id": "code:app/staff/updates/page.tsx",
+      "surfaceFingerprint": "1b8e05f2ecebac1b730a8cc3f188c4641a7b511cad93ef4c063615ad2ba67e4b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
+      ]
+    },
+    {
       "id": "code:app/tickets/actions.ts",
       "surfaceFingerprint": "7e712c2fd6878f4ebd9d521511ddbf66c9b0665fe6df68086d83548c247bbb53",
       "status": "corrected-and-rechecked",
@@ -1622,6 +1700,19 @@
       ]
     },
     {
+      "id": "code:components/fieldgrid/product/routes.tsx",
+      "surfaceFingerprint": "fd7175607e986ff1bada1a8b06a581c7c8dda536cba40b75da8d1cf1ae052e8a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
+      ]
+    },
+    {
       "id": "code:components/fieldgrid/staff-app.tsx",
       "surfaceFingerprint": "e10c6b1b247012c04fe636814e3aacb471836740342a6b655df2fa8409d8d97b",
       "status": "controlled",
@@ -1633,36 +1724,41 @@
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "41df804d79e3990461408b6e6b760f5fe3773bd5ac99f7c79eb1ec86113017d7",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "a461a1303256ba789e566643f77775a83134eeefab2863c1c583ee3950360963",
+      "status": "controlled",
       "evidence": [
-        "docs/security/dashboard-consistency-review-2026-10-08.md",
-        "docs/security/staff-pwa-verification-2026-10-09.md",
-        "lib/pwa/install-model.test.ts",
-        "tests/e2e/staff-settings.spec.ts"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
-      "surfaceFingerprint": "e75fd40943f5005c1bb1d906139ca161d004e69e9ca0fd587b86ddf4cb38ece7",
+      "surfaceFingerprint": "b20ac3bd0ccf6fcdc1f77ab3c9297a52a4378999f0ae24198a08ea40ae965849",
       "status": "controlled",
       "evidence": [
-        "docs/security/dashboard-release-verification-2026-10-06.md",
-        "Reviewed unchanged live workspace/RPC actor boundaries and tenant data sources; presentation, real existing commands and fixed account guide keys only. No new privileged client, membership or general customer role.",
-        "tests/e2e/planboard.spec.ts; tests/e2e/staff-popups.spec.ts; tests/e2e/list-consistency.spec.ts; tests/e2e/account-guides.spec.ts; lib/staff/work-order-completion.test.ts."
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell.tsx",
-      "surfaceFingerprint": "d03aa9dbc3169df3c518319967597500cc516e9522cdd2c66dcd34c7ffb96145",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "90da47e8700851074b15db4a6ad5bb274cbf2c45a9fc4a56e4ac0888f7291c7e",
+      "status": "controlled",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
       ]
     },
     {
@@ -2026,24 +2122,28 @@
     },
     {
       "id": "code:lib/files/private-download.ts",
-      "surfaceFingerprint": "e2c41eb3b2826219b825f64e6c24135d61a91e6edae2b1bafb4a2e5989410ee2",
+      "surfaceFingerprint": "e90e86a577aacf1334de61400a62c39576e310dd060cf0f7ba3ee7be75b19e48",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
       ]
     },
     {
       "id": "code:lib/files/scanned-storage.ts",
-      "surfaceFingerprint": "93c9916bede0af47385b0f40d83061067dc5a0f7dc599d634b587c8d38981742",
+      "surfaceFingerprint": "5c330af6697b64853f13af6d0c4d6b53ac4b802e2de3e884727f4a0f6328f6fa",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
       ]
     },
     {
@@ -2307,6 +2407,32 @@
       "evidence": [
         "docs/security/platform-support-team-verification-2026-10-09.md",
         "tests/e2e/platform-team.spec.ts"
+      ]
+    },
+    {
+      "id": "code:lib/product/actions.ts",
+      "surfaceFingerprint": "f28c533f42bb966d1270dee9502f06c2def44e189430d3961023179c971c807a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
+      ]
+    },
+    {
+      "id": "code:lib/product/data.ts",
+      "surfaceFingerprint": "42dd7f5d6be56a42cf18cc4cc7d8e20fd626c79512d6f6b6d36a2087e8096ba3",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs",
+        "lib/product/data.test.ts",
+        "lib/product/actions.test.ts",
+        "tests/e2e/product-management.spec.ts"
       ]
     },
     {
@@ -3170,6 +3296,126 @@
       "evidence": [
         "docs/security/platform-support-team-verification-2026-10-09.md",
         "scripts/test-platform-support-team.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_audit",
+      "surfaceFingerprint": "2d66546aeec0370702d36d3f01052ae57bade132f08a00c5ea70ccc4d43bcc25",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_changes",
+      "surfaceFingerprint": "6ec4f3376ec20031e7de559711e9c89de6254950a0cb7e2df5ee4c285048514b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_event_recipients",
+      "surfaceFingerprint": "760945ce4fe5ea6e1ef421773767ffebbe53d698c79797f5fc117d0352e319c2",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_events",
+      "surfaceFingerprint": "f786c229958bbc908913dcb05a987f33b62bf49f90e7a621f386cab4f9272621",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_files",
+      "surfaceFingerprint": "6c08ff852c111e2371aa03d0017c6d19c3372a348c49b4052100b9f222cb7a8b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_idea_history",
+      "surfaceFingerprint": "76c5e9f7b235cce25c7c6bf708fef25746a076775868972a3ce570063c2d2ad8",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_ideas",
+      "surfaceFingerprint": "ffbca5941af8f2c6e1ac007837b534e6edd66a685077aa1adac13cf8ca0a07b5",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_messages",
+      "surfaceFingerprint": "f904cfc58f3ed954be3c3cfac9099a92fee96f4faadee2722ea39a9002c4a584",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_notes",
+      "surfaceFingerprint": "95916c1a6893454c341bce13378b9199cd636999a6e9e32f89d26d8f721805bc",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_receipts",
+      "surfaceFingerprint": "492926f3b8b6d3ec541d2afff423000fe230a9c6b8cfa91ab61ee2faed816078",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_releases",
+      "surfaceFingerprint": "cfef3cf8f4de1a1529e8d8d6f04ad9dfd86611a77468e31a1902342f2a3f5747",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "db:private.product_roadmap",
+      "surfaceFingerprint": "8d356e820378e34dc8e67bee7d965673bbc69bb9e2308b863e02d38d2ca03331",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
       ]
     },
     {
@@ -5567,11 +5813,12 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "c59b91e9ef875791f0d025ceeb88137a0247bde897518a380941b51bd75d4ebc",
+      "surfaceFingerprint": "f855ba75c3c45b1e4dc2674e854ce825ac970a9892d8a1f8d4aaef2c69bc36ce",
       "status": "controlled",
       "evidence": [
-        "docs/security/platform-support-team-verification-2026-10-09.md",
-        "scripts/migration-manifest.json"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
       ]
     },
     {
@@ -5796,12 +6043,14 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "298067c51cc289ed150dd50455a7b29bc9be7c7a546521c7b8723c63eeab4fa2",
-      "status": "controlled",
+      "surfaceFingerprint": "9d360c84802925ab018d944918528df3fc17cd921843d058feaacbcca230046b",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "lib/operations/mail-provider-contract.test.ts: 21 passing provider signature/dependency and legitimate command tests",
-        "scripts/check-mail-provider.ts: complete tracked-file scan; Git/read/parse failures propagate; violation output contains filenames only",
-        "docs/security/management-workspace-verification-2026-10-09.md: independent source review and unchanged database boundaries"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/releases/productbeheer-v1-oplevering.md",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
+        "scripts/start-ticket-test-scanner.sh"
       ]
     },
     {
@@ -5954,11 +6203,12 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "2e2ad42ccc3722d444036743fb599ec1e26aaf833ae6893255eb8e8b22c2df96",
+      "surfaceFingerprint": "2df583b7ae2304b646ad22709337028ad2852e5738a63ceb57f90963cd20c640",
       "status": "controlled",
       "evidence": [
-        "docs/security/platform-support-team-verification-2026-10-09.md",
-        "scripts/migration-manifest.json"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
       ]
     },
     {
@@ -6052,15 +6302,27 @@
       ]
     },
     {
-      "id": "operation:scripts/test-production-contract-linux.sh",
-      "surfaceFingerprint": "514c67dcea6014a4963a18fcf1e14abc0a53acee4318239def928f415d375439",
-      "status": "controlled",
+      "id": "operation:scripts/start-ticket-test-scanner.sh",
+      "surfaceFingerprint": "971d0cf47dcb9c3197d38c4c9bcd64b0e4bbdc708b82214784f3f35d2e3cdba3",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/production-release-boundaries-2026-10-07.md",
-        "lib/operations/production-deployment.test.ts",
-        "lib/env/production-database.test.ts",
-        "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/releases/productbeheer-v1-oplevering.md",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
+        "scripts/start-ticket-test-scanner.sh"
+      ]
+    },
+    {
+      "id": "operation:scripts/test-production-contract-linux.sh",
+      "surfaceFingerprint": "c0cef11882d60caebe0fb10894fdb9f643cb97ff63d7999f2fe2a64e4c51267d",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/releases/productbeheer-v1-oplevering.md",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
+        "scripts/start-ticket-test-scanner.sh"
       ]
     },
     {
@@ -6075,15 +6337,14 @@
     },
     {
       "id": "operation:scripts/test-staging-contract-linux.sh",
-      "surfaceFingerprint": "a3d5a8a13fee0c411992ad3bdb02b7caeb348bab2a56d09fea09e2fffac06203",
+      "surfaceFingerprint": "3c2f9ab48573a4464fab7f52acf2c8e9d5a4746ce1b0f72216884359488afcc0",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "Pinned disposable Linux users and real UID/GID/mode boundaries remain isolated: root alone reaches protected metadata and fieldgrid-runner reaches only incoming and public unit properties.",
-        "The fixture binds a real Unix socket, proves the separated runner cannot connect, proves permissive socket mode enables a connection but fails the contract, and rejects missing/wrong socket metadata.",
-        "A real world-writable parent lets the separated runner unlink and replace the canonical socket; the hardened contract rejects that directory state before substitution and then rejects the runner-owned replacement.",
-        "The fixture rejects missing/wrong preflights, suffix lookalikes, ignored failures, privileged execution flags, extra commands, wrong WorkingDirectory and legacy test -w; the full real-Linux contract passed on 2026-10-02.",
-        "The disposable root gate rejects unsafe clamd.conf ownership/mode/link count, disabled or duplicate VERSION, TCP and a live unavailable VERSION response while the runner remains unable to connect (2026-10-02).",
-        "Real Linux fixtures reject TCP, Datagram, wrong-path and masked-active socket activation, a decoy clamd MainPID that does not own the Unix listener, and a separate clamd-named live TCP listener; absent/masked-inactive socket units remain valid with the daemon-owned Unix socket (2026-10-02)."
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/releases/productbeheer-v1-oplevering.md",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
+        "scripts/start-ticket-test-scanner.sh"
       ]
     },
     {
@@ -8356,13 +8617,12 @@
     },
     {
       "id": "rpc:private.notification_source_allowed(t uuid, code text, kind text, source uuid, revision text, recipient uuid, ctx text)",
-      "surfaceFingerprint": "4f61a7e3384f1743428a806f72fa1fe26d7d41be0ed774383ea457836bd74634",
+      "surfaceFingerprint": "0737e1d29a6c5f79696784c6dd8fb98b18345917eed9184cd7e28ded6ff9b1f6",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
       ]
     },
     {
@@ -8845,6 +9105,186 @@
       "evidence": [
         "docs/security/platform-support-team-verification-2026-10-09.md",
         "scripts/test-platform-support-team.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_actor(t uuid, ctx text, actor uuid, writing boolean)",
+      "surfaceFingerprint": "2d25fd62cea47552bd55955c8461ba944df4ac7ff9a8e545f1012fd55d69b9b3",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_audience_allows(a jsonb, t uuid, ctx text)",
+      "surfaceFingerprint": "c9a8806d6ef06834419477a896d8acdf94a537ac7ea3777f344ba8d83c688e2c",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_audience_assert(a jsonb)",
+      "surfaceFingerprint": "e6da2c62257039e620298828ca109248f418a9439e132f79a8b0ad9593048c14",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_audience_valid(a jsonb)",
+      "surfaceFingerprint": "8c969a202fddc7f5d8267c3d7ffdc8eaf01a0a636a052368266b108b0d8e2b14",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_availability_valid(a jsonb)",
+      "surfaceFingerprint": "0c0a742605a0d65a26040188dce526298472abf2e5ddb6297f8ee8cbee654339",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_availability(a jsonb, t uuid)",
+      "surfaceFingerprint": "bddb465341bd6ef9b14e71827a827f9083088e1b6b2d0158afadf14920516208",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_change_allowed(c uuid, t uuid, ctx text, actor uuid, preview boolean)",
+      "surfaceFingerprint": "47351db6a6eabf3d4ae9292ec244a633f6dec4d00ed82abf4228b142e725d555",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_event_allowed(eid uuid, t uuid, ctx text, actor uuid)",
+      "surfaceFingerprint": "7bb709b4f9343c3ce91c8cccf7e0ece26eafd083d8a03d47bb820a279b3376ed",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_files_dto(kind text, entity uuid)",
+      "surfaceFingerprint": "9a5fdbd7cee629196b7b78b4b78ce93a490fc5e53a4b1243dbbe091ea1853ec1",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_idea_dto(iid uuid, t uuid, ctx text, actor uuid, admin boolean)",
+      "surfaceFingerprint": "146ca098fa69fef96b2debd1665b643de8eb43d37ba2c53a8ddf7abfbf150bee",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_idea_history_record()",
+      "surfaceFingerprint": "a9682f888dc9f39d63a51813f57df04c98d4ebad814dfcecd8f16f0234ecbc8d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_notify(kind text, entity uuid, code text)",
+      "surfaceFingerprint": "e906dae0fb2dc98e82dfb88694d0da1662062d1c9d3effec28752c648e3e7b46",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_platform(actor uuid)",
+      "surfaceFingerprint": "8ee83d43f1dd2a644d2d5b12be5ece14234a569039ad3fa1721df29960f8ab6b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_query_for(target_tenant uuid, actor_context text, operation text, payload jsonb, actor uuid, admin boolean)",
+      "surfaceFingerprint": "99cb07f70cbeee7116d0dfc7ef667d585ffca83ff3637791005a140f12fa7587",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_release_dto(rid uuid, t uuid, ctx text, actor uuid, admin boolean, preview boolean)",
+      "surfaceFingerprint": "693b846177fe50bddb828781a762b2d376060be35e1ba42043675e1b2d864465",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_restriction_assert(child jsonb, parent jsonb)",
+      "surfaceFingerprint": "bc0d8c36d81ec036014c669d257dc94635d5743417a9122a8f5888f24e2d18cf",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_roadmap_allowed(r uuid, t uuid, ctx text, actor uuid, preview boolean)",
+      "surfaceFingerprint": "5999ece9176e1befcb8ecdb23fecc7033aacfab6ce2ddff6bcd14eed47b47059",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.product_roadmap_dto(r uuid, t uuid, ctx text, actor uuid, admin boolean, preview boolean)",
+      "surfaceFingerprint": "7fedb663e6e431945ad991a85366cbc415824bb4a5a8f9b65211b9a604435199",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
       ]
     },
     {
@@ -11731,13 +12171,12 @@
     },
     {
       "id": "rpc:public.notification_query(target_tenant uuid, actor_context text, operation text, payload jsonb)",
-      "surfaceFingerprint": "2c40de2353259b3250e0e88c26cf4867ecb1735758f940d8bf6ba1330910f4b5",
+      "surfaceFingerprint": "747e1f019d4246b26d6b3e70064537a944246ce05b7b09b5741c6d1a99b6d5d5",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
       ]
     },
     {
@@ -12067,6 +12506,26 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:public.product_command(target_tenant uuid, actor_context text, command text, payload jsonb, request_id uuid)",
+      "surfaceFingerprint": "0a7813c86b5e23ba3acc893381cbea6a7fbe663cc05f89335a29f845dbea4ca6",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.product_query(target_tenant uuid, actor_context text, operation text, payload jsonb)",
+      "surfaceFingerprint": "3d4e8dcf9c8ed7d669dde128b97e6eebcc97fbd070756bebd3467ab8cc848bae",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/architecture/product-management.md",
+        "scripts/test-product-management.mjs"
       ]
     },
     {

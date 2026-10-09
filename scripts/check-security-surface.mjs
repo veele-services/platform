@@ -90,6 +90,7 @@ const baseOperationalPaths = [
   "scripts/preflight.ts",
   "scripts/run-worker.mjs",
   "scripts/test-release-artifact.mjs",
+  "scripts/start-ticket-test-scanner.sh",
   "scripts/test-staging-contract-linux.sh",
   "scripts/test-production-contract-linux.sh",
   "scripts/verify-healthcheck.mjs",

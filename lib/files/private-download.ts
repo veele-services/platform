@@ -10,7 +10,7 @@ export type PrivateFile = {
   bucket: string; path: string; scope: string[]; name: string; mime: string;
   sha256?: string | null;
 };
-const buckets = new Set(["personnel-documents", "customer-documents", "object-documents", "commercial-documents", "reports", "signatures", "invoices"]);
+const buckets = new Set(["product-documents", "personnel-documents", "customer-documents", "object-documents", "commercial-documents", "reports", "signatures", "invoices"]);
 /** Exact canonical namespace, including the authorized parent, not just tenant.
  * Never normalize a suspicious path into another resource. Keep legacy filenames. */
 export function assertPrivateFile(file: PrivateFile) {
