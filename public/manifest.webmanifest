@@ -1,13 +1,19 @@
 {
   "name": "Fieldgrid",
+  "id": "/staff",
   "short_name": "Fieldgrid",
   "description": "Planning, uitvoering, rapportage en facturatie.",
   "start_url": "/staff",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f3f6f9",
   "theme_color": "#222c35",
   "lang": "nl-NL",
+  "prefer_related_applications": false,
   "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/branding/fieldgrid-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/branding/fieldgrid-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/branding/fieldgrid-icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/branding/fieldgrid-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

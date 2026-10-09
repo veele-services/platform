@@ -8,7 +8,7 @@ describe("staff route boundaries", () => {
     const page = source("app/staff/page.tsx");
     expect(page.indexOf("if (!personnel) return <StaffProfileRecovery/>")).toBeGreaterThan(-1);
     expect(page.indexOf("if (!personnel) return <StaffProfileRecovery/>")).toBeLessThan(
-      page.indexOf('await getNotificationPreferences("staff")'),
+      page.indexOf('getNotificationPreferences("staff")'),
     );
   });
 

@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { ProductBrand } from "@/components/fieldgrid/brand";
 
 export default function ErrorBoundary({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <main style={styles.page}>
       <section style={styles.card}>
-        <span style={styles.logo}>Fieldgrid</span>
+        <span style={styles.logo}><ProductBrand/></span>
         <p style={styles.eyebrow}>Er ging iets mis</p>
         <h1 style={styles.title}>Fieldgrid kon deze pagina niet laden.</h1>
         <p style={styles.copy}>Probeer het nogmaals. Blijft het probleem bestaan, ga dan terug naar het startscherm.</p>
@@ -42,10 +43,6 @@ const styles = {
   logo: {
     display: "inline-flex",
     marginBottom: "32px",
-    color: "#222c35",
-    fontSize: "13px",
-    fontWeight: 800,
-    letterSpacing: ".16em",
   },
   eyebrow: {
     marginBottom: "10px",
