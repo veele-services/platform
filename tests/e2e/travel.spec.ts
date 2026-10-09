@@ -269,6 +269,18 @@ test("planboard basic travel, exact shortage, daily bicycle override, manual fal
       name: "Reistijd 25 minuten, 15 minuten tekort",
     }),
   ).toBeVisible();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const leg = page.getByRole("button", { name: "Reistijd 25 minuten, 15 minuten tekort" });
+    const assignmentId = await leg.getAttribute("data-travel-assignment");
+    const order = page.locator(`.pb-bon[data-assignment-id="${assignmentId}"]`);
+    await expect.poll(async () => {
+      const travelBox = await leg.boundingBox(), orderBox = await order.boundingBox();
+      return Boolean(travelBox && orderBox && Math.abs(travelBox.y - orderBox.y) <= 1 && Math.abs(travelBox.height - orderBox.height) <= 1 && Math.abs(travelBox.x + travelBox.width - orderBox.x) <= 1);
+    }).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page
     .getByRole("button", { name: "Reistijd 25 minuten, 15 minuten tekort" })
     .click();

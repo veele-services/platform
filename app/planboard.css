@@ -406,8 +406,8 @@
 .pb-bon {
   user-select: none;
   position: absolute;
-  top: 8px;
-  height: 56px;
+  top: var(--pb-card-top, 8px);
+  height: var(--pb-card-height, 56px);
   border: 1px solid var(--pb-status-border, #64748b);
   border-left-width: 3px;
   border-radius: 6px;

@@ -743,15 +743,12 @@
     },
     {
       "id": "code:app/app/page.tsx",
-      "surfaceFingerprint": "c61c117539e62b499abb7334e8fe2c1e1120c3fd3f614d6a473cb8fe6866c377",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "d5fbedc326dd2421c34743792286ece2faec8112d7caeaf4aa4d3ebcea5724f6",
+      "status": "controlled",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "lib/auth/staff-login-actions.test.ts",
-        "lib/auth/staff-login.test.ts",
-        "lib/auth/auth-destinations.test.ts",
-        "lib/tenancy/proxy-boundary.test.ts",
-        "tests/e2e/staff-login.spec.ts"
+        "manual-platform-support-team-review:2026-10-09",
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "tests/e2e/platform-team.spec.ts"
       ]
     },
     {
@@ -967,7 +964,7 @@
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
         "docs/security/otp-activity-verification-2026-10-05.md",
-        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-v\u00f3\u00f3r-deployment--5-oktober-2026"
       ]
     },
     {
@@ -1234,16 +1231,13 @@
     },
     {
       "id": "code:app/platform/layout.tsx",
-      "surfaceFingerprint": "e6e9a13e0fd27560e7d0d02950e9768c258a359bb3e446a3f1fc42734fb7b674",
-      "status": "controlled",
+      "surfaceFingerprint": "d895c0bb069b3e945f74f897a8368efce75d8c952f0a3053bd6009ade1e0208e",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#tickets-notifications-and-platform-scope",
-        "app/platform/layout.tsx",
+        "manual-platform-support-team-review:2026-10-09",
+        "docs/security/platform-support-team-verification-2026-10-09.md",
         "app/platform/layout.test.ts",
-        "scripts/test-platform-security.mjs",
-        "lib/platform/cockpit.test.ts",
-        "scripts/test-tickets.mjs",
-        "tests/e2e/fieldgrid.spec.ts"
+        "tests/e2e/platform-team.spec.ts"
       ]
     },
     {
@@ -1303,13 +1297,11 @@
     },
     {
       "id": "code:app/platform/page.tsx",
-      "surfaceFingerprint": "d685d4a589c7b5d4ba1041b9d9b7ba587eb84ce5e12e416f3a74ba9473131e8f",
+      "surfaceFingerprint": "6445fae30dd016b4532f992f70c90e0113ef3be56921850a13f2bb2064d07194",
       "status": "controlled",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "tests/e2e/platform-team.spec.ts"
       ]
     },
     {
@@ -1354,6 +1346,24 @@
         "manual-completion-audit:2026-10-01",
         "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
         "scripts/check-security-surface.mjs"
+      ]
+    },
+    {
+      "id": "code:app/platform/team/actions.ts",
+      "surfaceFingerprint": "1ffb824dd6696cebc1c5feec289c0d1ba6f9054ef86b79767753268c39f35d0d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "tests/e2e/platform-team.spec.ts"
+      ]
+    },
+    {
+      "id": "code:app/platform/team/page.tsx",
+      "surfaceFingerprint": "9950ce8d8143e1c2c067360478445ffccf892fcd276f254227b502197e3fb373",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "tests/e2e/platform-team.spec.ts"
       ]
     },
     {
@@ -1604,17 +1614,11 @@
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
-      "surfaceFingerprint": "4dd6002a46c94ec9a516729ca67185014fb3ed1fac76664cf1e5212a4d8dd152",
+      "surfaceFingerprint": "641bc758bfe81fd0a086c38959f809e6c63c5ccbfd47d1e537fcb36597819130",
       "status": "controlled",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "components/fieldgrid/planboard/day-planboard.tsx",
-        "tests/e2e/planboard.spec.ts",
-        "scripts/test-planboard.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-travel.mjs",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-management-mutation-replies.mjs"
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -1705,11 +1709,11 @@
     },
     {
       "id": "code:lib/auth/login-access.ts",
-      "surfaceFingerprint": "dccef80a6db5a1de931c0954c615999d6366694cf2bba9f94ab161837147ea13",
+      "surfaceFingerprint": "7a1db9cf2c6d253868addcb800872d6d7930b1dab47c4b144ea77b380cfcefeb",
       "status": "controlled",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/otp-activity-verification-2026-10-05.md"
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "tests/e2e/platform-team.spec.ts"
       ]
     },
     {
@@ -2294,6 +2298,15 @@
         "app/platform/layout.test.ts",
         "scripts/test-tickets.mjs",
         "tests/e2e/fieldgrid.spec.ts"
+      ]
+    },
+    {
+      "id": "code:lib/platform/team.ts",
+      "surfaceFingerprint": "73d8b96d644b40967081cd88b046e316680a1a75b65ad50e0a426a5f3b508a7b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "tests/e2e/platform-team.spec.ts"
       ]
     },
     {
@@ -3121,6 +3134,42 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "db:private.platform_support_audit",
+      "surfaceFingerprint": "4916d58ddcc292208603bbd8a2a7f6cc1f1604fd340fec63e300ea9c8a095026",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/test-platform-support-team.mjs"
+      ]
+    },
+    {
+      "id": "db:private.platform_support_invitations",
+      "surfaceFingerprint": "f471feebad6bb36a60e5d921f647c0387bfe68e3464cf05e545c28f1e20507ea",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/test-platform-support-team.mjs"
+      ]
+    },
+    {
+      "id": "db:private.platform_support_members",
+      "surfaceFingerprint": "c3db0c5c5d7b32da24503f5bfebdbe58ab113e5845e6738c0fd08de84d799626",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/test-platform-support-team.mjs"
+      ]
+    },
+    {
+      "id": "db:private.platform_support_receipts",
+      "surfaceFingerprint": "83d10945e4dcbffc072c9faecac4d553433ff354169df84ee61cf60b026755bd",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/test-platform-support-team.mjs"
       ]
     },
     {
@@ -5518,16 +5567,11 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "53047a2458d813d669c116c082cd08446a88469f332c60dacdcfba5b3a909f25",
+      "surfaceFingerprint": "c59b91e9ef875791f0d025ceeb88137a0247bde897518a380941b51bd75d4ebc",
       "status": "controlled",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#evidence-state-and-final-ledger-procedure",
-        "package.json",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-management-followup.mjs",
-        "scripts/test-workspace-domains.mjs",
-        "scripts/check-authorization-review.mjs",
-        "docs/architecture/staging.md"
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/migration-manifest.json"
       ]
     },
     {
@@ -5910,17 +5954,11 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "0466d62d23ef49f7e16ff7096652af87182f6b529fd0ea8e6981221e4459e804",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "2e2ad42ccc3722d444036743fb599ec1e26aaf833ae6893255eb8e8b22c2df96",
+      "status": "controlled",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#evidence-state-and-final-ledger-procedure",
-        "scripts/migration-manifest.ts",
-        "lib/env/migration-manifest.test.ts",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "supabase/migrations/20261008174000_workspace_domains_customer_portal.sql",
-        "supabase/migrations/20261008175000_platform_support_operators.sql",
-        "docs/security/customer-portal-migration-verification-2026-10-09.md",
-        "scripts/test-workspace-domains.mjs"
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/migration-manifest.json"
       ]
     },
     {
@@ -8801,6 +8839,15 @@
       ]
     },
     {
+      "id": "rpc:private.platform_team_assert(fresh boolean)",
+      "surfaceFingerprint": "c5f995d4c7936d8d6287692c56ae816a3b4b4cee5af2b927b875b4dd8b671864",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/test-platform-support-team.mjs"
+      ]
+    },
+    {
       "id": "rpc:private.protect_allocated_execution()",
       "surfaceFingerprint": "1f3e52b3d995079dbd145db2ab61d0dac776903353cff4f3e67b35014c6083a5",
       "status": "controlled",
@@ -9399,13 +9446,11 @@
     },
     {
       "id": "rpc:private.ticket_dto(tid uuid, ctx text, actor uuid, detail boolean)",
-      "surfaceFingerprint": "7157961e140cabb20b3841711fe09d01c57440a884e0439f2435d5682e7b69d7",
+      "surfaceFingerprint": "c2216a85fcb36c036a4299091795af229b43e6adb98dc9a9e6ddf2de1557317c",
       "status": "controlled",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/test-platform-support-team.mjs"
       ]
     },
     {
@@ -9469,16 +9514,11 @@
     },
     {
       "id": "rpc:private.ticket_has_cap(t uuid, actor uuid, cap text, category uuid, person uuid, obj uuid, customer uuid, assigned uuid)",
-      "surfaceFingerprint": "c68fcc5ab5c2e6bbb2c7eff300d21105c08f6c47da2d1029fcd7d42cff340b61",
-      "status": "corrected-and-rechecked",
+      "surfaceFingerprint": "beff8e75da152d76b4d8685aa2aa866de14e25577e5d6a276ed43ef6223dbc6b",
+      "status": "controlled",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#tickets-notifications-and-platform-scope",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-tickets.mjs",
-        "scripts/test-notification-permissions.mjs",
-        "scripts/test-notification-boundaries.mjs",
-        "scripts/test-notifications.mjs"
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/test-platform-support-team.mjs"
       ]
     },
     {
@@ -11902,6 +11942,33 @@
         "supabase/tests/database/personnel_dossier.sql",
         "supabase/tests/database/personnel_numbering.sql",
         "docs/architecture/management-rpc-permissions.json"
+      ]
+    },
+    {
+      "id": "rpc:public.platform_team_command(command text, input jsonb, request_id uuid)",
+      "surfaceFingerprint": "f18736ac53c2f0b3338760c65cbe682795725708e8ce020f7825f97d80dd03bc",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/test-platform-support-team.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.platform_team_query()",
+      "surfaceFingerprint": "fe1e657e425b5c6ba0e4e3b0f570f7997bd9c0b223268b3cd29968b71263b415",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/test-platform-support-team.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.platform_workspace_access()",
+      "surfaceFingerprint": "f1c2dd65dab51dbba467dd2a2c5c69c10ca1d788fba5fdad02ba3680445f48bd",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/platform-support-team-verification-2026-10-09.md",
+        "scripts/test-platform-support-team.mjs"
       ]
     },
     {

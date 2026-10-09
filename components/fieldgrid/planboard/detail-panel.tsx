@@ -35,6 +35,7 @@ export function PlanningDetail({
   saveError,
   onRetry,
   travel,
+  onRelease,
 }: {
   order: PlanningOrder;
   people: PlanningPerson[];
@@ -47,6 +48,7 @@ export function PlanningDetail({
   saveError?: string;
   onRetry?: () => void;
   travel?: ReactNode;
+  onRelease?: () => void;
 }) {
   const [start, setStart] = useState(
     order.start ? localDateTime(order.start, timezone) : `${day}T08:00`,
@@ -176,6 +178,7 @@ export function PlanningDetail({
           </SheetClose>
         </SheetHeader>
         <div className="pb-detail-body">
+          {onRelease && <button className="primary-button" disabled={busy || dirty} onClick={onRelease}>Werkbon vrijgeven</button>}
           <nav
             className="pb-context-links"
             aria-label="Gerelateerde dossiers"

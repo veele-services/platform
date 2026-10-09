@@ -671,6 +671,11 @@
       "version": "20261008175000",
       "name": "platform_support_operators",
       "sha256": "f4c5e1f8392796f63dae07922e7fbb39be2e983a0963ae0caa2041857b9b6c85"
+    },
+    {
+      "version": "20261009190000",
+      "name": "platform_support_team",
+      "sha256": "abcc41c520c3f969df0dcd613d60c2874e653e20ee59c146e2295c937e774580"
     }
   ]
 }

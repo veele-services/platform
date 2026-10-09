@@ -7,6 +7,7 @@ import { ActionIcon } from "../action-icon";
 import { DossierNavigation } from "../dossier-navigation";
 import { HelpTip } from "../help-tip";
 import { WorkOrderManagementDialog } from "./management";
+import { canReleaseWorkOrder, WorkOrderReleaseDialog } from "./release";
 import { ChecklistLinkDialog } from "./checklist-link";
 import { WorkOrderTravelCrew } from "./travel-crew";
 import { WorkOrderFinancial } from "./financial";
@@ -41,6 +42,7 @@ export function WorkOrderDossierPage({ data, options, tenant, tab, back, edit = 
   const order = data.order, router = useRouter();
   const reportingEnabled = tenant.enabledServices.includes("rapportage"), personnelEnabled = tenant.enabledServices.includes("personeel");
   const [editing, setEditing] = useState(edit && order.canEdit), [pending, transition] = useTransition(), [error, setError] = useState("");
+  const [releasing, setReleasing] = useState(false);
   const [management, setManagement] = useState<string | null>(null), [linkingChecklist, setLinkingChecklist] = useState(false);
   const href = (target: string) => `/app/werkbonnen/${order.id}?tab=${target}&return=${encodeURIComponent(back)}`;
   const date = (value: string | null | undefined) => orderDate(value, tenant.timezone);
@@ -72,7 +74,7 @@ export function WorkOrderDossierPage({ data, options, tenant, tab, back, edit = 
   return <div className="wo-workspace wo-dossier" aria-busy={pending}>
     <Link className="dossier-back" href={back}><ArrowLeft size={16}/>Terug naar overzicht</Link>
     <PageHeading eyebrow={order.number} title={order.title || order.discipline} actions={<>
-      {data.canManage && !order.publishedAt && activeAssignments.length > 0 && order.canEdit && <button className="primary-button" disabled={pending} onClick={() => command("publish")}><Send size={15}/>Publiceer planning</button>}
+      {data.canManage && !order.publishedAt && order.canEdit && canReleaseWorkOrder(tenant, order, activeAssignments) && <button className="primary-button" disabled={pending} onClick={() => setReleasing(true)}><Send size={15}/>Werkbon vrijgeven</button>}
       {order.canEdit && options && <button className="secondary-button" disabled={pending} onClick={() => setEditing(true)}><Pencil size={15}/>Bewerk</button>}
       {canAdmin && <button className="secondary-button" disabled={pending} onClick={() => setManagement("status")}><RefreshCw size={15}/>Status wijzigen</button>}
       <Popover><PopoverTrigger asChild><button className="secondary-button" aria-label="Meer werkbonacties"><MoreHorizontal size={16}/>Meer</button></PopoverTrigger><PopoverContent className="resource-more-content" align="end"><Link href={`/app/planning?order=${order.id}`}>Open planbord</Link><Link href={href("planning")}>Medewerkers beheren</Link><Link href={href("historie")}>Bekijk historie</Link>{data.canManage && !order.archived && <button disabled={pending} onClick={() => command("archive")}>Archiveren</button>}{data.canManage && order.status !== "cancelled" && <button disabled={pending} onClick={() => command("cancel")}>Annuleren met reden</button>}{order.canDelete && <button disabled={pending} onClick={() => command("delete")}>Ongebruikt concept verwijderen</button>}</PopoverContent></Popover>
@@ -124,6 +126,7 @@ export function WorkOrderDossierPage({ data, options, tenant, tab, back, edit = 
     </>}
     {tab === "historie" && <ContentSection className="wo-section" title="Wijzigingsgeschiedenis"><div className="wo-timeline">{data.history.map(event => <article key={event.id}><time dateTime={event.at}>{date(event.at)}</time><strong>{historyMessage(event.event)}</strong>{event.note && <p className="wo-prewrap">{event.note}</p>}<small>{historyActor(event.actor)}</small></article>)}{!data.history.length && <EmptyState title="Nog geen gebeurtenissen" description="Wijzigingen aan deze werkbon verschijnen hier in de tijdlijn."/>}</div></ContentSection>}
     </div></div>
+    {releasing && <WorkOrderReleaseDialog order={order} tenant={tenant} onClose={() => setReleasing(false)} onSaved={() => { setReleasing(false); refresh(); }}/>}
     {management && <WorkOrderManagementDialog data={data} tenant={tenant} assignmentId={management === "status" ? undefined : management} onClose={() => setManagement(null)} onSaved={() => { setManagement(null); refresh(); }}/>}
     {linkingChecklist && options && <ChecklistLinkDialog orderId={order.id} version={order.version} templates={options.templates} linked={data.checklists.map(checklist => checklist.revisionId)} tenant={tenant} onClose={() => setLinkingChecklist(false)} onSaved={() => { setLinkingChecklist(false); refresh(); }}/>}
     {editing && options && <WorkOrderWizard tenant={tenant} options={options} dossier={data} onClose={() => setEditing(false)} onSaved={() => { setEditing(false); refresh(); }}/>}

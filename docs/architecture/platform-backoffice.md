@@ -136,3 +136,31 @@ Een supportoverzicht opent altijd de ticketlijst. Configuratie zonder leesrecht
 toont een afgeschermde lege lijst met uitleg en een afzonderlijke instellingenlink.
 De instellingen gebruiken aangesloten tabbladen en een responsief categorieraster
 met vier kolommen op ruime schermen.
+
+## Fieldgrid-supportteam (9 oktober 2026)
+
+Platformbeheer krijgt `/platform/team` voor uitnodigen, wijzigen, intrekken en
+bewust opnieuw uitnodigen van supportmedewerkers. Alleen een actuele
+platformbeheerder beheert dit register; wijzigingen vereisen een recente echte
+OTP-login. Supportmedewerkers zijn geen platformbeheerders en krijgen geen
+tenantlidmaatschap. Hun profiel kent uitsluitend bestaande expliciete
+`platform.support.read`, `.reply`, `.note` en `.manage`-rechten toe, voor alle
+actieve tickettenants of een geselecteerde tenantlijst. Het centrale
+rechtenregister blijft de ticketautorisatiebron; een ingetrokken teamprofiel
+sluit ook achtergebleven supportgrants. Zelfwijziging en toevoegen van bestaande
+platformbeheerders via deze beperkte route zijn uitgesloten.
+
+Uitnodigingen zijn geregistreerde security-mails met een gewone platformloginlink.
+Nieuwe accounts gebruiken dezelfde bevestigde OTP-accountvoorbereiding als het
+managementproces; bestaande accounts worden niet gereset. Een servercontrole
+vindt plaats vóór accountvoorbereiding en opnieuw direct vóór de provider.
+Payloadgebonden opdrachtbewijzen, revisies en verzendstatussen voorkomen dubbele
+uitnodigingen en bewaren onzekere provideruitkomsten. De platformlogin accepteert
+ook actuele expliciete support-/notificatierechten en stuurt supportmedewerkers
+naar hun eigen supportdesk. Iedere ticketactie blijft sessie-, scope- en
+audiencegebonden. Tenant- en HR-notities worden niet gedeeld.
+
+De supportcockpit biedt directe links naar reactie nodig, niet toegewezen en
+verstreken termijnen. Personeel en klanten melden bij hun tenant; gecontroleerde
+escalatie naar Fieldgrid en een expliciet te verzenden antwoordconcept houden
+het oorspronkelijke gesprek en het supportgesprek gescheiden.

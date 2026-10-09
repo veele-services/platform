@@ -92,6 +92,24 @@ gedeeltelijke ploegwijziging. De oorspronkelijk geplande tijden blijven intact.
 
 ## Verificatie
 
+### Vrijgave en aangesloten reistijd — 9 oktober 2026
+
+Het planbordmenu en detailvenster bieden `Werkbon vrijgeven` voor een geplande
+bon met opgeslagen tijden, actieve geplande inzet en de benodigde werkbonrechten.
+De lijst en het werkbondossier gebruiken dezelfde bevestigingsdialoog en bestaande
+`mutate_work_order`-publicatieopdracht. Versiecontrole, actuele rechten, taken,
+datum, bezetting, dispatch en audit blijven in de database afgedwongen.
+Een onveranderd verzoek gebruikt dezelfde herhaalsleutel. Na succes ververst het
+bord zijn huidige dag en filters; een mislukking blijft zichtbaar in de dialoog.
+
+De reisblokken gebruiken dezelfde hoogte en verticale positie als hun inzet.
+Heenreis sluit links aan, terugreis rechts. Geknipte tijdvensters veranderen de
+werkelijke tijdstippen niet. Onvoldoende reistijd blijft een aparte, bedienbare
+waarschuwing; het conflict wordt niet opgelost door de reisduur kleiner te tekenen.
+
+Bewijs: `tests/e2e/work-order-release.spec.ts`, `tests/e2e/travel.spec.ts`,
+`scripts/test-work-orders.mjs` en de bestaande live-planning-/managementgrenzen.
+
 - Unit: minuutgeometrie, ploeg-offsets, halfopen tijden, filterbadge en DST.
 - PostgreSQL: autorisatie, relatiecontrole, waarschuwing/akkoord, idempotentie,
   undo, echte gelijktijdige schrijvers, volledige telling/paginering en twee

@@ -42,6 +42,27 @@ test("customer tickets use the canonical conversation with exact account and pub
    current=await command("status",{ticket_id:ticket.id,expected_revision:current.version,status:"closed",reason:""});assert.equal(current.status,"closed");
    current=await command("status",{ticket_id:ticket.id,expected_revision:current.version,status:"in_progress",reason:"FICTITIOUS problem remains"});assert.equal(current.status,"in_progress");
   });
+  await t.test("customer → tenant → Fieldgrid preserves an explicit response draft and private audiences",async()=>{
+   await db.query("insert into public.permission_grants(tenant_id,user_id,membership_id,capability,scope,source) select m.tenant_id,m.user_id,m.id,cap,'{\"all\":true}'::jsonb,'explicit' from public.tenant_memberships m cross join unnest(array['tickets.support.create','tickets.support.read','tickets.support.reply','tickets.internal.share']) cap where m.user_id=$1 and m.tenant_id=$2 on conflict do nothing",[manager,tenant]);
+   await db.query("insert into public.permission_grants(user_id,capability,scope) select $1,cap,jsonb_build_object('tenant_ids',jsonb_build_array($2::uuid)) from unnest(array['platform.support.read','platform.support.reply','platform.support.note','platform.support.manage']) cap",[bob,tenant]);
+   const tq=async(ctx,op,p={},who=manager)=>(await call("select public.ticket_query($1,$2,$3,$4) data",[ctx==='platform'?null:tenant,ctx,op,p],who))[0].data;
+   const tc=async(ctx,op,p,who=manager)=>(await call("select public.ticket_command($1,$2,$3,$4,$5) data",[ctx==='platform'?null:tenant,ctx,op,p,randomUUID()],who))[0].data;
+   let source=await tq('tenant','detail',{ticket_id:ticket.id});
+   assert.equal(source.permissions.share,true);
+   const sc=(await tq('support','options')).categories[0].id;
+   const forwarded=await tc('tenant','transfer',{ticket_id:source.id,expected_revision:source.revision,category_id:sc,title:'FICTITIOUS reviewed customer escalation',body:'REVIEWED CUSTOMER TECHNICAL QUESTION',attachment_ids:[]});
+   let shared=await tq('platform','detail',{ticket_id:forwarded.id},bob);
+   for(const hidden of ['PRIVATE INTERNAL NOTE CANARY',alice,contact,customer,ticket.id])assert.equal(JSON.stringify(shared).includes(hidden),false);
+   shared=await tc('platform','reply',{ticket_id:shared.id,expected_revision:shared.revision,audience:'platform',body:'PLATFORM ONLY CUSTOMER CANARY'},bob);
+   assert.equal(JSON.stringify(await tq('support','detail',{ticket_id:shared.id})).includes('PLATFORM ONLY CUSTOMER CANARY'),false);
+   shared=await tc('platform','reply',{ticket_id:shared.id,expected_revision:shared.revision,audience:'reporter',body:'FICTITIOUS platform answer to tenant'},bob);
+   assert.equal(JSON.stringify(await query('detail',{ticket_id:ticket.id})).includes('FICTITIOUS platform answer to tenant'),false);
+   const message=shared.messages.find(m=>m.body==='FICTITIOUS platform answer to tenant');
+   const draft=await tq('support','response_draft',{ticket_id:shared.id,message_id:message.id});
+   source=await tq('tenant','detail',{ticket_id:ticket.id});
+   await tc('tenant','reply',{ticket_id:source.id,expected_revision:source.revision,audience:'reporter',body:draft.body});
+   assert.equal(JSON.stringify(await query('detail',{ticket_id:ticket.id})).includes('FICTITIOUS platform answer to tenant'),true);
+  });
   await t.test("account, contact and object revocation close reads, commands and file upload contexts",async()=>{
    const current=await query("detail",{ticket_id:ticket.id}),upload=()=>call("select public.ticket_file_command($1,'customer','init',$2,$3)",[tenant,{ticketId:ticket.id,categoryId:category,audience:"reporter",draftId:randomUUID(),name:"fixture.pdf",mime:"application/pdf",size:20},randomUUID()]);
    await upload();
