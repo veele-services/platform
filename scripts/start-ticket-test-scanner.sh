@@ -9,7 +9,12 @@ ticket_scanner_user="$(id -u):$(id -g)"
 if [[ "$(docker info --format '{{json .SecurityOptions}}')" == *rootless* ]]; then
   ticket_scanner_user='0:0'
 fi
-docker pull "$ticket_scanner_image"
+if ! docker pull "$ticket_scanner_image"; then
+  # Public cache fallback keeps the exact previously reviewed OCI digest.
+  # A missing/changed artifact still fails closed; never use a moving tag.
+  ticket_scanner_image='mirror.gcr.io/clamav/clamav@sha256:ebec5bc138401b36ae987caa1a3fa3c3b2a21ed3d51f0bfa5852825e663e67b0'
+  docker pull "$ticket_scanner_image"
+fi
 docker volume create fieldgrid-ticket-ci-definitions
 docker run --rm --name fieldgrid-ticket-ci-update \
   --mount source=fieldgrid-ticket-ci-definitions,target=/var/lib/clamav \

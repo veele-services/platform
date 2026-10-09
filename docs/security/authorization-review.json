@@ -5330,17 +5330,13 @@
     },
     {
       "id": "operation:.github/workflows/_verify.yml",
-      "surfaceFingerprint": "2355df08b868c08c4abe2dd49c0cecf78bc1a32c35f92a42247b8f91fc62448b",
+      "surfaceFingerprint": "e176c7fadb668a24f191fbfc227c3fc7f7daa102ae71aaeaf224a690c4da2cee",
       "status": "corrected-and-rechecked",
       "evidence": [
         "lib/operations/mail-provider-contract.test.ts: 21 passing provider signature/dependency and legitimate command tests",
         "scripts/check-mail-provider.ts: complete tracked-file scan; Git/read/parse failures propagate; violation output contains filenames only",
         "docs/security/management-workspace-verification-2026-10-09.md: independent source review and unchanged database boundaries",
-        "Both complete provider/branding guards pass locally; moved unchanged source guards before expensive CI integration checks. Dummy domain fixtures use a fictitious tenant rather than product branding.",
-        "docs/security/product-management-review-2026-10-09.md",
-        "docs/releases/productbeheer-v1-oplevering.md",
-        "scripts/test-staging-contract-linux.sh",
-        "scripts/test-production-contract-linux.sh"
+        "Both complete provider/branding guards pass locally; moved unchanged source guards before expensive CI integration checks. Dummy domain fixtures use a fictitious tenant rather than product branding."
       ]
     },
     {
@@ -6047,12 +6043,14 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "298067c51cc289ed150dd50455a7b29bc9be7c7a546521c7b8723c63eeab4fa2",
-      "status": "controlled",
+      "surfaceFingerprint": "9d360c84802925ab018d944918528df3fc17cd921843d058feaacbcca230046b",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "lib/operations/mail-provider-contract.test.ts: 21 passing provider signature/dependency and legitimate command tests",
-        "scripts/check-mail-provider.ts: complete tracked-file scan; Git/read/parse failures propagate; violation output contains filenames only",
-        "docs/security/management-workspace-verification-2026-10-09.md: independent source review and unchanged database boundaries"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/releases/productbeheer-v1-oplevering.md",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
+        "scripts/start-ticket-test-scanner.sh"
       ]
     },
     {
@@ -6304,15 +6302,27 @@
       ]
     },
     {
-      "id": "operation:scripts/test-production-contract-linux.sh",
-      "surfaceFingerprint": "514c67dcea6014a4963a18fcf1e14abc0a53acee4318239def928f415d375439",
-      "status": "controlled",
+      "id": "operation:scripts/start-ticket-test-scanner.sh",
+      "surfaceFingerprint": "971d0cf47dcb9c3197d38c4c9bcd64b0e4bbdc708b82214784f3f35d2e3cdba3",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/production-release-boundaries-2026-10-07.md",
-        "lib/operations/production-deployment.test.ts",
-        "lib/env/production-database.test.ts",
-        "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/releases/productbeheer-v1-oplevering.md",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
+        "scripts/start-ticket-test-scanner.sh"
+      ]
+    },
+    {
+      "id": "operation:scripts/test-production-contract-linux.sh",
+      "surfaceFingerprint": "c0cef11882d60caebe0fb10894fdb9f643cb97ff63d7999f2fe2a64e4c51267d",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/releases/productbeheer-v1-oplevering.md",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
+        "scripts/start-ticket-test-scanner.sh"
       ]
     },
     {
@@ -6327,15 +6337,14 @@
     },
     {
       "id": "operation:scripts/test-staging-contract-linux.sh",
-      "surfaceFingerprint": "a3d5a8a13fee0c411992ad3bdb02b7caeb348bab2a56d09fea09e2fffac06203",
+      "surfaceFingerprint": "3c2f9ab48573a4464fab7f52acf2c8e9d5a4746ce1b0f72216884359488afcc0",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "Pinned disposable Linux users and real UID/GID/mode boundaries remain isolated: root alone reaches protected metadata and fieldgrid-runner reaches only incoming and public unit properties.",
-        "The fixture binds a real Unix socket, proves the separated runner cannot connect, proves permissive socket mode enables a connection but fails the contract, and rejects missing/wrong socket metadata.",
-        "A real world-writable parent lets the separated runner unlink and replace the canonical socket; the hardened contract rejects that directory state before substitution and then rejects the runner-owned replacement.",
-        "The fixture rejects missing/wrong preflights, suffix lookalikes, ignored failures, privileged execution flags, extra commands, wrong WorkingDirectory and legacy test -w; the full real-Linux contract passed on 2026-10-02.",
-        "The disposable root gate rejects unsafe clamd.conf ownership/mode/link count, disabled or duplicate VERSION, TCP and a live unavailable VERSION response while the runner remains unable to connect (2026-10-02).",
-        "Real Linux fixtures reject TCP, Datagram, wrong-path and masked-active socket activation, a decoy clamd MainPID that does not own the Unix listener, and a separate clamd-named live TCP listener; absent/masked-inactive socket units remain valid with the daemon-owned Unix socket (2026-10-02)."
+        "docs/security/product-management-review-2026-10-09.md",
+        "docs/releases/productbeheer-v1-oplevering.md",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
+        "scripts/start-ticket-test-scanner.sh"
       ]
     },
     {

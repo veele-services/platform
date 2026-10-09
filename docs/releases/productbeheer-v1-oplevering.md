@@ -57,7 +57,7 @@ rechtenbeoordeling staat in de [beveiligingsreview](../security/product-manageme
 | Volledig browserpakket | 131 van 132 geslaagd bij de eerste uitvoering; één bestaande logouttest overschreed de totale 30 seconden |
 | Gerichte browserherhaling | Logouttest geslaagd in 6 seconden; uitgebreide productketen geslaagd in 23,8 seconden, met echte releasebijlage vóór/na publicatie en na intrekking |
 | Visuele controle | Ideeformulier en ontvangersdetail op 1.440, 768 en 390 pixels gecontroleerd; modalgrenzen/focus tevens geautomatiseerd |
-| Autorisatie-inventaris | 1.166 oppervlakken bevestigd; 51 wijzigende/nieuwe oppervlakken beoordeeld, bestaande beoordelingen behouden |
+| Autorisatie-inventaris | 1.167 oppervlakken bevestigd; 54 wijzigende/nieuwe oppervlakken beoordeeld, bestaande beoordelingen behouden |
 | Database security advisor | Geen waarschuwingen of fouten |
 | Database lint | Geen fouten; niet blokkerende waarschuwingen, onder meer ongebruikte variabelen |
 | Dependency-audit | Geen nieuwe onverholpen high/critical melding; bestaande braces-patch met vastgelegde uitzondering behouden |
@@ -69,12 +69,13 @@ ontwikkel/testdatabase. De volledige CI blijft een voorwaarde voor merge en
 stagingpromotie; deploymentidentiteit wordt daarna via de exacte Git-SHA gecontroleerd.
 De succesvolle gerichte herhaling verbergt de eerste browsertimeout niet.
 
-De eerste twee CI-runners stopten vóór applicatietests op de anonieme Docker Hub-
-pulllimiet. Alleen de wegwerprunner van de bestaande verification-workflow gebruikt
-nu de [publieke Google-cache](https://docs.cloud.google.com/artifact-registry/docs/pull-cached-dockerhub-images).
-De oorspronkelijke Debian- en ClamAV-referenties en hun immutable digests blijven
-behouden. De cache gaf voor beide manifesten exact dezelfde content-digest terug.
-Er zijn geen registrycredentials toegevoegd of echte runtime-daemons gewijzigd.
+CI-runners stopten vóór applicatietests op Docker Hub-pulllimieten en HTTP 500.
+De Linuxfixtures halen dezelfde Debian-digest nu uit de
+[Docker Official Images-repository op ECR Public](https://gallery.ecr.aws/docker/library/debian).
+De lokale/CI-scanner heeft bij een mislukte Docker Hub-pull een publieke-cachefallback
+voor exact dezelfde ClamAV-digest. De daadwerkelijke pulls zijn lokaal gecontroleerd;
+de bestaande Linux- en scannercontroles blijven verplicht. Er zijn geen credentials
+toegevoegd, imageversies veranderd of echte runtime-daemons gewijzigd.
 
 ## Zelf de keten doorlopen
 

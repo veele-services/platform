@@ -7190,7 +7190,7 @@
     {
       "id": "operation:.github/workflows/_verify.yml",
       "classification": "operation",
-      "source_sha256": "4efab1f609bc70c3cc2c79bcf96a1e53ea154d9fb1a13f65fec965b787cdbd24"
+      "source_sha256": "b716ef47cc9cf8ef05a9a658d3246495498b80cd578be189c8308d152eacfbca"
     },
     {
       "id": "operation:.github/workflows/bootstrap-production-admin.yml",
@@ -7505,7 +7505,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "c3f6c85be8ad5d81f92782ca8f88577747fc311128fe0c9040bdd1a04b4b65de"
+      "source_sha256": "31e1025c905c61dfbb4bc73ca0b06c6853c1442729d5e24e60c0629d1181bf60"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -7618,9 +7618,14 @@
       "source_sha256": "ab817137c9d3420707dde8ed35ec27b313f0261f301ecce8d23ef8e26c9b4c35"
     },
     {
+      "id": "operation:scripts/start-ticket-test-scanner.sh",
+      "classification": "operation",
+      "source_sha256": "db95d9b063aadd8c8d0363de1b43589c201563ce429594562a7cb6fa4af837e8"
+    },
+    {
       "id": "operation:scripts/test-production-contract-linux.sh",
       "classification": "operation",
-      "source_sha256": "71c8e6e091f1c265f4aa98b2f4eccb1e90c55217a09b9424dbd7271ed9d45dab"
+      "source_sha256": "620b80d023b1bc855d7638c0a6c71fcadc18e9ecd9853ae1d7ce387a6539e016"
     },
     {
       "id": "operation:scripts/test-release-artifact.mjs",
@@ -7630,7 +7635,7 @@
     {
       "id": "operation:scripts/test-staging-contract-linux.sh",
       "classification": "operation",
-      "source_sha256": "f3b51382315d689fe33cea4859d88a5141e0ff6d72d886a31733f4dac54d555a"
+      "source_sha256": "418e265bcd777766c3604661b9204a514fe0bb5b3227be835e6bfac760e8b852"
     },
     {
       "id": "operation:scripts/test-veele-marketing.mjs",
