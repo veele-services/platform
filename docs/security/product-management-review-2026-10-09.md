@@ -48,6 +48,13 @@ is geen beveiligingsbewijs.
 - Operationele wijzigingen: packageversie en testlijst uitgebreid; migratiemanifest
   uitsluitend met de nieuwe, schoon gereplayde migratie uitgebreid. Geen nieuwe
   secret, deploymentkoppeling, provider of productionconfiguratie.
+- CI-imagecache: de verification-job draait uitsluitend op een wegwerpbare
+  `ubuntu-24.04` runner. Alleen diens Docker-daemon krijgt de publieke mirror;
+  bestaande configuratievelden blijven behouden. Debian en ClamAV blijven op
+  dezelfde immutable digest vastgezet. Dit wijzigt geen applicatieprovider,
+  staging-/productiondaemon, scannercontract of registrycredential. De manifest-
+  digests van beide images zijn tegen de cache gecontroleerd; de bestaande echte
+  Linux- en scannercontroles blijven verplicht.
 
 ## Uitvoerbaar bewijs
 

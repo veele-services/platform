@@ -25,6 +25,23 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      - name: Use cached public Docker Hub images on this disposable CI runner
+        # Original image references and immutable digests stay in the fixture
+        # scripts. Configure the daemon as documented by Google's public cache;
+        # do not change any staging/production daemon or add registry credentials.
+        run: |
+          sudo python3 <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('/etc/docker/daemon.json')
+          config = json.loads(path.read_text()) if path.exists() else {}
+          mirrors = config.get('registry-mirrors', [])
+          config['registry-mirrors'] = ['https://mirror.gcr.io'] + [
+              mirror for mirror in mirrors if mirror != 'https://mirror.gcr.io'
+          ]
+          path.write_text(json.dumps(config, indent=2) + '\n')
+          PY
+          sudo systemctl restart docker
       - name: Verify staging root/runner contracts with real Linux permissions
         run: bash scripts/test-staging-contract-linux.sh
       - name: Verify production and staging Unix account isolation in a disposable container
