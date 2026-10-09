@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type Locator, type Page, type Route, type TestInfo } from "@playwright/test";
 import { authenticateStaff } from "./staff-auth";
 import { Client } from "pg";
 import { randomUUID } from "node:crypto";
@@ -100,9 +100,38 @@ test("nieuws, verlof, account en apparaat gebruiken toegankelijke mobiele venste
   await page.getByRole("button", { name: "Verlof aanvragen", exact: true }).click();
   const leave = page.getByRole("dialog", { name: "Verlof aanvragen", exact: true });
   await expect(leave).toBeVisible();
-  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
-  await expect(page.locator(".ps-topbar-leading .ps-sync")).toHaveClass(/syncing/);
-  await expect(page.locator(".ps-topbar-leading .ps-sync")).toHaveClass(/current/);
+  const sync = page.locator(".ps-topbar-leading .ps-sync");
+  await expect(sync).toHaveClass(/current/);
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  let releaseRefresh!: () => void;
+  let refreshHeld = false;
+  const refreshGate = new Promise<void>(resolve => { releaseRefresh = resolve; });
+  const staffUrl = (url: URL) => url.pathname === "/staff";
+  const holdRefresh = async (route: Route) => {
+    if (route.request().headers().rsc === "1") {
+      refreshHeld = true;
+      await refreshGate;
+    }
+    await route.continue();
+  };
+  // RSC refreshes use the real server and are never shell-cached. Holding the
+  // request makes the pending state observable even on a fast local server;
+  // the registered serviceworker and the eventual response remain intact.
+  await page.route(staffUrl, holdRefresh);
+  try {
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect.poll(() => refreshHeld).toBe(true);
+    await expect(sync).toHaveClass(/syncing/);
+    await expect(leave).toBeVisible();
+    const refreshed = page.waitForResponse(response => response.request().headers().rsc === "1" && new URL(response.url()).pathname === "/staff");
+    releaseRefresh();
+    expect((await refreshed).ok()).toBe(true);
+    await expect(sync).toHaveClass(/current/);
+    await expect(leave).toBeVisible();
+  } finally {
+    releaseRefresh();
+    await page.unroute(staffUrl, holdRefresh);
+  }
   await inspectDialog(page, leave, info, "leave-320");
   await leave.getByRole("button", { name: "Annuleren", exact: true }).click();
   await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("button", { name: "Meer", exact: true }).click();

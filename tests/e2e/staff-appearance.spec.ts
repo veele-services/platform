@@ -87,7 +87,9 @@ test("Meer houdt alle personeelsacties bereikbaar op mobiel en desktop", async (
         expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
         expect(bounds!.height).toBeGreaterThanOrEqual(44);
       }
-      await expect(page.getByRole("region", { name: "Open diensten", exact: true })).toBeVisible();
+      // This fixture has no eligible offers; inactive open shifts must not
+      // appear as an empty, unusable section in the personnel menu.
+      await expect(page.getByRole("region", { name: "Open diensten", exact: true })).toHaveCount(0);
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.evaluate(() => document.fonts.ready);
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
