@@ -60,7 +60,8 @@ stale receipts, stale revisions and retained sessions.
 
 Evidence: `scripts/test-platform-support-team.mjs`,
 `scripts/test-customer-tickets.mjs`, `scripts/test-tickets.mjs`,
-`tests/e2e/tickets.spec.ts`. The complete database suite passes 483 checks;
+`tests/e2e/tickets.spec.ts`. The complete database suite passes 881 checks
+(398 pgTAP checks and 483 Node contract checks);
 real Auth/Data API/Storage privacy checks pass ten checks with actual ClamAV.
 
 ## Work-order entry points and release artifacts

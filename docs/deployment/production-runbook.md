@@ -94,7 +94,8 @@ naar de gelijknamige GitHub-secret. Schakel de legacy JWT-hook niet in.
 Controleer de precieze operatorinstellingen ook in het
 [mail-hookrunbook](mail-hooks.md); pas de productieorigins en eigen keys toe.
 
-Laat de deployment alle 131 gecontroleerde V1-migraties toepassen. Geen SQL uit
+Laat de deployment alle gecontroleerde V1-migraties uit het actuele
+migratiemanifest toepassen. Geen SQL uit
 een oud project, geen seed, geen handmatige buckets of gekopieerde Auth-users.
 De migratieguard accepteert alleen een leeg schema of de exacte inhoudelijke
 prefix van het repositorymanifest; na migratie moet het gehele manifest kloppen.

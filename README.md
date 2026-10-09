@@ -35,6 +35,8 @@ Tenant portals remain on one tenant hostname:
 
 Product releases follow [semantic versioning](docs/releases/versioning.md), with
 an immutable Git tag on the exact deployed SHA and a [changelog](CHANGELOG.md).
+The released functionality, verification and next priorities are recorded in
+the [Fieldgrid 1.0.0 codebase analysis](docs/releases/fieldgrid-1.0.0-codebase-analyse.md).
 
 Tenant resolution is hostname-only and fail-closed. The platform hostname never
 silently selects a tenant, and an unknown tenant hostname never falls back to a
