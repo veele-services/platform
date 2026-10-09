@@ -41,8 +41,8 @@ test('portal migration backfill preserves entitlement guards and caller context 
  assert.equal(blocks.length,1,'test must execute the actual migration context block');
  const block=blocks[0][0],backfill=block.match(/\n\s*(with changed as \([\s\S]*?from changed;)\s*\n\s*perform set_config\('request\.jwt\.claim\.role',previous_role,true\);/)?.[1];
  assert(backfill,'test must reproduce the old unwrapped backfill from migration source');
- const slug=backfill.match(/t\.slug='([^']+)'/)?.[1],module=backfill.match(/array_append\(s\.enabled_services,'([^']+)'\)/)?.[1],action=backfill.match(/select tenant_id,'([^']+)'/)?.[1];
- assert(slug&&module&&action,'target, module and audit action must come from migration source');
+ const slug=backfill.match(/t\.slug='([^']+)'/)?.[1],portalModule=backfill.match(/array_append\(s\.enabled_services,'([^']+)'\)/)?.[1],action=backfill.match(/select tenant_id,'([^']+)'/)?.[1];
+ assert(slug&&portalModule&&action,'target, module and audit action must come from migration source');
  const db=await workOrderTestDatabase(),tenant=randomUUID(),second=randomUUID(),actor=randomUUID(),session=randomUUID();
  const baseServices=['planning','personeel'];
  const context=async()=>(await db.query("select current_setting('request.jwt.claim.role',true) role,current_setting('request.jwt.claims',true) claims")).rows[0];
@@ -67,13 +67,13 @@ test('portal migration backfill preserves entitlement guards and caller context 
   const before=await context(),otherBefore=await settings(second),auditBefore=(await audits()).length;
   assert.deepEqual((await settings(tenant)).enabled_services,baseServices);
   await db.query(block);
-  assert.deepEqual((await settings(tenant)).enabled_services,[...baseServices,module]);
+  assert.deepEqual((await settings(tenant)).enabled_services,[...baseServices,portalModule]);
   assert.deepEqual(await settings(second),otherBefore,'unrelated tenant settings must remain unchanged');
   let entries=await audits();assert.equal(entries.length,auditBefore+1);
-  assert.equal(entries.at(-1).entity_type,'tenant_settings');assert.equal(entries.at(-1).entity_id,tenant);assert.equal(entries.at(-1).after_data.module,module);
+  assert.equal(entries.at(-1).entity_type,'tenant_settings');assert.equal(entries.at(-1).entity_id,tenant);assert.equal(entries.at(-1).after_data.module,portalModule);
   await unchangedContext(before);
   await db.query(block);
-  assert.deepEqual((await settings(tenant)).enabled_services,[...baseServices,module]);
+  assert.deepEqual((await settings(tenant)).enabled_services,[...baseServices,portalModule]);
   assert.equal((await audits()).length,auditBefore+1,'repeat must not add a duplicate audit');
   assert.deepEqual(await settings(second),otherBefore);
   await unchangedContext(before);
@@ -110,7 +110,7 @@ test('portal migration backfill preserves entitlement guards and caller context 
   await t.test('ordinary authenticated owner still cannot alter platform entitlements',async()=>isolated(async()=>{
    await db.query('set local role authenticated');await db.query("select set_config('request.jwt.claim.role','authenticated',true),set_config('request.jwt.claims',$1,true)",[claims]);
    assert.equal((await db.query('select tenant_id from public.tenant_settings where tenant_id=$1',[tenant])).rows.length,1);
-   await rejectStatement('update public.tenant_settings set enabled_services=array_append(enabled_services,$2) where tenant_id=$1',[tenant,module],error=>error.code==='42501'&&/Tenantkoppeling, modules en whitelabel/.test(error.message));
+   await rejectStatement('update public.tenant_settings set enabled_services=array_append(enabled_services,$2) where tenant_id=$1',[tenant,portalModule],error=>error.code==='42501'&&/Tenantkoppeling, modules en whitelabel/.test(error.message));
    assert.deepEqual((await settings(tenant)).enabled_services,baseServices);
   }));
  }finally{await db.query('rollback');await db.end();}
