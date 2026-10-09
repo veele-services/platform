@@ -19,7 +19,8 @@ async function expectSubtleAuthFocus(input: Locator) {
  });
  expect(appearance.outline).toBe("none");
  expect(appearance.innerShadow).toBe("none");
- expect(appearance.border).toBeLessThanOrEqual(1);
+ expect(appearance.border).toBe(1);
+ expect(appearance.shadow).not.toBe("none");
  const dimensions=[...appearance.shadow.matchAll(/(-?\d+(?:\.\d+)?)px/g)].map(match=>Math.abs(Number(match[1])));
  expect(dimensions.every(value=>value<=1),`Oversized composite focus ring: ${appearance.shadow}`).toBe(true);
 }
