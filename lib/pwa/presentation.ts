@@ -61,6 +61,7 @@ export function buildStaffManifest(identity: StaffPwaIdentity): MetadataRoute.Ma
 
 export function buildStaffMetadata(identity: StaffPwaIdentity): Metadata {
   return {
+    title: { absolute: `${identity.name} · Personeelsapp` },
     applicationName: identity.name,
     manifest: "/staff/manifest.webmanifest",
     // This Next build emits the modern unprefixed capability tag. Safari's

@@ -74,6 +74,7 @@ test("hostname tenant identity and colors persist on all login and OTP layouts",
   const metadataContext=await browser.newContext();const metadataPage=await metadataContext.newPage();
   try{
    await metadataPage.goto(`http://${slug}.localhost:3002/login?next=%2Fstaff`);
+   await expect(metadataPage).toHaveTitle(`Inloggen · ${name}`);
    await expect(metadataPage.locator('link[rel="manifest"]')).toHaveAttribute("href","/staff/manifest.webmanifest");
    await expect(metadataPage.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute("content",name);
    await expect(metadataPage.locator('link[rel="apple-touch-icon"]').first()).toHaveAttribute("href","/staff/pwa/apple-touch.png");

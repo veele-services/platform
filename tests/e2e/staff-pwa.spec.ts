@@ -1,12 +1,20 @@
 import { expect, test, type Page } from "@playwright/test";
 import { Client } from "pg";
 import sharp from "sharp";
-import { authenticateStaff } from "./staff-auth";
+import { authenticateStaff as installStaffSession } from "./staff-auth";
 import { requireLocalDatabaseUrl } from "./local-target";
 
 const worker = "field-worker@fieldgrid.test";
 const accountSettings = "/staff?tab=meer&section=instellingen";
 const installDialog = (page: Page) => page.getByRole("dialog", { name: "Installeer Fieldgrid", exact: true });
+
+async function authenticateStaff(page: Page, email: string, target = "/staff") {
+  // Leave the previous live document before replacing fixture auth cookies.
+  // Its session boundary legitimately reloads on a changed session; swapping
+  // cookies underneath it races page.goto in WebKit. Device storage survives.
+  await page.goto("about:blank");
+  await installStaffSession(page, email, target);
+}
 
 async function preferences(page: Page) {
   return page.evaluate(() => Object.entries(localStorage)
@@ -210,8 +218,53 @@ test("installatievoorkeuren blijven per account gescheiden op hetzelfde apparaat
   }
 });
 
+test("echte serviceworker bewaart alleen openbare assets, toont offline geen werkgegevens en herstelt via opnieuw proberen", async ({ page, context }, info) => {
+  test.setTimeout(90_000);
+  await authenticateStaff(page, worker, "/staff");
+  await expect(page.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  const registration = await page.evaluate(async () => {
+    const worker = await navigator.serviceWorker.ready;
+    return { state: worker.active?.state, scope: new URL(worker.scope).pathname };
+  });
+  expect(registration).toEqual({ state: "activated", scope: "/" });
+  const cachedPaths = () => page.evaluate(async () => {
+    const names = (await caches.keys()).filter(name => name.startsWith("fieldgrid-shell-"));
+    return (await Promise.all(names.map(async name => {
+      const cache = await caches.open(name);
+      return (await cache.keys()).map(request => {
+        const url = new URL(request.url);
+        if (url.origin !== location.origin) throw new Error("Offline shell contains another origin");
+        return url.pathname + url.search;
+      });
+    }))).flat().sort();
+  });
+  const publicShell = ["/branding/fieldgrid-icon-192.png", "/branding/fieldgrid-logo.svg", "/favicon.svg", "/offline.html"];
+  expect(await cachedPaths()).toEqual(publicShell);
+  try {
+    await context.setOffline(true);
+    await page.goto("/staff?offline=pwa-browser-proof");
+    await expect(page.getByRole("heading", { name: "Je bent offline", exact: true })).toBeVisible();
+    await expect(page.locator("body")).toContainText("Je werkgegevens worden niet offline opgeslagen.");
+    await expect(page.locator("body")).not.toContainText(/Robin de Vries|field-worker@fieldgrid\.test|Noordhaven|WB-2030-001/);
+    await expect(page.locator(".personnel-app")).toHaveCount(0);
+    const logo = page.getByRole("img", { name: "Fieldgrid", exact: true });
+    await expect(logo).toBeVisible();
+    await expect.poll(() => logo.evaluate(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)).toBe(true);
+    expect(await cachedPaths()).toEqual(publicShell);
+    await page.screenshot({ path: info.outputPath("staff-pwa-real-offline.png"), animations: "disabled" });
+    await context.setOffline(false);
+    await page.getByRole("button", { name: "Opnieuw proberen", exact: true }).click();
+    await expect(page).toHaveURL(url => url.pathname === "/staff" && url.search === "");
+    await expect(page.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Je bent offline", exact: true })).toHaveCount(0);
+    expect(await cachedPaths()).toEqual(publicShell);
+  } finally { await context.setOffline(false); }
+});
+
 test("anonieme personeelslogin publiceert een installeerbaar manifest, rastericonen en Apple-startschermmetadata", async ({ page, request }) => {
   await page.goto("/login?next=%2Fstaff");
+  await expect(page).toHaveTitle("Inloggen · Fieldgrid");
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/staff/manifest.webmanifest");
   await expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).toHaveAttribute("content", "yes");
   await expect(page.locator('meta[name="apple-mobile-web-app-title"]')).toHaveAttribute("content", "Fieldgrid");

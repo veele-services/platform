@@ -50,6 +50,7 @@ describe("host-bound staff installation identity", () => {
     expect(identity).toMatchObject({ name: "Fictieve werkgever", whiteLabel: true, themeColor: "#31495e", iconUrl: "/staff/pwa/icon-192.png" });
     expect(buildStaffManifest(identity).icons?.every(icon => icon.src.startsWith("/staff/pwa/"))).toBe(true);
     const metadata = buildStaffMetadata(identity);
+    expect(metadata.title).toEqual({ absolute: "Fictieve werkgever · Personeelsapp" });
     expect(metadata.other).toEqual({ "apple-mobile-web-app-capable": "yes" });
     expect(metadata.appleWebApp).toMatchObject({ capable: true, title: "Fictieve werkgever" });
     expect(JSON.stringify(metadata.icons)).toContain("/staff/pwa/apple-touch.png");

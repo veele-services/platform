@@ -1154,7 +1154,7 @@
     },
     {
       "id": "code:app/login/page.tsx",
-      "surfaceFingerprint": "850ba162a5424ae3fe5a8f15f0aa3e29d210b923e435e946b9393e834715fb5d",
+      "surfaceFingerprint": "198344ce3b966aab7a109d28dd3f64fbb1deeac756f46bc53e42faa10c813af3",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/dashboard-consistency-review-2026-10-08.md",

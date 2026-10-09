@@ -52,6 +52,10 @@ presentatie. De geïnstalleerde Next 16-renderer geeft via `appleWebApp.capable`
 het moderne `mobile-web-app-capable` weer; voor oudere Apple-versies wordt
 tegelijk expliciet `apple-mobile-web-app-capable=yes` toegevoegd, naast de
 Apple-titel, touchiconen en startupbeelden. Dit wijzigt geen tenant- of sessieguard.
+De personeelsvenstertitel en personeelslogin gebruiken een absolute titel met
+dezelfde hostnamegebonden PWA-identiteit. Zo krijgt white-label geen geërfde
+Fieldgrid-titel; de titel is normale ge-escapete metadata, geen HTML of
+tenantselector. De gewone login houdt zijn bestaande titel.
 Metadata kan door een reeds geïnstalleerde browser/OS tijdelijk
 worden bewaard; icon-/brandingwijziging kan daarom een herinstallatie vergen.
 Safari biedt geen `beforeinstallprompt` zoals Chromium: installatie loopt daar
@@ -71,6 +75,11 @@ netwerk; alleen een echte netwerkfout geeft de generieke offlinepagina. Deze gee
 geen oude planning of accountinhoud terug. Activatie verwijdert alleen oudere
 Fieldgrid-shellcaches en laat ongerelateerde applicatiecaches staan. Workerupdates
 gebruiken een `no-cache, no-store, must-revalidate` HTTP-contract.
+De offlineherhaalactie gebruikt een native GET-formulier naar de huidige
+same-origin pagina. Er is geen inline onclick of script nodig: de bestaande
+Content Security Policy blijft intact en wordt niet verruimd om offline retry
+te laten werken. De actie maakt geen statusmutatie en leest geen lokaal
+bewaarde privégegevens.
 
 ## Gerichte regressies en bronreview
 
@@ -162,12 +171,17 @@ door de release-integrator vastgelegd. Dit bronreviewbewijs is geen claim van
 fysieke Samsung-/iPhone-installatie of hosted-provideracceptatie.
 
 De volledige lokale broncontrole slaagde: lint, TypeScript, 1.816 unitcontroles
-over 183 bestanden en de productiebuild. Elf gerichte Chromium-browsergevallen
+over 183 bestanden en de productiebuild. Twaalf gerichte Chromium-browsergevallen
 toetsen de opgeslagen onboarding vóór de installatievraag, overslaan en precies
 één volgende loginherinnering, stille herlaad-/realtimebezoeken, latere installatie
 via instellingen, native click-activatie en annuleren, iOS-instructies,
 standalone-detectie, accountisolatie, persoonlijke voorkeuren zonder inboxgrant
 en daadwerkelijk via de tenant-host opgehaalde manifest-/PNG-/Apple-assets.
+De echte serviceworker is ook offline gecontroleerd: uitsluitend openbare
+bestanden in de cache, geladen logo, geen oude werkgegevens en herstel via de
+native GET-knop zodra het netwerk terug is. Vier aanvullende controles met de
+werkelijke WebKit 26.6-engine slaagden voor de loginherinnering, iOS-instructies,
+standalone-detectie en manifest-/Apple-assets; dit is geen fysieke iOS-installatie.
 De white-labelfixture gebruikt echte actuele ClamAV-definities en controleert
 de resulterende scanreceipt; de veiligheidsgrens wordt niet omzeild.
 

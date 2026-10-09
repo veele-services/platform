@@ -10,7 +10,9 @@ import "./staff-login.css";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ next?: string }> }): Promise<Metadata> {
   const { next } = await searchParams;
-  return { ...(isStaffLoginDestination(next) ? await getStaffPwaMetadata() : {}), title: "Inloggen" };
+  if (!isStaffLoginDestination(next)) return { title: "Inloggen" };
+  const metadata = await getStaffPwaMetadata();
+  return { ...metadata, title: { absolute: `Inloggen · ${metadata.applicationName}` } };
 }
 
 export async function generateViewport({ searchParams }: { searchParams: Promise<{ next?: string }> }): Promise<Viewport> {
