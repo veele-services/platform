@@ -197,6 +197,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         <button className={`ps-nav-button${view === "planning" ? " active" : ""}`} onClick={() => navigate("planning")}><CalendarDays/><span>Dagplanning</span></button>
         <button className={`ps-nav-button${view === "nieuws" ? " active" : ""}`} onClick={() => navigate("nieuws")}><Newspaper/><span>Nieuws</span>{unreadNews > 0 && <b>{unreadNews}</b>}</button>
         <button className={`ps-nav-button${view === "uren" ? " active" : ""}`} onClick={() => navigate("uren")}><Clock3/><span>Mijn uren</span></button>
+        <Link className="ps-nav-button" href="/staff/updates"><Newspaper/><span>Wat is er nieuw?</span></Link>
         <StaffTicketsEntry className="ps-nav-button" enabled={ticketsEnabled}/>
         <span className="ps-nav-section">PERSONEELSZAKEN</span>
         <button className={`ps-nav-button${view === "meer" && moreView === "verlof" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("verlof"); }}><Umbrella/><span>Verlof</span></button>
@@ -468,7 +469,7 @@ function MoreScreen({ view, setView, data, profile, timezone, email, tenantName,
   const shifts = data.openShifts.filter((shift) => shift.status === "open");
   return <div className="ps-more-screen">
     <section className="ps-profile-summary" aria-label="Mijn profiel"><span>{initials(profile.preferred_name || profile.full_name)}</span><div><small>MIJN PROFIEL</small><h2>{profile.preferred_name || profile.full_name}</h2><p>{profile.employee_number}</p></div></section>
-    <div className="ps-more-grid" aria-label="Personeelszaken">
+    <div className="ps-more-grid" aria-label="Personeelszaken"><Link className="ps-more-card" href="/staff/updates"><Newspaper aria-hidden="true"/><span><strong>Wat is er nieuw?</strong><small>Productupdates van Fieldgrid</small></span></Link>
       {actions.map(([key, title, text, Icon]) => <button className="ps-more-card" key={key} onClick={() => setView(key)}><Icon aria-hidden="true"/><span><strong>{title}</strong><small>{text}</small></span></button>)}
       <Link className="ps-more-card" href="/staff/notificaties"><Bell aria-hidden="true"/><span><strong>Notificaties</strong><small>Inbox en persoonlijke voorkeuren</small></span></Link>
       <StaffTicketsEntry className="ps-more-card" enabled={ticketsEnabled}><TicketCheck aria-hidden="true"/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span></StaffTicketsEntry>

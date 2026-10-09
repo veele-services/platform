@@ -7,7 +7,7 @@ import { scanTicketBytes, type ScanResult, TICKET_FILE_LIMIT } from "@/lib/ticke
 
 export type ScannedFile = { bytes: Uint8Array; mime: string; sha256: string };
 type State = { id: string; version: string; size: number; mime: string; sha256: string | null };
-const buckets = new Set(["branding", "reports", "signatures", "invoices", "personnel-documents", "customer-documents", "object-documents", "commercial-documents"]);
+const buckets = new Set(["product-documents", "branding", "reports", "signatures", "invoices", "personnel-documents", "customer-documents", "object-documents", "commercial-documents"]);
 const mimes = new Set(["application/pdf", "image/png", "image/jpeg", "image/webp"]);
 const digest = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 const unavailable = () => new Error("Bestand niet beschikbaar of veiligheidscontrole niet voltooid. Probeer later opnieuw.");

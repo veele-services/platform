@@ -380,6 +380,26 @@
       "source_sha256": "9799ab781e5d582013317750d52eaf5af6dfc8004e11e7c4304e08f5aabea932"
     },
     {
+      "id": "code:app/api/product/files/[id]/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "46c5a076377684a85986e590cb649ab59d6c815e79874219bc8df6db04f67de4"
+    },
+    {
+      "id": "code:app/api/product/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "575a5593d2635c85ee9305054f044c44ed161fb7339c77bc6192d76ac6306f22"
+    },
+    {
       "id": "code:app/api/push/subscribe/route.ts",
       "exports": [
         "DELETE",
@@ -1178,6 +1198,17 @@
       "source_sha256": "189f9ab493e64b7739b0f1c946b894863c9eebbcab8b3f3f78d33f7c3eaf9e77"
     },
     {
+      "id": "code:app/app/updates/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "bac0214608b94d9dc662a7a996cce4686f8b0e2d5d53ada3e467b1d8408521a3"
+    },
+    {
       "id": "code:app/app/werkbonnen/[workOrderId]/page.tsx",
       "exports": [
         "default"
@@ -1537,6 +1568,17 @@
       "source_sha256": "9d921acb1a54d039bde4c38ee04a70745df8c979def3ff498b27c019ad0bc74b"
     },
     {
+      "id": "code:app/klant/updates/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "16cbb9bf6e99b62e4ef9f8f1e34ad2d0b5dd6eb3a9b883a01452821d7e2500a7"
+    },
+    {
       "id": "code:app/layout.tsx",
       "exports": [
         "default",
@@ -1754,6 +1796,17 @@
       ],
       "resources": [],
       "source_sha256": "a5bf1c7eef80a12af2088b1f5ee5aa620eaa187c812f1464ea11a7f74ec5dd55"
+    },
+    {
+      "id": "code:app/platform/productbeheer/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "ea500ae9e1dd07c9344a3d014bb3893e807beadb724804d6d20a403d817b7d02"
     },
     {
       "id": "code:app/platform/support/[id]/page.tsx",
@@ -2041,6 +2094,17 @@
       "source_sha256": "0aba0ae257b1670ce430c3d3e06c23ced07bb8fabbf85008273d27cb3d85de67"
     },
     {
+      "id": "code:app/staff/updates/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "df0115916724db4f48fb2e93abdf6fa1e510021fb486c6f6578379690291e7db"
+    },
+    {
       "id": "code:app/tickets/actions.ts",
       "exports": [
         "confirmTicketVerification",
@@ -2113,6 +2177,20 @@
       "source_sha256": "bbff6c06495cf0d2cf0e76caaeba786b5d35948aebc6c55fd4a81ac23ce5798e"
     },
     {
+      "id": "code:components/fieldgrid/product/routes.tsx",
+      "exports": [
+        "ProductPage"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "auth.getUser",
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "1cdfc2e14467f539a00b96b5f7457116847016f9be66c76e2bb27ba1829e168a"
+    },
+    {
       "id": "code:components/fieldgrid/staff-app.tsx",
       "exports": [
         "StaffApp",
@@ -2135,7 +2213,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "067be475aca94508f286445030d333cbdc851d289112d9c3dc9ae828d204323d"
+      "source_sha256": "aba011825754f3d03d2346058f459cd6c48460948149c10d4d7a0fad05d9cb04"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
@@ -2147,7 +2225,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "b699810702ac8906bdf76e9c78f576705f7c6822d630b87e78c8415430287169"
+      "source_sha256": "8db1a5b0617655c1b3c2a32a4bd90d51b0c654d7d7d741241552be3f8c7b9bc9"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell.tsx",
@@ -2160,7 +2238,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "b79e848f5239dfacd7cca3b6c32d1e75aff8bc6f554a02ad7f257b965f5d9c43"
+      "source_sha256": "dd8f225825f3b424866e58b9eec4c8a10dfc7d0c3e1fdb3f69615afc0724b7a1"
     },
     {
       "id": "code:components/fieldgrid/tickets/routes.tsx",
@@ -2709,7 +2787,7 @@
         "readScannedFile"
       ],
       "resources": [],
-      "source_sha256": "e80caab68353dcec4fafcae54db800279cef75e5df01aa90c3c73c2f86f7e4ef"
+      "source_sha256": "a8f0d769b42c8598398f50c688a863de4662e5479ef3802f2b5731f2537b9dc2"
     },
     {
       "id": "code:lib/files/scanned-storage.ts",
@@ -2730,7 +2808,7 @@
         "rpc:file_scan_state",
         "rpc:file_upload_allowed"
       ],
-      "source_sha256": "5d6f8b1b3a3174bcf73f8f554ef2e985ca711b151197382bf7b5e077a6de281d"
+      "source_sha256": "4cfcbc3e85a3f0c399a660f04eff8fede9c1aaa102b7fa175e9a54b57c5750bc"
     },
     {
       "id": "code:lib/guides/actions.ts",
@@ -3110,6 +3188,38 @@
       ],
       "resources": [],
       "source_sha256": "8850e80f171cf5acb244f237b9d1421656995da83f20d161677e195e6844528d"
+    },
+    {
+      "id": "code:lib/product/actions.ts",
+      "exports": [
+        "saveProduct",
+        "uploadProductFile"
+      ],
+      "classification": "server-action",
+      "observedControls": [
+        "publishScannedFile"
+      ],
+      "resources": [],
+      "source_sha256": "1b3fe60e6dd82a12cd40d649bc01eb648539c6dcbcf41b05037007bb8546ddd2"
+    },
+    {
+      "id": "code:lib/product/data.ts",
+      "exports": [
+        "getProductActor",
+        "productDetail",
+        "productList",
+        "productQuery",
+        "productRpc",
+        "productSnapshot"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "auth.getUser",
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "fe5f441ed6ac4cb31afde8ae3ecdcad1b1d5590e5c274db5ab4c17b518144eb0"
     },
     {
       "id": "code:lib/providers/mollie.ts",
@@ -4388,6 +4498,210 @@
     },
     {
       "id": "db:private.platform_support_receipts",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.product_audit",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.product_changes",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.product_event_recipients",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.product_events",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.product_files",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.product_idea_history",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.product_ideas",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "ec2df33e5c7f30fb959704669678e7bcf1731509cfdc2ea70fd0e4eceac2c84c"
+    },
+    {
+      "id": "db:private.product_messages",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.product_notes",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.product_receipts",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.product_releases",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.product_roadmap",
       "classification": "table",
       "rls": true,
       "force_rls": true,
@@ -7091,7 +7405,7 @@
     {
       "id": "operation:package.json",
       "classification": "operation",
-      "source_sha256": "0a1fb06f71663936530d7def656d64f282deea08f3e31498cedad6f907985e4d"
+      "source_sha256": "c4f992de9f86e89882c5f376cf1746e5a52d25b674bd95980dd63b5d77088199"
     },
     {
       "id": "operation:patches/braces@3.0.3.patch",
@@ -7261,7 +7575,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "8deafab3e48118a9b1228f50ea078b235c76b5b3cb9a998a22c02dc7fe0e0510"
+      "source_sha256": "cae5ffcb58bbaf04ed2a2fb54f6000616a911df419f6bb8bddb2237ce343c7f5"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -9092,7 +9406,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "65054bf32e782b3b07b1af67c7ca3d9bfcf60e981a2a7ae14a4dde78fed22741"
+      "definition_sha256": "e52f51f527dd27f80881f6efa98e7859bab1c5d7ffac3037b577651538630222"
     },
     {
       "id": "rpc:private.notification_staff_own(t uuid, actor uuid)",
@@ -9480,6 +9794,168 @@
       "authenticated": false,
       "service": false,
       "definition_sha256": "38a047ac100329e111df2c507c1e2e3b4bf047ee03f498ded15d880d0f907040"
+    },
+    {
+      "id": "rpc:private.product_actor(t uuid, ctx text, actor uuid, writing boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "208e743a6bab7bf4e8e3bef3e76fd2b6a79e318adb878c34075c84a39a62f771"
+    },
+    {
+      "id": "rpc:private.product_audience_allows(a jsonb, t uuid, ctx text)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "5c3dd4cd78714aa35d09cc0be22766faa560c3deddf3016cdf051e79e5ccb154"
+    },
+    {
+      "id": "rpc:private.product_audience_assert(a jsonb)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "54ce2f456e77b8bfb5a35e87cc5093f0a805a86163e5a15f453251ab123ec1be"
+    },
+    {
+      "id": "rpc:private.product_audience_valid(a jsonb)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "3be5d8f366dcade10ff9a3e6c48a03c6d431e17b8ec2f1faf1b7f34cf0682f8c"
+    },
+    {
+      "id": "rpc:private.product_availability_valid(a jsonb)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "4842c81a7c6dcc5054762281e4a5091a3ca3af2486c2e2222bf2dd4fad4fdc72"
+    },
+    {
+      "id": "rpc:private.product_availability(a jsonb, t uuid)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "9d4f212715a09ad35bc8918951a5a31cda702b226eb586a9ede4d16dc4911c12"
+    },
+    {
+      "id": "rpc:private.product_change_allowed(c uuid, t uuid, ctx text, actor uuid, preview boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "7dfea265885b10d762b33d5b7e68086fe3be7f84a3206c5631da371e9ded9fea"
+    },
+    {
+      "id": "rpc:private.product_event_allowed(eid uuid, t uuid, ctx text, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "2e2d709c6be185753d6264df2cd10d3df1f064465c175848e02cd1ba27692d1b"
+    },
+    {
+      "id": "rpc:private.product_files_dto(kind text, entity uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "b3606e776bad5f94f3448e8a7db559d0ad28d9d0528adfadbe557148fc9a646c"
+    },
+    {
+      "id": "rpc:private.product_idea_dto(iid uuid, t uuid, ctx text, actor uuid, admin boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "8dbba0305254de86b5a64205eb02df160215afdee70b42b24d05a33a77683197"
+    },
+    {
+      "id": "rpc:private.product_idea_history_record()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "f2cab8421096584c041de3c7cb2ef008fee1a646bf8be3e0ee6c0166f9029dfc"
+    },
+    {
+      "id": "rpc:private.product_notify(kind text, entity uuid, code text)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "6afab505a8a6b6a53989551c0b5e8eb6efb9eb76e059625cff6f8a32f6a82d29"
+    },
+    {
+      "id": "rpc:private.product_platform(actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ecf99533165571256910769d47d24aff6343e0dacda607f06ac6604f9446849c"
+    },
+    {
+      "id": "rpc:private.product_query_for(target_tenant uuid, actor_context text, operation text, payload jsonb, actor uuid, admin boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "dfa44286c5311a0ca0c4047e21874fae19c46dc441c0e2670e221123aa112fe4"
+    },
+    {
+      "id": "rpc:private.product_release_dto(rid uuid, t uuid, ctx text, actor uuid, admin boolean, preview boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "555bf881b88f0c315ec33368b94aee3f10a4b509d75395bd3418d32bf7451216"
+    },
+    {
+      "id": "rpc:private.product_restriction_assert(child jsonb, parent jsonb)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "a76ddc3a726f37c3ee7a2a82a2dc79f6ea4661fa3b7cb9b3c02c66913248f71e"
+    },
+    {
+      "id": "rpc:private.product_roadmap_allowed(r uuid, t uuid, ctx text, actor uuid, preview boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "56498b9f27931740ca78c23370e9486281dbdd8b13ced46bfb897f2767c9be94"
+    },
+    {
+      "id": "rpc:private.product_roadmap_dto(r uuid, t uuid, ctx text, actor uuid, admin boolean, preview boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ea9593918a4a33ac3ac72b5445a46a0960647637df8f5543d81ae7900fc2edf1"
     },
     {
       "id": "rpc:private.protect_allocated_execution()",
@@ -11711,7 +12187,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "c1daeb92079ff7c7828b415bbfd7b8f2bcaf6f419adea898d6d7db59a4b86f07"
+      "definition_sha256": "eb13894e97cd12ae53e598a16e2073d2ce91207feaec6a81715f1dee6af53e8b"
     },
     {
       "id": "rpc:public.notification_template_resolve(target_tenant uuid, type_code text, target_context text, channel text)",
@@ -11946,6 +12422,24 @@
       "authenticated": false,
       "service": true,
       "definition_sha256": "0a639d99e921b667d51861182a4bebc7ff50570cdfb5c598c40bed06f1e22013"
+    },
+    {
+      "id": "rpc:public.product_command(target_tenant uuid, actor_context text, command text, payload jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "870c380d71421719472f711d9ab0c43912a698c486d41fabaa65a0531013534e"
+    },
+    {
+      "id": "rpc:public.product_query(target_tenant uuid, actor_context text, operation text, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "e39b9b513393a81308a35773c2f4d985b7ced1d33be4105f08cbd44e491d28ae"
     },
     {
       "id": "rpc:public.provision_platform_tenant(tenant_name text, tenant_slug text, actor_user_id uuid, request_key uuid, primary_color text, accent_color text, enabled_services text[], admin_name text, admin_email text, tenant_domain text, sender_email text)",

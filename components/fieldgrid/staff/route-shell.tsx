@@ -6,7 +6,7 @@ import { getAuthContext } from "@/lib/auth/context";
 import { personnelThemeStyle } from "@/lib/staff/theme";
 import { StaffRouteShellClient } from "./route-shell-client";
 
-type StaffRoute = "tickets" | "notifications";
+type StaffRoute = "tickets" | "notifications" | "updates";
 
 export async function StaffRouteShell({ active, children }: { active: StaffRoute; children: ReactNode }) {
   const context = await getAuthContext();

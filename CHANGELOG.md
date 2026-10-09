@@ -4,7 +4,19 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
 
 ## Nog niet uitgebracht
 
-Nieuwe wijzigingen volgen na de getagde 1.0.0-baseline. Zie
+### 1.1.0-rc.1 — Productbeheer
+
+- Productbeheer in het platform met ideeënbehandeling, private notities, roadmapbord,
+  releaseonderdelen en expliciete publicatie en aankondigingen.
+- Roadmap & updates voor tenantmanagement; Wat is er nieuw? voor personeel en klanten.
+- Doelgroepen gelden gezamenlijk per organisatie en portaal. Releaseonderdelen
+  erven de bovengrens of beperken die verder; verborgen inhoud telt nergens mee.
+- Voortgang, publicatie en handmatige beschikbaarheid blijven gescheiden.
+- In-appmeldingen gebruiken de bestaande queue, deduplicatie en actuele bronrechten.
+- Private, gescande bijlagen, idempotente opdrachten, behandel- en beheerhistorie,
+  ontvangersvoorbeelden en verversing zonder gedeelde private caches.
+
+Deze kandidaat is bestemd voor ontwikkel/test en staging. Productie blijft 1.0.0. Zie
 [versiebeheer](docs/releases/versioning.md) voor de releaseafspraken.
 
 ## 1.0.0 - 2026-10-09
