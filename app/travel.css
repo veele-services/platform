@@ -214,13 +214,13 @@
 }
 .pb-travel-leg {
   position: absolute;
-  top: 4px;
-  height: 17px;
+  top: var(--pb-card-top, 8px);
+  height: var(--pb-card-height, 56px);
   background: #dfeef0;
   border: 1px dashed #85a8b1;
-  border-radius: 4px;
+  border-radius: 6px 0 0 6px;
   overflow: hidden;
-  font-size: calc(9px * var(--dashboard-font-scale, 1));
+  font-size: calc(11px * var(--dashboard-font-scale, 1));
   z-index: 2;
   white-space: nowrap;
   color: #214958;
@@ -230,10 +230,11 @@
   background: #fff0df;
   color: #954515;
   border-color: #c88759;
+  z-index: 4;
 }
-.pb-lane .pb-bon {
-  top: 24px;
-}
+.pb-travel-leg[data-direction="after"] { border-radius: 0 6px 6px 0; }
+.pb-bon[data-travel-before="true"] { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.pb-bon[data-travel-after="true"] { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .pb-bon .travel-status {
   font-size: calc(9px * var(--dashboard-font-scale, 1));
 }

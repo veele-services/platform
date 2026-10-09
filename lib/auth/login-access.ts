@@ -5,6 +5,8 @@ import { getAuthContext } from "./context";
 import { getObjectActor } from "@/lib/objects/auth";
 import { TENANT_SLUG_HEADER } from "@/lib/tenancy/hostname";
 import type { LoginWorkspace } from "./login-destination";
+import { createClient } from "@/lib/supabase/server";
+import { ticketRpc } from "@/lib/tickets/rpc";
 
 /** Called after OTP verification, never an account/email lookup. Customer
  * identity is independent of tenant staff membership and remains DB-backed. */
@@ -12,8 +14,10 @@ export async function getLoginAccess(): Promise<{ workspaces: LoginWorkspace[] }
   const context = await getAuthContext();
   const slug = (await headers()).get(TENANT_SLUG_HEADER);
   if (!slug && context.isPlatformAdmin) return { workspaces: ["/platform"] };
-  if (!slug && (process.env.DEPLOY_TARGET ?? "local") !== "local") {
-    return { workspaces: context.isPlatformAdmin ? ["/platform"] : [] };
+  if (!slug) {
+    const allowed = await ticketRpc(await createClient(), "platform_workspace_access", {});
+    if (allowed === true) return { workspaces: ["/platform"] };
+    if ((process.env.DEPLOY_TARGET ?? "local") !== "local") return { workspaces: [] };
   }
   const actor = await getObjectActor();
   if (slug && actor.tenant.slug !== slug) throw new Error("Geen toegang");

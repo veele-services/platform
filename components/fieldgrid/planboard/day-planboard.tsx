@@ -62,6 +62,7 @@ import {
   validDay,
 } from "@/lib/planning/time";
 import { PlanningDetail } from "./detail-panel";
+import { canReleaseWorkOrder, WorkOrderReleaseDialog } from "../work-orders/release";
 import { StatusLegend } from "./status-legend";
 import { PageHeading } from "../page-heading";
 import { EmptyState } from "../empty-state";
@@ -153,6 +154,7 @@ export function DayPlanboard({
   const [filterOpen, setFilterOpen] = useState(false);
   const [menu, setMenu] = useState<string | null>(null);
   const [selected, setSelected] = useState<PlanningOrder | null>(null);
+  const [releasing, setReleasing] = useState<PlanningOrder | null>(null);
   const [scopeChoice, setScopeChoice] = useState<PlanningScopeChoice | null>(null);
   const scopeChoiceRef = useRef<PlanningScopeChoice | null>(null);
   const [busy, setBusy] = useState(false);
@@ -768,7 +770,7 @@ export function DayPlanboard({
                   </small>
                 </div>
                 <div className={`pb-lane ${hasHours ? "pb-has-hours" : ""}`}>
-                  {travel.data?.legs.filter(l=>l.personnelId===person.id&&l.totalMinutes!==null).map(l=>{const end=l.direction==="after"?Date.parse(l.previousEnd!)+l.totalMinutes!*60000:Date.parse(l.plannedStart);const left=Math.max(0,(end-l.totalMinutes!*60000-Date.parse(windowRange.start))/60000*pxPerMinute);const right=Math.min(windowRange.minutes*pxPerMinute,(end-Date.parse(windowRange.start))/60000*pxPerMinute);return right>left?<button key={l.assignmentId+l.direction} className={`pb-travel-leg ${l.shortageMinutes?"conflict":""}`} style={{left,width:right-left}} onClick={()=>setTravelSelection({assignmentId:l.assignmentId})} aria-label={`Reistijd ${l.totalMinutes} minuten${l.shortageMinutes?`, ${l.shortageMinutes} minuten tekort`:""}`}>{l.totalMinutes} min</button>:null;})}
+                  {travel.data?.legs.filter(l=>l.personnelId===person.id&&l.totalMinutes!==null).map(l=>{const end=l.direction==="after"?Date.parse(l.previousEnd!)+l.totalMinutes!*60000:Date.parse(l.plannedStart);const left=Math.max(0,(end-l.totalMinutes!*60000-Date.parse(windowRange.start))/60000*pxPerMinute);const right=Math.min(windowRange.minutes*pxPerMinute,(end-Date.parse(windowRange.start))/60000*pxPerMinute);return right>left?<button key={l.assignmentId+l.direction} className={`pb-travel-leg ${l.shortageMinutes?"conflict":""}`} data-travel-assignment={l.assignmentId} data-direction={l.direction} style={{left,width:right-left}} onClick={()=>setTravelSelection({assignmentId:l.assignmentId})} aria-label={`Reistijd ${l.totalMinutes} minuten${l.shortageMinutes?`, ${l.shortageMinutes} minuten tekort`:""}`}>{l.totalMinutes} min</button>:null;})}
                   {availability.map((a) => {
                     const left = Math.max(
                         0,
@@ -848,6 +850,8 @@ export function DayPlanboard({
                         rawRight,
                       );
                     if (right <= left) return null;
+                    const hasTravelBefore = rawLeft > 0 && travel.data?.legs.some(leg => leg.assignmentId === assignment.id && leg.direction === "before" && leg.totalMinutes !== null && leg.totalMinutes > 0);
+                    const hasTravelAfter = rawRight < windowRange.minutes * pxPerMinute && travel.data?.legs.some(leg => leg.assignmentId === assignment.id && leg.direction === "after" && leg.totalMinutes !== null && leg.totalMinutes > 0);
                     const attention = assignment.qualifications.length > 0;
                     const status = assignmentStatus(assignment.overrun ? "overrun" : assignment.status);
                     const editable = canPlan(order) && !busy;
@@ -858,6 +862,8 @@ export function DayPlanboard({
                         style={{ ...assignmentStatusStyle(status), left, width: right - left }}
                         data-order-id={order.id}
                         data-assignment-id={assignment.id}
+                        data-travel-before={Boolean(hasTravelBefore)}
+                        data-travel-after={Boolean(hasTravelAfter)}
                         data-status={status.status}
                         role="button"
                         tabIndex={0}
@@ -912,6 +918,10 @@ export function DayPlanboard({
                           </PopoverTrigger>
                           <PopoverContent
                             className="pb-action-menu"
+                            data-no-drag
+                            onPointerDown={event => event.stopPropagation()}
+                            onClick={event => event.stopPropagation()}
+                            onKeyDown={event => event.stopPropagation()}
                             style={theme}
                             align="end"
                             sideOffset={6}
@@ -919,6 +929,7 @@ export function DayPlanboard({
                             <button onClick={() => open(order)}>
                               Bekijk werkbon
                             </button>
+                            {canReleaseWorkOrder(tenant, order, order.assignments) && <button disabled={busy} onClick={() => { setMenu(null); setReleasing(order); }}>Werkbon vrijgeven</button>}
                             <button onClick={()=>{setMenu(null);setTravelSelection({assignmentId:assignment.id});}}>Bekijk reistijd</button>
                             <button onClick={()=>{setMenu(null);setTravelSelection({assignmentId:assignment.id,mode:"route"});}}>Bekijk route</button>
                             <button onClick={()=>{setMenu(null);setTravelSelection({assignmentId:assignment.id,mode:"manual"});}}>Handmatige reistijd</button>
@@ -1300,6 +1311,7 @@ export function DayPlanboard({
           key={`${selected.id}:${selected.version}`}
           travel={<>{travel.error&&<p role="alert">{travel.error}</p>}<TravelList legs={travel.data?.legs.filter(l=>l.workOrderId===selected.id)||[]} people={travel.data?.people} timezone={data.timezone} canManage={travel.data?.canManage||false} onChange={travel.refresh}/></>}
           order={selected}
+          onRelease={canReleaseWorkOrder(tenant, selected, selected.assignments) ? () => { setSelected(null); setReleasing(selected); } : undefined}
           people={data.people}
           timezone={data.timezone}
           day={query.day}
@@ -1313,6 +1325,7 @@ export function DayPlanboard({
           onSave={save}
         />
       )}
+      {releasing && <WorkOrderReleaseDialog order={releasing} tenant={tenant} onClose={() => setReleasing(null)} onSaved={() => { setReleasing(null); void refresh(queryRef.current); }}/>}
       <Dialog.Root
         open={Boolean(confirmation)}
         onOpenChange={(value) => {

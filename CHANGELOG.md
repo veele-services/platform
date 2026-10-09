@@ -4,9 +4,34 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
 
 ## Nog niet uitgebracht
 
-- Alle ‘Meer’-overlays in klanten, objecten, personeel en facturen openen boven de tabelcontainer, met schermranddetectie en ondersteuning voor toetsenbordbediening.
+Nieuwe wijzigingen volgen na de getagde 1.0.0-baseline. Zie
+[versiebeheer](docs/releases/versioning.md) voor de releaseafspraken.
 
-## 1.0.0 - 2026-09-29
+## 1.0.0 - 2026-10-09
+
+Formele baseline op verzoek van de eigenaar, inclusief de bestaande V1-portalen
+en onderstaande verbeteringen.
+
+- Platform-supportteam: mailuitnodiging, OTP-login, vier expliciete supportrechten,
+  tenantbereik, herkenbare behandelaars, profielbeheer, intrekking en activiteit.
+- Supportcockpit met directe links naar reactie nodig, niet toegewezen en
+  verstreken termijnen. Supportaccounts landen in hun eigen platform-shell.
+- Gecontroleerde ticketketen van personeel en klanten via de tenant naar Fieldgrid,
+  met afzonderlijke notities en een expliciet terug te sturen antwoordconcept.
+- Werkbon vrijgeven vanuit het planbordmenu, planborddetail, werkbonnenlijst en
+  werkbondossier, via dezelfde versievaste publicatieopdracht.
+- Reistijd sluit op dezelfde hoogte aan op de bijbehorende werkbon; tijdtekort
+  blijft zichtbaar en bedienbaar.
+- Gedeelde dashboardcomponenten, consistente tabbladen, formulieren, overlays,
+  paginatie, tenantlogo's, zoekfunctie en compacte actieknoppen.
+- Managementrollen met OTP-uitnodigingen en expliciete rechten, klantenportaal,
+  eigen tenantdomeinen en een personeels-PWA met gecontroleerde installatieprompts.
+- Adresaanvulling start uitsluitend vanuit straatnaam en postcode;
+  huisnummer, huisletter en toevoeging blijven gewone invoervelden.
+- OpenRouteService voor routeberekening; Google Routes staat uit. Adresverrijking
+  gebruikt de ingestelde OpenStreetMap/PDOK-adapters.
+
+### Ontwikkelbasis — 29 september 2026
 
 ### Toegevoegd
 
@@ -14,7 +39,7 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
 - Supabase-schema met geforceerde RLS, private Storage, audittrail, idempotente domeinfuncties en versievaste migraties.
 - Werkbonplanning, dispatch, tijdregistratie, rapportcorrecties, meerwerk, facturatie en Mollie-reconciliatie.
 - Factuurmail via SendGrid v3 Mail Send, met tenantafzendercontrole, onveranderlijke PDF-bijlage en dubbele-verzendbeveiliging.
-- Web Push/outbox-worker, Google Routes-integratie en expliciete providerfoutafhandeling.
+- Web Push/outbox-worker, routeprovider-integratie en expliciete providerfoutafhandeling.
 - Herbruikbare CI voor `main` en expliciete, atomaire promotie van een bewezen
   `main`-SHA via branch `staging` en de exclusief gelabelde stagingrunner,
   inclusief Playwright-gate, preflight, backup, healthcheck en coderollback.

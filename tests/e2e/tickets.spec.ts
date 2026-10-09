@@ -239,8 +239,8 @@ test("personeelsmelding met echte scan, private notitie, bewuste escalatie en on
   await expect(resolve).toHaveCount(0);
   expect((await db.query("select status from public.tickets where id=$1", [ticketId])).rows[0].status).not.toBe("closed");
   await manager.reload();
-  await manager.getByRole("button", { name: "Antwoord voorbereiden voor medewerker", exact: true }).first().click();
-  const draft = manager.getByRole("dialog", { name: "Antwoord voorbereiden voor medewerker", exact: true });
+  await manager.getByRole("button", { name: "Antwoord voorbereiden voor melder", exact: true }).first().click();
+  const draft = manager.getByRole("dialog", { name: "Antwoord voorbereiden voor melder", exact: true });
   await draft.getByLabel("Bericht", { exact: true }).fill("We hebben de technische correctie gecontroleerd. Wil je het nogmaals proberen?");
   await draft.getByRole("button", { name: "Antwoord versturen", exact: true }).click();
   await expect(draft).toHaveCount(0);

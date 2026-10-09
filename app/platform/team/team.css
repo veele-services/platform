@@ -1,0 +1,26 @@
+.fg-team { min-width:0; }
+.fg-team > .unified-page-heading > .resource-header-actions { flex-wrap:nowrap; }
+.fg-team > .unified-page-heading .fg-search { width:280px;min-width:0; }
+.fg-team .resource-table { min-width:850px; }
+.fg-team .resource-table th:last-child { width:164px; }
+.fg-team .resource-table td .resource-header-actions { flex-wrap:nowrap; }
+.fg-team .resource-table td { overflow-wrap:anywhere; }
+.fg-team .text-link { color:var(--brand-action); }
+.fg-team-muted { display:block;color:var(--brand-muted);font-size:12px;line-height:1.65; }
+.fg-team-surface { padding:24px;border:1px solid var(--brand-border);border-radius:0 16px 16px 16px;background:var(--brand-card,#fff); }
+.fg-team-surface h2 { margin:0 0 12px;font-size:18px;font-weight:600; }
+.fg-team-surface p { font-size:13px;line-height:1.75; }
+.fg-team-rights { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:24px 0; }
+.fg-team-rights article { padding:20px;border:1px solid var(--brand-border);border-radius:12px;background:var(--brand-surface); }
+.fg-team-rights h3 { font-size:14px;font-weight:600; }
+.fg-team-form { display:grid;gap:24px;padding:24px var(--modal-space,28px); }
+.fg-team-form label:not(.fg-team-check) { display:grid;gap:8px;font-size:13px; }
+.fg-team-form input:not([type=checkbox]) { min-height:42px;width:100%;padding:10px 12px;border:1px solid var(--brand-border);border-radius:9px;background:var(--brand-card,#fff); }
+.fg-team-fields,.fg-team-choices { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px; }
+.fg-team-form fieldset { border:1px solid var(--brand-border);border-radius:12px;padding:20px;display:grid;gap:16px; }
+.fg-team-form legend { padding:0 6px;font-size:13px;font-weight:600; }
+.fg-team-form .fg-team-check { display:flex;flex-direction:row;align-items:start;gap:10px;font-size:13px;font-weight:500;line-height:1.6; }
+.fg-team-check input { margin-top:4px;accent-color:var(--brand-action); }
+.fg-team-audit-note { margin:0;padding:16px;color:var(--brand-muted);font-size:12px; }
+@media(max-width:900px) { .fg-team-rights { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:540px) { .fg-team-rights,.fg-team-fields,.fg-team-choices { grid-template-columns:minmax(0,1fr); }.fg-team-surface { padding:18px; }.fg-team-form { padding:20px; }.fg-team > .unified-page-heading .fg-search { flex:1; } }

@@ -1,4 +1,4 @@
-# Fieldgrid V1
+# Fieldgrid 1.0.0
 
 Fieldgrid V1 is a new, tenant-neutral implementation. Legacy applications and
 their migrations, services, deployment structures and proxy rules are not a
@@ -6,8 +6,8 @@ source of truth for this repository.
 
 ## Canonical staging architecture
 
-Staging was accepted as V1 on 7 October 2026. Production is now being prepared
-on the same VPS with a separate runtime and a new Supabase project; see
+Staging was accepted as V1 on 7 October 2026. Production uses
+the same VPS with a separate runtime and a separate Supabase project; see
 [the production architecture](docs/architecture/production.md) and
 [the production setup and configuration inventory](docs/deployment/production-runbook.md).
 The complete, normative specification is
@@ -31,8 +31,10 @@ Tenant portals remain on one tenant hostname:
 
 - `https://{slug}.staging.fieldgrid.nl/app` (backoffice)
 - `https://{slug}.staging.fieldgrid.nl/staff` (personnel)
+- `https://{slug}.staging.fieldgrid.nl/klant` (explicitly bound customer contacts)
 
-The customer portal is not part of the current V1 route contract.
+Product releases follow [semantic versioning](docs/releases/versioning.md), with
+an immutable Git tag on the exact deployed SHA and a [changelog](CHANGELOG.md).
 
 Tenant resolution is hostname-only and fail-closed. The platform hostname never
 silently selects a tenant, and an unknown tenant hostname never falls back to a
