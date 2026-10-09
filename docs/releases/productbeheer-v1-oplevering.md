@@ -69,6 +69,16 @@ ontwikkel/testdatabase. De volledige CI blijft een voorwaarde voor merge en
 stagingpromotie; deploymentidentiteit wordt daarna via de exacte Git-SHA gecontroleerd.
 De succesvolle gerichte herhaling verbergt de eerste browsertimeout niet.
 
+De [volledige PR-CI](https://github.com/veele-services/platform/actions/runs/37992734178)
+bevestigde daarna alle 132 browserflows zonder flaky uitslagen. De eerste main-run
+stopte op een bestaande dossiertest: in de eerste tien minuten na middernacht
+viel haar actieve werkbon door `nu - 10 minuten` op gisteren, terwijl de app
+correct vandaag toont. De fixture blijft nu op de actuele dag van de tenant.
+De kaarttest wacht bovendien op een stabiele marker vóór de muisbeweging.
+Zes datumgevallen, waaronder zomer-/wintertijd en een andere tenanttijdzone,
+en beide gerichte browserflows zijn geslaagd. Bestaande assertions, timeouts
+en toegangscontroles blijven behouden; de volledige main-CI wordt opnieuw vereist.
+
 CI-runners stopten vóór applicatietests op Docker Hub-pulllimieten en HTTP 500.
 De Linuxfixtures halen dezelfde Debian-digest nu uit de
 [Docker Official Images-repository op ECR Public](https://gallery.ecr.aws/docker/library/debian).

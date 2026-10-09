@@ -419,6 +419,9 @@ test("MapLibre worker and draggable arrival marker work without changing the off
     .click();
   const marker = page.locator(".maplibregl-marker");
   await expect(marker).toBeVisible();
+  // Raw mouse coordinates must come from a stable, reachable marker after the
+  // map/modal finishes positioning, rather than its first visible frame.
+  await marker.hover();
   const box = await marker.boundingBox();
   expect(box).not.toBeNull();
   const before = await page.getByLabel("Lengtegraad aankomst").inputValue();

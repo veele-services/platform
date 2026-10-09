@@ -13,7 +13,10 @@ test("dossier opens inline only after email confirmation and locks on loss of fo
   const originalOrder = (await db.query(`select ${fields} from public.work_orders where id=$1`,[order])).rows[0];
   const originalAssignment = (await db.query(`select ${fields} from public.work_order_assignments where id=$1`,[assignment])).rows[0];
   try {
-    for(const table of ["work_orders","work_order_assignments"]) await db.query(`update public.${table} set planned_start_at=now()-interval '10 minutes',planned_end_at=now()+interval '90 minutes',projected_start_at=now()-interval '10 minutes',projected_end_at=now()+interval '90 minutes' where id=$1`,[table==="work_orders"?order:assignment]);
+    // Keep the active assignment on the tenant's current planning day, including
+    // the first ten minutes after midnight; the UI correctly defaults to today.
+    const activeWindow = (await db.query(`select greatest(now()-interval '10 minutes',date_trunc('day',now() at time zone t.timezone) at time zone t.timezone) starts_at,now()+interval '90 minutes' ends_at from public.work_orders w join public.tenants t on t.id=w.tenant_id where w.id=$1`,[order])).rows[0];
+    for(const table of ["work_orders","work_order_assignments"]) await db.query(`update public.${table} set planned_start_at=$2,planned_end_at=$3,projected_start_at=$2,projected_end_at=$3 where id=$1`,[table==="work_orders"?order:assignment,activeWindow.starts_at,activeWindow.ends_at]);
     await page.setViewportSize({ width: 390, height: 844 });
     await authenticateStaff(page,"field-worker@fieldgrid.test");
     await page.getByRole("button",{name:/WB-2030-001/}).click();
