@@ -11,7 +11,7 @@
 .auth-card .eyebrow { color:var(--brand-accent-text); }
 .auth-card .primary-button { background:var(--brand-action); color:var(--brand-action-foreground); }
 .auth-card .primary-button:hover { background:var(--brand-action-hover); }
-.auth-card .auth-input:focus-within { border-color:var(--brand-focus); box-shadow:0 0 0 3px var(--brand-accent-soft); }
+.auth-card .auth-input:focus-within { border-color:var(--brand-focus); box-shadow:0 0 0 1px color-mix(in srgb,var(--brand-focus, #43898d) 20%,transparent); }
 .auth-card .auth-form :where(a,.auth-text-button) { color:var(--brand-accent-text); }
 .auth-card .auth-form :where(button,input,a):focus-visible { outline:3px solid var(--brand-focus); outline-offset:3px; }
 .auth-page.staff-login {
@@ -63,7 +63,7 @@
 .staff-login .auth-form label { color: #4b5969; font-size: .875rem; font-weight: 500; }
 .staff-login .auth-input { min-height: 50px; border-color: #dce3e7; border-radius: 10px; background: #fcfdfd; }
 .staff-login .auth-input input { min-width: 0; font-size: 1rem; color: #1a2632; }
-.staff-login .auth-input:focus-within { border-color: var(--brand-focus, #368341); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-focus, #41ac42) 9%, transparent); }
+.staff-login .auth-input:focus-within { border-color: var(--brand-focus, #43898d); box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-focus, #43898d) 20%, transparent); }
 .staff-login .auth-form .primary-button { min-height: 46px; border-radius: 10px; background: var(--brand-action, #368341); color: white; font-size: .875rem; font-weight: 600; }
 .staff-login .auth-form :where(a, .auth-text-button) { min-height: 44px; display: grid; align-items: center; color: var(--brand-action, #368341); font-size: .875rem; font-weight: 600; }
 .staff-login .auth-form :where(a, button, input):focus-visible { outline: 3px solid var(--brand-focus, #41ac42); outline-offset: 3px; }

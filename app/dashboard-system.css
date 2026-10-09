@@ -165,11 +165,13 @@ body :is(input, select, textarea):not([type=checkbox]):not([type=radio]):not([ty
   border-color: var(--brand-focus, #43898d) !important;
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-focus, #43898d) 20%, transparent) !important;
 }
-body :is(.auth-input, .global-search, .resource-toolbar label, .catalogue-search):focus-within {
-  border-color: var(--brand-focus, #43898d);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-focus, #43898d) 20%, transparent);
+body :is(.auth-input, .global-search, .resource-toolbar label, .catalogue-search, .shell-search-field, .page-list-search, .fg-search):focus-within {
+  border-color: var(--brand-focus, #43898d) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-focus, #43898d) 20%, transparent) !important;
 }
-body :is(.auth-input, .global-search, .resource-toolbar label, .catalogue-search) input:focus {
+/* Keep the standalone exclusions here so the scoped inner rule wins and
+   leaves the focus indicator on the composite wrapper. */
+body :is(.auth-input, .global-search, .resource-toolbar label, .catalogue-search, .shell-search-field, .page-list-search, .fg-search) input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):focus {
   outline: none !important;
   box-shadow: none !important;
 }
@@ -279,8 +281,6 @@ body .fg-tabbed-content > .resource-table-panel { border-top-left-radius: 0; }
 body :is([data-slot=dropdown-menu-checkbox-item], [data-slot=dropdown-menu-radio-item], [data-slot=dropdown-menu-item][data-inset=true], [data-slot=dropdown-menu-sub-trigger][data-inset=true]) { padding-left: 32px; }
 body [data-slot=dialog-content] { border: 1px solid var(--brand-border, #dce4e8); border-radius: var(--fg-card-radius); background-color: var(--brand-card, #fff); color: var(--brand-ink, #1a2632); }
 body .fg-empty-state > h3 { font-size: calc(.875rem * var(--dashboard-font-scale, 1)); font-weight: 600; }
-body :is(.shell-search-field, .page-list-search, .fg-search) input:focus { outline: none !important; box-shadow: none !important; }
-
 body :is(.shell-search-field, .page-list-search, .fg-search) input { background: transparent !important; }
 
 /* Icon controls keep their square footprint inside legacy mobile toolbars. */
