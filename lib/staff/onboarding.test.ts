@@ -71,7 +71,7 @@ describe("personnel onboarding departure payload", () => {
 describe("prototype onboarding presentation", () => {
   const render = (step: number, availability = false) => renderToStaticMarkup(createElement(Onboarding, {
     profile: { ...profile, onboarding_step: step, availability_self_service_enabled: availability }, depots: [], email: "sam@example.test",
-    notificationPreferences: preferences, pending: false, run: vi.fn(),
+    notificationPreferences: preferences, pending: false, run: vi.fn(), onCompleted: vi.fn(),
   }));
 
   it.each([false, true])("keeps the applicable five or six steps and a readable account heading (%s)", availability => {

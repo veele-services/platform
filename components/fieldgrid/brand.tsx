@@ -16,6 +16,9 @@ export function FieldgridBrand({ tenantName, logoUrl }: { tenantName?: string | 
   );
 }
 
-export function ProductBrand() {
-  return <span className="product-brand" aria-label="Fieldgrid">Fieldgrid</span>;
+export function ProductBrand({ variant = "logo", tone = "default" }: { variant?: "logo" | "wordmark" | "icon"; tone?: "default" | "light" }) {
+  const dimensions = variant === "logo" ? { width: 462, height: 146 } : variant === "wordmark" ? { width: 310, height: 100 } : { width: 140, height: 140 };
+  return <span className={`product-brand product-brand-${variant}`}>
+    <Image src={`/branding/fieldgrid-${variant}${tone === "light" ? "-light" : ""}.svg`} alt="Fieldgrid" {...dimensions} unoptimized/>
+  </span>;
 }

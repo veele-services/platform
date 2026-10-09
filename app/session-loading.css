@@ -40,7 +40,7 @@ html[data-account-blocked] [data-account-fence] {
 .session-loading .brand-logo-image { width: 208px; height: 96px; max-width: 100%; background: transparent; padding: 0; }
 .session-loading .brand-logo-image img { width: 100%; height: 100%; object-fit: contain; }
 .session-loading .brand-name-fallback { max-width: 100%; color: #222c35; font-size: 28px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; white-space: normal; }
-.session-loading .product-brand { color: #222c35; font-size: 36px; }
+.session-loading .product-brand { width:224px; }
 .session-loading-progress {
   width: 160px;
   height: 4px;

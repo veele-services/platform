@@ -17,7 +17,7 @@ describe("isolated marketing delivery",()=>{
     expect(websiteSitemap("https://tenant.test").match(/<url>/g)).toHaveLength(28);
     expect(renderWebsite("/missing","https://tenant.test","n").status).toBe(404);
   });
-  it.each(["/app","/staff","/klant","/login","/api/healthz","/aanvraag","/quote/token","/booking/token","/pay/token","/_next/static/chunk.js","/veele-services/assets/site.js"])("does not rewrite %s",path=>expect(publicMarketingPath(path)).toBe(false));
+  it.each(["/app","/staff","/staff/manifest.webmanifest","/staff/pwa/icon-192.png","/klant","/login","/api/healthz","/aanvraag","/quote/token","/booking/token","/pay/token","/_next/static/chunk.js","/veele-services/assets/site.js","/branding/fieldgrid-icon-512.png","/branding/fieldgrid-logo.svg"])("does not rewrite %s",path=>expect(publicMarketingPath(path)).toBe(false));
   it("local alias cannot resolve a tenant on staging",()=>{
     expect(resolveHostContext("veele-services.localhost:3000","http://127.0.0.1:3000","local").kind).toBe("tenant");
     expect(resolveHostContext("veele-services.localhost:3000","https://staging.fieldgrid.nl","staging").kind).toBe("invalid");

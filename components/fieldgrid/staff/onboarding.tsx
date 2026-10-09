@@ -18,7 +18,7 @@ const vehicleLabels: Record<StaffOnboardingDraft["transport"]["vehicle"], string
   electric_bicycle: "E-bike", public_transport: "Openbaar vervoer", walking: "Lopend", other: "Anders",
 };
 
-export function Onboarding({ profile, depots, email, notificationPreferences, pending, run }: { profile: StaffPersonnel; depots: StaffWorkspaceData["staffDepots"]; email: string; notificationPreferences: NotificationPreferences; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
+export function Onboarding({ profile, depots, email, notificationPreferences, pending, run, onCompleted }: { profile: StaffPersonnel; depots: StaffWorkspaceData["staffDepots"]; email: string; notificationPreferences: NotificationPreferences; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void; onCompleted: () => void }) {
   const panel = useRef<HTMLDivElement>(null);
   const signout = useRef<HTMLFormElement>(null);
   const availabilityEnabled = Boolean(profile.availability_self_service_enabled);
@@ -220,7 +220,7 @@ export function Onboarding({ profile, depots, email, notificationPreferences, pe
             <button type="button" className="ps-secondary" disabled={pending || step === 0} onClick={() => setStep(step - 1)}>Vorige</button>
             {step > 0 && <button type="button" className="ps-secondary" disabled={pending} onClick={() => save(false, () => signout.current?.requestSubmit())}>Opslaan en later</button>}
           </div>
-          <button type="button" className="ps-primary" disabled={pending || !canNext} onClick={() => step === review ? save(true) : save(false, () => setStep(step + 1))}>{pending ? "Opslaan…" : step === 0 ? "Beginnen" : step === review ? "Bevestigen en afronden" : "Opslaan en verder"}</button>
+          <button type="button" className="ps-primary" disabled={pending || !canNext} onClick={() => step === review ? save(true, onCompleted) : save(false, () => setStep(step + 1))}>{pending ? "Opslaan…" : step === 0 ? "Beginnen" : step === review ? "Bevestigen en afronden" : "Opslaan en verder"}</button>
         </footer>}
       </section>
     </div>

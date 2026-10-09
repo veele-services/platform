@@ -137,3 +137,59 @@ test("Meldingsschakelaars bewaren echte voorkeuren en accountacties gebruiken de
     await db.end();
   }
 });
+
+test("Persoonlijke notificatievoorkeuren blijven bereikbaar zonder inboxrecht en lege open diensten blijven verborgen", async ({ page }, info) => {
+  test.setTimeout(90_000);
+  const db = new Client({ connectionString: requireLocalDatabaseUrl().href });
+  await db.connect();
+  let person: Person | undefined;
+  let grants: Array<{ id: string; enabled: boolean }> = [];
+  let original: Array<Record<string, unknown>> = [];
+  try {
+    person = await fixture(db);
+    grants = (await db.query("select id,enabled from public.permission_grants where tenant_id=$1 and user_id=$2 and capability='notifications.read_own'", [person.tenant_id, person.user_id])).rows;
+    expect(grants.length).toBeGreaterThan(0);
+    original = (await db.query("select * from private.notification_preferences where tenant_id=$1 and user_id=$2 and context='staff'", [person.tenant_id, person.user_id])).rows;
+    await db.query("update public.permission_grants set enabled=false where id=any($1::uuid[])", [grants.map(grant => grant.id)]);
+    const saved = async () => (await db.query("select email,revision::int as revision from private.notification_preferences where tenant_id=$1 and user_id=$2 and context='staff' and type_code is null", [person!.tenant_id, person!.user_id])).rows[0];
+
+    await authenticateStaff(page, "field-worker@fieldgrid.test", "/staff?tab=meer");
+    await expect(page.locator(".ps-more-screen")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Open diensten", exact: true })).toHaveCount(0);
+    await page.locator(".ps-more-grid").getByRole("button", { name: "Instellingen Profiel en meldingen", exact: true }).click();
+    const screen = page.locator(".ps-settings-screen");
+    await screen.getByRole("tab", { name: "Meldingen", exact: true }).click();
+    await screen.getByRole("link", { name: "Per onderwerp", exact: true }).click();
+    await expect(page).toHaveURL(/\/staff\/notificaties\/instellingen$/);
+    await expect(page.getByRole("heading", { name: "Mijn notificatievoorkeuren", exact: true })).toBeVisible();
+    await expect(page.locator(".personnel-app .ps-sidebar")).toHaveCount(1);
+    await expect(page.getByRole("heading", { name: "Deze pagina bestaat niet.", exact: true })).toHaveCount(0);
+    const email = page.getByRole("checkbox", { name: "E-mail ontvangen waar toegestaan", exact: true });
+    const initialEmail = await email.isChecked();
+    const initialVersion = (await saved())?.revision ?? 0;
+    await email.setChecked(!initialEmail);
+    await page.getByRole("button", { name: "Voorkeuren opslaan", exact: true }).click();
+    await expect(page.getByText("Voorkeuren opgeslagen.", { exact: true })).toBeVisible();
+    await expect.poll(async () => (await saved()).revision).toBeGreaterThan(initialVersion);
+    expect((await saved()).email).toBe(!initialEmail);
+    await page.reload();
+    await expect(email).toBeChecked({ checked: !initialEmail });
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: 944 });
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: info.outputPath(`staff-preferences-without-inbox-${width}.png`), animations: "disabled", style: "nextjs-portal,[data-sonner-toaster]{visibility:hidden}" });
+    }
+    // Allowing personal delivery preferences must not restore revoked access
+    // to inbox contents or implicitly write a new inbox capability grant.
+    await page.goto("/staff/notificaties");
+    await expect(page.getByRole("heading", { name: "Deze pagina bestaat niet.", exact: true })).toBeVisible();
+    expect((await db.query("select enabled from public.permission_grants where id=any($1::uuid[])", [grants.map(grant => grant.id)])).rows.every(grant => grant.enabled === false)).toBe(true);
+  } finally {
+    for (const grant of grants) await db.query("update public.permission_grants set enabled=$2 where id=$1", [grant.id, grant.enabled]);
+    if (person) {
+      await db.query("delete from private.notification_preferences where tenant_id=$1 and user_id=$2 and context='staff' and id<>all($3::uuid[])", [person.tenant_id, person.user_id, original.map(row => row.id)]);
+      for (const row of original) await db.query("update private.notification_preferences set in_app=$4,push=$5,email=$6,timezone=$7,quiet_start=$8,quiet_end=$9,revision=revision+1 where tenant_id=$1 and user_id=$2 and id=$3", [person.tenant_id, person.user_id, row.id, row.in_app, row.push, row.email, row.timezone, row.quiet_start, row.quiet_end]);
+    }
+    await db.end();
+  }
+});

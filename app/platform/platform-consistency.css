@@ -69,3 +69,10 @@
 .fg-console .ticket-settings-tabs>.content-tabs { margin-top:0; }
 @media(max-width:850px) { .fg-console .fg-cockpit-grid { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:430px) { .fg-console .fg-cockpit-facts { grid-template-columns:minmax(0,1fr); } }
+
+/* Use the supplied outlined logo without crowding the platform controls. */
+.fg-console .fg-sidebar-brand { height:128px; }
+.fg-console .fg-sidebar-brand>.product-brand { margin:0; }
+.fg-console .fg-workspace-tag { display:inline-flex;align-items:center;flex:none; }
+.fg-console .fg-workspace-tag .product-brand { width:94px;margin:0; }
+@media(max-width:640px) { .fg-console .fg-workspace-tag .product-brand { width:74px; } }

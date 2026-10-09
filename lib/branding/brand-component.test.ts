@@ -10,6 +10,8 @@ describe("tenant brand identity", () => {
   });
   it("shows the tenant name without a logo and Fieldgrid without tenant branding", () => {
     expect(renderToStaticMarkup(createElement(FieldgridBrand, { tenantName: "Example tenant" }))).toContain(">Example tenant</span>");
-    expect(renderToStaticMarkup(createElement(FieldgridBrand))).toContain(">Fieldgrid</span>");
+    const product = renderToStaticMarkup(createElement(FieldgridBrand));
+    expect(product).toContain('alt="Fieldgrid"');
+    expect(product).toContain('src="/branding/fieldgrid-logo.svg"');
   });
 });

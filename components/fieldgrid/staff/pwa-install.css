@@ -1,0 +1,24 @@
+.ps-pwa-dialog {max-width: min(30rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; border-radius: 1.25rem; padding: 1.5rem; color: var(--fg-text, #192935); font-family: var(--font-body, inherit);}
+.ps-pwa-dialog [data-slot="dialog-header"] {text-align: left; gap: .65rem;}
+.ps-pwa-brand {display: flex; margin-bottom: .4rem;}
+.ps-pwa-brand img {width: 80px; height: 80px; object-fit: contain; border-radius: 1rem; background: #f3f6f9;}
+.ps-pwa-dialog [data-slot="dialog-title"] {line-height: 1.35; font-weight: 650;}
+.ps-pwa-dialog [data-slot="dialog-description"], .ps-pwa-intro, .ps-pwa-note, .ps-pwa-instructions {font-size: .9rem; line-height: 1.65;}
+.ps-pwa-intro {display: flex; gap: .75rem; align-items: flex-start;}
+.ps-pwa-intro > svg {width: 24px; height: 24px; flex: none; margin-top: .2rem;}
+.ps-pwa-instructions {border: 1px solid var(--fg-border, #d4dde3); background: #f7f9fa; border-radius: .8rem; padding: 1rem;}
+.ps-pwa-instructions h3 {font-size: .95rem; font-weight: 600; margin: 0 0 .6rem;}
+.ps-pwa-instructions ol {list-style: decimal; padding-left: 1.25rem; margin: 0;}
+.ps-pwa-instructions li + li {margin-top: .6rem;}
+.ps-pwa-instructions svg {display: inline-block; width: 18px; height: 18px; vertical-align: text-bottom;}
+.ps-pwa-note {color: #596a76; margin: 0;}
+.ps-pwa-dialog [data-slot="dialog-footer"] {gap: .6rem; margin-top: .25rem;}
+.ps-pwa-dialog button {min-height: 44px;}
+.ps-pwa-dialog button svg {height: 18px; width: 18px;}
+.ps-pwa-setting {display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 1.25rem;}
+.ps-pwa-setting > div {display: flex; align-items: flex-start; gap: .75rem;}
+.ps-pwa-setting svg {width: 24px; height: 24px; flex: none;}
+.personnel-app .ps-pwa-setting h3 {font-size: .95rem; line-height: 1.5; font-weight: 600; margin: 0 0 .35rem;}
+.ps-pwa-setting p {font-size: .85rem; line-height: 1.6; color: #596a76; margin: 0;}
+.ps-pwa-setting button {flex: none; min-height: 44px;}
+@media (max-width: 480px) {.ps-pwa-dialog {padding: 1.25rem;} .ps-pwa-setting {align-items: stretch; flex-direction: column;} .ps-pwa-setting button {align-self: flex-start;}}

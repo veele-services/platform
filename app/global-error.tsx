@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
@@ -8,7 +9,7 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
       <body style={{ margin: 0, fontFamily: "Inter, Arial, sans-serif" }}>
         <main style={styles.page}>
           <section style={styles.card}>
-            <span style={styles.logo}>Fieldgrid</span>
+            <Image src="/branding/fieldgrid-logo.svg" alt="Fieldgrid" width={462} height={146} unoptimized style={styles.logo}/>
             <p style={styles.eyebrow}>Er ging iets mis</p>
             <h1 style={styles.title}>Fieldgrid kan niet worden geladen.</h1>
             <p style={styles.copy}>Probeer het opnieuw. Je opgeslagen gegevens blijven behouden.</p>
@@ -46,12 +47,11 @@ const styles = {
     boxShadow: "0 20px 60px rgba(11, 29, 58, .08)",
   },
   logo: {
-    display: "inline-flex",
+    display: "block",
+    width: "180px",
+    maxWidth: "100%",
+    height: "auto",
     marginBottom: "32px",
-    color: "#222c35",
-    fontSize: "13px",
-    fontWeight: 800,
-    letterSpacing: ".16em",
   },
   eyebrow: {
     margin: "0 0 10px",

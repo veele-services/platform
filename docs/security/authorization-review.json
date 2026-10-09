@@ -712,7 +712,7 @@
     },
     {
       "id": "code:app/app/operations-actions.ts",
-      "surfaceFingerprint": "2fb538db90dcbe6f3b83a4bea8689e4b893d0fcfde3ebda877d37653536e3a21",
+      "surfaceFingerprint": "54e490787657110d2dd9e16229f378fbebc560d7d99f72ef576d7ef7a89b5438",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/management-workspace-verification-2026-10-09.md#live-route-search-and-provider-boundaries",
@@ -726,7 +726,11 @@
         "lib/personnel/invitation-delivery.test.ts",
         "lib/finance/service-permissions.test.ts",
         "lib/commercial/delivery-authorization.test.ts",
-        "lib/commercial/mail.test.ts"
+        "lib/commercial/mail.test.ts",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/branding/logo-upload-actions.test.ts",
+        "lib/branding/validation.test.ts",
+        "lib/files/scanned-storage.test.ts"
       ]
     },
     {
@@ -1131,10 +1135,13 @@
     },
     {
       "id": "code:app/layout.tsx",
-      "surfaceFingerprint": "77ea4fd56895fbce88aba974792defbd35a71699d4f6f1c5d96a0fc511a7cbdf",
+      "surfaceFingerprint": "96f4e88f3d6a957f92f1d2757aca2f59ede732de0703a596b8b2914451be7720",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-consistency-review-2026-10-08.md"
+        "docs/security/dashboard-consistency-review-2026-10-08.md",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/tenancy/proxy-boundary.test.ts",
+        "lib/pwa/install-model.test.ts"
       ]
     },
     {
@@ -1151,10 +1158,13 @@
     },
     {
       "id": "code:app/login/page.tsx",
-      "surfaceFingerprint": "9d83958181d3ad292486dd230710e052b58bef8a350941496e3f98b2bba1ef01",
+      "surfaceFingerprint": "198344ce3b966aab7a109d28dd3f64fbb1deeac756f46bc53e42faa10c813af3",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-consistency-review-2026-10-08.md"
+        "docs/security/dashboard-consistency-review-2026-10-08.md",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/pwa/staff.test.ts",
+        "lib/auth/staff-login.test.ts"
       ]
     },
     {
@@ -1191,8 +1201,8 @@
     },
     {
       "id": "code:app/platform/actions.ts",
-      "surfaceFingerprint": "8134d48607ccfac6bb7f5d73840f914fa957e49453e1d2bbc18647be0d0b0063",
-      "status": "controlled",
+      "surfaceFingerprint": "b239b7a60611f2d1dab30bb93f0dc29400ff53aadfb3dfd13cb304b8ae649109",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/management-workspace-verification-2026-10-09.md#tickets-notifications-and-platform-scope",
         "app/platform/actions.ts",
@@ -1201,7 +1211,11 @@
         "app/platform/layout.test.ts",
         "lib/platform/cockpit.test.ts",
         "scripts/test-tickets.mjs",
-        "tests/e2e/fieldgrid.spec.ts"
+        "tests/e2e/fieldgrid.spec.ts",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/branding/logo-upload-actions.test.ts",
+        "lib/branding/validation.test.ts",
+        "lib/files/scanned-storage.test.ts"
       ]
     },
     {
@@ -1378,7 +1392,7 @@
     },
     {
       "id": "code:app/staff/layout.tsx",
-      "surfaceFingerprint": "c03550eabea4c2d2aeec48abe3f868a4068c66432cbde1f27cd822a2b1e91d50",
+      "surfaceFingerprint": "d8cb5c791a9f16d20d32ccc3f72ada464f6f84839e6ff6a480120b4ec9a507ab",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
@@ -1386,7 +1400,19 @@
         "components/fieldgrid/staff/route-shell.tsx",
         "proxy.ts",
         "tests/e2e/module-boundaries.spec.ts",
-        "docs/security/release-security-inventory.md#personeelsapp-schermen-en-popupcontainers--6-oktober-2026"
+        "docs/security/release-security-inventory.md#personeelsapp-schermen-en-popupcontainers--6-oktober-2026",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/pwa/staff.test.ts"
+      ]
+    },
+    {
+      "id": "code:app/staff/manifest.webmanifest/route.ts",
+      "surfaceFingerprint": "c952768a648ae5faf74e74fc28bd0636fe4f51ab40e2b167ee924219b7902afa",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/pwa/staff.test.ts",
+        "lib/tenancy/proxy-boundary.test.ts"
       ]
     },
     {
@@ -1503,7 +1529,7 @@
     },
     {
       "id": "code:app/staff/page.tsx",
-      "surfaceFingerprint": "ce4c4293a2e6b65f0f31a9161abf6ef5b793ff5b8a05d802f9e1ee4940666fc6",
+      "surfaceFingerprint": "69f1951a41f8bc4aa777d2270e91cc2d773ef16ca0ee4481079270ca5188b420",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
@@ -1512,7 +1538,20 @@
         "lib/staff/work-order-completion.test.ts",
         "tests/e2e/fieldgrid.spec.ts",
         "tests/e2e/module-boundaries.spec.ts",
-        "docs/implementation/staff-personnel-app-traceability.md#toegangs--en-privacycontract"
+        "docs/implementation/staff-personnel-app-traceability.md#toegangs--en-privacycontract",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/pwa/install-model.test.ts",
+        "lib/pwa/staff.test.ts"
+      ]
+    },
+    {
+      "id": "code:app/staff/pwa/[asset]/route.ts",
+      "surfaceFingerprint": "429e905d1f43bb31a738dad7e9d972a62bf8cb92f90f7a6fa5b706c9a1584170",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/pwa/staff.test.ts",
+        "lib/tenancy/proxy-boundary.test.ts"
       ]
     },
     {
@@ -1548,8 +1587,8 @@
     },
     {
       "id": "code:components/fieldgrid/notifications/routes.tsx",
-      "surfaceFingerprint": "9815d73fabbe260dc5caf4a89924ebd4a357d707153867c41eeb5495f8d0701a",
-      "status": "controlled",
+      "surfaceFingerprint": "c5e035a39ad29e7b0a295d48457d22cd606ebf79bca6a5ade033d89ee904cab6",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/management-workspace-verification-2026-10-09.md#tickets-notifications-and-platform-scope",
         "components/fieldgrid/notifications/routes.tsx",
@@ -1558,7 +1597,9 @@
         "scripts/test-tickets.mjs",
         "scripts/test-notification-permissions.mjs",
         "scripts/test-notification-boundaries.mjs",
-        "scripts/test-notifications.mjs"
+        "scripts/test-notifications.mjs",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "tests/e2e/staff-settings.spec.ts"
       ]
     },
     {
@@ -1588,10 +1629,13 @@
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "b5c2d25c22284417f50327a32623e6be1c8c7939298c3de4d5b40581174aa57f",
+      "surfaceFingerprint": "41df804d79e3990461408b6e6b760f5fe3773bd5ac99f7c79eb1ec86113017d7",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-consistency-review-2026-10-08.md"
+        "docs/security/dashboard-consistency-review-2026-10-08.md",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/pwa/install-model.test.ts",
+        "tests/e2e/staff-settings.spec.ts"
       ]
     },
     {
@@ -2270,6 +2314,25 @@
         "manual-completion-audit:2026-10-01",
         "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
         "scripts/check-security-surface.mjs"
+      ]
+    },
+    {
+      "id": "code:lib/pwa/image.ts",
+      "surfaceFingerprint": "9a67392781437a3c715cbdc20bb9c85e21d6bdd1fbd3ad094a15913eb93b73fb",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/pwa/staff.test.ts"
+      ]
+    },
+    {
+      "id": "code:lib/pwa/staff.ts",
+      "surfaceFingerprint": "577d9c3da132b3e9a85cb75bbc45ac2ac41e2954a243c9642f6eff62b4ece653",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/pwa/staff.test.ts",
+        "lib/tenancy/proxy-boundary.test.ts"
       ]
     },
     {
@@ -5441,14 +5504,16 @@
     },
     {
       "id": "operation:next.config.ts",
-      "surfaceFingerprint": "c2c758bdd15070da0cbfd8f99567b526b54ac6b7acca493a376f39276c3d8ff0",
+      "surfaceFingerprint": "0678cba8b728ed131637fe9020e6473f328150508daa57271e67b916eb0f66eb",
       "status": "controlled",
       "evidence": [
         "docs/security/veele-website-review.md",
         "scripts/test-veele-marketing.mjs",
         "app/api/veele-website/requests/route.test.ts",
         "lib/marketing/veele/render.test.ts",
-        "tests/e2e/veele-marketing.spec.ts"
+        "tests/e2e/veele-marketing.spec.ts",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/notifications/service-worker.test.ts"
       ]
     },
     {
@@ -5509,13 +5574,15 @@
     },
     {
       "id": "operation:public/sw.js",
-      "surfaceFingerprint": "b30c5f0284519af26ad91a97635a56d5a52e133775534f74a004b6af10f29022",
+      "surfaceFingerprint": "0c7c099683dc9df9945808359843b9bd839e531da79025a92e0c0b9aa9fa2add",
       "status": "controlled",
       "evidence": [
         "manual-completion-audit:2026-10-01",
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/deployment/staging-runbook.md",
+        "docs/security/staff-pwa-verification-2026-10-09.md",
+        "lib/notifications/service-worker.test.ts"
       ]
     },
     {

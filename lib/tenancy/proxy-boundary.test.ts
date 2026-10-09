@@ -101,3 +101,17 @@ it("opens custom workspace root in app while preserving the canonical tenant mar
  const response=await proxy(new NextRequest('https://app.example.nl/',{headers:{host:'app.example.nl'}}));
  expect(response.status).toBe(307);expect(response.headers.get('location')).toBe('https://app.example.nl/app');
 });
+it.each(["/staff/manifest.webmanifest","/staff/pwa/icon-192.png","/staff/pwa/splash-750x1334.png"])("allows anonymous PWA presentation only after live hostname validation: %s",async path=>{
+ const response=await proxy(new NextRequest(`https://alpha.staging.fieldgrid.nl${path}`,{headers:{host:"alpha.staging.fieldgrid.nl",[TENANT_SLUG_HEADER]:"beta"}}));
+ expect(response.status).toBe(200);expect(response.headers.get("location")).toBeNull();
+ expect(response.headers.get(`x-middleware-request-${TENANT_SLUG_HEADER}`)).toBe("alpha");
+ expect(response.headers.get("x-middleware-request-x-fieldgrid-protected-page")).toBe("0");
+ expect(doesProxyMatch({config,nextConfig:{},url:path})).toBe(true);
+ vi.stubGlobal("fetch",vi.fn(async()=>new Response("[]")));
+ expect((await proxy(new NextRequest(`https://alpha.staging.fieldgrid.nl${path}`,{headers:{host:"alpha.staging.fieldgrid.nl"}}))).status).toBe(404);
+ expect((await proxy(new NextRequest(`https://unknown.invalid${path}`,{headers:{host:"unknown.invalid"}}))).status).toBe(404);
+});
+it.each(["/staff/pwa/secret.png","/staff/manifest.webmanifest/private","/staff/pwa/icon-192.png/private"])("retains authentication for nonapproved PWA-looking route %s",async path=>{
+ const response=await proxy(new NextRequest(`https://alpha.staging.fieldgrid.nl${path}`,{headers:{host:"alpha.staging.fieldgrid.nl"}}));
+ expect(response.status).toBe(307);expect(new URL(response.headers.get("location")!).pathname).toBe("/login");
+});

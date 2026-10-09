@@ -67,4 +67,11 @@ export async function NotificationIndexRoute({ workspace, searchParams, detail }
 }
 export async function NotificationDetailRoute({ workspace, params }: { workspace: NotificationWorkspace; params: Promise<{ id: string }> }) { const { id } = await params; if (!z.uuid().safeParse(id).success) notFound(); const access = await getNotificationAccess(workspace); if (!access.allowed || !access.permissions.includes("read_own")) notFound(); const data = await getNotificationDetail(workspace, id); if (!data) notFound(); return <NotificationIndexRoute workspace={workspace} searchParams={Promise.resolve({})} detail={data}/>; }
 export async function NotificationCampaignRoute({ workspace, params }: { workspace: NotificationWorkspace; params: Promise<{ id: string }> }) { const { id } = await params; if (!z.uuid().safeParse(id).success) notFound(); const access = await getNotificationAccess(workspace); if (!access.allowed) notFound(); const data = await getNotificationCampaign(workspace, id); if (!data) notFound(); return <CampaignDetail access={access} data={data}/>; }
-export async function NotificationPreferencesRoute({ workspace }: { workspace: NotificationWorkspace }) { const access = await getNotificationAccess(workspace); if (!access.allowed || !access.permissions.includes("read_own")) notFound(); return <Preferences access={access} data={await getNotificationPreferences(workspace)}/>; }
+export async function NotificationPreferencesRoute({ workspace }: { workspace: NotificationWorkspace }) {
+  const access = await getNotificationAccess(workspace);
+  // Personal delivery preferences are available to an active workspace actor,
+  // independently of an inbox grant. The existing preference RPCs recheck the
+  // live session and bind reads/writes to this account and workspace.
+  if (!access.allowed) notFound();
+  return <Preferences access={access} data={await getNotificationPreferences(workspace)}/>;
+}

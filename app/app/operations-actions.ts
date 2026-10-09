@@ -5,6 +5,7 @@ import { addressFromForm } from "@/lib/addresses/form";
 import { mobilityFromForm } from "@/lib/travel/forms";
 import { randomBytes, createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import sharp from "sharp";
 import { z } from "zod";
 import { getAuthContext, hasAnyRole, type AppRole, type AuthContext, type TenantContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
@@ -17,6 +18,7 @@ import { privacyText } from "@/lib/personnel/dossier";
 import { personnelNumberInputSchema, personnelNumberSettingsSchema } from "@/lib/personnel/numbering";
 import { deliverPersonnelInvitation, preparePersonnelAccount, requirePersonnelEmail } from "@/lib/personnel/invitations";
 import { confirmPersonnelInvitationAccess, personnelInvitationActor } from "@/lib/personnel/invitation-access";
+import { BRANDING_LOGO_MAX_BYTES, BRANDING_LOGO_MAX_PIXELS, rejectLogoAnimation, validateLogoMetadata } from "@/lib/branding/validation";
 
 async function authorized(roles: AppRole[], services: string[] = []): Promise<AuthContext & { tenant: TenantContext }> {
   const context = await getAuthContext();
@@ -366,16 +368,21 @@ export async function uploadTenantLogo(formData: FormData): Promise<ActionResult
     const context = await authorized(["tenant_admin", "management"]);
     const file = formData.get("logo");
     if (!(file instanceof File) || file.size === 0) throw new Error("Kies een logo om te uploaden");
-    if (file.size > 2 * 1024 * 1024) throw new Error("Het logo mag maximaal 2 MB zijn");
+    if (file.size > BRANDING_LOGO_MAX_BYTES) throw new Error("Het logo mag maximaal 2 MB zijn");
     const extensions: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
     const extension = extensions[file.type];
     if (!extension) throw new Error("Gebruik een PNG-, JPG- of WebP-logo");
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    rejectLogoAnimation(bytes, file.type);
+    const image = sharp(bytes, { limitInputPixels: BRANDING_LOGO_MAX_PIXELS });
+    validateLogoMetadata(await image.metadata(), file.type);
+    await image.stats(); // Use the same static image bounds as house style and PWA.
 
     const supabase = await createClient();
     const { error: brandingError } = await supabase.from("tenant_branding").select("logo_path").eq("tenant_id", context.tenant.id).single();
     if (brandingError) throw brandingError;
     const path = `${context.tenant.id}/logo-${crypto.randomUUID()}.${extension}`;
-    await uploadScannedFile(supabase, "branding", path, new Uint8Array(await file.arrayBuffer()), file.type);
+    await uploadScannedFile(supabase, "branding", path, bytes, file.type);
     const { error: updateError } = await supabase.from("tenant_branding").update({ logo_path: path }).eq("tenant_id", context.tenant.id);
     if (updateError) throw updateError;
     // Historical offers, invoices and notification snapshots may still refer to

@@ -57,6 +57,8 @@ import { defaultAvailability, defaultTransport } from "@/lib/staff/onboarding";
 import { Onboarding } from "@/components/fieldgrid/staff/onboarding";
 import { StaffProfileRecovery } from "@/components/fieldgrid/staff/profile-recovery";
 import { StaffTicketsEntry } from "@/components/fieldgrid/staff/tickets-entry";
+import { StaffPwaInstallDialog, StaffPwaInstallSetting, useStaffPwaInstall, type StaffPwaInstall } from "./pwa-install";
+import type { StaffPwaIdentity } from "@/lib/pwa/presentation";
 
 type Assignment = StaffWorkspaceData["assignments"][number];
 type MainView = "planning" | "nieuws" | "uren" | "meer";
@@ -78,11 +80,14 @@ const objectAddress = (value: unknown) => {
 const jsonObject = (value: Json | undefined | null) => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, Json> : {};
 const asText = (value: Json | undefined) => typeof value === "string" ? value : "";
 
-export function PersonnelApp({ context, data, personnel, notificationPreferences }: {
+export function PersonnelApp({ context, data, personnel, notificationPreferences, sessionKey, installScope, pwaIdentity }: {
   context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> };
   data: StaffWorkspaceData;
   personnel: StaffWorkspaceData["personnel"][number] | null;
   notificationPreferences: NotificationPreferences;
+  sessionKey: string | null;
+  installScope: string;
+  pwaIdentity: StaffPwaIdentity;
 }) {
   const router = useRouter();
   const routeQuery = useSearchParams().toString();
@@ -95,6 +100,8 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
   const pendingRefresh = useRef(false);
   const subscriptionReady = useRef(false);
   const profile = personnel;
+  const [onboardingSaved, setOnboardingSaved] = useState(false);
+  const pwaInstall = useStaffPwaInstall({ scope: installScope, session: sessionKey, onboarded: Boolean(profile?.onboarding_completed_at) || onboardingSaved });
   const assignments = useMemo(() => profile ? data.assignments.filter((item) => item.personnel_id === profile.id && item.status !== "cancelled") : [], [data.assignments, profile]);
   const assignmentByOrder = useMemo(() => new Map(assignments.map((item) => [item.work_order_id, item])), [assignments]);
   const assigned = useMemo(() => data.workOrders.filter((item) => assignmentByOrder.has(item.id)), [data.workOrders, assignmentByOrder]);
@@ -139,7 +146,6 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
   }, [assignmentByOrder, routeQuery]);
 
   useEffect(() => {
-    if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/sw.js").catch(() => undefined);
     let refreshTimer = 0;
     let alive = true;
     const refresh = () => {
@@ -220,7 +226,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         {view === "planning" && (tenant.enabledServices.includes("planning") ? <PlanningScreen orders={assigned} assignments={assignments} data={data} timezone={tenant.timezone} onOpen={openOrder} onHours={() => navigate("uren")} onNews={() => navigate("nieuws")}/> : <Empty icon={CalendarDays} title="Planning niet ingeschakeld">Vraag je beheerder om de module Planning te activeren.</Empty>)}
         {view === "nieuws" && <NewsScreen data={data} onRead={(id) => run(() => markAnnouncementRead(id), "Gemarkeerd als gelezen")}/>}
         {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run}/>}
-        {view === "meer" && <MoreScreen view={moreView} setView={setMoreView} data={data} profile={profile} timezone={tenant.timezone} email={context.user.email ?? profile.email ?? ""} tenantName={tenant.name} notificationPreferences={notificationPreferences} ticketsEnabled={ticketsEnabled} pending={pending} run={run}/>}
+        {view === "meer" && <MoreScreen view={moreView} setView={setMoreView} data={data} profile={profile} timezone={tenant.timezone} email={context.user.email ?? profile.email ?? ""} tenantName={tenant.name} notificationPreferences={notificationPreferences} ticketsEnabled={ticketsEnabled} pending={pending} run={run} pwaInstall={pwaInstall}/>}
       </main>
       <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">
         <button className={view === "planning" ? "active" : ""} onClick={() => navigate("planning")}><CalendarDays/><span>Planning</span></button>
@@ -231,7 +237,8 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
       </nav>
     </div>
     {selected && <StaffOrderSheet reportingEnabled={tenant.enabledServices.includes("rapportage")} order={selected} data={data} timezone={tenant.timezone} pending={pending} close={() => setSelectedId(null)} run={run}/>}
-    {profile.onboarding_completed_at === null && <Onboarding profile={profile} depots={data.staffDepots} email={context.user.email ?? profile.email ?? ""} notificationPreferences={notificationPreferences} pending={pending} run={run}/>}
+    {profile.onboarding_completed_at === null && !onboardingSaved && <Onboarding profile={profile} depots={data.staffDepots} email={context.user.email ?? profile.email ?? ""} notificationPreferences={notificationPreferences} pending={pending} run={run} onCompleted={() => { pwaInstall.onboardingCompleted(); setOnboardingSaved(true); }}/>}
+    <StaffPwaInstallDialog identity={pwaIdentity} controller={pwaInstall}/>
     <Toaster richColors position="top-center"/>
   </div></TenantThemeProvider>;
 }
@@ -448,12 +455,12 @@ function CorrectionDialog({ entry, timezone, pending, close, submit }: { entry: 
   </Dialog>;
 }
 
-function MoreScreen({ view, setView, data, profile, timezone, email, tenantName, notificationPreferences, ticketsEnabled, pending, run }: { view: MoreView; setView: (view: MoreView) => void; data: StaffWorkspaceData; profile: StaffPersonnel; timezone: string; email: string; tenantName: string; notificationPreferences: NotificationPreferences; ticketsEnabled: boolean; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
+function MoreScreen({ view, setView, data, profile, timezone, email, tenantName, notificationPreferences, ticketsEnabled, pending, run, pwaInstall }: { view: MoreView; setView: (view: MoreView) => void; data: StaffWorkspaceData; profile: StaffPersonnel; timezone: string; email: string; tenantName: string; notificationPreferences: NotificationPreferences; ticketsEnabled: boolean; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void; pwaInstall: StaffPwaInstall }) {
   if (view === "verlof") return <LeaveScreen requests={data.staffLeaveRequests} entitlements={data.staffLeaveEntitlements} timezone={timezone} pending={pending} run={run}/>;
   if (view === "beschikbaarheid") return <AvailabilityScreen key={profile.id} profile={profile} pending={pending} run={run} onLeave={() => setView("verlof")}/>;
   if (view === "documenten") return <DocumentsScreen data={data} profile={profile}/>;
   if (view === "profiel") return <ProfileScreen key={profile.id} profile={profile} depots={data.staffDepots} email={email} pending={pending} run={run}/>;
-  if (view === "instellingen") return <SettingsScreen key={profile.id} profile={profile} email={email} tenantName={tenantName} notificationPreferences={notificationPreferences} pending={pending} run={run}/>;
+  if (view === "instellingen") return <SettingsScreen key={profile.id} profile={profile} email={email} tenantName={tenantName} notificationPreferences={notificationPreferences} pending={pending} run={run} pwaInstall={pwaInstall}/>;
   const actions: Array<[MoreView, string, string, ComponentType<{ size?: number }>]> = [
     ["verlof", "Verlof", "Aanvragen en saldo", Umbrella], ["beschikbaarheid", "Beschikbaarheid", "Jouw vaste week", CalendarCheck],
     ["documenten", "Documenten", "Handboeken en instructies", FileText], ["instellingen", "Instellingen", "Profiel en meldingen", Settings], ["profiel", "Profiel", "Contact- en vervoersgegevens", UserRound],
@@ -466,11 +473,11 @@ function MoreScreen({ view, setView, data, profile, timezone, email, tenantName,
       <Link className="ps-more-card" href="/staff/notificaties"><Bell aria-hidden="true"/><span><strong>Notificaties</strong><small>Inbox en persoonlijke voorkeuren</small></span></Link>
       <StaffTicketsEntry className="ps-more-card" enabled={ticketsEnabled}><TicketCheck aria-hidden="true"/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span></StaffTicketsEntry>
     </div>
-    <section className="ps-panel ps-open-shifts" aria-label="Open diensten"><div className="ps-panel-heading"><div><span>OPEN DIENSTEN</span><h2>Interesse doorgeven</h2></div><CalendarDays/></div>{shifts.map((shift) => {
+    {shifts.length > 0 && <section className="ps-panel ps-open-shifts" aria-label="Open diensten"><div className="ps-panel-heading"><div><span>OPEN DIENSTEN</span><h2>Interesse doorgeven</h2></div><CalendarDays/></div>{shifts.map((shift) => {
       const interest = data.shiftInterests.find((item) => item.open_shift_id === shift.id && item.personnel_id === profile.id);
       const interested = interest?.status === "interested";
       return <div className="ps-list-row" key={shift.id}><span><strong>{staffDayLabel(staffDate(shift.starts_at, timezone))}</strong><small>{staffClock(shift.starts_at, timezone)}–{staffClock(shift.ends_at, timezone)}</small></span><button className={interested ? "ps-secondary" : "ps-primary"} disabled={pending} onClick={() => run(() => toggleShiftInterest({ shiftId: shift.id, interested: !interested }), interested ? "Interesse ingetrokken" : "Interesse doorgegeven")}>{interested ? "Intrekken" : "Interesse"}</button></div>;
-    })}{!shifts.length && <p>Er zijn geen open diensten.</p>}</section>
+    })}</section>}
     <form className="ps-more-signout" action="/auth/signout" method="post"><button className="ps-text-button"><LogOut/>Uitloggen</button></form>
   </div>;
 }
@@ -659,9 +666,10 @@ function ProfileScreen({ profile, depots, email, pending, run }: { profile: Staf
   </form></section>;
 }
 
-function SettingsScreen({ profile, email, tenantName, notificationPreferences, pending, run }: {
+function SettingsScreen({ profile, email, tenantName, notificationPreferences, pending, run, pwaInstall }: {
   profile: StaffPersonnel; email: string; tenantName: string; notificationPreferences: NotificationPreferences; pending: boolean;
   run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void;
+  pwaInstall: StaffPwaInstall;
 }) {
   const [section, setSection] = useState<"profile" | "notifications" | "account">("profile");
   const [contact, setContact] = useState(() => ({ fullName: profile.full_name, mobilePhone: profile.mobile_phone ?? "", version: profile.version ?? 1 }));
@@ -712,6 +720,7 @@ function SettingsScreen({ profile, email, tenantName, notificationPreferences, p
         <h2>Account & toegang</h2>
         <div className="ps-settings-row"><div><strong>Inloggen met e-mailcode</strong><small>Geen wachtwoord onthouden</small></div><span className="ps-status" data-status="approved">OTP</span></div>
         <div className="ps-settings-row"><div><strong>Dit apparaat</strong><small>Browser · huidige sessie</small></div><span className="ps-status" data-status="approved">Actief</span></div>
+        <StaffPwaInstallSetting controller={pwaInstall}/>
         <button type="button" className="ps-secondary" onClick={() => setDialog("login")}><LockKeyhole/>Loginflow bekijken</button>
         <form action="/auth/signout" method="post"><button className="ps-danger"><LogOut/>Uitloggen</button></form>
       </section>},

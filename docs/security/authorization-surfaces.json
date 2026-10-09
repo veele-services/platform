@@ -966,7 +966,7 @@
         "rpc:review_work_order",
         "rpc:suggest_personnel_number"
       ],
-      "source_sha256": "9ebf3a65706119776d0cbe1a7ff24d170d6f7449d6384052312d5c95c473a9f7"
+      "source_sha256": "c602df3ca89b254a4775284c1b87500fac741e90a53203189261f5e200635e38"
     },
     {
       "id": "code:app/app/opvolging/page.tsx",
@@ -1545,7 +1545,7 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "ffcc8ba3cc08aeabaa8b0ea014b5de6b86b9ebc3d3a6822c80c5f48994ed79d2"
+      "source_sha256": "090d51d4a69fd9e2f6b512dd5c2c76005a11a1c4db99c441ca1d126295e3b9cf"
     },
     {
       "id": "code:app/login/actions.ts",
@@ -1568,12 +1568,13 @@
       "id": "code:app/login/page.tsx",
       "exports": [
         "default",
-        "metadata"
+        "generateMetadata",
+        "generateViewport"
       ],
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "1bf8300603f2a93f36cdd7ae0b63a7a623cc911b76fd88855132463a2f1229f8"
+      "source_sha256": "a237e7d631c7f4e15aaa6c1b809126090abf44586804284df0345aef6071d532"
     },
     {
       "id": "code:app/notifications/actions.ts",
@@ -1656,7 +1657,7 @@
         "rpc:provision_platform_tenant",
         "rpc:save_tenant_message_template"
       ],
-      "source_sha256": "59a11a6580d2ab33878cb0bbc83e1ee8a2d4877aad5d5e9d30306adfbf052596"
+      "source_sha256": "3a88ef209f5964e6f03a7e1074b2df1696b63ae60c86be3e1e009b99eae9d3a4"
     },
     {
       "id": "code:app/platform/domain-actions.ts",
@@ -1865,12 +1866,25 @@
     {
       "id": "code:app/staff/layout.tsx",
       "exports": [
-        "default"
+        "default",
+        "generateMetadata",
+        "generateViewport"
       ],
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "2783bfda0e37d01e0511b6c37e868a57ce705c0a3720afd9196bcc8bd32a1552"
+      "source_sha256": "6b21ab00d432efd5c5901fcd657c9a980635be54c762dc0efe5090109ae2cf2c"
+    },
+    {
+      "id": "code:app/staff/manifest.webmanifest/route.ts",
+      "exports": [
+        "GET",
+        "dynamic"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "ce2980cf82d59656e6a42f8aebc64125ee75dda7042dd0f782673d71273e54b5"
     },
     {
       "id": "code:app/staff/meldingen/[id]/page.tsx",
@@ -1984,7 +1998,19 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "b12063d030b55340af390923b693b4e9a25b41050c11f31a633705f2ce7b403d"
+      "source_sha256": "f1881a36a9afa3bed9e2a93f8cbf6c3769b10d44d105c67c822827a9b9fc0c56"
+    },
+    {
+      "id": "code:app/staff/pwa/[asset]/route.ts",
+      "exports": [
+        "GET",
+        "dynamic",
+        "runtime"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "0aba0ae257b1670ce430c3d3e06c23ced07bb8fabbf85008273d27cb3d85de67"
     },
     {
       "id": "code:app/tickets/actions.ts",
@@ -2044,7 +2070,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "17f8aa244c167521e7a034ad7d16cc8329a1af97e12f711c2ccbb87785def2c7"
+      "source_sha256": "97a70a0a6a3ac16dbf00c0a15d683540d26ffc00fcf04930b763ba2212a30b7b"
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
@@ -2081,7 +2107,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "bb1714475aa1b0e950f5f0849cd1b094690255366fddef245a05771af49dd7d4"
+      "source_sha256": "067be475aca94508f286445030d333cbdc851d289112d9c3dc9ae828d204323d"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
@@ -3069,6 +3095,35 @@
       ],
       "resources": [],
       "source_sha256": "ccc403b3652f265b2804dea95e131a1e421ae16800ba82eb18ebaebde5241626"
+    },
+    {
+      "id": "code:lib/pwa/image.ts",
+      "exports": [
+        "renderStaffPwaImage"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createAdminClient",
+        "readScannedFile"
+      ],
+      "resources": [],
+      "source_sha256": "8cdfe604b97ecf07919911146512efaab950228da43f6c06f93ef4d0d6168320"
+    },
+    {
+      "id": "code:lib/pwa/staff.ts",
+      "exports": [
+        "getStaffPwaIdentity",
+        "getStaffPwaMetadata",
+        "getStaffPwaSource"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createAdminClient"
+      ],
+      "resources": [
+        "from:tenants"
+      ],
+      "source_sha256": "91bbd6205283085af1497da11e6d7671ef3453198cbcc389c3a54bda7958a0be"
     },
     {
       "id": "code:lib/supabase/admin.ts",
@@ -6920,7 +6975,7 @@
     {
       "id": "operation:next.config.ts",
       "classification": "operation",
-      "source_sha256": "29d9ff79c4ea57910dcdf466d48f12ce4e8f13ede57e1901d3d6a4b98cc0e838"
+      "source_sha256": "5fa397aaf33c0dcf8038bc9f22a33aa496a7aa2492a4fc328af3ba09dbd52b48"
     },
     {
       "id": "operation:package.json",
@@ -6950,7 +7005,7 @@
     {
       "id": "operation:public/sw.js",
       "classification": "operation",
-      "source_sha256": "a8caf110ccf32f15becfc768f1fc8af8cd30ea011475bef235980aec7740f35d"
+      "source_sha256": "0948ed6f012e8ed60369c403e0dc79a85b53c3afc546cb132377e8e298541036"
     },
     {
       "id": "operation:scripts/backup-database.sh",

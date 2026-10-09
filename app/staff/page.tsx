@@ -5,6 +5,9 @@ import { getWorkspaceData } from "@/lib/data/workspace";
 import { PersonnelApp } from "@/components/fieldgrid/staff/personnel-app";
 import { StaffProfileRecovery } from "@/components/fieldgrid/staff/profile-recovery";
 import { getNotificationPreferences } from "@/lib/notifications/data";
+import { createHash } from "node:crypto";
+import { browserSessionKey } from "@/lib/auth/browser-session";
+import { getStaffPwaIdentity } from "@/lib/pwa/staff";
 
 export default async function StaffPage() {
   const context = await getAuthContext();
@@ -19,6 +22,7 @@ export default async function StaffPage() {
   // check ahead of that RPC so a missing or inactive personnel link reaches a
   // useful recovery state instead of turning into a generic route error.
   if (!personnel) return <StaffProfileRecovery/>;
-  const notificationPreferences = await getNotificationPreferences("staff");
-  return <PersonnelApp context={{ ...context, tenant: context.tenant as TenantContext }} data={data} personnel={personnel} notificationPreferences={notificationPreferences}/>;
+  const [notificationPreferences, sessionKey, pwaIdentity] = await Promise.all([getNotificationPreferences("staff"), browserSessionKey(), getStaffPwaIdentity()]);
+  const installScope = createHash("sha256").update(JSON.stringify([context.tenant.id, context.user.id])).digest("hex");
+  return <PersonnelApp context={{ ...context, tenant: context.tenant as TenantContext }} data={data} personnel={personnel} notificationPreferences={notificationPreferences} sessionKey={sessionKey} installScope={installScope} pwaIdentity={pwaIdentity}/>;
 }

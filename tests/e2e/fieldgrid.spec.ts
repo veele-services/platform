@@ -527,7 +527,7 @@ test("personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, ur
 });
 
 test("nieuwe medewerker hervat en voltooit de volledige personeels-onboarding", async ({ page }, testInfo) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   const screenshot = async (name: string) => {
     const path = testInfo.outputPath(`${name}.png`);
     await page.screenshot({ path });
@@ -605,10 +605,25 @@ test("nieuwe medewerker hervat en voltooit de volledige personeels-onboarding", 
   await onboarding.getByRole("button", { name: "Bevestigen en afronden" }).click();
 
   await expect(onboarding).toBeHidden();
+  const installation = page.getByRole("dialog", { name: "Installeer Fieldgrid", exact: true });
+  await expect(installation).toBeVisible();
+  await expect(installation).toContainText("Je profiel is klaar");
+  await expectNoHorizontalOverflow(page);
+  await screenshot("onboarding-install-mobile");
+  await installation.getByRole("button", { name: "Voor nu overslaan", exact: true }).click();
+  await expect(installation).toBeHidden();
   await expect(page.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
   await page.reload();
   await expect(onboarding).toBeHidden();
+  await expect(installation).toBeHidden();
   await expect(page.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
+  await login(page, "new-field-worker@fieldgrid.test", "/staff");
+  await expect(installation).toBeVisible();
+  await expect(installation).toContainText("Eenmalige herinnering");
+  await installation.getByRole("button", { name: "Voor nu overslaan", exact: true }).click();
+  await login(page, "new-field-worker@fieldgrid.test", "/staff");
+  await expect(page.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
+  await expect(installation).toBeHidden();
   const mobileNavigation = page.getByRole("navigation", { name: "Mobiele navigatie" });
   await mobileNavigation.getByRole("button", { name: "Meer", exact: true }).click();
   await page.locator(".ps-more-grid").getByRole("button", { name: /Beschikbaarheid/ }).click();
