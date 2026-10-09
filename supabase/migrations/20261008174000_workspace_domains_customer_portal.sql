@@ -80,9 +80,16 @@ do $$ declare definition text;begin
  execute replace(definition,$needle$array['planning','personeel','rapportage','finance','tickets']::text[]$needle$,$replacement$array['planning','personeel','rapportage','finance','tickets','klantportaal']::text[]$replacement$);
 end $$;
 -- Explicit owner request: enable the already built portal for Veele Services in both isolated environments.
-with changed as (
- update public.tenant_settings s set enabled_services=array_append(s.enabled_services,'klantportaal')
- from public.tenants t where t.id=s.tenant_id and t.slug='veele-services' and t.status='active'
- and not ('klantportaal'=any(s.enabled_services)) returning s.tenant_id
-) insert into public.audit_events(tenant_id,action,entity_type,entity_id,after_data)
- select tenant_id,'tenant.customer_portal.enabled','tenant_settings',tenant_id,'{"module":"klantportaal","source":"owner-request-2026-10-08"}'::jsonb from changed;
+-- Preserve the platform entitlement trigger. This migration-only backfill needs
+-- its service context even on a direct postgres connection without API claims.
+do $$ declare previous_role text:=current_setting('request.jwt.claim.role',true);
+begin
+ perform set_config('request.jwt.claim.role','service_role',true);
+ with changed as (
+  update public.tenant_settings s set enabled_services=array_append(s.enabled_services,'klantportaal')
+  from public.tenants t where t.id=s.tenant_id and t.slug='veele-services' and t.status='active'
+  and not ('klantportaal'=any(s.enabled_services)) returning s.tenant_id
+ ) insert into public.audit_events(tenant_id,action,entity_type,entity_id,after_data)
+  select tenant_id,'tenant.customer_portal.enabled','tenant_settings',tenant_id,'{"module":"klantportaal","source":"owner-request-2026-10-08"}'::jsonb from changed;
+ perform set_config('request.jwt.claim.role',previous_role,true);
+end $$;

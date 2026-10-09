@@ -963,7 +963,7 @@
       "evidence": [
         "docs/security/portal-release-verification-2026-10-05.md",
         "docs/security/otp-activity-verification-2026-10-05.md",
-        "docs/security/release-security-inventory.md#portaalreeks-bronreview-v\u00f3\u00f3r-deployment--5-oktober-2026"
+        "docs/security/release-security-inventory.md#portaalreeks-bronreview-vóór-deployment--5-oktober-2026"
       ]
     },
     {
@@ -5843,15 +5843,17 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "263ac141b160fffe6b7b7f18d79851da1dd29d5f7370caed200c5552745d3ca1",
-      "status": "controlled",
+      "surfaceFingerprint": "0466d62d23ef49f7e16ff7096652af87182f6b529fd0ea8e6981221e4459e804",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/management-workspace-verification-2026-10-09.md#evidence-state-and-final-ledger-procedure",
         "scripts/migration-manifest.ts",
         "lib/env/migration-manifest.test.ts",
         "supabase/migrations/20261008173000_tenant_management_roles.sql",
         "supabase/migrations/20261008174000_workspace_domains_customer_portal.sql",
-        "supabase/migrations/20261008175000_platform_support_operators.sql"
+        "supabase/migrations/20261008175000_platform_support_operators.sql",
+        "docs/security/customer-portal-migration-verification-2026-10-09.md",
+        "scripts/test-workspace-domains.mjs"
       ]
     },
     {
