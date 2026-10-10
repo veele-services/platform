@@ -13,6 +13,8 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
 - Vaste artikellinks, inhoudsopgave en toeganggefilterde verwante artikelen.
 - Alleen platformbeheerders schrijven; concept, expliciete publicatie, archivering,
   versiegeschiedenis en herstel behouden de laatste gepubliceerde lezersversie.
+- Een geopende editor behoudt onopgeslagen tekst bij live verversing; een
+  concurrerende opslag blijft via de revisiecontrole geweigerd.
 - Ticketbehandelaars zoeken artikelen voor de daadwerkelijke ontvanger, lezen ze
   in het gesprek en voegen een klikbare link toe aan een zelf te verzenden concept.
 - Volledige bronanalyse en bruikbare productinhoud voor de toekomstige publieke website.

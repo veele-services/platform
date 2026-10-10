@@ -11,7 +11,7 @@ export async function saveKnowledge(input: unknown) {
     return { ok: true as const, slug: z.object({ slug: z.string() }).parse(result).slug };
   } catch (error) {
     const e = error as { code?: string };
-    return { ok: false as const, error: e.code === "40001" ? "Dit artikel is intussen gewijzigd. Vernieuw het artikel; je invoer is bewaard." : error instanceof z.ZodError ? "Controleer titel, samenvatting, inhoud, doelgroep en artikelcode." : "Niet opgeslagen. Controleer je toegang en invoer en probeer opnieuw." };
+    return { ok: false as const, error: e.code === "40001" ? "Dit artikel is intussen gewijzigd. Je tekst blijft in de editor staan. Kopieer je wijzigingen en open daarna de nieuwste versie." : error instanceof z.ZodError ? "Controleer titel, samenvatting, inhoud, doelgroep en artikelcode." : "Niet opgeslagen. Controleer je toegang en invoer en probeer opnieuw." };
   }
 }
 export async function findTicketKnowledge(input: unknown) {

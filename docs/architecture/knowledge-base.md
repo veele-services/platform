@@ -41,6 +41,12 @@ van een collega. Payloadgebonden aanvraagbewijzen dedupliceren een herhaalde
 beheeropdracht en weigeren hergebruik van een sleutel met andere inhoud.
 Toegang wordt ook vóór een herhaalde opdracht opnieuw gecontroleerd.
 
+Een geopende editor houdt zijn oorspronkelijke artikel/revisie apart van de
+live leesweergave. Verversen of een gelijktijdige opslag wist onopgeslagen tekst
+niet. Een revisieconflict weigert de opslag en behoudt de invoer, met uitleg om
+de wijzigingen te kopiëren en de actuele versie opnieuw te openen. Er is geen
+stilzwijgende samenvoeging of overschrijving van een andere beheerdersversie.
+
 `content/knowledge/*.mjs` zijn de beoordeelde initiële redactiebronnen.
 `scripts/generate-knowledge-seed.mjs` maakt de eenmalige seedmigratie. De runtime
 importeert deze bestanden niet: zij leest uitsluitend de actuele database.

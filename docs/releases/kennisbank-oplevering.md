@@ -67,6 +67,10 @@ te verwijderen. De daadwerkelijke ticketbericht- en autorisatiecontracten bleven
 De extra lokale HTTP-aanroep is herhaald na correctie van de scanneromgevingsoptie;
 met `CLAMAV_ENABLED` en de bestaande `CLAMAV_SOCKET` slaagden alle tien proeven.
 Desktopplatform en mobiel klantportaal zijn bovendien visueel gecontroleerd.
+Een aanvullende redactiereview vond dat een live artikelverversing een geopende
+editor kon resetten. De editor gebruikt nu een vaste beginsnapshot. De browserproef
+voert een daadwerkelijke concurrerende adminopslag uit en controleert dat lokale
+invoer behouden blijft en de verouderde opslag wordt geweigerd.
 
 Volledige main-CI blijft vóór exacte stagingpromotie verplicht. De stagingworkflow
 herhaalt alle tests, maakt een backup, migreert, bouwt, installeert en controleert

@@ -77,3 +77,8 @@ twee operationele bestanden (package en manifest). Er is geen verwijderd oppervl
 De 1.161 ongewijzigde ledgerentries zijn exact behouden. De ticketcomposer,
 linkrenderer, editor, live clientstate en CSS zijn daarnaast inhoudelijk
 beoordeeld, ook wanneer de structurele detector ze niet als data-entrypoint telt.
+
+De editor bewaart een vaste beginsnapshot. Een gewone live hercontrole kan
+geen onopgeslagen tekst remounten; een echte concurrerende platformopdracht
+blijft via de revisiecontrole geweigerd. De browserproef controleert tekstbehoud
+na focushercontrole, geweigerde conflictopslag en bewust openen van de nieuwe versie.

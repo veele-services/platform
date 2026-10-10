@@ -2298,14 +2298,15 @@
     },
     {
       "id": "code:lib/knowledge/actions.ts",
-      "surfaceFingerprint": "64f3b1556cce882f3bb2ab97de0f035f709d5cc19cedaec84a2202f21729e9fa",
-      "status": "controlled",
+      "surfaceFingerprint": "f797a1c133dafa2693861d68baf230f569384b930cc85d1ecdab94789be08605",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/knowledge-base-review-2026-10-10.md",
         "docs/architecture/knowledge-base.md",
         "scripts/test-knowledge-base.mjs",
         "lib/knowledge/model.test.ts",
-        "tests/e2e/knowledge-base.spec.ts"
+        "tests/e2e/knowledge-base.spec.ts",
+        "tests/e2e/knowledge-base.spec.ts: concurrent save rejects stale revision and preserves unsaved editor text after focus refresh"
       ]
     },
     {
