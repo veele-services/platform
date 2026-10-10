@@ -324,6 +324,16 @@
       "source_sha256": "62a527e936e8c769cb12f4a94a61791e2f5bf61ec023a493f35758520ddf4588"
     },
     {
+      "id": "code:app/api/knowledge/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "c0d3a72406538327c5d8a9ccb54e33998f5ce44952d3c7735e65edf4cb3c9f11"
+    },
+    {
       "id": "code:app/api/mollie/webhook/route.ts",
       "exports": [
         "POST"
@@ -681,6 +691,28 @@
       "observedControls": [],
       "resources": [],
       "source_sha256": "a6958f7582a010ae66236d161c2a9857bca318a966ac308ced0aa2a3e374aea0"
+    },
+    {
+      "id": "code:app/app/kennisbank/[slug]/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "de5ec8b152f6b8604824c0db3f8ed8e67d6a72feaa64b008fb893a92e79a412b"
+    },
+    {
+      "id": "code:app/app/kennisbank/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "ab0aafe875c0bc4fc0ecc2f0016e871520ad9cad0c32056deae03960314546b9"
     },
     {
       "id": "code:app/app/klanten/[customerId]/page.tsx",
@@ -1507,6 +1539,28 @@
       "source_sha256": "def036d999aff1c6e5f8a04d16cc11278015bc91fb73ed1667a48ccfef9660bc"
     },
     {
+      "id": "code:app/klant/kennisbank/[slug]/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "cc83a7ca803dfe8eef6c9474f7951189930d956833a2a5b3371ce38df855130a"
+    },
+    {
+      "id": "code:app/klant/kennisbank/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "276a8763f2cefe722a1b6dcf35b977770e6db671b9d3b1bdd49bc30732255b7e"
+    },
+    {
       "id": "code:app/klant/notificaties/[id]/page.tsx",
       "exports": [
         "default"
@@ -1720,6 +1774,28 @@
         "rpc:platform_workspace_domain_command"
       ],
       "source_sha256": "8753bbb58cb78313fa8527eb8cf28612c2f679282c01851f85e748a7254f0616"
+    },
+    {
+      "id": "code:app/platform/kennisbank/[slug]/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "bbcd920e6b2b1a8d295b1698ecb3897b2c38c88daa06e22b401bdb608c5a6e86"
+    },
+    {
+      "id": "code:app/platform/kennisbank/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "a97cd6f2bb4eac5e2dcf1b91ae0ce740e1f30e6818d1058ed0cc689a48a4bb0d"
     },
     {
       "id": "code:app/platform/layout.tsx",
@@ -1945,6 +2021,28 @@
       "source_sha256": "c6b374155f9486d1379638c05d3b2468d94d8650a66b170fdd8cbe88630f0160"
     },
     {
+      "id": "code:app/staff/kennisbank/[slug]/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "7faa6bcd8870ed6bd56ee9de2c4d6b257a9bdcc3ead08095737c04f431d9b26d"
+    },
+    {
+      "id": "code:app/staff/kennisbank/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "267095b17207232814802a92d874044457579169276f1fce5cef47654307b849"
+    },
+    {
       "id": "code:app/staff/layout.tsx",
       "exports": [
         "default",
@@ -2149,6 +2247,20 @@
       "source_sha256": "2c764f86141dd7e7a36b638548eed5d07fb60e0489fbab4f62f306c451618bc0"
     },
     {
+      "id": "code:components/fieldgrid/knowledge/routes.tsx",
+      "exports": [
+        "KnowledgePage"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "auth.getUser",
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "3636b2904160e057a74221af03f437bd1ebc10f862c5902f472253eda2fd3272"
+    },
+    {
       "id": "code:components/fieldgrid/notifications/routes.tsx",
       "exports": [
         "NotificationCampaignRoute",
@@ -2179,6 +2291,7 @@
     {
       "id": "code:components/fieldgrid/product/routes.tsx",
       "exports": [
+        "CustomerProductFrame",
         "ProductPage"
       ],
       "classification": "data-access-module",
@@ -2188,7 +2301,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "1cdfc2e14467f539a00b96b5f7457116847016f9be66c76e2bb27ba1829e168a"
+      "source_sha256": "4d1553b512b1298db4e50c566f9f0b3900151c6d4470ca48c2414683bcd4630d"
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
@@ -2213,7 +2326,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "aba011825754f3d03d2346058f459cd6c48460948149c10d4d7a0fad05d9cb04"
+      "source_sha256": "b7dc9973c06d9efae806da6380287cc988ff023d33ea2abaca6b81f52c754baa"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
@@ -2225,7 +2338,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "8db1a5b0617655c1b3c2a32a4bd90d51b0c654d7d7d741241552be3f8c7b9bc9"
+      "source_sha256": "d669c0884d017b468990de5a99a7adef6f17674b500fd5fa18b8e3a3f45fd510"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell.tsx",
@@ -2238,7 +2351,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "dd8f225825f3b424866e58b9eec4c8a10dfc7d0c3e1fdb3f69615afc0724b7a1"
+      "source_sha256": "8e143a7c4fbcf992278e67e6ce1f1dae1890d39c49c99e6cab65361c859c557f"
     },
     {
       "id": "code:components/fieldgrid/tickets/routes.tsx",
@@ -2825,6 +2938,35 @@
         "rpc:dismiss_account_guide"
       ],
       "source_sha256": "f21f42534ac8fc2990e75dfa0fe9b5950eaddbe2b83b8c4c87f4f961d8cdbd2b"
+    },
+    {
+      "id": "code:lib/knowledge/actions.ts",
+      "exports": [
+        "findTicketKnowledge",
+        "saveKnowledge"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "361fb6504df405e0b74dc08dcedf496d661697280e83a3b162f7fa8d0da74f4e"
+    },
+    {
+      "id": "code:lib/knowledge/data.ts",
+      "exports": [
+        "getKnowledgeActor",
+        "knowledgeArticle",
+        "knowledgeList",
+        "knowledgeQuery",
+        "knowledgeTicketSearch"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "auth.getUser",
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "e4b4982eebf6203fccde3fde86664542f5115f4400c66f5a339cfce5f7e18385"
     },
     {
       "id": "code:lib/management/auth.ts",
@@ -3784,6 +3926,57 @@
     },
     {
       "id": "db:private.file_scan_receipts",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.knowledge_articles",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.knowledge_receipts",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.knowledge_versions",
       "classification": "table",
       "rls": true,
       "force_rls": true,
@@ -7405,7 +7598,7 @@
     {
       "id": "operation:package.json",
       "classification": "operation",
-      "source_sha256": "c4f992de9f86e89882c5f376cf1746e5a52d25b674bd95980dd63b5d77088199"
+      "source_sha256": "dd2e91b45227f97f46d7b4b1de230f5faf051ee8b2054e755b1fffec66875fe9"
     },
     {
       "id": "operation:patches/braces@3.0.3.patch",
@@ -7575,7 +7768,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "cae5ffcb58bbaf04ed2a2fb54f6000616a911df419f6bb8bddb2237ce343c7f5"
+      "source_sha256": "40d250d8402187e6e6170455f708467ec9880ae1d0c3fd09260bd5abdd383e01"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -8656,6 +8849,69 @@
       "authenticated": true,
       "service": false,
       "definition_sha256": "57e8d3ec275b7d6319269845d6a71452e6ad40a758a98428531b927c474f2f0a"
+    },
+    {
+      "id": "rpc:private.knowledge_actor(t uuid, ctx text, a uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "240f15d558b1cf076d4212f40307b0da0561663fd957c613be3d2f6f1a29a0d6"
+    },
+    {
+      "id": "rpc:private.knowledge_admin()",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "422723cc212a25aece4e13a7e4d9b975e420ccf6f5fbd8043fffc5cd08bd1936"
+    },
+    {
+      "id": "rpc:private.knowledge_article_dto(a private.knowledge_articles, ctx text, admin boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "d4d4f5f377e6e1c400f1db6001b8c7b8707217b4629a0ce3cb509a7561a96ccc"
+    },
+    {
+      "id": "rpc:private.knowledge_card(a private.knowledge_articles, c jsonb)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "a112c96986b58eec9ab2b42415161c222a68d747d3068c97b02b2ee45558009a"
+    },
+    {
+      "id": "rpc:private.knowledge_content_valid(c jsonb)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "300af23849262f4a88372fdcdf3986ac4b5da446646f6b399323c02792067f08"
+    },
+    {
+      "id": "rpc:private.knowledge_results(ctx text, admin boolean, p jsonb)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "04afcba50d7fc9b78ca06d40457c81d928d4bae68725bd764591fb2d25819b83"
+    },
+    {
+      "id": "rpc:private.knowledge_vector(c jsonb)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "3f604f658afab7504bf0e1801921324c4b17da6804f8d16884ecc18aa986ce3f"
     },
     {
       "id": "rpc:private.management_allowed(t uuid, cap text)",
@@ -11977,6 +12233,33 @@
       "authenticated": true,
       "service": false,
       "definition_sha256": "74cb703e49b441eff919bb4b96ed2e18081e7e2a95477ad0ca742b1edfa4dcbf"
+    },
+    {
+      "id": "rpc:public.knowledge_command(command text, payload jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "34b972f65de282b152e6a3adefe00596623fe301649e8eac36bc2fc597434d2d"
+    },
+    {
+      "id": "rpc:public.knowledge_query(target_tenant uuid, actor_context text, operation text, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "d9dad3dc856c845de7ebdd6ababb2bc59f0c70711f12a691606f853ea4ad2c64"
+    },
+    {
+      "id": "rpc:public.knowledge_ticket_search(target_tenant uuid, actor_context text, ticket_id uuid, message_audience text, search text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "0b4735e3e50b8ea37f92047d1ff58a720fdc746c08cf8c5dba801b97b2e22729"
     },
     {
       "id": "rpc:public.manage_work_order(target_tenant uuid, input jsonb)",

@@ -681,6 +681,16 @@
       "version": "20261009220000",
       "name": "product_management",
       "sha256": "3c9bc9a55cde8ae077d3ecdf89f29d933eb0e7fd477a11a1f9f118bbdde5f6d6"
+    },
+    {
+      "version": "20261010100000",
+      "name": "knowledge_base",
+      "sha256": "56435b7d5f02ab32ceb165963adf47246cf603933452d8acf5f592c236e4cf54"
+    },
+    {
+      "version": "20261010100100",
+      "name": "knowledge_base_articles",
+      "sha256": "03d307cde03347afcf44bd41162950ff8f6c41c23a8c5df1fe2ce371a7498d0b"
     }
   ]
 }

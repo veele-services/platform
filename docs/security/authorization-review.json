@@ -272,6 +272,18 @@
       ]
     },
     {
+      "id": "code:app/api/knowledge/route.ts",
+      "surfaceFingerprint": "a3adec4989648298c0bc2e57f39173b6f4825a0930ecd5ff85e6b466364bdf45",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
       "id": "code:app/api/mollie/webhook/route.ts",
       "surfaceFingerprint": "b91110669cf2e231b0ca72844b81f4a1ff47972e9d5d8b2694602010c74bb7f2",
       "status": "controlled",
@@ -555,6 +567,30 @@
         "scripts/test-management-roles.mjs",
         "lib/management/model.test.ts",
         "lib/management/invitation-actions.test.ts"
+      ]
+    },
+    {
+      "id": "code:app/app/kennisbank/[slug]/page.tsx",
+      "surfaceFingerprint": "7bd697321503334195490806f18f365f5e2c3a6ed528bf88dc297a8c612df054",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "code:app/app/kennisbank/page.tsx",
+      "surfaceFingerprint": "c408220b9cb1cb392a10ed48e8eedaf42f8f36cd37a4a7d61a876c76a11cf25e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
       ]
     },
     {
@@ -1116,6 +1152,30 @@
       ]
     },
     {
+      "id": "code:app/klant/kennisbank/[slug]/page.tsx",
+      "surfaceFingerprint": "69c2bc2fe77d6b8782b7f6df0c0a8e69ab66c13b7c71b219f4f964714c3ec1bc",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "code:app/klant/kennisbank/page.tsx",
+      "surfaceFingerprint": "75673c500c61dd0bd0077044ffcbc3fc571b4e11a9195ccfee937619a671b782",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
       "id": "code:app/klant/notificaties/[id]/page.tsx",
       "surfaceFingerprint": "2c1a64e0480d20b8d545eb2008bcb01fb3461863c579056a22a72feec17251d5",
       "status": "controlled",
@@ -1279,6 +1339,30 @@
         "scripts/test-module-security.mjs",
         "lib/tenancy/workspace-domain.test.ts",
         "lib/tenancy/proxy-boundary.test.ts"
+      ]
+    },
+    {
+      "id": "code:app/platform/kennisbank/[slug]/page.tsx",
+      "surfaceFingerprint": "7ac5d685355bbf83ef104e3936f27e4a7a8d7f1063e5769518ee48110713d063",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "code:app/platform/kennisbank/page.tsx",
+      "surfaceFingerprint": "0627eca308767a5be8f8265769e8e00293051a2894e74a0d76d63ee3d0c44a99",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
       ]
     },
     {
@@ -1463,6 +1547,30 @@
         "lib/addresses/form.test.ts",
         "scripts/test-customer-portal.mjs",
         "tests/e2e/login-branding.spec.ts"
+      ]
+    },
+    {
+      "id": "code:app/staff/kennisbank/[slug]/page.tsx",
+      "surfaceFingerprint": "e1a960adfefec9e315d006c8fc6daaff33a46976f3bd121aa799703003e67e05",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "code:app/staff/kennisbank/page.tsx",
+      "surfaceFingerprint": "a47dd4e2fd2524eb8e0676cc8a0c93ca32399c1d9b2e4d37f962c66478cb1a9d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
       ]
     },
     {
@@ -1674,6 +1782,18 @@
       ]
     },
     {
+      "id": "code:components/fieldgrid/knowledge/routes.tsx",
+      "surfaceFingerprint": "525ca5c746ee0cb0349c5ca83c04278fcd7c3c5b6602a571a7d598e646132591",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
       "id": "code:components/fieldgrid/notifications/routes.tsx",
       "surfaceFingerprint": "c5e035a39ad29e7b0a295d48457d22cd606ebf79bca6a5ade033d89ee904cab6",
       "status": "corrected-and-rechecked",
@@ -1701,7 +1821,7 @@
     },
     {
       "id": "code:components/fieldgrid/product/routes.tsx",
-      "surfaceFingerprint": "fd7175607e986ff1bada1a8b06a581c7c8dda536cba40b75da8d1cf1ae052e8a",
+      "surfaceFingerprint": "c46f9c22615bb518f60a563bd78227df615d44a78fe67d52d6b9c0526a20402b",
       "status": "controlled",
       "evidence": [
         "docs/security/product-management-review-2026-10-09.md",
@@ -1709,7 +1829,12 @@
         "scripts/test-product-management.mjs",
         "lib/product/data.test.ts",
         "lib/product/actions.test.ts",
-        "tests/e2e/product-management.spec.ts"
+        "tests/e2e/product-management.spec.ts",
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
       ]
     },
     {
@@ -1724,7 +1849,7 @@
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "a461a1303256ba789e566643f77775a83134eeefab2863c1c583ee3950360963",
+      "surfaceFingerprint": "60b8e3f28e3684575f0497b4ce0c4e8dec902a4e5b2d01368364f658ef3eeb45",
       "status": "controlled",
       "evidence": [
         "docs/security/product-management-review-2026-10-09.md",
@@ -1732,12 +1857,17 @@
         "scripts/test-product-management.mjs",
         "lib/product/data.test.ts",
         "lib/product/actions.test.ts",
-        "tests/e2e/product-management.spec.ts"
+        "tests/e2e/product-management.spec.ts",
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
-      "surfaceFingerprint": "b20ac3bd0ccf6fcdc1f77ab3c9297a52a4378999f0ae24198a08ea40ae965849",
+      "surfaceFingerprint": "1551eed2e311980ed75455f0bfe436d079a47442bcebccc01113c2ba63772797",
       "status": "controlled",
       "evidence": [
         "docs/security/product-management-review-2026-10-09.md",
@@ -1745,12 +1875,17 @@
         "scripts/test-product-management.mjs",
         "lib/product/data.test.ts",
         "lib/product/actions.test.ts",
-        "tests/e2e/product-management.spec.ts"
+        "tests/e2e/product-management.spec.ts",
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell.tsx",
-      "surfaceFingerprint": "90da47e8700851074b15db4a6ad5bb274cbf2c45a9fc4a56e4ac0888f7291c7e",
+      "surfaceFingerprint": "c8c3557c98a4e30e0925718981d7d2e5269621627952c39ea830ee62507bb423",
       "status": "controlled",
       "evidence": [
         "docs/security/product-management-review-2026-10-09.md",
@@ -1758,7 +1893,12 @@
         "scripts/test-product-management.mjs",
         "lib/product/data.test.ts",
         "lib/product/actions.test.ts",
-        "tests/e2e/product-management.spec.ts"
+        "tests/e2e/product-management.spec.ts",
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
       ]
     },
     {
@@ -2154,6 +2294,30 @@
         "docs/security/dashboard-release-verification-2026-10-06.md",
         "Reviewed own auth.uid live-session preference only, 65 constrained keys, RLS/FORCE and authenticated-only read/command grants; no business capability or caller account/tenant parameter. Existing verified account boundary retained.",
         "scripts/test-account-guides.mjs: independent account/device sessions, idempotence, own-only RLS, direct DML/anonymous/service/expired/banned/revoked rejection; tests/e2e/account-guides.spec.ts and tests/e2e/customer-portal.spec.ts: persistence, transport retry and independent devices."
+      ]
+    },
+    {
+      "id": "code:lib/knowledge/actions.ts",
+      "surfaceFingerprint": "64f3b1556cce882f3bb2ab97de0f035f709d5cc19cedaec84a2202f21729e9fa",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "code:lib/knowledge/data.ts",
+      "surfaceFingerprint": "adb5ea236794ac2be02d8c603e3f50d66829a062c5e38625f5ff4e364efdc5ac",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
       ]
     },
     {
@@ -2832,6 +2996,42 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "db:private.knowledge_articles",
+      "surfaceFingerprint": "e6f74d9776c1b67114358b57830a80b4dac5099df048d418134569de2d6a9576",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "db:private.knowledge_receipts",
+      "surfaceFingerprint": "2f3bf604d78ce2e8ee823b18e2161cf3e71e61f5dd93a2415c3a6da2dbc5e4b1",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "db:private.knowledge_versions",
+      "surfaceFingerprint": "ebe8c3ce9c05446ab4add798ca4cc646a0b325ca8dd7384206b282d879075dbe",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
       ]
     },
     {
@@ -5813,12 +6013,15 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "f855ba75c3c45b1e4dc2674e854ce825ac970a9892d8a1f8d4aaef2c69bc36ce",
+      "surfaceFingerprint": "061108a1614c12c884dc86883ace0167293b256478bcce488b3887ece559d7e6",
       "status": "controlled",
       "evidence": [
         "docs/security/product-management-review-2026-10-09.md",
         "docs/architecture/product-management.md",
-        "scripts/test-product-management.mjs"
+        "scripts/test-product-management.mjs",
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/migration-manifest.json: clean replay; all 136 historical hashes unchanged"
       ]
     },
     {
@@ -6203,12 +6406,15 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "2df583b7ae2304b646ad22709337028ad2852e5738a63ceb57f90963cd20c640",
+      "surfaceFingerprint": "45399fb831cbf38dd2928bae6dbc32372ecdc75c627702c0d78454f4f90e6ee3",
       "status": "controlled",
       "evidence": [
         "docs/security/product-management-review-2026-10-09.md",
         "docs/architecture/product-management.md",
-        "scripts/test-product-management.mjs"
+        "scripts/test-product-management.mjs",
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/migration-manifest.json: clean replay; all 136 historical hashes unchanged"
       ]
     },
     {
@@ -7660,6 +7866,90 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:private.knowledge_actor(t uuid, ctx text, a uuid)",
+      "surfaceFingerprint": "dba5fb665cefc77bb8ba6cd1475221d68fea4a2899086d366a8218fe10758aff",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.knowledge_admin()",
+      "surfaceFingerprint": "2535c665cdcb688c960330e70e64d60ef8c9b342b34f184f960e9e08053eee79",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.knowledge_article_dto(a private.knowledge_articles, ctx text, admin boolean)",
+      "surfaceFingerprint": "33c6911773fe78f1c9c12d0c064f1bf2163a4c303b323df60716478172a0981d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.knowledge_card(a private.knowledge_articles, c jsonb)",
+      "surfaceFingerprint": "23b20d9392c2013585c584fb69768971dd98022ef48ce5396fc1be64caf2c61d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.knowledge_content_valid(c jsonb)",
+      "surfaceFingerprint": "ed75f8e9287484259307549e2aa91beca1066bc910c0f3944c2a35d96f51073c",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.knowledge_results(ctx text, admin boolean, p jsonb)",
+      "surfaceFingerprint": "e8559463a3c4dee22e58ee09b347af622db84567fd941876e9e3bd94b43a08a5",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.knowledge_vector(c jsonb)",
+      "surfaceFingerprint": "1e7d0e7f6e5110ee7410a06726a8c86958df5a6ec78c33b971e459f901f528d8",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
       ]
     },
     {
@@ -11894,6 +12184,42 @@
         "scripts/test-management-roles.mjs",
         "scripts/test-management-mutation-replies.mjs",
         "docs/architecture/management-rpc-permissions.json"
+      ]
+    },
+    {
+      "id": "rpc:public.knowledge_command(command text, payload jsonb, request_id uuid)",
+      "surfaceFingerprint": "c83c65f918fb70b1eff422a2acc021a7c05bf2fc35bb097415a0e43e8a2021d7",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.knowledge_query(target_tenant uuid, actor_context text, operation text, payload jsonb)",
+      "surfaceFingerprint": "fc95ca02b298bb0c64df0d69139e5f3898b20613747b1f13d2ea804b15b59dc7",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.knowledge_ticket_search(target_tenant uuid, actor_context text, ticket_id uuid, message_audience text, search text)",
+      "surfaceFingerprint": "b65d9686a7beb746faaef92a8bf88bb30632bea4adcf29c3d0b90b1fdfa087c9",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/knowledge-base-review-2026-10-10.md",
+        "docs/architecture/knowledge-base.md",
+        "scripts/test-knowledge-base.mjs",
+        "lib/knowledge/model.test.ts",
+        "tests/e2e/knowledge-base.spec.ts"
       ]
     },
     {

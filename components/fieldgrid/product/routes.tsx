@@ -89,7 +89,7 @@ export async function ProductPage({
   }
   return <CustomerProductFrame>{content}</CustomerProductFrame>;
 }
-async function CustomerProductFrame({ children }: { children: ReactNode }) {
+export async function CustomerProductFrame({ children }: { children: ReactNode }) {
   const [identity, actor] = await Promise.all([
     getCustomerPortal(),
     getProductActor("customer"),
@@ -114,6 +114,7 @@ async function CustomerProductFrame({ children }: { children: ReactNode }) {
           />
           <nav>
             <Link href="/klant">Mijn klantomgeving</Link>
+            <Link href="/klant/kennisbank">Kennisbank</Link>
             <Link href="/klant/notificaties">Notificaties</Link>
             <AccountMenu
               name={workspace.profile.fullName}

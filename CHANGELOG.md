@@ -4,6 +4,22 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
 
 ## Nog niet uitgebracht
 
+### 1.1.0-rc.2 — Kennisbank
+
+- Centrale kennisbank voor platformbeheer, tenantbeheer, personeel en klanten, met
+  46 uitgebreide Nederlandstalige artikelen, stappenplannen en veelgestelde vragen.
+- Zoeken in titel, trefwoorden, samenvatting en inhoud, met Nederlandse woordvormen,
+  relevante sortering, typefoutondersteuning, categorieën en paginatie.
+- Vaste artikellinks, inhoudsopgave en toeganggefilterde verwante artikelen.
+- Alleen platformbeheerders schrijven; concept, expliciete publicatie, archivering,
+  versiegeschiedenis en herstel behouden de laatste gepubliceerde lezersversie.
+- Ticketbehandelaars zoeken artikelen voor de daadwerkelijke ontvanger, lezen ze
+  in het gesprek en voegen een klikbare link toe aan een zelf te verzenden concept.
+- Volledige bronanalyse en bruikbare productinhoud voor de toekomstige publieke website.
+
+Deze kandidaat volgt de bestaande bewuste stagingpromotie. Productie blijft
+1.0.0 totdat dezelfde kandidaat afzonderlijk wordt geaccepteerd en vrijgegeven.
+
 ### 1.1.0-rc.1 — Productbeheer
 
 - Productbeheer in het platform met ideeënbehandeling, private notities, roadmapbord,
