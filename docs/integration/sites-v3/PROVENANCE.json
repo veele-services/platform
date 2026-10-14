@@ -1,0 +1,67 @@
+{
+  "package": "Fieldgrid-Codex-Overdracht",
+  "version": "3.0",
+  "prepared_date": "2026-10-14",
+  "timezone": "Europe/Amsterdam",
+  "production_marketing_url": "https://www.fieldgrid.nl",
+  "ui_ux_authority": "Latest approved Sites source and interactions are binding; adapt to existing backend without redesign.",
+  "target_repository": {
+    "url": "https://github.com/veele-services/platform",
+    "default_branch": "main",
+    "baseline_commit_sha": "71df59ab0390ffeae482c7edbaf27efe3fa6546d",
+    "old_baseline_commit_sha": "9630c8f74a02cef98a12d213ec2ed87f8365afd4",
+    "verification": "GitHub default branch resolution, full git tree and 37 selected full files; read only; runtime not verified",
+    "reverification": "Native GitHub main/compare unchanged: 0 new commits and 0 changed files; 17 relevant files reread; original 37 exact baseline blobs retained."
+  },
+  "sources": [
+    {
+      "name": "platform",
+      "url": "https://fieldgrid-platform.dgwebserv.chatgpt.site",
+      "version_number": 6,
+      "source_commit_sha": "3999c85b76aecf729f3b2bba86e1535255915848",
+      "site_version_id": "appgprj_6aceb2b726cc81918ba567f7d949190c~appgver_632ec5a41f088191835e1478a173d62f",
+      "export_root": "source/platform"
+    },
+    {
+      "name": "marketing",
+      "url": "https://fieldgrid-premium-concepts.dgwebserv.chatgpt.site",
+      "version_number": 4,
+      "source_commit_sha": "c78377808dc560f4b8c2288b69dfe504845d8c94",
+      "site_version_id": "appgprj_6aced4db8a108191aed667bb481515f4~appgver_2781d576683c8191bb610d22f7613855",
+      "export_root": "source/marketing"
+    }
+  ],
+  "export": {
+    "method": "Immutable Git tracked blobs; unchanged bytes; SOURCE-MANIFEST contains sizes, modes, Git blob SHA1 and SHA256",
+    "excluded_tracked_files": [
+      ".openai/hosting.json"
+    ],
+    "never_exported": [
+      ".git",
+      "node_modules",
+      "build output",
+      "runtime state",
+      "databases",
+      "secret environment files",
+      "Sites bearer/write credentials",
+      "live CRM records"
+    ]
+  },
+  "limits": {
+    "target_repository_modified": false,
+    "remote_database_modified": false,
+    "hosting_or_dns_modified": false,
+    "production_mail_sent": false,
+    "new_browser_qa_performed": false,
+    "reference_reads_do_not_prove_runtime": true
+  },
+  "supersedes": {
+    "package": "Fieldgrid-Codex-Staging-Overdracht-v2.0",
+    "platform_source_commit": "362f57c27c153b8c77d2c629e94a8a2eb641e66a",
+    "note": "Latest source/versions/UI order and new website/CRM/domain integration replace old snapshot. Historic functional depth retained with explicit lower precedence."
+  },
+  "edition": "complete-refresh-2026-10-15",
+  "reverified_date": "2026-10-15",
+  "completeness_matrix": "docs/09-SCHERMEN-EN-ACTIEMATRIX.md",
+  "reverification_evidence": "reference/actualiteitscontrole/"
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 140 140" role="img" aria-labelledby="title desc">
+<title id="title">Fieldgrid Grid Spark icon</title>
+<desc id="desc">Fieldgrid Grid Spark concept 03. Transparent true vector artwork. Brand colours: green #8ed59b, navy #ffffff. All lettering is outlined; no fonts or raster assets required.</desc>
+<g transform="translate(-59.7 -414.6)">
+  <path id="tile-top-left" fill="#8ed59b" d="M 69.2,438.4 H 97.4 C 108.0,438.4 116.1,446.6 116.1,457.1 V 484.4 C 116.1,486.6 114.6,488.1 112.4,488.1 H 84.5 C 74.0,488.1 65.8,480.0 65.8,469.4 V 442.0 C 65.8,439.9 67.1,438.4 69.2,438.4 Z"/>
+  <path id="tile-top-right" fill="#ffffff" d="M 144.9,421.6 H 166.2 C 168.4,421.6 169.6,422.9 169.6,425.0 V 447.7 C 169.6,457.6 162.3,464.8 152.5,464.8 H 130.6 C 128.5,464.8 127.2,463.4 127.2,461.3 V 439.3 C 127.2,429.4 135.0,421.6 144.9,421.6 Z"/>
+  <path id="tile-bottom-left" fill="#ffffff" d="M 84.1,498.7 H 112.3 C 114.6,498.7 116.1,500.2 116.1,502.5 V 528.9 C 116.1,539.5 108.0,547.6 97.5,547.6 H 69.3 C 67.1,547.6 65.8,546.3 65.8,544.1 V 517.0 C 65.8,506.8 73.8,498.7 84.1,498.7 Z"/>
+  <path id="tile-bottom-right" fill="#8ed59b" d="M 133.0,476.0 H 170.9 C 183.7,476.0 193.6,485.9 193.6,498.7 V 539.1 C 193.6,541.2 192.3,542.6 190.2,542.6 H 150.0 C 137.1,542.6 127.2,532.7 127.2,519.8 V 481.8 C 127.2,478.3 129.5,476.0 133.0,476.0 Z"/>
+</g>
+</svg>
