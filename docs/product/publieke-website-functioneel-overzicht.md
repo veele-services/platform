@@ -1,11 +1,14 @@
 # Fieldgrid — productbrief voor de publieke website
 
-Stand: 10 oktober 2026. Dit document vertaalt de actuele codebase naar een
+Functionele analyse: 10 oktober 2026; releaseverwijzingen bijgewerkt op 14 oktober 2026.
+Dit document vertaalt de actuele codebase naar een
 bruikbare inhoudsstructuur, productuitleg en concrete websitevoorbeelden.
 [De bronanalyse](../releases/codebase-analyse-2026-10-10.md) onderbouwt de functies.
-De kennisbank en Productbeheer behoren tot 1.1.0-kandidaten op staging; de
-vrijgegeven productiebaseline is 1.0.0. Publiceer nieuwe productbeloften pas
-wanneer de bijbehorende versie voor klanten daadwerkelijk beschikbaar is.
+De kennisbank en Productbeheer zijn onderdeel van [Fieldgrid 1.1.0](../releases/fieldgrid-1.1.0.md).
+De werkelijk gedeployde commit volgt uit de publieke healthcheck en het
+deploymentbewijs bij de [GitHub-release](https://github.com/veele-services/platform/releases/tag/v1.1.0).
+Publiceer productbeloften pas wanneer de betreffende versie en benodigde
+tenantmodules daadwerkelijk beschikbaar zijn.
 
 ## Kern van het product
 
@@ -150,7 +153,7 @@ notities zijn apart. Een technische escalatie naar Fieldgrid deelt bewust gekoze
 informatie en schone bijlagen. Het oorspronkelijke en geëscaleerde gesprek houden
 hun eigen publiek en status.
 
-De 1.1.0-kandidaat voegt 46 uitgebreide handleidingen toe voor vier portalen,
+Fieldgrid 1.1.0 voegt 46 uitgebreide handleidingen toe voor vier portalen,
 met slim Nederlands zoeken, verwante artikelen en linkinvoeging vanuit tickets.
 Alleen platformadmins redigeren. Support kan passende gepubliceerde uitleg lezen
 en delen. De ingelogde bibliotheek is geen publiek supportarchief; een openbare

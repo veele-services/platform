@@ -4,7 +4,27 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
 
 ## Nog niet uitgebracht
 
-### 1.1.0-rc.2 — Kennisbank
+## 1.1.0 - 2026-10-14
+
+Deze release bundelt de op staging gecontroleerde kandidaten `1.1.0-rc.1`
+(Productbeheer) en `1.1.0-rc.2` (Kennisbank). Nieuwe functies volgen de bestaande
+module-, rol- en portaalrechten.
+
+### Productbeheer, roadmap en updates
+
+- Platformbeheerders behandelen tenantideeën, houden interne notities bij en
+  beheren ontwikkelingen, releases en de afzonderlijke releaseonderdelen.
+- Tenantmanagement krijgt **Roadmap & updates**, met de ontwikkelingen en
+  inzendingen van de eigen organisatie. Personeel en klanten krijgen
+  **Wat is er nieuw?** met uitsluitend de voor hen gepubliceerde onderdelen.
+- Publiceren, ontwikkelvoortgang en beschikbaarheid in staging/productie zijn
+  afzonderlijke handelingen. Doelgroepen en eventuele gefaseerde uitrol zijn
+  per organisatie en portaal instelbaar; ontvangersvoorbeelden helpen bij controle.
+- Bijlagen blijven privé en worden gescand. Wijzigingen zijn versiegecontroleerd
+  en herhaalde opdrachten worden ontdubbeld. Optionele aankondigingen gebruiken
+  de bestaande in-appnotificaties en actuele toegangscontrole.
+
+### Kennisbank en ondersteuning
 
 - Centrale kennisbank voor platformbeheer, tenantbeheer, personeel en klanten, met
   46 uitgebreide Nederlandstalige artikelen, stappenplannen en veelgestelde vragen.
@@ -19,23 +39,20 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
   in het gesprek en voegen een klikbare link toe aan een zelf te verzenden concept.
 - Volledige bronanalyse en bruikbare productinhoud voor de toekomstige publieke website.
 
-Deze kandidaat volgt de bestaande bewuste stagingpromotie. Productie blijft
-1.0.0 totdat dezelfde kandidaat afzonderlijk wordt geaccepteerd en vrijgegeven.
+### Uitrol en naslag
 
-### 1.1.0-rc.1 — Productbeheer
-
-- Productbeheer in het platform met ideeënbehandeling, private notities, roadmapbord,
-  releaseonderdelen en expliciete publicatie en aankondigingen.
-- Roadmap & updates voor tenantmanagement; Wat is er nieuw? voor personeel en klanten.
-- Doelgroepen gelden gezamenlijk per organisatie en portaal. Releaseonderdelen
-  erven de bovengrens of beperken die verder; verborgen inhoud telt nergens mee.
-- Voortgang, publicatie en handmatige beschikbaarheid blijven gescheiden.
-- In-appmeldingen gebruiken de bestaande queue, deduplicatie en actuele bronrechten.
-- Private, gescande bijlagen, idempotente opdrachten, behandel- en beheerhistorie,
-  ontvangersvoorbeelden en verversing zonder gedeelde private caches.
-
-Deze kandidaat is bestemd voor ontwikkel/test en staging. Productie blijft 1.0.0. Zie
-[versiebeheer](docs/releases/versioning.md) voor de releaseafspraken.
+- Productversie verhoogd van `1.1.0-rc.2` naar `1.1.0`; dependencies en
+  runtimeconfiguratie behouden hun bestaande contracten.
+- De productiepromotie omvat de reeds op staging gecontroleerde Productbeheer-
+  en kennisbankmigraties. Bestaande historische migraties blijven onveranderd;
+  de workflow maakt vóór toepassing een databasebackup.
+- De initiële kennisbankinhoud vult ontbrekende artikelen aan. Latere
+  beheerderswijzigingen worden bij een volgende deployment behouden.
+- [Uitgebreide releasenotes en bediening](docs/releases/fieldgrid-1.1.0.md),
+  [codebaseanalyse](docs/releases/codebase-analyse-2026-10-10.md) en
+  [productbrief voor de publieke website](docs/product/publieke-website-functioneel-overzicht.md).
+- De onveranderlijke tag `v1.1.0` wordt na succesvolle productieacceptatie op
+  de werkelijk gedeployde SHA gemaakt, volgens het [versiebeleid](docs/releases/versioning.md).
 
 ## 1.0.0 - 2026-10-09
 

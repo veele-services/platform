@@ -6014,7 +6014,7 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "061108a1614c12c884dc86883ace0167293b256478bcce488b3887ece559d7e6",
+      "surfaceFingerprint": "cd4f108ed47e52cdc7c4dce951d4672130a54e02038c5bd7211ff436015909da",
       "status": "controlled",
       "evidence": [
         "docs/security/product-management-review-2026-10-09.md",
@@ -6022,7 +6022,8 @@
         "scripts/test-product-management.mjs",
         "docs/security/knowledge-base-review-2026-10-10.md",
         "docs/architecture/knowledge-base.md",
-        "scripts/migration-manifest.json: clean replay; all 136 historical hashes unchanged"
+        "scripts/migration-manifest.json: clean replay; all 136 historical hashes unchanged",
+        "docs/security/production-1.1.0-review-2026-10-14.md: version-only package change; structural comparison preserves scripts, engines and dependencies; production promotion remains guarded by exact main/staging CI and owner acceptance."
       ]
     },
     {

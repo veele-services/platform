@@ -7598,7 +7598,7 @@
     {
       "id": "operation:package.json",
       "classification": "operation",
-      "source_sha256": "dd2e91b45227f97f46d7b4b1de230f5faf051ee8b2054e755b1fffec66875fe9"
+      "source_sha256": "1ba84dabec051c804f73f689de8c3fa9a233794e718face28c2cdb67feb86e8b"
     },
     {
       "id": "operation:patches/braces@3.0.3.patch",
