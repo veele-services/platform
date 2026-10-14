@@ -81,8 +81,11 @@ kennisbankredactie of extra toegang tot brondossiers.
 
 De functionele bronbasis is de geaccepteerde stagingcommit
 `9630c8f74a02cef98a12d213ec2ed87f8365afd4`. De definitieve 1.1.0-commit past
-versiemetadata en release-informatie aan; historische migraties, applicatiecode,
-dependencies, rollen en runtimecontracten blijven gelijk aan die bronbasis.
+versiemetadata, release-informatie en de browsercontrole na archivering aan;
+historische migraties, applicatiecode, dependencies, rollen en runtimecontracten
+blijven gelijk aan die bronbasis. De browserproef accepteert de gesloten
+artikelweergave én de 404 na een serververversing, en controleert expliciet dat
+de artikel-API 404 geeft en de oude titel uit de pagina is verdwenen.
 
 De definitieve SHA moet opnieuw de volledige main-CI en stagingacceptatie
 doorlopen. Daarna wordt de expliciet geaccepteerde SHA via de bestaande

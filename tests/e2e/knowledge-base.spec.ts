@@ -54,7 +54,14 @@ test('knowledge: platform editing, published reader snapshots, four portaal shel
   await page.getByRole('button',{name:'Concept opslaan',exact:true}).click();await expect(page.locator('.kb-editor').getByRole('alert')).toContainText('intussen gewijzigd');await expect(page.getByLabel('Titel',{exact:true})).toHaveValue(`Concept ${title}`);
   await page.getByRole('button',{name:'Sluiten',exact:true}).click();await page.getByRole('button',{name:'Artikel bewerken',exact:true}).click();await page.getByLabel('Titel',{exact:true}).fill(`Concept ${title}`);await page.getByRole('button',{name:'Concept opslaan',exact:true}).click();await expect(page.getByRole('heading',{name:`Concept ${title}`,exact:true,level:1})).toBeVisible();
   await staffPage.reload();await expect(staffPage.getByRole('heading',{name:title,level:1,exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Archiveren',exact:true}).click();await page.getByRole('button',{name:'Bevestigen',exact:true}).click();await expect(page.getByText('Artikel gearchiveerd.',{exact:true})).toBeVisible();await staffPage.bringToFront();await staffPage.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect(staffPage.getByText('Kennisbank niet beschikbaar',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Archiveren',exact:true}).click();await page.getByRole('button',{name:'Bevestigen',exact:true}).click();await expect(page.getByText('Artikel gearchiveerd.',{exact:true})).toBeVisible();
+  expect((await staffPage.request.get(`/api/knowledge?workspace=staff&slug=${slug}`)).status()).toBe(404);
+  await staffPage.bringToFront();await staffPage.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  // The staff shell also refreshes the server route on focus. That route may
+  // render notFound before the article's own refresh shows its closed state.
+  await expect(staffPage.getByText('Kennisbank niet beschikbaar',{exact:true}).or(staffPage.getByRole('heading',{name:'Deze pagina bestaat niet.',exact:true}))).toBeVisible();
+  await expect(staffPage.getByRole('heading',{name:title,level:1,exact:true})).toHaveCount(0);
+  expect((await staffPage.request.get(`/api/knowledge?workspace=staff&slug=${slug}`)).status()).toBe(404);
   // A real persisted ticket, with the authenticated reporter session and genuine default grants.
   const category=(await db.query("select id from public.ticket_categories where tenant_id=$1 and code='planning'",[tenant])).rows[0].id;
   const session=(await db.query('select id from auth.sessions where user_id=$1 order by created_at desc limit 1',[worker])).rows[0].id;

@@ -20,6 +20,15 @@ beoordeling is `controlled`: de wijziging raakt alleen releasemetadata en
 voegt geen data-, auth- of mutatiepad toe. Inventariscapture geldt op zichzelf
 niet als reviewgoedkeuring.
 
+De eerste groene main-CI bevatte één automatisch herhaalde browserproef bij
+archivering. Broncontrole toont twee verversingen bij focus: de kennisbank kan
+zijn gesloten toestand tonen, terwijl de personeels-shell ook de serverroute
+ververst en daarmee `notFound` kan tonen. De browserproef accepteert nu beide
+gesloten uitkomsten en eist bovendien vóór en na de UI-controle HTTP 404 van de
+artikel-API en afwezigheid van de oude artikeltitel. Er wordt geen tijdslimiet
+verruimd of rechtencontrole verwijderd. Applicatie- en autorisatiecode blijven
+ongewijzigd. De definitieve SHA doorloopt opnieuw de volledige CI en staging.
+
 De documentatie consolideert de releasenotes en verwijst voor definitief
 deploymentbewijs naar de GitHub-release. Zij maakt geen productieclaim op
 basis van alleen de packageversie. De gedateerde analyses van 9/10 oktober
