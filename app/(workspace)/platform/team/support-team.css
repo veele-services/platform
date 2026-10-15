@@ -1,0 +1,4 @@
+
+.sites-cockpit .fg-team>.resource-table-panel td:nth-child(3),.sites-cockpit .fg-team>.resource-table-panel th:nth-child(3){white-space:nowrap}
+.sites-cockpit .fg-team>.resource-table-panel td:nth-child(3) small{white-space:normal}
+.sites-cockpit .fg-team>.resource-table-panel th>button{min-height:0}
