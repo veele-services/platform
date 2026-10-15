@@ -29,7 +29,7 @@ export async function captureManagementPair({page,reference,directory,key,select
 }
 /** CSS family names alone cannot prove which face Chromium rendered when the
  * source TTF range and native discrete WOFF weights share the same family. */
-async function renderedHeadingFonts(page,selector){
+export async function renderedHeadingFonts(page,selector){
  const session=await page.context().newCDPSession(page);
  try{await session.send('DOM.enable');await session.send('CSS.enable');const{root}=await session.send('DOM.getDocument');const{nodeId}=await session.send('DOM.querySelector',{nodeId:root.nodeId,selector:selector+' h1, '+selector+' h2'});if(!nodeId)return[];const{fonts}=await session.send('CSS.getPlatformFontsForNode',{nodeId});return fonts.map(({familyName,postScriptName,isCustomFont})=>({familyName,postScriptName,isCustomFont}))}finally{await session.detach()}
 }

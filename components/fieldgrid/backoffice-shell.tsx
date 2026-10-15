@@ -19,6 +19,7 @@ import { TravelSettings } from "./travel-settings";
 import { TicketNavigation } from "./tickets/navigation";
 import { NotificationBell } from "./notifications/inbox";
 import { NotificationNavigation } from "./notifications/navigation";
+import {FollowupCount} from './management-cockpit/followup-count';
 import { WorkOrderSignatureSettings } from "./work-orders/settings";
 
 import { useEffect,useMemo,useRef,useState,useTransition,type FormEvent,type ReactNode } from "react";
@@ -26,7 +27,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BookOpen, Archive, ArrowDownAZ, Bell, BriefcaseBusiness, Building2, CalendarDays, ClipboardCheck,
-  Clock3, CreditCard, FileText, LayoutDashboard, Megaphone, TrendingUp, Wallet,
+  Clock3, CreditCard, FileText, LayoutDashboard, Megaphone, TrendingUp, Wallet,Activity,ChartNoAxesCombined,
   Menu, Settings, ShieldCheck, ClipboardList, MessageSquareText, FileCheck2,
   UsersRound, Wrench,X, Plus, Eye,
 } from "lucide-react";
@@ -126,7 +127,7 @@ function PageIntro({ eyebrow, title, description, children }: { eyebrow: string;
 }
 
 
-export function BackofficeShell({ context, data, initialView, children, presentation = "existing" }: { context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> }; data: WorkspaceData; initialView: BackofficeView; children?: ReactNode; presentation?: "existing" | "sites-management" }) {
+export function BackofficeShell({ context, data, initialView, children, presentation = "sites-management" }: { context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> }; data: WorkspaceData; initialView: BackofficeView; children?: ReactNode; presentation?: "existing" | "sites-management" }) {
   const view = initialView;
   const [mobileNav, setMobileNav] = useState(false);
   const sidebar=useRef<HTMLElement>(null);
@@ -140,14 +141,15 @@ export function BackofficeShell({ context, data, initialView, children, presenta
   const accountName = person?.full_name || context.user.displayName || context.user.email || "Mijn account";
   const accountRole = tenant.managementRole ?? (tenant.roles.includes("tenant_admin") ? "Eigenaar" : tenant.roles.includes("management") ? "Management" : tenant.roles.includes("planner") ? "Planner" : tenant.roles.includes("hr") ? "Personeelsbeheer" : tenant.roles.includes("finance") ? "Financieel beheer" : "Medewerker");
   const attention = data.workOrders.filter((order) => ["returned", "correction_required", "under_review"].includes(order.status));
-  const navLink = (item: typeof nav[number]) => <Link
+  const navLink = (item: typeof nav[number]) => {const Icon=presentation==='sites-management'?({facturen:Wallet,indexatie:ChartNoAxesCombined,updates:Activity}[item.id as 'facturen'|'indexatie'|'updates']||item.icon):item.icon;return <Link
     aria-label={item.label} title={item.label} aria-current={view === item.id ? "page" : undefined}
     prefetch={view === "planning" ? false : undefined} key={item.id} href={item.href}
     className={view === item.id ? "active" : ""} onClick={() => setMobileNav(false)}
   >
-    <item.icon size={18}/><span>{item.label}</span>
+    <Icon size={presentation==='sites-management'?19:18}/><span>{item.label}</span>
     {item.id === "controle" && attention.length > 0 && <em>{attention.length}</em>}
-  </Link>;
+    {item.id==='opvolging'&&presentation==='sites-management'&&<FollowupCount actorKey={`${tenant.id}:${context.user.id}`}/>}
+  </Link>};
   useEffect(()=>{
     if(!mobileNav)return;
     const previous=document.activeElement instanceof HTMLElement?document.activeElement:null,overflow=document.body.style.overflow;
@@ -219,7 +221,7 @@ export function BackofficeShell({ context, data, initialView, children, presenta
         {!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}
       </footer>
     </aside>
-    <div className="workspace-main" inert={mobileNav||undefined}><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu" aria-expanded={mobileNav}><Menu size={20}/></button><span className="breadcrumb"><span className="workspace-origin-dot" aria-hidden="true"/><span className="workspace-origin-label">Mijn omgeving</span><span aria-hidden="true">/</span><strong>{current.label}</strong></span></div><GlobalSearch key={`${tenant.id}:${context.user.id}`} actorKey={`${tenant.id}:${context.user.id}`}/><div className="shell-account-actions"><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><AccountMenu name={accountName} email={context.user.email} role={accountRole} settingsHref="/app/instellingen" preferencesHref="/app/notificaties/instellingen"/></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select aria-label="Tenant kiezen" name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}><OwnershipTransfer tenant={tenant}/>{presentation!=="sites-management"&&<GuideBanner guideKey={`backoffice.${view}`}/>}{content}{presentation==="sites-management"&&<footer className="mc-page-footer"><span>{tenant.name}{!tenant.whiteLabelEnabled&&" · Fieldgrid"}</span><span>Versie {packageInfo.version}</span></footer>}</main></div><Toaster richColors position="top-right"/>
+    <div className="workspace-main" inert={mobileNav||undefined}><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label={presentation==="sites-management"?"Menu openen":"Menu"} aria-expanded={mobileNav}><Menu size={20}/></button><span className="breadcrumb"><span className="workspace-origin-dot" aria-hidden="true"/><span className="workspace-origin-label">Mijn omgeving</span><span aria-hidden="true">/</span><strong>{current.label}</strong></span></div><GlobalSearch key={`${tenant.id}:${context.user.id}`} actorKey={`${tenant.id}:${context.user.id}`}/><div className="shell-account-actions"><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><AccountMenu name={accountName} email={context.user.email} role={accountRole} organisation={tenant.name} settingsHref="/app/instellingen" preferencesHref="/app/notificaties/instellingen"/></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select aria-label="Tenant kiezen" name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}><OwnershipTransfer tenant={tenant}/>{presentation!=="sites-management"&&<GuideBanner guideKey={`backoffice.${view}`}/>}{content}{presentation==="sites-management"&&<footer className="mc-page-footer"><span>{tenant.name}{!tenant.whiteLabelEnabled&&" · Fieldgrid"}</span><span>Versie {packageInfo.version}</span></footer>}</main></div><Toaster richColors position="top-right"/>
   </div></div></TenantThemeProvider></DashboardPresentation>;
 }
 

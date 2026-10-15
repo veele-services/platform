@@ -4,7 +4,7 @@ import { EmptyState } from "../empty-state";
 import { ActionIcon, ActionLink } from "../action-icon";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, Check, CheckCheck, Archive, ExternalLink, RefreshCw, X, Eye } from "lucide-react";
+import { Bell, Check, CheckCheck, Archive, ExternalLink, RefreshCw, X, Eye, ArrowUpRight } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -13,29 +13,41 @@ import { notificationPaths, notificationQuerySchema, type NotificationAccess, ty
 import { ErrorMessage, notificationDate, useNotificationCommand } from "./shared";
 import { createNotificationRequestGate } from "@/lib/notifications/request-gate";
 import { personnelThemeStyle } from "@/lib/staff/theme";
+import { useDashboardPresentation } from '../presentation';
+import { SourceNativeDialog } from '../source-native-dialog';
 
 export function NotificationBell({ workspace, actorKey }: { workspace: NotificationWorkspace; actorKey: string }) {
+  const sites=useDashboardPresentation()==='sites';
+  const [sourceOpen,setSourceOpen]=useState(false),[detail,setDetail]=useState<{key:string;data:NotificationItem}|null>(null),[opening,setOpening]=useState<string|null>(null);
+  const detailGate=useRef(createNotificationRequestGate());
   const [loaded, setLoaded] = useState<{ key: string; access: NotificationAccess; inbox: NotificationInbox } | null>(null), [error, setError] = useState("");
   const key = `${workspace}:${actorKey}`;
   const [deniedKey, setDeniedKey] = useState<string | null>(null);
   const gate = useRef(createNotificationRequestGate());
+  const clearSource=useCallback(()=>{detailGate.current.reset(key);setDetail(null);setSourceOpen(false);setOpening(null)},[key]);
   const refresh = useCallback(async () => {
     const ticket = gate.current.begin(key);
     try {
       const access = await loadNotificationAccess(workspace);
       if (!gate.current.current(ticket)) return;
-      if (!access.ok) { setLoaded(null); setError(access.error); return; }
-      if (!access.data.allowed || !access.data.permissions.includes("read_own")) { setLoaded(null); setDeniedKey(key); return; }
+      if (!access.ok) { setLoaded(null); clearSource(); setError(access.error); return; }
+      if (!access.data.allowed || !access.data.permissions.includes("read_own")) { setLoaded(null); setDeniedKey(key); clearSource(); return; }
       setDeniedKey(null);
-      const inbox = await loadNotificationInbox(workspace, notificationQuerySchema.parse({ pageSize: 5 }));
+      const inbox = await loadNotificationInbox(workspace, notificationQuerySchema.parse({ pageSize: sites?6:5 }));
       if (!gate.current.current(ticket)) return;
-      if (!inbox.ok) { setLoaded(null); setError(inbox.error); return; }
+      if (!inbox.ok) { setLoaded(null); clearSource(); setError(inbox.error); return; }
       setLoaded({ key, access: access.data, inbox: inbox.data }); setError("");
-    } catch { if (gate.current.current(ticket)) { setLoaded(null); setError("Notificaties zijn tijdelijk niet beschikbaar."); } }
-  }, [workspace, key]);
+    } catch { if (gate.current.current(ticket)) { setLoaded(null); clearSource(); setError("Notificaties zijn tijdelijk niet beschikbaar."); } }
+  }, [workspace, key, sites, clearSource]);
   useEffect(() => { gate.current.reset(key); const currentGate = gate.current; let live = true; const load = () => { if (live && document.visibilityState === "visible") void refresh(); }; load(); const timer = window.setInterval(load, 30000); window.addEventListener("focus", load); window.addEventListener("notifications-changed", load); const clear = () => { live = false; currentGate.reset(null); setLoaded(null); setError(""); }; window.addEventListener("notifications-account-cleared", clear); return () => { live = false; currentGate.reset(null); window.clearInterval(timer); window.removeEventListener("focus", load); window.removeEventListener("notifications-changed", load); window.removeEventListener("notifications-account-cleared", clear); }; }, [refresh, key]);
+  useEffect(()=>{const current=detailGate.current;current.reset(key);const clear=()=>{current.reset(null);setDetail(null);setSourceOpen(false);setOpening(null)};window.addEventListener('notifications-account-cleared',clear);return()=>{current.reset(null);window.removeEventListener('notifications-account-cleared',clear)}},[key]);
+  const openDetail=useCallback(async(id:string)=>{const request=detailGate.current.begin(key);setOpening(id);setError('');try{const result=await loadNotificationDetail(workspace,id);if(!detailGate.current.current(request))return;if(result.ok){setDetail({key,data:result.data});setSourceOpen(false)}else{setDetail(null);setError(result.error)}}catch{if(detailGate.current.current(request)){setDetail(null);setError('De notificatie kon niet worden geopend.')}}finally{if(detailGate.current.current(request))setOpening(null)}},[key,workspace]);
+  const detailId=detail?.key===key?detail.data.id:null;
+  useEffect(()=>{if(!detailId)return;const refreshDetail=()=>{if(document.visibilityState==='visible')void openDetail(detailId)};const timer=setInterval(refreshDetail,30000);window.addEventListener('focus',refreshDetail);return()=>{clearInterval(timer);window.removeEventListener('focus',refreshDetail)}},[detailId,openDetail]);
+  const closeSource=()=>{detailGate.current.reset(key);setOpening(null);setSourceOpen(false)};
   if (deniedKey === key) return null;
-  if (!loaded || loaded.key !== key) return error ? <Link className="nt-bell-button icon-button" href={notificationPaths[workspace]} aria-label="Notificaties openen"><Bell size={18}/></Link> : <button className="nt-bell-button icon-button" type="button" disabled aria-label="Notificaties laden" aria-busy="true"><Bell size={18}/></button>;
+  if (!loaded || loaded.key !== key) return error ? <Link className={sites?'shell-account-button mc-notification':'nt-bell-button icon-button'} href={notificationPaths[workspace]} aria-label="Notificaties openen"><Bell size={18}/></Link> : <button className={sites?'shell-account-button mc-notification':'nt-bell-button icon-button'} type="button" disabled aria-label="Notificaties laden" aria-busy="true"><Bell size={18}/></button>;
+  if(sites)return <><button type="button" className="shell-account-button mc-notification" aria-label={`Notificaties, ${loaded.inbox.unreadCount} ongelezen`} onClick={()=>{setSourceOpen(true);void refresh()}}><Bell size={18}/>{loaded.inbox.unreadCount>0&&<i/>}</button>{sourceOpen&&<SourceNativeDialog title="Jouw notificaties" eyebrow="OPVOLGING" description="" onClose={closeSource} footer={<><Link className="secondary-button" href={`${notificationPaths[workspace]}/instellingen`}>Voorkeuren</Link><Link className="primary-button" href={notificationPaths[workspace]}>Alles bekijken</Link></>}><div className="mc-action-list" aria-busy={Boolean(opening)}>{loaded.inbox.items.map(item=><button key={item.id} type="button" disabled={Boolean(opening)} onClick={()=>void openDetail(item.id)}><Bell size={17}/><span><strong>{item.title}</strong><small>{item.senderName} · {notificationDate(item.createdAt,loaded.access.timezone)}</small></span><ArrowUpRight size={15}/></button>)}</div>{!loaded.inbox.items.length&&<EmptyState title="Nog geen notificaties" description="Nieuwe meldingen verschijnen hier zodra je ze ontvangt."/>}<ErrorMessage message={error}/></SourceNativeDialog>}{detail?.key===key&&<NotificationDetail access={loaded.access} data={detail.data} onClose={()=>{detailGate.current.reset(key);setDetail(null)}} onChanged={()=>openDetail(detail.data.id)}/>}</>;
   return <Popover onOpenChange={open => { if (open) void refresh().catch(() => setError("Notificaties zijn tijdelijk niet beschikbaar.")); }}><PopoverTrigger asChild><button className="nt-bell nt-bell-button icon-button" aria-label={`Notificaties, ${loaded.inbox.unreadCount} ongelezen`}><Bell size={18}/>{loaded.inbox.unreadCount > 0 && <span>{loaded.inbox.unreadCount > 99 ? "99+" : loaded.inbox.unreadCount}</span>}</button></PopoverTrigger><PopoverContent className={`nt-bell-panel${workspace === "staff" ? " ps-staff-popover" : ""}`} style={workspace === "staff" ? personnelThemeStyle(loaded.access.tenant?.primaryColor,loaded.access.tenant?.accentColor) : undefined} align="end" collisionPadding={10}><div className="nt-actions"><strong>Mijn notificaties</strong><Link href={`${notificationPaths[workspace]}/instellingen`}>Voorkeuren</Link></div><InboxRows access={loaded.access} data={loaded.inbox} compact/><Link className="text-link" href={notificationPaths[workspace]}>Alles bekijken</Link></PopoverContent></Popover>;
 }
 export function InboxRows({ access, data, compact = false }: { access: NotificationAccess; data: NotificationInbox; compact?: boolean }) {
@@ -45,12 +57,14 @@ export function InboxRows({ access, data, compact = false }: { access: Notificat
   const [selected, setSelected] = useState<{key: string; data: NotificationItem} | null>(null), [opening, setOpening] = useState<string | null>(null), [error, setError] = useState("");
   const open = async (id: string) => {
     const request = gate.current.begin(key); setOpening(id); setError("");
-    const result = await loadNotificationDetail(access.workspace, id);
-    if (!gate.current.current(request)) return;
-    setOpening(null);
-    if (result.ok) setSelected({key, data: result.data}); else { setSelected(null); setError(result.error); }
+    try {
+      const result = await loadNotificationDetail(access.workspace, id);
+      if (!gate.current.current(request)) return;
+      setOpening(null);
+      if (result.ok) setSelected({key, data: result.data}); else { setSelected(null); setError(result.error); }
+    } catch { if (gate.current.current(request)) { setOpening(null); setSelected(null); setError('De notificatie kon niet worden geopend. Probeer opnieuw.'); } }
   };
-  useEffect(() => { const current = gate.current; current.reset(key); return () => current.reset(null); }, [key]);
+  useEffect(() => { const current = gate.current; current.reset(key); const clear=()=>{current.reset(null);setSelected(null);setOpening(null);setError('')};window.addEventListener('notifications-account-cleared',clear);return () => {current.reset(null);window.removeEventListener('notifications-account-cleared',clear)}; }, [key]);
   const close = () => { gate.current.reset(key); setSelected(null); setOpening(null); setError(""); };
   const openLink = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     if (event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
@@ -67,25 +81,31 @@ export function InboxActions({ access, unreadCount }: { access: NotificationAcce
 }
 export function NotificationDetail({ access, data, onClose, onChanged, onRestoreFocus }: { access: NotificationAccess; data: NotificationItem; onClose?: () => void; onChanged?: () => Promise<void>; onRestoreFocus?: () => void }) {
   const router = useRouter(), action = useNotificationCommand(access);
+  const [refreshing,setRefreshing]=useState(false),mutationLock=useRef(false),busy=action.busy||refreshing;
+  const sites=useDashboardPresentation()==='sites';
   const close = () => { if (onClose) onClose(); else router.replace(notificationPaths[access.workspace], {scroll: false}); };
   const mutate = async (command: "inbox_read" | "inbox_unread" | "inbox_archive" | "inbox_unarchive" | "inbox_ack") => {
-    const result = await action.execute(command, { id: data.id, version: data.version });
-    if (result?.ok) { if (onChanged) await onChanged(); router.refresh(); window.dispatchEvent(new Event("notifications-changed")); }
+    if(mutationLock.current)return;mutationLock.current=true;setRefreshing(true);
+    try{const result = await action.execute(command, { id: data.id, version: data.version });
+    if (result?.ok) { if (onChanged) await onChanged(); router.refresh(); window.dispatchEvent(new Event("notifications-changed")); }}
+    finally{mutationLock.current=false;setRefreshing(false)}
   };
-  return <Dialog open onOpenChange={open => { if (!open) close(); }}><DialogContent showCloseButton={false} className="nt-dialog nt-detail-dialog" onCloseAutoFocus={event=>{if(onRestoreFocus){event.preventDefault();onRestoreFocus();}}} style={{...brandThemeStyle(access.tenant?.primaryColor, access.tenant?.accentColor), width:"min(620px, calc(100vw - 24px))",maxWidth:620}}>
-    <header className="nt-detail-heading"><span className="nt-detail-icon"><Bell size={20}/></span><div><DialogTitle>{data.title}</DialogTitle><DialogDescription>{data.senderName} · {notificationDate(data.createdAt, access.timezone)}</DialogDescription></div><button type="button" className="icon-button nt-detail-close" aria-label="Sluiten" onClick={close}><X size={18}/></button></header>
-    <div className="nt-detail-body"><p className="nt-prose">{data.body || data.summary}</p>
+  const body=<div className="nt-detail-body"><p className="nt-prose">{data.body || data.summary}</p>
       {!data.sourceAvailable && <p className="nt-notice">De oorspronkelijke inhoud is niet meer beschikbaar binnen je huidige toegang.</p>}
       <p className="nt-muted">{data.readAt ? `Gelezen op ${notificationDate(data.readAt, access.timezone)}.` : "Nog niet als gelezen gemarkeerd."} {data.acknowledgedAt ? `Ontvangst bevestigd op ${notificationDate(data.acknowledgedAt, access.timezone)}.` : ""}</p>
       {data.ackRequired && <p className="nt-notice">Ontvangst bevestigen is geen akkoord op een offerte, overeenkomst, werkbon of betaling.</p>}<ErrorMessage message={action.error}/>
-    </div>
-    <footer className="nt-detail-footer"><div className="nt-actions">
-      {data.allowedActions.includes(data.readAt ? "unread" : "read") && <button className="secondary-button nt-detail-icon-action" aria-label={data.readAt ? "Ongelezen markeren" : "Gelezen markeren"} title={data.readAt ? "Ongelezen markeren" : "Gelezen markeren"} disabled={action.busy} onClick={() => { void mutate(data.readAt ? "inbox_unread" : "inbox_read"); }}><Check size={16}/></button>}
-      {data.allowedActions.includes(data.archivedAt ? "unarchive" : "archive") && <button className="secondary-button nt-detail-icon-action" aria-label={data.archivedAt ? "Terug naar inbox" : "Archiveren"} title={data.archivedAt ? "Terug naar inbox" : "Archiveren"} disabled={action.busy} onClick={() => { void mutate(data.archivedAt ? "inbox_unarchive" : "inbox_archive"); }}><Archive size={16}/></button>}
-      <button className="secondary-button nt-detail-refresh" aria-label="Notificatie vernieuwen" disabled={action.busy} onClick={() => { if (onChanged) void onChanged(); else router.refresh(); }}><RefreshCw size={15}/></button>
-      {data.ackRequired && !data.acknowledgedAt && data.allowedActions.includes("ack") && <button className="primary-button nt-detail-icon-action" aria-label="Ontvangst bevestigen" title="Ontvangst bevestigen" disabled={action.busy} onClick={() => { void mutate("inbox_ack"); }}><CheckCheck size={16}/></button>}
+    </div>;
+  const controls=<><div className="nt-actions">
+      {data.allowedActions.includes(data.readAt ? "unread" : "read") && <button className="secondary-button nt-detail-icon-action" aria-label={data.readAt ? "Ongelezen markeren" : "Gelezen markeren"} title={data.readAt ? "Ongelezen markeren" : "Gelezen markeren"} disabled={busy} onClick={() => { void mutate(data.readAt ? "inbox_unread" : "inbox_read"); }}><Check size={16}/></button>}
+      {data.allowedActions.includes(data.archivedAt ? "unarchive" : "archive") && <button className="secondary-button nt-detail-icon-action" aria-label={data.archivedAt ? "Terug naar inbox" : "Archiveren"} title={data.archivedAt ? "Terug naar inbox" : "Archiveren"} disabled={busy} onClick={() => { void mutate(data.archivedAt ? "inbox_unarchive" : "inbox_archive"); }}><Archive size={16}/></button>}
+      <button className="secondary-button nt-detail-refresh" aria-label="Notificatie vernieuwen" disabled={busy} onClick={() => { if (onChanged) void onChanged(); else router.refresh(); }}><RefreshCw size={15}/></button>
+      {data.ackRequired && !data.acknowledgedAt && data.allowedActions.includes("ack") && <button className="primary-button nt-detail-icon-action" aria-label="Ontvangst bevestigen" title="Ontvangst bevestigen" disabled={busy} onClick={() => { void mutate("inbox_ack"); }}><CheckCheck size={16}/></button>}
     </div><div className="nt-actions nt-detail-primary">
       {data.targetPath && data.sourceAvailable && <Link className="primary-button" href={data.targetPath} prefetch={false}><ExternalLink size={15}/>{data.actionLabel || "Bron openen"}</Link>}
-    </div></footer>
+    </div></>;
+  if(sites)return <SourceNativeDialog title={data.title} eyebrow="NOTIFICATIES" description={`${data.senderName} · ${notificationDate(data.createdAt,access.timezone)}`} busy={busy} onClose={close} footer={<div className="nt-detail-footer">{controls}</div>}>{body}</SourceNativeDialog>;
+  return <Dialog open onOpenChange={open => { if (!open) close(); }}><DialogContent showCloseButton={false} className="nt-dialog nt-detail-dialog" onCloseAutoFocus={event=>{if(onRestoreFocus){event.preventDefault();onRestoreFocus();}}} style={{...brandThemeStyle(access.tenant?.primaryColor, access.tenant?.accentColor), width:"min(620px, calc(100vw - 24px))",maxWidth:620}}>
+    <header className="nt-detail-heading"><span className="nt-detail-icon"><Bell size={20}/></span><div><DialogTitle>{data.title}</DialogTitle><DialogDescription>{data.senderName} · {notificationDate(data.createdAt, access.timezone)}</DialogDescription></div><button type="button" className="icon-button nt-detail-close" aria-label="Sluiten" onClick={close}><X size={18}/></button></header>
+    {body}<footer className="nt-detail-footer">{controls}</footer>
   </DialogContent></Dialog>;
 }

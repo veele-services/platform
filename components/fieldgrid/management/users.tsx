@@ -9,6 +9,7 @@ import { managementModuleNames, type ManagementRole, type ManagementSnapshot } f
 import {rolePermissionSummary,sourceManagementSnapshotSchema} from '@/lib/management/source-view';
 import { managementPermissionLabel } from "@/lib/management/labels";
 import { completeManagementDependencies } from '@/lib/management/permissions';
+import { useUnsavedDraft } from '../unsaved-form';
 import { inviteManagementUser, runManagementCommand } from "@/app/(workspace)/app/gebruikers/actions";
 import { PageHeading } from "../page-heading";
 import { ContentTabs } from "../content-tabs";
@@ -95,7 +96,8 @@ function RolePermissions({ role, catalog, query, canManage, onSaved,onDirtyChang
   const [permissions, setPermissions] = useState(role.permissions), [baselineRevision] = useState(role.revision), [pending, start] = useTransition(), [error, setError] = useState("");
   const editable = canManage && role.code !== "owner", dirty = permissions.length !== role.permissions.length || permissions.some(key => !role.permissions.includes(key));
   const requestId=useRequestId();
-  useEffect(()=>{onDirtyChange?.(editable&&dirty);if(!editable||!dirty)return;const warn=(event:BeforeUnloadEvent)=>event.preventDefault();window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn)},[editable,dirty,onDirtyChange]);
+  const draftRoot=useUnsavedDraft<HTMLDivElement>(editable&&dirty);
+  useEffect(()=>{onDirtyChange?.(editable&&dirty)},[editable,dirty,onDirtyChange]);
   const groups = useMemo(() => Object.entries(catalog.reduce<Record<string, ManagementSnapshot["catalog"]>>((all, value) => { (all[value.module] ??= []).push(value); return all; }, {})), [catalog]);
   function toggle(key: string, enabled: boolean) {
     setError("");
@@ -113,7 +115,7 @@ function RolePermissions({ role, catalog, query, canManage, onSaved,onDirtyChang
   }
   const matches = (permission: ManagementSnapshot["catalog"][number]) => `${managementPermissionLabel(permission)} ${managementModuleNames[permission.module] ?? ""}`.toLocaleLowerCase("nl").includes(query.toLocaleLowerCase("nl"));
   const visible = groups.map(([module, items]) => [module, items.filter(matches)] as const).filter(([, items]) => items.length);
-  return <><div className="management-note"><ShieldCheck size={20}/><p>{role.code === "owner" ? "De eigenaar heeft alle vastgelegde tenantrechten. Alleen een bevestigde overdracht kan dit eigenaarschap wijzigen." : "Pagina-inzage en bewerken zijn afzonderlijke rechten. Een functie vereist ook het bijbehorende paginarecht. Wijzigingen gelden direct voor alle gebruikers van deze rol."}</p></div>
+  return <div ref={draftRoot} className="management-permission-draft"><div className="management-note"><ShieldCheck size={20}/><p>{role.code === "owner" ? "De eigenaar heeft alle vastgelegde tenantrechten. Alleen een bevestigde overdracht kan dit eigenaarschap wijzigen." : "Pagina-inzage en bewerken zijn afzonderlijke rechten. Een functie vereist ook het bijbehorende paginarecht. Wijzigingen gelden direct voor alle gebruikers van deze rol."}</p></div>
     <div className="management-permission-section">{visible.map(([module, items]) => <details className="management-permission-group" key={module} open><summary><span>{managementModuleNames[module] ?? "Overige rechten"}</span><span className="management-permission-count">{items.filter(item => permissions.includes(item.key)).length} van {items.length}</span><ChevronDown size={16}/></summary>
       <div className="management-permission-grid">{items.map(permission => <label className="management-permission" key={permission.key}><input type="checkbox" value={permission.key} checked={permissions.includes(permission.key)} disabled={!editable || pending || reloading || permission.key === "backoffice.access" || permission.key.startsWith("management.")} onChange={event => toggle(permission.key, event.target.checked)}/><span>{managementPermissionLabel(permission)}{permission.sensitive && <small><LockKeyhole size={12}/>Vertrouwelijke gegevens</small>}</span></label>)}</div>
     </details>)}</div>
@@ -123,7 +125,7 @@ function RolePermissions({ role, catalog, query, canManage, onSaved,onDirtyChang
       setError("");const input={roleId:role.id,revision:baselineRevision,permissions};try{const result = await runManagementCommand({command:'save_role',input,requestId:requestId(input)});
       if (!result.ok) { setError(result.error); return; } toast.success("Rolrechten opgeslagen"); onSaved();}catch{setError('Opslaan kon niet worden bevestigd. Je invoer is behouden; opnieuw bewaren gebruikt dezelfde aanvraag.');}
     })}><Save size={16}/>{pending ? "Opslaan…" : "Rechten opslaan"}</button></footer>}
-  </>;
+  </div>;
 }
 
 function InvitationDialog({ tenant, roles, onClose, onSaved }: { tenant: TenantContext; roles: ManagementRole[]; onClose: () => void; onSaved: () => void }) {

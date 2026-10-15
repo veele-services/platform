@@ -4,6 +4,7 @@ import { useEffect,useRef,useState,useTransition } from "react";
 import Image from "next/image";
 import { Check,ImagePlus,LayoutDashboard,RotateCcw,Save,Trash2,Undo2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useUnsavedDraft } from './unsaved-form';
 import type { TenantContext } from "@/lib/auth/context";
 import type { WorkspaceData } from "@/lib/data/workspace";
 import { FIELDGRID_PRIMARY,FIELDGRID_SECONDARY } from "@/lib/communications/templates";
@@ -28,11 +29,7 @@ export function TenantBrandingSettings({tenant,branding,logoUrl}:{tenant:TenantC
  const changed=Boolean(branding?.updated_at&&branding.updated_at>source.expectedUpdatedAt);
  const visibleLogo=draft.logoAction==="remove"?null:previewUrl??sourceLogo;
  useEffect(()=>()=>{if(previewUrl)URL.revokeObjectURL(previewUrl);},[previewUrl]);
- useEffect(()=>{
-  if(!dirty)return;
-  const warn=(event:BeforeUnloadEvent)=>event.preventDefault();window.addEventListener("beforeunload",warn);
-  return()=>window.removeEventListener("beforeunload",warn);
- },[dirty]);
+ const draftRoot=useUnsavedDraft<HTMLElement>(dirty);
  const resetFile=()=>{setFile(null);setPreviewUrl(null);if(fileInput.current)fileInput.current.value="";};
  const discard=()=>{setDraft(source);resetFile();setError("");setSuccess(false);};
  const field=(name:keyof Pick<typeof draft,"primaryColor"|"accentColor"|"senderName"|"senderEmail">,value:string)=>{setDraft({...draft,[name]:value});setSuccess(false);setError("");};
@@ -77,7 +74,7 @@ export function TenantBrandingSettings({tenant,branding,logoUrl}:{tenant:TenantC
    <div className="tenant-branding-preview-card"><span className="eyebrow">Live voorbeeld · niet opgeslagen</span><h3>Alles overzichtelijk op één plek.</h3><p>De afgeleide tinten blijven leesbaar, ook bij lichte of felle merkkleuren.</p><label>Voorbeeld veld<input aria-label="Voorbeeld veld" placeholder="Objectnaam" readOnly/></label><span className="tenant-branding-preview-button"><ImagePlus size={17}/>Primaire actie</span></div>
    <BrandPalettePreview primary={draft.primaryColor} accent={draft.accentColor}/>
   </aside>;
- return <section className={`panel tenant-house-style tenant-settings-panel ${sites?'sites-house-style':''}`} aria-label="Huisstijl">
+ return <section ref={draftRoot} className={`panel tenant-house-style tenant-settings-panel ${sites?'sites-house-style':''}`} aria-label="Huisstijl">
   <div className="section-heading"><div>{!sites&&<span className="eyebrow">ORGANISATIE</span>}<h2>{sites?'Jouw organisatie':'Huisstijl & afzender'}</h2></div></div>
   {!sites&&<p className="form-note">Het logo, de kleuren en de afzendergegevens worden gebruikt in management, personeel, klanten en nieuwe documenten.</p>}
   {!allowed&&<p className="form-note">Je beheerder kan de huisstijl aanpassen. Je kunt hier het actuele voorbeeld bekijken.</p>}

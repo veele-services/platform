@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { useOptionalTenantTheme } from "@/components/fieldgrid/tenant-theme"
+import { PresentationPortal } from '@/components/fieldgrid/presentation'
 import { CheckIcon, ChevronRightIcon, CircleIcon } from "lucide-react"
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
 
@@ -41,6 +42,7 @@ function DropdownMenuContent({
   const theme = useOptionalTenantTheme()
   return (
     <DropdownMenuPrimitive.Portal>
+      <PresentationPortal>
       <DropdownMenuPrimitive.Content
         data-slot="dropdown-menu-content"
         data-tenant-theme={theme ? "true" : undefined}
@@ -52,6 +54,7 @@ function DropdownMenuContent({
         )}
         {...props}
       />
+      </PresentationPortal>
     </DropdownMenuPrimitive.Portal>
   )
 }

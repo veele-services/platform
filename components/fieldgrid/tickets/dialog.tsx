@@ -7,6 +7,8 @@ import { brandThemeStyle } from "@/lib/branding/palette";
 import { useStaffDialogFocus } from "@/lib/staff/use-dialog-focus";
 import { personnelThemeStyle } from "@/lib/staff/theme";
 import type { TicketWorkspace } from "@/lib/tickets/model";
+import {useDashboardPresentation} from '../presentation';
+import {SourceNativeDialog} from '../source-native-dialog';
 import "./tickets.css";
 
 export function TicketDialog({ title, description, children, footer, onClose, dirty = false, busy = false, primaryColor, accentColor, workspace }: {
@@ -14,6 +16,7 @@ export function TicketDialog({ title, description, children, footer, onClose, di
   dirty?: boolean; busy?: boolean; primaryColor?: string; accentColor?: string;
   workspace?: TicketWorkspace;
 }) {
+  const sites=useDashboardPresentation()==='sites';
   const focus = useStaffDialogFocus(workspace === "staff");
   useEffect(() => {
     if (!dirty) return;
@@ -22,6 +25,7 @@ export function TicketDialog({ title, description, children, footer, onClose, di
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
   const close = () => { if (!busy && (!dirty || window.confirm("Je bericht is nog niet verstuurd. Wil je het venster toch sluiten?"))) onClose(); };
+  if(sites)return <SourceNativeDialog title={title} description={description} eyebrow="HULP & MELDINGEN" onClose={close} busy={busy} footer={footer}>{children}</SourceNativeDialog>;
   return <Dialog open onOpenChange={open => { if (!open) close(); }}><DialogContent className={`ticket-dialog${workspace === "staff" ? " ps-staff-dialog" : ""}`} aria-modal={workspace === "staff" ? true : undefined} showCloseButton={false} {...focus} style={workspace === "staff" ? personnelThemeStyle(primaryColor,accentColor) : brandThemeStyle(primaryColor, accentColor)}>
     <header><div><span className="ticket-eyebrow">Hulp & meldingen</span><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></div><button type="button" className="icon-button" aria-label="Sluiten" disabled={busy} onClick={close}><X size={19}/></button></header>
     <div className="ticket-dialog-body">{children}</div>{footer && <footer className="ticket-dialog-footer">{footer}</footer>}

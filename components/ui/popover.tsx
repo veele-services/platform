@@ -4,6 +4,7 @@ import * as React from "react"
 import { Popover as PopoverPrimitive } from "radix-ui"
 
 import { useOptionalTenantTheme } from "@/components/fieldgrid/tenant-theme"
+import { PresentationPortal } from '@/components/fieldgrid/presentation'
 
 import { cn } from "@/lib/utils"
 
@@ -36,6 +37,7 @@ function PopoverContent({
   const theme = useOptionalTenantTheme()
   return (
     <PopoverPrimitive.Portal container={portalContainer}>
+      <PresentationPortal>
       <PopoverPrimitive.Content
         data-slot="popover-content"
         data-tenant-theme={theme ? "true" : undefined}
@@ -48,6 +50,7 @@ function PopoverContent({
         )}
         {...props}
       />
+      </PresentationPortal>
     </PopoverPrimitive.Portal>
   )
 }

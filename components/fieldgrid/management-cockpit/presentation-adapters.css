@@ -1,6 +1,7 @@
 /* Native integration around the immutable source declaration set. Font bytes,
    weights and source cascade are retained under collision-free family names. */
 .sites-cockpit{font-family:FieldgridSitesInter,Arial,sans-serif}
+.sites-portal{display:contents}
 .sites-cockpit :is(h1,h2,h3,h4){font-family:FieldgridSitesPoppins,FieldgridSitesInter,sans-serif}
 /* Real route links retain the source button geometry on narrow screens. */
 @media(max-width:620px){.sites-cockpit .resource-header-actions>a.secondary-button{flex:1}}
@@ -8,3 +9,17 @@
 .sites-cockpit .sites-catalogue-editor>.wo-dialog-body{padding:0;overflow:visible}
 .sites-cockpit .sites-catalogue-editor>.catalogue-steps{padding:0 0 16px;margin-bottom:20px}
 .sites-cockpit .sites-commercial-page{display:contents}
+.sites-cockpit .mc-source-feedback{display:contents}
+/* Native form inheritance must not shrink the supplied source textarea. */
+.sites-cockpit .mc-source-feedback .mc-field textarea{padding:11px 12px;border:1px solid var(--brand-border);border-radius:8px;background:#fff;color:var(--brand-ink);width:100%;font-family:FieldgridSitesInter,Arial,sans-serif;font-size:13px;min-height:42px;outline:0}
+.sites-cockpit .mc-source-feedback .mc-field textarea:focus{border-color:var(--brand-focus);box-shadow:0 0 0 2px var(--brand-accent-soft)}
+@media(max-width:600px){.sites-cockpit .mc-source-feedback .mc-field textarea{font-size:16px!important}}
+.sites-cockpit .native-source-menu{position:relative;top:auto;right:auto;padding:14px;border-radius:12px!important;background:#fff!important;box-shadow:0 12px 30px #142c2317!important;font-family:FieldgridSitesInter,Arial,sans-serif}
+.sites-cockpit .native-source-menu [data-slot=dropdown-menu-label]{padding:0}
+.sites-cockpit .native-source-menu button{min-height:0;padding:10px 7px;border-radius:6px;font-size:11px;font-weight:inherit;line-height:inherit}
+.sites-cockpit .native-source-menu svg{width:15px;height:15px;color:currentColor}
+.sites-cockpit .native-source-menu button[data-highlighted]{background:var(--brand-accent-soft);color:var(--brand-ink)}
+.sites-cockpit .mc-dialog .nt-detail-body{padding:0;overflow:visible}
+.sites-cockpit .mc-dialog .nt-detail-footer{border:0;padding:0;background:none;width:100%}
+.sites-cockpit .mc-search-results [role=group]>h3{margin:8px 10px 4px;font:500 10px FieldgridSitesInter,Arial,sans-serif;color:var(--brand-muted);text-transform:uppercase;letter-spacing:.08em}
+.sites-cockpit .mc-search-results [role=option][aria-selected=true]{background:var(--brand-accent-soft)}
