@@ -15,6 +15,17 @@
 .sites-portals .portal-demo .portal-demo-listrow .ps-secondary{flex:none}
 .sites-portals .portal-demo .portal-demo-availability input[type=time]:disabled{opacity:.35}
 .sites-portals .portal-demo .portal-demo-availability input[type=checkbox]{appearance:auto}
+.sites-portals .portal-demo .portal-demo-check input[type=checkbox]{width:16px;min-width:16px;height:16px;min-height:16px;flex:none}
+.sites-portals .portal-demo .portal-demo-check>span{display:grid;min-width:0;gap:4px}
+.sites-portals .portal-demo .address-fields{gap:18px}
+.sites-portals .portal-demo .address-fields>label{display:grid;gap:7px;font-size:12px;font-weight:500;color:var(--brand-ink)}
+.sites-portals .portal-demo .address-fields input{font:inherit;min-height:44px;border:1px solid var(--brand-border);border-radius:9px;padding:11px 13px;background:white;color:var(--brand-ink)}
+.sites-portals .portal-demo .report-overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.sites-portals .portal-demo .report-overview>div{display:grid;gap:7px}
+.sites-portals .portal-demo .sites-invoice-document>.fieldgrid-brand{display:block;margin-bottom:35px}
+.sites-portals .portal-demo .sites-invoice-document .brand-logo-image{width:128px;height:48px;max-width:100%;padding:0;border:0;border-radius:0;background:none}
+.sites-portals .portal-demo .sites-invoice-document .brand-logo-image img{width:128px;height:48px;object-fit:contain}
+@media(max-width:600px){.sites-portals .portal-demo .address-fields input{font-size:16px}.sites-portals .portal-demo .report-overview{grid-template-columns:minmax(0,1fr)}}
 .sites-portals .portal-demo .ps-availability-grid{grid-template-columns:minmax(0,1fr)}
 .sites-portals .portal-demo .sites-native-controls .ps-availability-aside{display:grid}
 .sites-portals .portal-demo .portal-document-preview{display:block;width:100%;height:500px;max-height:60dvh;border:1px solid var(--brand-border);border-radius:10px;background:#fff}

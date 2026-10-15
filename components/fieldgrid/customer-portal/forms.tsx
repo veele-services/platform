@@ -16,6 +16,7 @@ export const editCustomerObject=(object:CustomerObject):CustomerObjectInput=>({i
 /** Drafts are initialized once, not replaced by a background server refresh.
  * An ambiguous retry keeps its idempotency key and original source versions. */
 export function CustomerObjectForm({ profile, object, accountVersion, close, save }: {profile:CustomerProfile;object?:CustomerObject;accountVersion:number;close:()=>void;save:(value:CustomerObjectInput,sourceAccountVersion:number,id:string)=>Promise<CustomerFormResult>}) {
+ const source=useSourcePortal();
  const formId=useId(),[initial]=useState(()=>object?editCustomerObject(object):newCustomerObject(profile));
  const [sourceAccountVersion]=useState(accountVersion);
  const [draft,setDraft]=useState(initial),[error,setError]=useState(""),[errors,setErrors]=useState<Record<string,string>>({}),[pending,start]=useTransition();
@@ -26,7 +27,7 @@ export function CustomerObjectForm({ profile, object, accountVersion, close, sav
  };
  const cancel=()=>{if(!pending&&(JSON.stringify(initial)===JSON.stringify(draft)||window.confirm("Je wijzigingen zijn nog niet opgeslagen. Wil je het venster toch sluiten?")))close();};
  return <CustomerDialog guideKey="customer.objects" title={object?"Object wijzigen":"Object toevoegen"} kicker="Mijn objecten" description="Alle gegevens en instructies blijven gekoppeld aan dit object." close={close} busy={pending} dirty={JSON.stringify(initial)!==JSON.stringify(draft)}
-  footer={<><button className="button" type="button" onClick={cancel} disabled={pending}>Annuleren</button><button className="button primary" form={formId} disabled={pending}><Save/>{pending?"Opslaan…":"Object opslaan"}</button></>}>
+  footer={<>{!source&&<button className="button" type="button" onClick={cancel} disabled={pending}>Annuleren</button>}<button className={source?"primary-button":"button primary"} form={formId} disabled={pending}>{!source&&<Save/>}{pending?"Opslaan…":source&&!object?"Object toevoegen":"Object opslaan"}</button></>}>
   {error&&<p className="form-error" role="alert">{error}</p>}<form id={formId} className="portal-demo-form" onSubmit={event=>{event.preventDefault();submit();}}><ObjectFields value={draft} change={value=>{setDraft(value);setErrors({});}} disabled={pending} errors={errors}/></form>
  </CustomerDialog>;
 }
