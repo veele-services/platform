@@ -32,10 +32,21 @@ export function EntityFilter({active,children,preserveKey}:{active:boolean;child
  };
  useEffect(()=>{
   const state=read(),element=ref.current;if(!element||!state?.open)return;
-  element.open=true;setOpened(true);
-  const frame=requestAnimationFrame(()=>{const fields=element.querySelectorAll<HTMLElement>('input,select,textarea,button'),field=fields[state.focus];if(field&&(document.activeElement===document.body||element.contains(document.activeElement))){field.focus({preventScroll:true});if(state.selection&&field instanceof HTMLInputElement&&field.type==='text')field.setSelectionRange(...state.selection)}});
-  return()=>cancelAnimationFrame(frame);
- },[read]);
+  element.open=true;if(!opened)setOpened(true);
+  let frame=0;
+  const restore=()=>{
+   cancelAnimationFrame(frame);
+   frame=requestAnimationFrame(()=>{
+    if(!state.open||document.documentElement.dataset.accountBlocked==='true')return;
+    const fields=element.querySelectorAll<HTMLElement>('input,select,textarea,button'),field=fields[state.focus];
+    if(field&&(document.activeElement===document.body||element.contains(document.activeElement))){field.focus({preventScroll:true});if(state.selection&&field instanceof HTMLInputElement&&field.type==='text')field.setSelectionRange(...state.selection)}
+   });
+  };
+  // The account fence can temporarily hide and blur controls during its live
+  // identity check. Restore only after that unchanged security check clears it.
+  const observer=new MutationObserver(restore);observer.observe(document.documentElement,{attributes:true,attributeFilter:['data-account-blocked']});restore();
+  return()=>{cancelAnimationFrame(frame);observer.disconnect()};
+ },[read,opened,children]);
  useEffect(()=>{
   const dismiss=()=>{const state=preserveKey?disclosureState.get(preserveKey):undefined;if(state){state.open=false;state.focus=-1;state.selection=null}if(storageKey)try{sessionStorage.removeItem(storageKey)}catch{}setOpened(false);if(ref.current)ref.current.open=false};
   const close=(event:PointerEvent)=>{if(ref.current&&!ref.current.contains(event.target as Node))dismiss()};

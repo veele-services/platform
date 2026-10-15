@@ -2,10 +2,10 @@
    Every selector is scoped so this sheet can safely remain loaded on navigation. */
 .workspace-shell.workspace-shell .workspace-main:has(.sites-planboard)>.backoffice-content.view-planning{padding:32px 28px 48px!important;gap:0}
 .workspace-main:has(.sites-planboard) .global-search{visibility:visible}
-.sites-cockpit .sites-planboard>.pb-page-heading{padding:18px 24px!important;margin:0 0 48px!important;flex:none}
+.sites-cockpit .sites-planboard>.pb-source-heading{padding:18px 24px!important;margin:0 0 48px!important;flex:none}
 .sites-cockpit .sites-planboard .ed-date-control{gap:6px;align-items:center}
 .sites-cockpit .sites-planboard .ed-date-control>input{width:auto;font-size:12px}
-.sites-cockpit .sites-planboard .pb-page-heading h1{white-space:nowrap}
+.sites-cockpit .sites-planboard .pb-source-heading h1{white-space:nowrap}
 .sites-cockpit .sites-planboard>.ed-plan-legend{flex:none;margin:0 0 24px}
 .sites-cockpit .sites-planboard>.ed-section-label{flex:none;margin:14px 0 24px}
 .sites-cockpit .sites-planboard .pb-board,.sites-cockpit .sites-planboard .pb-list{border:1px solid var(--brand-border);border-radius:14px;background:#fff;box-shadow:0 8px 22px #23344203}
@@ -44,18 +44,14 @@
 .sites-cockpit .sites-planboard .pb-legend-trigger{width:18px;min-height:18px;position:relative}
 .sites-cockpit .sites-planboard .pb-legend-trigger::before{content:'';position:absolute;inset:-12px}
 .sites-cockpit .sites-planboard .pb-grid{background:#fff}
-@media(min-width:651px) and (max-width:1100px){
- .workspace-shell .backoffice-content .pb-root.sites-planboard .pb-page-heading.unified-page-heading{grid-template-columns:minmax(0,1fr) auto}
- .workspace-shell .backoffice-content .pb-root.sites-planboard .pb-page-heading.unified-page-heading>.resource-header-actions{grid-column:2;grid-row:1 / span 2}
-}
 @media(max-width:650px){
  .workspace-shell:has(.sites-planboard){height:auto;min-height:100dvh;overflow:visible}
  .workspace-main:has(.sites-planboard){height:auto;min-height:100dvh}
  .workspace-shell.workspace-shell .workspace-main:has(.sites-planboard)>.backoffice-content.view-planning{height:auto;min-height:0;overflow:visible;flex:none;padding:24px 16px 40px!important}
  .sites-cockpit .sites-planboard{flex:none;overflow:visible}
- .sites-cockpit .sites-planboard>.pb-page-heading{padding:18px 24px!important}
+ .sites-cockpit .sites-planboard>.pb-source-heading{padding:18px 24px!important}
  .sites-cockpit .sites-planboard .pb-board{height:min(var(--source-board-height),600px);min-height:240px;flex:none}
  .sites-cockpit .sites-planboard .ed-date-control{width:100%;margin:0;flex-wrap:wrap}
  .sites-cockpit .sites-planboard .ed-date-control>.secondary-button{flex:1 1 100%}
- .sites-cockpit .sites-planboard .ed-date-control>input{min-width:0;max-width:none;flex:1;font-size:16px}
+ .sites-cockpit .sites-planboard .ed-date-control>input{min-width:0;max-width:none;flex:0 1 auto;font-size:16px}
 }
