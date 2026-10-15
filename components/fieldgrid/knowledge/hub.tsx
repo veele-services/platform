@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, BookOpen, Copy, Pencil, Plus, Search } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, BookOpen, Copy, Pencil, Plus, Search } from "lucide-react";
 import { PageHeading } from "../page-heading";
 import { EmptyState } from "../empty-state";
 import { ListPagination } from "../list-pagination";
@@ -11,29 +11,36 @@ import { saveKnowledge } from "@/lib/knowledge/actions";
 import { knowledgeArticleSchema, knowledgeLabels, knowledgeListSchema, knowledgePaths, knowledgeWorkspaces, type KnowledgeArticle, type KnowledgeList, type KnowledgeWorkspace } from "@/lib/knowledge/model";
 import { KnowledgeBody, knowledgeHeadings } from "./article";
 import { KnowledgeEditor } from "./editor";
+import {useDashboardPresentation} from '../presentation';
+import {Table,Badge,Empty} from '../crm/ui';
+import {EntityFilter} from '../management-cockpit/entity-filter';
+import {SourceKnowledgeDialog} from '../information/knowledge-dialog';
+import '../information/information.css';
 import "./knowledge.css";
 export function KnowledgeHub({ workspace, actorKey, initial, article: initialArticle }: { workspace: KnowledgeWorkspace; actorKey: string; initial: KnowledgeList; article?: KnowledgeArticle }) {
+  const presentation=useDashboardPresentation(),sites=presentation==='sites'&&workspace==='backoffice', [selectedArticle,setSelectedArticle]=useState<string|null>(null);
   const router=useRouter(),base=knowledgePaths[workspace];
   const [data,setData]=useState(initial),[article,setArticle]=useState(initialArticle),[search,setSearch]=useState(""),[category,setCategory]=useState(""),[portal,setPortal]=useState(""),[publication,setPublication]=useState(""),[page,setPage]=useState(1),[pageSize,setPageSize]=useState(12);
   const [busy,setBusy]=useState(false),[error,setError]=useState(""),[closed,setClosed]=useState(false),[editing,setEditing]=useState(false),[editorArticle,setEditorArticle]=useState<KnowledgeArticle|undefined>(undefined),[notice,setNotice]=useState(""),[confirm,setConfirm]=useState<"publish"|"archive"|null>(null),[pending,start]=useTransition();
   const generation=useRef(0), receipt=useRef<{ fingerprint:string; id:string }|null>(null);
   useEffect(()=>{
-    const controller=new AbortController(),epoch=++generation.current;
+    let active=true,controller:AbortController|null=null;
+    const clear=()=>{generation.current++;controller?.abort();setClosed(true);setSelectedArticle(null);setArticle(undefined);setData({...initial,items:[],categories:[],total:0,canManage:false});setEditing(false);setEditorArticle(undefined);};
     const refresh=async()=>{
-      if(document.visibilityState!=="visible")return;setBusy(true);
+      if(document.visibilityState!=="visible")return;controller?.abort();const request=new AbortController();controller=request;const epoch=++generation.current;setBusy(true);
       try {
         const params=new URLSearchParams({workspace,...(initialArticle?{slug:initialArticle.slug}:{search,category,portal,publication,page:String(page),pageSize:String(pageSize)})});
-        const response=await fetch(`/api/knowledge?${params}`,{cache:"no-store",signal:controller.signal});
-        if(!response.ok){if([403,404].includes(response.status)&&epoch===generation.current){setClosed(true);setArticle(undefined);setData({...initial,items:[],categories:[],total:0,canManage:false});setEditing(false);setEditorArticle(undefined);}throw new Error();}
-        const value=await response.json();if(epoch!==generation.current)return;
+        const response=await fetch(`/api/knowledge?${params}`,{cache:"no-store",signal:request.signal});
+        if(!active||request.signal.aborted||epoch!==generation.current)return;
+        if(!response.ok){if([403,404].includes(response.status)){clear();setBusy(false);return;}throw new Error();}
+        const value=await response.json();if(!active||request.signal.aborted||epoch!==generation.current)return;
         if(initialArticle)setArticle(knowledgeArticleSchema.parse(value));else setData(knowledgeListSchema.parse(value));setClosed(false);setError("");
-      }catch{if(!controller.signal.aborted&&epoch===generation.current)setError("De kennisbank kon niet worden vernieuwd. Probeer opnieuw.");}
-      finally{if(epoch===generation.current)setBusy(false);}
+      }catch{if(active&&!request.signal.aborted&&epoch===generation.current)setError("De kennisbank kon niet worden vernieuwd. Probeer opnieuw.");}
+      finally{if(active&&epoch===generation.current)setBusy(false);}
     };
     const debounce=window.setTimeout(refresh,250),timer=window.setInterval(refresh,30000);
-    const clear=()=>{generation.current++;controller.abort();setClosed(true);setArticle(undefined);setData({...initial,items:[],categories:[],total:0,canManage:false});setEditing(false);setEditorArticle(undefined);};
     window.addEventListener("focus",refresh);window.addEventListener("notifications-account-cleared",clear);
-    return()=>{controller.abort();window.clearTimeout(debounce);window.clearInterval(timer);window.removeEventListener("focus",refresh);window.removeEventListener("notifications-account-cleared",clear);};
+    return()=>{active=false;controller?.abort();window.clearTimeout(debounce);window.clearInterval(timer);window.removeEventListener("focus",refresh);window.removeEventListener("notifications-account-cleared",clear);};
   },[workspace,actorKey,initial,initialArticle,search,category,portal,publication,page,pageSize]);
   const action=async(command:"publish"|"archive"|"restore",sourceRevision?:number)=>{
     if(!article)return;setError("");const operation={command,payload:{slug:article.slug,revision:article.revision,...(sourceRevision?{sourceRevision}:{})}},fingerprint=JSON.stringify(operation);
@@ -43,6 +50,7 @@ export function KnowledgeHub({ workspace, actorKey, initial, article: initialArt
   };
   if(closed)return <EmptyState title="Kennisbank niet beschikbaar" description="Je toegang of de publicatie van dit artikel is gewijzigd. Open je eigen portaal of meld opnieuw aan."/>;
   const canManage=data.canManage;
+  if(sites&&!article&&!editing)return <div className="sites-information"><PageHeading eyebrow="ORGANISATIE" title="Kennisbank" actions={<EntityFilter active={Boolean(search||category||portal||publication)} preserveKey={actorKey+':knowledge'}><label>Zoeken<input type="search" aria-label="Zoek in de kennisbank" maxLength={160} value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}}/></label><label>Categorie<select aria-label="Categorie" value={category} onChange={e=>{setCategory(e.target.value);setPage(1)}}><option value="">Alle categorieën</option>{data.categories.map(c=><option key={c.name}>{c.name}</option>)}</select></label></EntityFilter>}/>{error&&<p role="alert" className="kb-error">{error}</p>}<Table headers={['Bericht','Categorie','Bekijken']}>{data.items.map(i=><tr key={i.slug}><td><button className="table-record-link" onClick={()=>setSelectedArticle(i.slug)}>{i.title}</button><small>{i.summary}</small></td><td><Badge>{i.category}</Badge></td><td><button className="fg-action-icon" aria-label={i.title} onClick={()=>setSelectedArticle(i.slug)}><ArrowUpRight size={16}/></button></td></tr>)}{!data.items.length&&<tr><td colSpan={3}><Empty title="Geen artikelen gevonden" text="Probeer andere kernwoorden of kies een andere categorie."/></td></tr>}</Table><ListPagination total={data.total} page={page} pageSize={pageSize} noun="artikelen" busy={busy} preferenceKey={`knowledge:${workspace}`} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1);}}/>{selectedArticle&&<SourceKnowledgeDialog key={selectedArticle} workspace={workspace} slug={selectedArticle} onClose={()=>{setSelectedArticle(null);router.refresh()}} onForbidden={()=>{generation.current++;setSelectedArticle(null);setClosed(true);setArticle(undefined);setData({...initial,items:[],categories:[],total:0,canManage:false});setEditing(false);setEditorArticle(undefined)}}/>}</div>;
   return <div className="kb-workspace">
     <PageHeading eyebrow={knowledgeLabels[workspace]} title={article?article.title:"Kennisbank"} description={article?article.summary:"Handleidingen, stappenplannen en antwoorden voor jouw werkruimte."} help="Zoek op een taak of probleem. Artikelen verlenen geen extra rechten. Platformbeheerders beheren de inhoud." actions={canManage?<ActionIcon label={article?"Artikel bewerken":"Nieuw artikel"} className="primary-button" icon={article?<Pencil size={16}/>:<Plus size={18}/>} onClick={()=>{setEditorArticle(article);setEditing(true);}}/>:undefined}/>
     {notice&&<p role="status" className="kb-notice">{notice}</p>}{error&&<p role="alert" className="kb-error">{error}</p>}

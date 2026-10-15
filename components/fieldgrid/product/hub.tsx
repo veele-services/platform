@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Eye, RefreshCw, Columns3, List, Search } from "lucide-react";
+import { Plus, Eye, RefreshCw, Columns3, List, Search, ArrowUpRight } from "lucide-react";
 import { PageHeading } from "../page-heading";
 import { ContentTabs } from "../content-tabs";
 import { EmptyState } from "../empty-state";
@@ -9,6 +9,10 @@ import { ListPagination } from "../list-pagination";
 import { CompactFilterMenu } from "../compact-filter-menu";
 import { ProductEditor } from "./editors";
 import { ProductDetail, PublicationDialog, ProductPreview } from "./details";
+import {useDashboardPresentation} from '../presentation';
+import {Table,Badge,Empty} from '../crm/ui';
+import {EntityFilter} from '../management-cockpit/entity-filter';
+import '../information/information.css';
 import {
   productListSchema,
   ideaSchema,
@@ -78,6 +82,7 @@ export function ProductHub({
 }) {
   const admin = snapshot.access.canManage,
     management = snapshot.workspace === "backoffice";
+  const presentation=useDashboardPresentation(),sites=management&&presentation==='sites';
   const tabs = admin
     ? [
         ["ideas", "Ideeën"],
@@ -456,9 +461,9 @@ export function ProductHub({
     </>
   );
   return (
-    <div className="product-hub">
+    <div className={sites?'sites-information':'product-hub'}>
       <PageHeading
-        eyebrow={admin ? "PLATFORMBEHEER" : "FIELDGRID ONTWIKKELING"}
+        eyebrow={sites?'ORGANISATIE':admin ? "PLATFORMBEHEER" : "FIELDGRID ONTWIKKELING"}
         title={
           admin
             ? "Productbeheer"
@@ -466,9 +471,9 @@ export function ProductHub({
               ? "Roadmap & updates"
               : "Wat is er nieuw?"
         }
-        help="Voortgang, publicatie en beschikbaarheid zijn afzonderlijk. Een planning is indicatief. Je ziet uitsluitend informatie voor je huidige organisatie en portaal."
+        help={sites?undefined:"Voortgang, publicatie en beschikbaarheid zijn afzonderlijk. Een planning is indicatief. Je ziet uitsluitend informatie voor je huidige organisatie en portaal."}
         actions={
-          <>
+          sites?<EntityFilter active={Boolean(search||category||status)||tab!=='releases'} preserveKey={snapshot.actorKey+':product'}><label>Zoeken<input type="search" aria-label="Productinformatie zoeken" value={search} maxLength={160} onChange={e=>{setSearch(e.target.value);setPage(1)}}/></label><label>Onderdeel<select aria-label="Onderdeel" value={tab} onChange={e=>{setTab(e.target.value);setPage(1);setStatus('');setCategory('')}}>{tabs.map(([id,title])=><option key={id} value={id}>{title}</option>)}</select></label>{filters}<button className="secondary-button" disabled={busy} onClick={()=>void refresh()}>Vernieuwen</button>{snapshot.access.canSubmit&&<button className="primary-button" data-close-filter onClick={()=>showModal({type:'editor',request:{kind:'ideas'}})}><Plus size={16}/>Idee indienen</button>}</EntityFilter>:<>
             <label className="product-search">
               <Search aria-hidden="true" size={16} />
               <span className="sr-only">Productinformatie zoeken</span>
@@ -543,7 +548,7 @@ export function ProductHub({
           {success}
         </p>
       )}
-      <ContentTabs
+      {sites?<><Table headers={['Bericht','Categorie','Bekijken']}>{list.items.map(item=><tr key={item.id}><td><button className="table-record-link" onClick={()=>void openDetail(section,item.id)}>{item.title}</button><small>{'intro' in item?item.intro:'summary' in item?item.summary:item.problem}</small></td><td><Badge>{'version' in item?'Nieuw':'progress' in item?progressLabels[item.progress]:ideaLabels[item.state]}</Badge></td><td><button className="fg-action-icon" aria-label={item.title} onClick={()=>void openDetail(section,item.id)}><ArrowUpRight size={16}/></button></td></tr>)}{!list.items.length&&<tr><td colSpan={3}><Empty title={section==='ideas'?'Nog geen ideeën':section==='roadmap'?'Nog geen ontwikkelingen':'Nog geen updates'} text="Gepubliceerde informatie voor jouw doelgroep verschijnt hier. Pas eventueel de filters aan."/></td></tr>}</Table><ListPagination total={list.total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}} noun={section==='ideas'?'ideeën':section==='roadmap'?'ontwikkelingen':'updates'} busy={busy} preferenceKey={`product:${snapshot.actorKey}:${section}`}/></>:<ContentTabs
         label="Productonderdelen"
         value={tab}
         onValueChange={(next) => {
@@ -559,7 +564,7 @@ export function ProductHub({
           title,
           content: id === tab ? body : null,
         }))}
-      />
+      />}
       {modal?.type === "editor" && (
         <ProductEditor
           key={`${modal.request.kind}:${modal.request.item?.id ?? "new"}`}

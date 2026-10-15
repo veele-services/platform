@@ -56,6 +56,7 @@ export function EntityFilter({active,children,preserveKey}:{active:boolean;child
   return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape);window.removeEventListener('notifications-account-cleared',reset)};
  },[preserveKey,storageKey]);
  return <details className="ed-filter" ref={ref} open={opened}
+  onClick={event=>{if(!(event.target instanceof Element)||!event.target.closest('[data-close-filter]'))return;setOpened(false);const state=remember();if(state){state.open=false;state.focus=-1;state.selection=null;persist(state)}}}
   onToggle={event=>{if(!event.currentTarget.isConnected)return;setOpened(event.currentTarget.open);const state=remember();if(state){state.open=event.currentTarget.open;if(!state.open){state.focus=-1;state.selection=null}persist(state)}}}
   onFocusCapture={event=>{const state=remember();if(state){state.focus=[...event.currentTarget.querySelectorAll('input,select,textarea,button')].indexOf(event.target);persist(state)}}}
   onSelectCapture={event=>{const state=remember();if(state&&event.target instanceof HTMLInputElement&&event.target.selectionStart!==null&&event.target.selectionEnd!==null){state.selection=[event.target.selectionStart,event.target.selectionEnd];persist(state)}}}>

@@ -82,6 +82,7 @@ export async function ProductPage({
         context={{ ...context, tenant: context.tenant }}
         data={await getPlanningShellData(context.tenant.id)}
         initialView="updates"
+        presentation="sites-management"
       >
         {content}
       </BackofficeShell>

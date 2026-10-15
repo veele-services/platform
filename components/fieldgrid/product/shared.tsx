@@ -9,6 +9,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useTenantTheme } from "../tenant-theme";
+import {useDashboardPresentation} from '../presentation';
+import {SourceNativeDialog} from '../source-native-dialog';
 import { saveProduct, uploadProductFile } from "@/lib/product/actions";
 import {
   groupLabels,
@@ -34,6 +36,8 @@ export function ProductDialog({
   close: () => void;
   busy?: boolean;
 }) {
+  const presentation=useDashboardPresentation(),theme=useTenantTheme();
+  if(presentation==='sites')return <SourceNativeDialog title={title} eyebrow="FIELDGRID" description={description} onClose={close} busy={busy}>{children}</SourceNativeDialog>;
   return (
     <Dialog
       open
@@ -45,7 +49,7 @@ export function ProductDialog({
         showCloseButton={false}
         className="commercial-dialog wo-dialog product-dialog"
         data-dialog-size="compact"
-        style={useTenantTheme()}
+        style={theme}
       >
         <header>
           <div className="product-dialog-heading">

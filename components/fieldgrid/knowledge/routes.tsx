@@ -20,5 +20,5 @@ export async function KnowledgePage({ workspace, slug }: { workspace: KnowledgeW
   if(workspace==="staff")return <StaffRouteShell active="knowledge">{content}</StaffRouteShell>;
   if(workspace==="customer")return <CustomerProductFrame>{content}</CustomerProductFrame>;
   const context=await getAuthContext();if(!context.tenant)notFound();
-  return <BackofficeShell context={{...context,tenant:context.tenant}} data={await getPlanningShellData(context.tenant.id)} initialView="kennisbank">{content}</BackofficeShell>;
+  return <BackofficeShell context={{...context,tenant:context.tenant}} data={await getPlanningShellData(context.tenant.id)} initialView="kennisbank" presentation="sites-management">{content}</BackofficeShell>;
 }
