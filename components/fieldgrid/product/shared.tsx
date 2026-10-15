@@ -29,15 +29,17 @@ export function ProductDialog({
   children,
   close,
   busy = false,
+  compactSummary,
 }: {
   title: string;
   description: string;
   children: ReactNode;
   close: () => void;
   busy?: boolean;
+  compactSummary?: string;
 }) {
   const presentation=useDashboardPresentation(),theme=useTenantTheme();
-  if(presentation==='sites')return <SourceNativeDialog title={title} eyebrow="FIELDGRID" description={description} onClose={close} busy={busy}>{children}</SourceNativeDialog>;
+  if(presentation==='sites')return compactSummary!==undefined?<SourceNativeDialog sourceForm title={title} eyebrow="FIELDGRID" description="" onClose={close} busy={busy}><p>{compactSummary}</p><details><summary>Volledige informatie en wijzigingen</summary><div className="sites-native-editor">{children}</div></details></SourceNativeDialog>:<SourceNativeDialog title={title} eyebrow="FIELDGRID" description={description} onClose={close} busy={busy}>{children}</SourceNativeDialog>;
   return (
     <Dialog
       open

@@ -84,6 +84,7 @@ export function ProductDetail({
   return (
     <ProductDialog
       title={item.title}
+      compactSummary={!admin?(release?.intro??roadmap?.summary):undefined}
       description={
         idea
           ? "Inzending en terugkoppeling van de organisatie."
