@@ -23,3 +23,6 @@
 .sites-cockpit .mc-dialog .nt-detail-footer{border:0;padding:0;background:none;width:100%}
 .sites-cockpit .mc-search-results [role=group]>h3{margin:8px 10px 4px;font:500 10px FieldgridSitesInter,Arial,sans-serif;color:var(--brand-muted);text-transform:uppercase;letter-spacing:.08em}
 .sites-cockpit .mc-search-results [role=option][aria-selected=true]{background:var(--brand-accent-soft)}
+/* Source responsive declarations outrank the native shell's later CSS chunk. */
+@media(max-width:800px){.sites-cockpit .workspace-shell .workspace-topbar{padding:0 22px;gap:10px}}
+@media(max-width:600px){.sites-cockpit .workspace-shell .workspace-topbar{height:66px;padding:0 15px;gap:10px;grid-template-columns:minmax(0,1fr) auto}.sites-cockpit .workspace-shell .workspace-topbar .shell-global-search{display:none}.sites-cockpit .workspace-shell .workspace-topbar .shell-account-actions{gap:7px}}

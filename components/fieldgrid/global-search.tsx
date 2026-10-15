@@ -62,7 +62,7 @@ export function GlobalSearch({ actorKey }: { actorKey: string }) {
   }, [active, id]);
   const navigate = (result:SearchResult,group:string) => { if(sites&&sourceKinds[group]){forget();setSource({kind:sourceKinds[group],id:result.id});return}if (!confirmDiscard()) return; forget(); router.push(result.href); };
   let index = -1;
-  return <div ref={root} className="shell-global-search">
+  return <><div ref={root} className="shell-global-search">
     <div className="shell-search-field"><Search size={17} aria-hidden="true"/><input type="search" aria-label={sites?'Zoeken in Fieldgrid':'Zoek in je organisatie'} placeholder={sites?'Zoek in jouw omgeving…':'Zoek in je organisatie…'} role="combobox" aria-autocomplete="list" aria-expanded={visible} aria-controls={visible ? `${id}-list` : undefined} aria-activedescendant={visible && active >= 0 && results[active] ? `${id}-${active}` : undefined} autoComplete="off" value={query} maxLength={100} onChange={event => { setQuery(event.target.value); setActive(-1); setOpen(true); }} onFocus={() => setOpen(true)} onKeyDown={event => {
       if (event.key === "Escape") { setOpen(false); setActive(-1);if(sites)setQuery(''); }
       if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setOpen(true); setActive(value => results.length ? value < 0 ? event.key === "ArrowDown" ? 0 : results.length - 1 : (value + (event.key === "ArrowDown" ? 1 : -1) + results.length) % results.length : -1); }
@@ -73,6 +73,5 @@ export function GlobalSearch({ actorKey }: { actorKey: string }) {
       {loading ? <p role="status">Zoeken…</p> : current?.error ? <p role="status">{current.error}</p> : !results.length ? <div className="shell-search-empty"><Search size={22}/><strong>Geen resultaten</strong><p>Probeer een andere naam of een ander nummer.</p></div> : groups.map(group => <div key={group.id} role="group" aria-labelledby={`${id}-${group.id}`}><h3 id={`${id}-${group.id}`}>{group.title}</h3>{group.results.map(result => { const position = ++index; return <button type="button" tabIndex={-1} role="option" aria-selected={active === position} id={`${id}-${position}`} key={result.id} onPointerMove={() => setActive(position)} onPointerDown={event => event.preventDefault()} onClick={() => navigate(result,group.id)}><strong>{result.title}</strong>{result.detail && <small>{result.detail}</small>}</button>; })}</div>)}
     </div>}
     {visible && <span className="sr-only" role="status" aria-live="polite">{current && !current.error ? `${results.length} resultaten gevonden` : ""}</span>}
-    {source&&<SourceReferenceDialog kind={source.kind} id={source.id} onClose={closeSource} onForbidden={closeSource}/>}
-  </div>;
+  </div>{source&&<SourceReferenceDialog kind={source.kind} id={source.id} onClose={closeSource} onForbidden={closeSource}/>}</>;
 }
