@@ -1139,12 +1139,16 @@
         "Zes stappen Organisatie, Beheerder, Huisstijl, Modules, Communicatie, Controleren; terug/wijzigen/validatie",
         "Echte tenantprovisioning en uitnodiging volgens bestaande procedure; lokale voorbeeldmelding niet als voltooid productieaccount tonen."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/platform?view=onboarding",
+      "implementation": "implemented; runtime 969822c53de24b999c8221d792b186c88541fb68; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-20/verification.json",
+        "evidence/phase-20/comparison.json",
+        "phase-20.md"
+      ]
     },
     {
       "id": "P04",
@@ -1153,12 +1157,16 @@
         "Tenantkeuze, templatelijst, berichteditor, tokens en live preview",
         "Tenantgebonden revisies en centrale verzendregels behouden; opslaan is geen testmailversturen."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/platform?view=templates&tenant={uuid}",
+      "implementation": "implemented; runtime 969822c53de24b999c8221d792b186c88541fb68; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-20/verification.json",
+        "evidence/phase-20/comparison.json",
+        "phase-20.md"
+      ]
     },
     {
       "id": "P05",
@@ -1167,12 +1175,16 @@
         "Supporttickets, status, toegewezen persoon, openen en antwoord-/statusflow",
         "Werkelijke gedeelde tickets, rechten, berichten en audit; geen automatische brede tenantinzage."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/platform/support",
+      "implementation": "implemented; runtime 969822c53de24b999c8221d792b186c88541fb68; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-21/verification.json",
+        "evidence/phase-21/comparison.json",
+        "phase-21.md"
+      ]
     },
     {
       "id": "P06",
@@ -1181,12 +1193,16 @@
         "Reactietermijn en standaardverantwoordelijke",
         "Bestaande instellingen duurzaam bewaren en in relevante supportflow gebruiken."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/platform/support/instellingen",
+      "implementation": "implemented; runtime 969822c53de24b999c8221d792b186c88541fb68; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-21/verification.json",
+        "evidence/phase-21/comparison.json",
+        "phase-21.md"
+      ]
     },
     {
       "id": "P07",

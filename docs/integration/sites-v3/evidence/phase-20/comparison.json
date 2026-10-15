@@ -1,0 +1,1589 @@
+[
+  {
+    "key": "onboarding-organisation",
+    "width": 1440,
+    "target": {
+      "width": 1182,
+      "height": 733.3125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 560
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1182,
+      "height": 733.3125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 560
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-organisation",
+    "width": 768,
+    "target": {
+      "width": 768,
+      "height": 1013.625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 840.3125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 768,
+      "height": 1013.625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 840.3125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-organisation",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 613.5,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 472.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 575.5,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 434.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-owner",
+    "width": 1440,
+    "target": {
+      "width": 1182,
+      "height": 733.3125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 560
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1182,
+      "height": 733.3125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 560
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-owner",
+    "width": 768,
+    "target": {
+      "width": 768,
+      "height": 1013.625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 840.3125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 768,
+      "height": 1013.625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 840.3125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-owner",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 575.5,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 434.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 575.5,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 434.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-brand",
+    "width": 1440,
+    "target": {
+      "width": 1182,
+      "height": 733.3125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 560
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1182,
+      "height": 733.3125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 560
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-brand",
+    "width": 768,
+    "target": {
+      "width": 768,
+      "height": 1013.625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 840.3125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 768,
+      "height": 1013.625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 840.3125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-brand",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 567.5,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 426.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 567.5,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 426.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-modules",
+    "width": 1440,
+    "target": {
+      "width": 1182,
+      "height": 803.5,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 630.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1182,
+      "height": 733.3125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 560
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-modules",
+    "width": 768,
+    "target": {
+      "width": 768,
+      "height": 1212.8125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 1039.5
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 768,
+      "height": 1083.8125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 910.5
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-modules",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 1265.5,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 1124.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 1007.5,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 866.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-communication",
+    "width": 1440,
+    "target": {
+      "width": 1182,
+      "height": 733.3125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 560
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1182,
+      "height": 733.3125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 560
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-communication",
+    "width": 768,
+    "target": {
+      "width": 768,
+      "height": 1013.625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 840.3125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 768,
+      "height": 1013.625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 840.3125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-communication",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 570.78125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 429.46875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 532.78125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 391.46875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-review",
+    "width": 1440,
+    "target": {
+      "width": 1182,
+      "height": 733.3125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 560
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1182,
+      "height": 733.3125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 560
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-review",
+    "width": 768,
+    "target": {
+      "width": 768,
+      "height": 1013.625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 840.3125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 768,
+      "height": 1013.625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 49.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 840.3125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "onboarding-review",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 822.0625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 680.75
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 822.0625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 50.3125
+        },
+        {
+          "cls": "fg-wizard-layout",
+          "height": 680.75
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "tenant-modules-polish",
+    "width": 1440,
+    "target": {
+      "width": 1182,
+      "height": 987.59375,
+      "heading": "20.8px / 31.2px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 18
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 112.890625
+        },
+        {
+          "cls": "content-tabs",
+          "height": 669.703125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1182,
+      "height": 778.6875,
+      "heading": "20.8px / 31.2px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 18
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 112.890625
+        },
+        {
+          "cls": "content-tabs",
+          "height": 460.796875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "tenant-modules-polish",
+    "width": 768,
+    "target": {
+      "width": 768,
+      "height": 1124.59375,
+      "heading": "20.8px / 31.2px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 18
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 112.890625
+        },
+        {
+          "cls": "content-tabs",
+          "height": 806.703125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 768,
+      "height": 915.6875,
+      "heading": "20.8px / 31.2px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 18
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 112.890625
+        },
+        {
+          "cls": "content-tabs",
+          "height": 597.796875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "tenant-modules-polish",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 1605.53125,
+      "heading": "23px / 34.5px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 16.796875
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 181.03125
+        },
+        {
+          "cls": "content-tabs",
+          "height": 1253.703125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 1295.8125,
+      "heading": "23px / 34.5px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 16.796875
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 217.03125
+        },
+        {
+          "cls": "content-tabs",
+          "height": 907.984375
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "tenant-communicatie-polish",
+    "width": 1440,
+    "target": {
+      "width": 1182,
+      "height": 802.1875,
+      "heading": "20.8px / 31.2px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 18
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 112.890625
+        },
+        {
+          "cls": "content-tabs",
+          "height": 484.296875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1182,
+      "height": 734.40625,
+      "heading": "20.8px / 31.2px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 18
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 112.890625
+        },
+        {
+          "cls": "content-tabs",
+          "height": 416.515625
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "tenant-communicatie-polish",
+    "width": 768,
+    "target": {
+      "width": 768,
+      "height": 951.5,
+      "heading": "20.8px / 31.2px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 18
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 112.890625
+        },
+        {
+          "cls": "content-tabs",
+          "height": 633.609375
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 768,
+      "height": 884.5,
+      "heading": "20.8px / 31.2px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 18
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 112.890625
+        },
+        {
+          "cls": "content-tabs",
+          "height": 566.609375
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "tenant-communicatie-polish",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 973.40625,
+      "heading": "23px / 34.5px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 16.796875
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 181.03125
+        },
+        {
+          "cls": "content-tabs",
+          "height": 621.578125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 929.234375,
+      "heading": "23px / 34.5px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "fg-back-link",
+          "height": 16.796875
+        },
+        {
+          "cls": "fg-detail-hero",
+          "height": 217.03125
+        },
+        {
+          "cls": "content-tabs",
+          "height": 541.40625
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins",
+          "postScriptName": "Poppins-Regular",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "templates",
+    "width": 1440,
+    "target": {
+      "width": 1182,
+      "height": 782.703125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 62.1875
+        },
+        {
+          "cls": "ed-templates",
+          "height": 596.515625
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1182,
+      "height": 614.703125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 62.1875
+        },
+        {
+          "cls": "ed-templates",
+          "height": 428.515625
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "templates",
+    "width": 768,
+    "target": {
+      "width": 768,
+      "height": 1177.953125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 62.1875
+        },
+        {
+          "cls": "ed-templates",
+          "height": 991.765625
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 768,
+      "height": 949,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 62.1875
+        },
+        {
+          "cls": "ed-templates",
+          "height": 762.8125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "templates",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 1776.765625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 114.3125
+        },
+        {
+          "cls": "ed-templates",
+          "height": 1571.453125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 1391.03125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 114.3125
+        },
+        {
+          "cls": "ed-templates",
+          "height": 1185.71875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  }
+]

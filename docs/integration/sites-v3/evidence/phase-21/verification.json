@@ -1,0 +1,52 @@
+{
+  "runtimeSha": "969822c53de24b999c8221d792b186c88541fb68",
+  "artifactSha256": "6013da10c912b2da3152a3fbed7a8a274f72825ee2bdd4c743d4eafeda712efa",
+  "environment": "local",
+  "sourceViewedImages": [
+    "support-list-target-1440.png",
+    "support-list-source-1440.png",
+    "support-list-target-768.png",
+    "support-list-source-768.png",
+    "support-list-target-390.png",
+    "support-list-source-390.png",
+    "support-settings-target-1440.png",
+    "support-settings-source-1440.png",
+    "support-settings-target-768.png",
+    "support-settings-source-768.png",
+    "support-settings-target-390.png",
+    "support-settings-source-390.png",
+    "support-conversation-1440.png",
+    "support-conversation-768.png",
+    "support-conversation-390.png",
+    "support-conversation-source-1440.png",
+    "support-conversation-source-768.png",
+    "support-conversation-source-390.png"
+  ],
+  "viewedImageCount": 18,
+  "viewedComparisonCount": 9,
+  "browserChainsPassed": 7,
+  "unitTests": 1957,
+  "unitFiles": 204,
+  "nativeChecks": 50,
+  "coldBuild": {
+    "compiled": true,
+    "generatedPages": 108,
+    "packagedModules": 19,
+    "standaloneSmokePassed": true
+  },
+  "implemented": true,
+  "tested": true,
+  "deployed": false,
+  "liveVerified": false,
+  "limitations": [
+    "Local packaged runtime, not a CI-attested remote deployment.",
+    "Global authorization inventory/review reconciliation is still pending.",
+    "No staging/production or live mail/DNS acceptance is claimed.",
+    "Retained list filters/settings and pagination add controls and header height compared with the two-row demo.",
+    "The category selector preserves real per-category defaults, extending the fixed demo settings.",
+    "Compact response label weight and response-button alignment are scheduled for source alignment in phase 22.",
+    "Knowledge, files, audiences, context and native resolution flow extend the prototype-only conversation."
+  ],
+  "additionalDeadlineProof": "deadline-browser-chain.log",
+  "newTicketDeadlineEqualsNativeBusinessHoursCalculation": true
+}

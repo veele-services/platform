@@ -1,0 +1,44 @@
+▶ verified server Source onboarding reuses native transactional provisioning and preserves original identity
+  ✔ browser clients and unrelated accounts cannot invoke the verified server provisioning boundary (11.453906ms)
+  ✔ native tenant, empty workspace, sender and original invitation are created atomically (22.722113ms)
+  ✔ lost-response replay never duplicates a tenant, changes its recipient or restores old settings (14.698568ms)
+  ✔ direct RPC rejects missing dependencies, unknown fields, malformed types and reserved marketing slug (19.393003ms)
+  ✔ legacy request keys cannot acquire an invented original sender snapshot (7.974039ms)
+  ✔ current role, session and account revocation protect exact successful replays (11.19088ms)
+✔ verified server Source onboarding reuses native transactional provisioning and preserves original identity (1210.683021ms)
+▶ concurrent verified onboarding serializes the native request key and checks authority after waiting
+  ✔ identical concurrent retries create one empty tenant and original administrator invitation (77.345472ms)
+  ✔ changed sender input waiting on the same key is rejected without rewriting the completed tenant (56.714104ms)
+  ✔ a revoked session while waiting prevents a new tenant even with the trusted server role (58.299905ms)
+✔ concurrent verified onboarding serializes the native request key and checks authority after waiting (3244.739814ms)
+▶ platform onboarding and derived capabilities respect original identity and revocation
+  ✔ new provisioning and identical retries return exactly one tenant without silent actor membership (19.804056ms)
+  ✔ same key with changed owner, name or tenant identity is rejected before membership or Auth side effects (13.670212ms)
+  ✔ canonical retries survive reordered modules, case normalization and later branding changes (6.287065ms)
+  ✔ one atomic recipient binding, completed retry never restores revoked or deleted membership (198.303637ms)
+  ✔ bootstrap support and notification capabilities cease when the platform role is removed (66.111147ms)
+  ✔ raw platform-role lookup honors the live session boundary (7.917565ms)
+✔ platform onboarding and derived capabilities respect original identity and revocation (1432.479869ms)
+✔ concurrent local onboarding retries bind once and a late failure cannot undo completion (3234.621027ms)
+✔ platform support operator presets expose shared support only and stop on explicit or role revocation (1445.244301ms)
+▶ Source template saves retain native central versions, current authority and idempotent revision checks
+  ✔ browser clients, unrelated users and missing sessions cannot change tenant templates (13.551231ms)
+  ✔ save updates native template revision, audit, revision history and central active version together (10.502886ms)
+  ✔ lost response replay adds no revision; changed request or stale revision cannot overwrite (12.10376ms)
+  ✔ native reset restores defaults once and remains safe to repeat (8.575721ms)
+  ✔ invalid subjects and unsafe tokens leave the previous native and central version unchanged (8.042113ms)
+  ✔ revoked role, session or account also deny successful request replays (12.367069ms)
+✔ Source template saves retain native central versions, current authority and idempotent revision checks (1178.241087ms)
+▶ concurrent Source template saves serialize receipts and respect revision and revocation after row waits
+  ✔ identical concurrent requests publish one native and central revision (69.663846ms)
+  ✔ a different save waiting on the same native revision cannot overwrite the winning edit (60.289266ms)
+  ✔ revoking the verified caller during a row wait denies the trusted server command (61.057138ms)
+✔ concurrent Source template saves serialize receipts and respect revision and revocation after row waits (3263.935579ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6190.786877
