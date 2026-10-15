@@ -11,9 +11,9 @@
 .sites-cockpit .sites-commercial-page{display:contents}
 .sites-cockpit .mc-source-feedback{display:contents}
 /* Native form inheritance must not shrink the supplied source textarea. */
-.sites-cockpit .mc-source-feedback .mc-field textarea{padding:11px 12px;border:1px solid var(--brand-border);border-radius:8px;background:#fff;color:var(--brand-ink);width:100%;font-family:FieldgridSitesInter,Arial,sans-serif;font-size:13px;min-height:42px;outline:0}
-.sites-cockpit .mc-source-feedback .mc-field textarea:focus{border-color:var(--brand-focus);box-shadow:0 0 0 2px var(--brand-accent-soft)}
-@media(max-width:600px){.sites-cockpit .mc-source-feedback .mc-field textarea{font-size:16px!important}}
+.sites-cockpit .mc-dialog form.mc-source-feedback .mc-field textarea{padding:11px 12px;border:1px solid var(--brand-border);border-radius:8px;background:#fff;color:var(--brand-ink);width:100%;font-family:FieldgridSitesInter,Arial,sans-serif;font-size:13px;min-height:42px;outline:0}
+.sites-cockpit .mc-dialog form.mc-source-feedback .mc-field textarea:focus{border-color:var(--brand-focus);box-shadow:0 0 0 2px var(--brand-accent-soft)}
+@media(max-width:600px){.sites-cockpit .mc-dialog form.mc-source-feedback .mc-field textarea{font-size:16px!important}}
 .sites-cockpit .native-source-menu{position:relative;top:auto;right:auto;padding:14px;border-radius:12px!important;background:#fff!important;box-shadow:0 12px 30px #142c2317!important;font-family:FieldgridSitesInter,Arial,sans-serif}
 .sites-cockpit .native-source-menu [data-slot=dropdown-menu-label]{padding:0}
 .sites-cockpit .native-source-menu button{min-height:0;padding:10px 7px;border-radius:6px;font-size:11px;font-weight:inherit;line-height:inherit}
