@@ -23,6 +23,8 @@ De eerdere, expliciet gevraagde paginagrootte- en paginakeuze blijven naast de b
 
 De volledige native huisstijlvoorbeelden en logo-/paletbediening staan onder hun eigen inklapbare onderdelen. De kleurcode blijft direct bewerkbaar naast de kleurkiezer. De domeindialoog behoudt TXT/CNAME-instructies, verificatie en expliciete activering na Caddy-inrichting. De lokale browsertest verandert geen DNS, proxy of externe omgeving.
 
+De bewerkbare kleurcode behoudt op mobiel de native invoergrootte van 16 px om onbedoeld zoomen bij invoer te voorkomen; de bron toont daar een niet-bewerkbaar code-element. De uitgebreidere paginering behoudt eveneens haar mobiele bediening. Deze extra bediening kan de hoogte ten opzichte van het prototype vergroten. De lokale canonieke host is werkelijk `127.0.0.1`; de vergelijking vervangt die niet door een fictief geverifieerd productieadres.
+
 ## Mutatie- en conceptgrenzen
 
 Tenantstatus gebruikt het bestaande `tenants.version` en de bestaande versie-/workspacetriggers. Een verloren antwoord kan met dezelfde invoer en sleutel worden herhaald zonder tweede overgang of audit. Verouderde versies, gewijzigd sleutelgebruik en een gearchiveerde tenant worden geweigerd. Een platformrol is vereist; een supportprofiel voldoet niet. Een nieuwe statusovergang vereist een recente sessie met echte OTP-registratie. De rol en sessie worden na de rij- en herhaallocks opnieuw gecontroleerd.
@@ -33,4 +35,6 @@ Gedeelde conceptbescherming bewaart kleur-, module- en afzenderinvoer bij geannu
 
 De native status- en concurrentiesuite slaagt voor elf controles, waaronder daadwerkelijk wachtende gelijktijdige transacties en intrekking tijdens een tenantlock. De bestaande provisioning- en domeinregressie slaagt voor 21 controles. De beveiligingsadviseur meldt geen nieuwe databaseproblemen. De globale autorisatie-inventaris moet vóór release opnieuw worden gereconcilieerd met de routegroepverplaatsing en de overige integratiefasen; alleen de oude reviewledger controleren is daarvoor onvoldoende.
 
-Definitief runtime-SHA, verpakking, browserresultaten en bekeken beelden worden na de acceptatierun afzonderlijk vastgelegd. P01/P02 blijven tot dat moment open in het schermregister. Er is nog niets gepusht of gedeployed.
+De definitieve lokale run gebruikt de werkelijk verpakte runtime `4413214760f56c174d5903cc10bd453c79e08624`. Acht browserketens, 32 native databasecontroles en de koude build met 108 gegenereerde pagina's slagen. Er zijn 46 beelden bekeken, waaronder achttien bron/doelparen op 1440, 768 en 390 px. De volledige suite van 1942 tests in 202 bestanden slaagt op de direct voorafgaande runtime; de daaropvolgende knopklasse en Nederlandse uitnodigingslabels zijn door TypeScript, ESLint, de build en de browserrun gecontroleerd. Zie [verification.json](evidence/phase-19/verification.json).
+
+P01/P02 hebben nu lokaal testbewijs. De module-icoon-/naamtoewijzing en niet-technische introductietekst worden nog met de gedeelde onboardingkaarten afgewerkt. De communicatiekaart naar berichttemplates wordt met P04 gelijkgetrokken. De platformbel wordt bij P09 vergeleken. Deze concrete presentatiepunten blijven expliciet open en vormen geen impliciete visuele eindacceptatie. De globale autorisatie-inventaris blijft vóór release een afzonderlijke gate. Er is nog niets gepusht of gedeployed.

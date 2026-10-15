@@ -1,0 +1,568 @@
+Authorization classification needs review: code:app/(marketing)/fieldgrid-site/[[...path]]/page.tsx
+Authorization classification needs review: code:app/(marketing)/fieldgrid-site/layout.tsx
+Authorization classification needs review: code:app/(marketing)/fieldgrid-site/robots.txt/route.ts
+Authorization classification needs review: code:app/(marketing)/fieldgrid-site/sitemap.xml/route.ts
+Authorization classification needs review: code:app/(marketing)/layout.tsx
+Authorization classification needs review: code:app/(workspace)/aanvraag/actions.ts
+Authorization classification needs review: code:app/(workspace)/aanvraag/page.tsx
+Authorization classification needs review: code:app/(workspace)/api/addresses/route.ts
+Authorization classification needs review: code:app/(workspace)/api/auth/session/route.ts
+Authorization classification needs review: code:app/(workspace)/api/branding/[tenantId]/email-logo/route.ts
+Authorization classification needs review: code:app/(workspace)/api/crm/[...path]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/crm/availability/route.ts
+Authorization classification needs review: code:app/(workspace)/api/crm/intake/route.ts
+Authorization classification needs review: code:app/(workspace)/api/crm/route.ts
+Authorization classification needs review: code:app/(workspace)/api/customer-files/[kind]/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/customer-portal/files/[kind]/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/customer-portal/request/route.ts
+Authorization classification needs review: code:app/(workspace)/api/customer-portal/snapshot/route.ts
+Authorization classification needs review: code:app/(workspace)/api/customer-portal/state/route.ts
+Authorization classification needs review: code:app/(workspace)/api/customer-portal/tickets/route.ts
+Authorization classification needs review: code:app/(workspace)/api/customer-portal/visit-files/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/customer-portal/visit/route.ts
+Authorization classification needs review: code:app/(workspace)/api/email/auth/route.ts
+Authorization classification needs review: code:app/(workspace)/api/email/events/route.ts
+Authorization classification needs review: code:app/(workspace)/api/files/attachment/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/files/commercial/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/files/customer-document/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/files/dossier-document/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/files/invoice-concept/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/files/invoice/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/files/object-document/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/files/personnel-document/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/files/work-order-report/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/healthz/route.ts
+Authorization classification needs review: code:app/(workspace)/api/invoices/route.ts
+Authorization classification needs review: code:app/(workspace)/api/knowledge/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-cockpit/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-entities/customers/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-entities/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-finance/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-governance/files/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-governance/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-indexation/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-overview/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-reports/pdf/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-reports/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-sla/route.ts
+Authorization classification needs review: code:app/(workspace)/api/management-users/route.ts
+Authorization classification needs review: code:app/(workspace)/api/mollie/webhook/route.ts
+Authorization classification needs review: code:app/(workspace)/api/news/route.ts
+Authorization classification needs review: code:app/(workspace)/api/notifications/push/route.ts
+Authorization classification needs review: code:app/(workspace)/api/objects/vault/route.ts
+Authorization classification needs review: code:app/(workspace)/api/payments/create/route.ts
+Authorization classification needs review: code:app/(workspace)/api/product/files/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/product/route.ts
+Authorization classification needs review: code:app/(workspace)/api/push/subscribe/route.ts
+Authorization classification needs review: code:app/(workspace)/api/report-review/route.ts
+Authorization classification needs review: code:app/(workspace)/api/routes/estimate/route.ts
+Authorization classification needs review: code:app/(workspace)/api/search/route.ts
+Authorization classification needs review: code:app/(workspace)/api/tickets/files/[id]/route.ts
+Authorization classification needs review: code:app/(workspace)/api/tickets/files/route.ts
+Authorization classification needs review: code:app/(workspace)/api/tickets/push/route.ts
+Authorization classification needs review: code:app/(workspace)/api/veele-website/requests/route.ts
+Authorization classification needs review: code:app/(workspace)/api/worker/route.ts
+Authorization classification needs review: code:app/(workspace)/app/[view]/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/aanvragen/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/actions.ts
+Authorization classification needs review: code:app/(workspace)/app/besluiten/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/commercial-actions.ts
+Authorization classification needs review: code:app/(workspace)/app/commercial-delivery-actions.ts
+Authorization classification needs review: code:app/(workspace)/app/compliance/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/dossier-actions.ts
+Authorization classification needs review: code:app/(workspace)/app/facturen/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/finance-actions.ts
+Authorization classification needs review: code:app/(workspace)/app/gebruikers/actions.ts
+Authorization classification needs review: code:app/(workspace)/app/gebruikers/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/indexatie/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/instellingen/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/kennisbank/[slug]/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/kennisbank/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/klanten/[customerId]/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/klanten/actions.ts
+Authorization classification needs review: code:app/(workspace)/app/klanten/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/layout.tsx
+Authorization classification needs review: code:app/(workspace)/app/meldingen/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/meldingen/instellingen/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/meldingen/layout.tsx
+Authorization classification needs review: code:app/(workspace)/app/meldingen/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/nieuws/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/notificaties/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/notificaties/campagnes/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/notificaties/instellingen/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/notificaties/layout.tsx
+Authorization classification needs review: code:app/(workspace)/app/notificaties/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/objecten/[objectId]/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/objecten/actions.ts
+Authorization classification needs review: code:app/(workspace)/app/objecten/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/omzet/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/operations-actions.ts
+Authorization classification needs review: code:app/(workspace)/app/opvolging/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/overzicht/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/personeel/[personnelId]/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/personeel/acties/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/personeel/dossier-actions.ts
+Authorization classification needs review: code:app/(workspace)/app/personeel/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/planning/actions.ts
+Authorization classification needs review: code:app/(workspace)/app/planning/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/rapporten/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/sla/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/support/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/support/instellingen/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/support/layout.tsx
+Authorization classification needs review: code:app/(workspace)/app/support/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/taken/beheer/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/taken/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/taken/templates/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/travel-actions.ts
+Authorization classification needs review: code:app/(workspace)/app/updates/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/weekrapport/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/werkbonnen/[workOrderId]/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/werkbonnen/layout.tsx
+Authorization classification needs review: code:app/(workspace)/app/werkbonnen/page.tsx
+Authorization classification needs review: code:app/(workspace)/app/work-order-actions.ts
+Authorization classification needs review: code:app/(workspace)/app/work-order-file-actions.ts
+Authorization classification needs review: code:app/(workspace)/app/work-order-related-actions.ts
+Authorization classification needs review: code:app/(workspace)/auth/confirm/route.ts
+Authorization classification needs review: code:app/(workspace)/auth/forgot/page.tsx
+Authorization classification needs review: code:app/(workspace)/auth/invite/actions.ts
+Authorization classification needs review: code:app/(workspace)/auth/invite/page.tsx
+Authorization classification needs review: code:app/(workspace)/auth/reset/page.tsx
+Authorization classification needs review: code:app/(workspace)/auth/signout/route.ts
+Authorization classification needs review: code:app/(workspace)/auth/verify/actions.ts
+Authorization classification needs review: code:app/(workspace)/auth/verify/page.tsx
+Authorization classification needs review: code:app/(workspace)/booking/[token]/actions.ts
+Authorization classification needs review: code:app/(workspace)/booking/[token]/page.tsx
+Authorization classification needs review: code:app/(workspace)/klant/aanvragen/actions.ts
+Authorization classification needs review: code:app/(workspace)/klant/aanvragen/page.tsx
+Authorization classification needs review: code:app/(workspace)/klant/actions.ts
+Authorization classification needs review: code:app/(workspace)/klant/documenten/page.tsx
+Authorization classification needs review: code:app/(workspace)/klant/kennisbank/[slug]/page.tsx
+Authorization classification needs review: code:app/(workspace)/klant/kennisbank/page.tsx
+Authorization classification needs review: code:app/(workspace)/klant/notificaties/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/klant/notificaties/campagnes/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/klant/notificaties/instellingen/page.tsx
+Authorization classification needs review: code:app/(workspace)/klant/notificaties/layout.tsx
+Authorization classification needs review: code:app/(workspace)/klant/notificaties/page.tsx
+Authorization classification needs review: code:app/(workspace)/klant/page.tsx
+Authorization classification needs review: code:app/(workspace)/klant/updates/page.tsx
+Authorization classification needs review: code:app/(workspace)/layout.tsx
+Authorization classification needs review: code:app/(workspace)/login/actions.ts
+Authorization classification needs review: code:app/(workspace)/login/page.tsx
+Authorization classification needs review: code:app/(workspace)/notifications/actions.ts
+Authorization classification needs review: code:app/(workspace)/page.tsx
+Authorization classification needs review: code:app/(workspace)/pay/[token]/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/actions.ts
+Authorization classification needs review: code:app/(workspace)/platform/crm/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/domain-actions.ts
+Authorization classification needs review: code:app/(workspace)/platform/kennisbank/[slug]/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/kennisbank/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/layout.tsx
+Authorization classification needs review: code:app/(workspace)/platform/lifecycle-actions.ts
+Authorization classification needs review: code:app/(workspace)/platform/notificaties/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/notificaties/campagnes/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/notificaties/instellingen/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/notificaties/layout.tsx
+Authorization classification needs review: code:app/(workspace)/platform/notificaties/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/productbeheer/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/support/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/support/instellingen/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/support/layout.tsx
+Authorization classification needs review: code:app/(workspace)/platform/support/page.tsx
+Authorization classification needs review: code:app/(workspace)/platform/team/actions.ts
+Authorization classification needs review: code:app/(workspace)/platform/team/page.tsx
+Authorization classification needs review: code:app/(workspace)/quote/[token]/actions.ts
+Authorization classification needs review: code:app/(workspace)/quote/[token]/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/actions.ts
+Authorization classification needs review: code:app/(workspace)/staff/kennisbank/[slug]/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/kennisbank/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/layout.tsx
+Authorization classification needs review: code:app/(workspace)/staff/manifest.webmanifest/route.ts
+Authorization classification needs review: code:app/(workspace)/staff/meldingen/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/meldingen/instellingen/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/meldingen/layout.tsx
+Authorization classification needs review: code:app/(workspace)/staff/meldingen/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/notificaties/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/notificaties/campagnes/[id]/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/notificaties/instellingen/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/notificaties/layout.tsx
+Authorization classification needs review: code:app/(workspace)/staff/notificaties/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/objecten/[objectId]/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/page.tsx
+Authorization classification needs review: code:app/(workspace)/staff/pwa/[asset]/route.ts
+Authorization classification needs review: code:app/(workspace)/staff/updates/page.tsx
+Authorization classification needs review: code:app/(workspace)/tickets/actions.ts
+Authorization classification needs review: code:components/fieldgrid/knowledge/routes.tsx
+Authorization classification needs review: code:components/fieldgrid/management-cockpit/governance-page.tsx
+Authorization classification needs review: code:components/fieldgrid/planboard/day-planboard.tsx
+Authorization classification needs review: code:components/fieldgrid/product/routes.tsx
+Authorization classification needs review: code:components/fieldgrid/staff-app.tsx
+Authorization classification needs review: code:components/fieldgrid/staff/personnel-app.tsx
+Authorization classification needs review: code:lib/data/workspace.ts
+Authorization classification needs review: code:lib/files/scanned-storage.ts
+Authorization classification needs review: code:lib/finance/source-invoice-data.ts
+Authorization classification needs review: code:lib/management-cockpit/data.ts
+Authorization classification needs review: code:lib/management-cockpit/entities-data.ts
+Authorization classification needs review: code:lib/management-cockpit/worker.ts
+Authorization classification needs review: code:lib/news/data.ts
+Authorization classification needs review: code:lib/notifications/worker.ts
+Authorization classification needs review: code:lib/personnel/directory-data.ts
+Authorization classification needs review: code:lib/platform-crm/data.ts
+Authorization classification needs review: code:lib/platform/data.ts
+Authorization classification needs review: code:lib/platform/team.ts
+Authorization classification needs review: code:lib/tasks/data.ts
+Authorization classification needs review: code:lib/work-orders/data.ts
+Authorization classification needs review: code:proxy.ts
+Authorization classification needs review: db:private.cockpit_action_overlays
+Authorization classification needs review: db:private.cockpit_actions
+Authorization classification needs review: db:private.cockpit_decision_versions
+Authorization classification needs review: db:private.cockpit_decisions
+Authorization classification needs review: db:private.cockpit_events
+Authorization classification needs review: db:private.cockpit_finance_checks
+Authorization classification needs review: db:private.cockpit_finance_queue
+Authorization classification needs review: db:private.cockpit_finance_reviews
+Authorization classification needs review: db:private.cockpit_indexation_lines
+Authorization classification needs review: db:private.cockpit_indexation_versions
+Authorization classification needs review: db:private.cockpit_indexations
+Authorization classification needs review: db:private.cockpit_receipts
+Authorization classification needs review: db:private.cockpit_report_jobs
+Authorization classification needs review: db:private.cockpit_report_runs
+Authorization classification needs review: db:private.cockpit_report_schedules
+Authorization classification needs review: db:private.cockpit_reports
+Authorization classification needs review: db:private.cockpit_requirement_versions
+Authorization classification needs review: db:private.cockpit_requirements
+Authorization classification needs review: db:private.cockpit_service_versions
+Authorization classification needs review: db:private.cockpit_services
+Authorization classification needs review: db:private.cockpit_sla_ticket_checks
+Authorization classification needs review: db:private.cockpit_ticket_service_bindings
+Authorization classification needs review: db:private.crm_activities
+Authorization classification needs review: db:private.crm_appointments
+Authorization classification needs review: db:private.crm_audit
+Authorization classification needs review: db:private.crm_leads
+Authorization classification needs review: db:private.crm_rate_windows
+Authorization classification needs review: db:private.crm_receipts
+Authorization classification needs review: db:private.crm_requests
+Authorization classification needs review: db:private.crm_settings
+Authorization classification needs review: db:private.crm_tasks
+Authorization classification needs review: db:private.platform_administrator_registration
+Authorization classification needs review: db:public.invoice_lines
+Authorization classification needs review: db:public.notifications
+Authorization classification needs review: db:public.tickets
+Authorization classification needs review: db:public.work_order_tasks
+Authorization classification needs review: db:public.work_orders
+Authorization classification needs review: operation:.github/workflows/_verify.yml
+Authorization classification needs review: operation:next.config.ts
+Authorization classification needs review: operation:package.json
+Authorization classification needs review: operation:pnpm-lock.yaml
+Authorization classification needs review: operation:scripts/bootstrap-platform-admin.ts
+Authorization classification needs review: operation:scripts/package-release.sh
+Authorization classification needs review: rpc:private.agreement_scope_guard()
+Authorization classification needs review: rpc:private.cockpit_access(t uuid, cap text)
+Authorization classification needs review: rpc:private.cockpit_action_can_write(a private.cockpit_actions)
+Authorization classification needs review: rpc:private.cockpit_action_visible(a private.cockpit_actions)
+Authorization classification needs review: rpc:private.cockpit_assert(t uuid, cap text)
+Authorization classification needs review: rpc:private.cockpit_can_upload(t uuid, kind text, source uuid)
+Authorization classification needs review: rpc:private.cockpit_decision_dto(d private.cockpit_decisions, detail boolean, history_page integer)
+Authorization classification needs review: rpc:private.cockpit_decision_visible(d private.cockpit_decisions)
+Authorization classification needs review: rpc:private.cockpit_entity_access(t uuid, kind text)
+Authorization classification needs review: rpc:private.cockpit_event_context()
+Authorization classification needs review: rpc:private.cockpit_evidence_identity(t uuid, kind text, parent uuid, evidence uuid)
+Authorization classification needs review: rpc:private.cockpit_evidence(t uuid, kind text, parent uuid, evidence uuid)
+Authorization classification needs review: rpc:private.cockpit_finance_assert(t uuid, writing boolean)
+Authorization classification needs review: rpc:private.cockpit_finance_enqueue()
+Authorization classification needs review: rpc:private.cockpit_finance_excluded_rows(t uuid)
+Authorization classification needs review: rpc:private.cockpit_finance_invoice_rows(t uuid)
+Authorization classification needs review: rpc:private.cockpit_finance_review_immutable()
+Authorization classification needs review: rpc:private.cockpit_finance_sync(t uuid, order_id uuid, actor uuid)
+Authorization classification needs review: rpc:private.cockpit_finance_task_rows(t uuid, target_order uuid)
+Authorization classification needs review: rpc:private.cockpit_followup_data(t uuid)
+Authorization classification needs review: rpc:private.cockpit_governance_assert(t uuid, module text, writing boolean)
+Authorization classification needs review: rpc:private.cockpit_history_scope(t uuid, scope text, kind text, record uuid)
+Authorization classification needs review: rpc:private.cockpit_indexation_assert(t uuid, writing boolean)
+Authorization classification needs review: rpc:private.cockpit_indexation_line(t uuid, original uuid, business_day date)
+Authorization classification needs review: rpc:private.cockpit_indexation_owner(t uuid)
+Authorization classification needs review: rpc:private.cockpit_indexation_row(r private.cockpit_indexations)
+Authorization classification needs review: rpc:private.cockpit_indexation_source(t uuid, source uuid)
+Authorization classification needs review: rpc:private.cockpit_invoice_list(t uuid, filters jsonb)
+Authorization classification needs review: rpc:private.cockpit_overview_operational(t uuid, payload jsonb)
+Authorization classification needs review: rpc:private.cockpit_owner(t uuid, person uuid)
+Authorization classification needs review: rpc:private.cockpit_report_immutable()
+Authorization classification needs review: rpc:private.cockpit_report_review_list(t uuid, filters jsonb)
+Authorization classification needs review: rpc:private.cockpit_requirement_action_guard()
+Authorization classification needs review: rpc:private.cockpit_requirement_action_owner()
+Authorization classification needs review: rpc:private.cockpit_requirement_dto(r private.cockpit_requirements, detail boolean, history_page integer)
+Authorization classification needs review: rpc:private.cockpit_requirement_measure(r private.cockpit_requirements)
+Authorization classification needs review: rpc:private.cockpit_requirement_status(r private.cockpit_requirements)
+Authorization classification needs review: rpc:private.cockpit_requirement_sync(r private.cockpit_requirements, actor uuid, sync_owner boolean)
+Authorization classification needs review: rpc:private.cockpit_requirement_visible(r private.cockpit_requirements)
+Authorization classification needs review: rpc:private.cockpit_scope(t uuid, scope text)
+Authorization classification needs review: rpc:private.cockpit_service_command(target_tenant uuid, input jsonb, request_id uuid)
+Authorization classification needs review: rpc:private.cockpit_service_dto(v private.cockpit_service_versions, detail boolean)
+Authorization classification needs review: rpc:private.cockpit_service_measure(v private.cockpit_service_versions)
+Authorization classification needs review: rpc:private.cockpit_service_source(v private.cockpit_service_versions, writing boolean)
+Authorization classification needs review: rpc:private.cockpit_service_version_guard()
+Authorization classification needs review: rpc:private.cockpit_service_visible(v private.cockpit_service_versions)
+Authorization classification needs review: rpc:private.cockpit_sla_assert(t uuid, writing boolean)
+Authorization classification needs review: rpc:private.cockpit_sla_norm(kind text, norm text)
+Authorization classification needs review: rpc:private.cockpit_sla_ticket_dto(t tickets, kind text, detail boolean)
+Authorization classification needs review: rpc:private.cockpit_source(t uuid, kind text, rid uuid, writing boolean)
+Authorization classification needs review: rpc:private.cockpit_ticket_contract_clock()
+Authorization classification needs review: rpc:private.cockpit_ticket_sla_changed()
+Authorization classification needs review: rpc:private.cockpit_ticket_sla_sync(tid uuid, actor uuid)
+Authorization classification needs review: rpc:private.cockpit_work_order_options(t uuid)
+Authorization classification needs review: rpc:private.cockpit_work_order_source_access(t uuid)
+Authorization classification needs review: rpc:private.crm_admin()
+Authorization classification needs review: rpc:private.crm_appointment_dto(a private.crm_appointments)
+Authorization classification needs review: rpc:private.crm_lead_dto(l private.crm_leads)
+Authorization classification needs review: rpc:private.crm_local_instant(day date, slot time without time zone)
+Authorization classification needs review: rpc:private.crm_lock_actor()
+Authorization classification needs review: rpc:private.crm_notification_projection(p jsonb, request_ids uuid[], lead_uuid uuid)
+Authorization classification needs review: rpc:private.crm_notifications(lead_uuid uuid, size integer, skip integer)
+Authorization classification needs review: rpc:private.crm_notify(request_uuid uuid)
+Authorization classification needs review: rpc:private.crm_owner_valid(owner_id uuid)
+Authorization classification needs review: rpc:private.crm_primary_admin()
+Authorization classification needs review: rpc:private.crm_register_primary()
+Authorization classification needs review: rpc:private.crm_request_dto(r private.crm_requests)
+Authorization classification needs review: rpc:private.crm_settings_dto()
+Authorization classification needs review: rpc:private.crm_slot(day date, slot time without time zone, exclude_id uuid)
+Authorization classification needs review: rpc:private.crm_task_dto(t private.crm_tasks)
+Authorization classification needs review: rpc:private.execution_invoice_sources(target_tenant uuid, target_order uuid)
+Authorization classification needs review: rpc:private.management_seed(t uuid)
+Authorization classification needs review: rpc:private.notification_enqueue(t uuid, code text, kind text, source uuid, source_revision text, dedupe_key text, payload jsonb)
+Authorization classification needs review: rpc:private.notification_policy(t uuid, code text, ctx text, ch text, recipient uuid)
+Authorization classification needs review: rpc:private.notification_source_allowed(t uuid, code text, kind text, source uuid, revision text, recipient uuid, ctx text)
+Authorization classification needs review: rpc:private.report_assert(t uuid, writing boolean)
+Authorization classification needs review: rpc:private.report_audience(t uuid, actor uuid, audience text)
+Authorization classification needs review: rpc:private.report_authority(t uuid, actor uuid)
+Authorization classification needs review: rpc:private.report_can_access_personnel(target_tenant_id uuid, target_personnel_id uuid, sensitive boolean, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cap(t uuid, cap text, report_actor uuid)
+Authorization classification needs review: rpc:private.report_capture(t uuid, actor uuid, period text, comment text)
+Authorization classification needs review: rpc:private.report_cockpit_access(t uuid, cap text, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cockpit_action_visible(a private.cockpit_actions, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cockpit_decision_visible(d private.cockpit_decisions, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cockpit_evidence(t uuid, kind text, parent uuid, evidence uuid, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cockpit_requirement_status(r private.cockpit_requirements, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cockpit_requirement_visible(r private.cockpit_requirements, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cockpit_scope(t uuid, scope text, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cockpit_service_dto(v private.cockpit_service_versions, detail boolean, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cockpit_service_source(v private.cockpit_service_versions, writing boolean, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cockpit_service_visible(v private.cockpit_service_versions, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cockpit_sla_ticket_dto(t tickets, kind text, detail boolean, report_actor uuid)
+Authorization classification needs review: rpc:private.report_cockpit_source(t uuid, kind text, rid uuid, writing boolean, report_actor uuid)
+Authorization classification needs review: rpc:private.report_commercial_access(t uuid, report_actor uuid)
+Authorization classification needs review: rpc:private.report_current_personnel_id(target_tenant_id uuid, report_actor uuid)
+Authorization classification needs review: rpc:private.report_dossier_access(t uuid, report_actor uuid)
+Authorization classification needs review: rpc:private.report_dto(r private.cockpit_reports)
+Authorization classification needs review: rpc:private.report_facts(t uuid, actor uuid)
+Authorization classification needs review: rpc:private.report_management_table_allowed(t uuid, resource text, writing boolean, report_actor uuid)
+Authorization classification needs review: rpc:private.report_next_run(t uuid, day integer, at_time time without time zone, after_time timestamp with time zone)
+Authorization classification needs review: rpc:private.report_object_manage(t uuid, report_actor uuid)
+Authorization classification needs review: rpc:private.report_owner(t uuid, actor uuid)
+Authorization classification needs review: rpc:private.report_planning_access(t uuid, report_actor uuid)
+Authorization classification needs review: rpc:private.report_profile(t uuid, actor uuid)
+Authorization classification needs review: rpc:private.report_readable(r private.cockpit_reports, actor uuid, current_policy jsonb)
+Authorization classification needs review: rpc:private.report_readable(r private.cockpit_reports, actor uuid)
+Authorization classification needs review: rpc:private.report_role_name(t uuid, actor uuid)
+Authorization classification needs review: rpc:private.report_role(t uuid, roles app_role[], report_actor uuid)
+Authorization classification needs review: rpc:private.report_work_order_access(t uuid, financial boolean, report_actor uuid)
+Authorization classification needs review: rpc:public.cockpit_action_history(target_tenant uuid, kind text, record_id uuid)
+Authorization classification needs review: rpc:public.cockpit_customer_cards(target_tenant uuid, filters jsonb)
+Authorization classification needs review: rpc:public.cockpit_entity_query(target_tenant uuid, source_kind text, source_id uuid)
+Authorization classification needs review: rpc:public.cockpit_evidence_options(target_tenant uuid, source_kind text, source_id uuid, search text, selected_evidence uuid)
+Authorization classification needs review: rpc:public.cockpit_finance_command(target_tenant uuid, input jsonb, request_id uuid)
+Authorization classification needs review: rpc:public.cockpit_finance_maintenance(batch_size integer)
+Authorization classification needs review: rpc:public.cockpit_finance_query(target_tenant uuid, payload jsonb)
+Authorization classification needs review: rpc:public.cockpit_followup_command(target_tenant uuid, command text, input jsonb, request_id uuid)
+Authorization classification needs review: rpc:public.cockpit_followup(target_tenant uuid)
+Authorization classification needs review: rpc:public.cockpit_governance_command(target_tenant uuid, module text, command text, input jsonb, request_id uuid)
+Authorization classification needs review: rpc:public.cockpit_governance_query(target_tenant uuid, module text, payload jsonb)
+Authorization classification needs review: rpc:public.cockpit_governance_upload_allowed(target_tenant uuid, source_kind text, source_id uuid)
+Authorization classification needs review: rpc:public.cockpit_indexation_command(target_tenant uuid, command text, input jsonb, request_id uuid)
+Authorization classification needs review: rpc:public.cockpit_indexation_evidence(target_tenant uuid, target_customer uuid, selected_evidence uuid, search text)
+Authorization classification needs review: rpc:public.cockpit_indexation_query(target_tenant uuid, payload jsonb)
+Authorization classification needs review: rpc:public.cockpit_invoice_list(target_tenant uuid, filters jsonb)
+Authorization classification needs review: rpc:public.cockpit_maintenance(batch_size integer)
+Authorization classification needs review: rpc:public.cockpit_overview_query(target_tenant uuid, payload jsonb)
+Authorization classification needs review: rpc:public.cockpit_report_review_list(target_tenant uuid, filters jsonb)
+Authorization classification needs review: rpc:public.cockpit_reports_command(target_tenant uuid, command text, input jsonb, request_id uuid)
+Authorization classification needs review: rpc:public.cockpit_reports_maintenance(batch_size integer)
+Authorization classification needs review: rpc:public.cockpit_reports_query(target_tenant uuid, payload jsonb)
+Authorization classification needs review: rpc:public.cockpit_sla_command(target_tenant uuid, command text, input jsonb, request_id uuid)
+Authorization classification needs review: rpc:public.cockpit_sla_maintenance(batch_size integer)
+Authorization classification needs review: rpc:public.cockpit_sla_query(target_tenant uuid, payload jsonb)
+Authorization classification needs review: rpc:public.cockpit_work_order_financial_sources(target_tenant uuid, target_order uuid)
+Authorization classification needs review: rpc:public.cockpit_work_order_source(target_tenant uuid, target_order uuid)
+Authorization classification needs review: rpc:public.commercial_list(target_tenant uuid, filters jsonb)
+Authorization classification needs review: rpc:public.crm_availability(day date)
+Authorization classification needs review: rpc:public.crm_command(command text, payload jsonb, request_id uuid)
+Authorization classification needs review: rpc:public.crm_intake(payload jsonb, request_id uuid, rate_key text)
+Authorization classification needs review: rpc:public.crm_prepare_notifications(batch_size integer)
+Authorization classification needs review: rpc:public.crm_query(operation text, payload jsonb)
+Authorization classification needs review: rpc:public.execution_invoice_concepts(target_tenant uuid, target_order uuid)
+Authorization classification needs review: rpc:public.notification_command(target_tenant uuid, actor_context text, command text, payload jsonb, request_id uuid)
+Authorization classification needs review: rpc:public.notification_delivery_prepare(request_id uuid)
+Authorization classification needs review: rpc:public.notification_query(target_tenant uuid, actor_context text, operation text, payload jsonb)
+Authorization classification needs review: rpc:public.object_agreement_options(target_tenant uuid, target_object uuid)
+Authorization classification needs review: rpc:public.platform_account_command(target_user uuid, expected_revision bigint, request_id uuid)
+Authorization classification needs review: rpc:public.platform_account_query()
+Authorization classification needs review: rpc:public.platform_register_primary_admin(target_user uuid)
+Authorization classification needs review: rpc:public.platform_tenant_lifecycle(target_tenant uuid, desired_status text, expected_version bigint, request_id uuid)
+Authorization surface removed/renamed: code:app/aanvraag/actions.ts
+Authorization surface removed/renamed: code:app/aanvraag/page.tsx
+Authorization surface removed/renamed: code:app/api/addresses/route.ts
+Authorization surface removed/renamed: code:app/api/auth/session/route.ts
+Authorization surface removed/renamed: code:app/api/branding/[tenantId]/email-logo/route.ts
+Authorization surface removed/renamed: code:app/api/customer-files/[kind]/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/customer-portal/files/[kind]/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/customer-portal/request/route.ts
+Authorization surface removed/renamed: code:app/api/customer-portal/snapshot/route.ts
+Authorization surface removed/renamed: code:app/api/customer-portal/state/route.ts
+Authorization surface removed/renamed: code:app/api/customer-portal/tickets/route.ts
+Authorization surface removed/renamed: code:app/api/customer-portal/visit-files/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/customer-portal/visit/route.ts
+Authorization surface removed/renamed: code:app/api/email/auth/route.ts
+Authorization surface removed/renamed: code:app/api/email/events/route.ts
+Authorization surface removed/renamed: code:app/api/files/attachment/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/files/commercial/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/files/customer-document/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/files/dossier-document/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/files/invoice-concept/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/files/invoice/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/files/object-document/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/files/personnel-document/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/files/work-order-report/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/healthz/route.ts
+Authorization surface removed/renamed: code:app/api/knowledge/route.ts
+Authorization surface removed/renamed: code:app/api/mollie/webhook/route.ts
+Authorization surface removed/renamed: code:app/api/notifications/push/route.ts
+Authorization surface removed/renamed: code:app/api/objects/vault/route.ts
+Authorization surface removed/renamed: code:app/api/payments/create/route.ts
+Authorization surface removed/renamed: code:app/api/product/files/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/product/route.ts
+Authorization surface removed/renamed: code:app/api/push/subscribe/route.ts
+Authorization surface removed/renamed: code:app/api/routes/estimate/route.ts
+Authorization surface removed/renamed: code:app/api/search/route.ts
+Authorization surface removed/renamed: code:app/api/tickets/files/[id]/route.ts
+Authorization surface removed/renamed: code:app/api/tickets/files/route.ts
+Authorization surface removed/renamed: code:app/api/tickets/push/route.ts
+Authorization surface removed/renamed: code:app/api/veele-website/requests/route.ts
+Authorization surface removed/renamed: code:app/api/worker/route.ts
+Authorization surface removed/renamed: code:app/app/[view]/page.tsx
+Authorization surface removed/renamed: code:app/app/aanvragen/page.tsx
+Authorization surface removed/renamed: code:app/app/actions.ts
+Authorization surface removed/renamed: code:app/app/commercial-actions.ts
+Authorization surface removed/renamed: code:app/app/commercial-delivery-actions.ts
+Authorization surface removed/renamed: code:app/app/dossier-actions.ts
+Authorization surface removed/renamed: code:app/app/finance-actions.ts
+Authorization surface removed/renamed: code:app/app/gebruikers/actions.ts
+Authorization surface removed/renamed: code:app/app/gebruikers/page.tsx
+Authorization surface removed/renamed: code:app/app/kennisbank/[slug]/page.tsx
+Authorization surface removed/renamed: code:app/app/kennisbank/page.tsx
+Authorization surface removed/renamed: code:app/app/klanten/[customerId]/page.tsx
+Authorization surface removed/renamed: code:app/app/klanten/actions.ts
+Authorization surface removed/renamed: code:app/app/klanten/page.tsx
+Authorization surface removed/renamed: code:app/app/layout.tsx
+Authorization surface removed/renamed: code:app/app/meldingen/[id]/page.tsx
+Authorization surface removed/renamed: code:app/app/meldingen/instellingen/page.tsx
+Authorization surface removed/renamed: code:app/app/meldingen/layout.tsx
+Authorization surface removed/renamed: code:app/app/meldingen/page.tsx
+Authorization surface removed/renamed: code:app/app/notificaties/[id]/page.tsx
+Authorization surface removed/renamed: code:app/app/notificaties/campagnes/[id]/page.tsx
+Authorization surface removed/renamed: code:app/app/notificaties/instellingen/page.tsx
+Authorization surface removed/renamed: code:app/app/notificaties/layout.tsx
+Authorization surface removed/renamed: code:app/app/notificaties/page.tsx
+Authorization surface removed/renamed: code:app/app/objecten/[objectId]/page.tsx
+Authorization surface removed/renamed: code:app/app/objecten/actions.ts
+Authorization surface removed/renamed: code:app/app/objecten/page.tsx
+Authorization surface removed/renamed: code:app/app/operations-actions.ts
+Authorization surface removed/renamed: code:app/app/opvolging/page.tsx
+Authorization surface removed/renamed: code:app/app/page.tsx
+Authorization surface removed/renamed: code:app/app/personeel/[personnelId]/page.tsx
+Authorization surface removed/renamed: code:app/app/personeel/acties/page.tsx
+Authorization surface removed/renamed: code:app/app/personeel/dossier-actions.ts
+Authorization surface removed/renamed: code:app/app/planning/actions.ts
+Authorization surface removed/renamed: code:app/app/planning/page.tsx
+Authorization surface removed/renamed: code:app/app/support/[id]/page.tsx
+Authorization surface removed/renamed: code:app/app/support/instellingen/page.tsx
+Authorization surface removed/renamed: code:app/app/support/layout.tsx
+Authorization surface removed/renamed: code:app/app/support/page.tsx
+Authorization surface removed/renamed: code:app/app/taken/templates/page.tsx
+Authorization surface removed/renamed: code:app/app/travel-actions.ts
+Authorization surface removed/renamed: code:app/app/updates/page.tsx
+Authorization surface removed/renamed: code:app/app/werkbonnen/[workOrderId]/page.tsx
+Authorization surface removed/renamed: code:app/app/werkbonnen/layout.tsx
+Authorization surface removed/renamed: code:app/app/werkbonnen/page.tsx
+Authorization surface removed/renamed: code:app/app/work-order-actions.ts
+Authorization surface removed/renamed: code:app/app/work-order-file-actions.ts
+Authorization surface removed/renamed: code:app/app/work-order-related-actions.ts
+Authorization surface removed/renamed: code:app/auth/confirm/route.ts
+Authorization surface removed/renamed: code:app/auth/forgot/page.tsx
+Authorization surface removed/renamed: code:app/auth/invite/actions.ts
+Authorization surface removed/renamed: code:app/auth/invite/page.tsx
+Authorization surface removed/renamed: code:app/auth/reset/page.tsx
+Authorization surface removed/renamed: code:app/auth/signout/route.ts
+Authorization surface removed/renamed: code:app/auth/verify/actions.ts
+Authorization surface removed/renamed: code:app/auth/verify/page.tsx
+Authorization surface removed/renamed: code:app/booking/[token]/actions.ts
+Authorization surface removed/renamed: code:app/booking/[token]/page.tsx
+Authorization surface removed/renamed: code:app/klant/aanvragen/actions.ts
+Authorization surface removed/renamed: code:app/klant/aanvragen/page.tsx
+Authorization surface removed/renamed: code:app/klant/actions.ts
+Authorization surface removed/renamed: code:app/klant/documenten/page.tsx
+Authorization surface removed/renamed: code:app/klant/kennisbank/[slug]/page.tsx
+Authorization surface removed/renamed: code:app/klant/kennisbank/page.tsx
+Authorization surface removed/renamed: code:app/klant/notificaties/[id]/page.tsx
+Authorization surface removed/renamed: code:app/klant/notificaties/campagnes/[id]/page.tsx
+Authorization surface removed/renamed: code:app/klant/notificaties/instellingen/page.tsx
+Authorization surface removed/renamed: code:app/klant/notificaties/layout.tsx
+Authorization surface removed/renamed: code:app/klant/notificaties/page.tsx
+Authorization surface removed/renamed: code:app/klant/page.tsx
+Authorization surface removed/renamed: code:app/klant/updates/page.tsx
+Authorization surface removed/renamed: code:app/layout.tsx
+Authorization surface removed/renamed: code:app/login/actions.ts
+Authorization surface removed/renamed: code:app/login/page.tsx
+Authorization surface removed/renamed: code:app/notifications/actions.ts
+Authorization surface removed/renamed: code:app/page.tsx
+Authorization surface removed/renamed: code:app/pay/[token]/page.tsx
+Authorization surface removed/renamed: code:app/platform/actions.ts
+Authorization surface removed/renamed: code:app/platform/domain-actions.ts
+Authorization surface removed/renamed: code:app/platform/kennisbank/[slug]/page.tsx
+Authorization surface removed/renamed: code:app/platform/kennisbank/page.tsx
+Authorization surface removed/renamed: code:app/platform/layout.tsx
+Authorization surface removed/renamed: code:app/platform/notificaties/[id]/page.tsx
+Authorization surface removed/renamed: code:app/platform/notificaties/campagnes/[id]/page.tsx
+Authorization surface removed/renamed: code:app/platform/notificaties/instellingen/page.tsx
+Authorization surface removed/renamed: code:app/platform/notificaties/layout.tsx
+Authorization surface removed/renamed: code:app/platform/notificaties/page.tsx
+Authorization surface removed/renamed: code:app/platform/page.tsx
+Authorization surface removed/renamed: code:app/platform/productbeheer/page.tsx
+Authorization surface removed/renamed: code:app/platform/support/[id]/page.tsx
+Authorization surface removed/renamed: code:app/platform/support/instellingen/page.tsx
+Authorization surface removed/renamed: code:app/platform/support/layout.tsx
+Authorization surface removed/renamed: code:app/platform/support/page.tsx
+Authorization surface removed/renamed: code:app/platform/team/actions.ts
+Authorization surface removed/renamed: code:app/platform/team/page.tsx
+Authorization surface removed/renamed: code:app/quote/[token]/actions.ts
+Authorization surface removed/renamed: code:app/quote/[token]/page.tsx
+Authorization surface removed/renamed: code:app/staff/actions.ts
+Authorization surface removed/renamed: code:app/staff/kennisbank/[slug]/page.tsx
+Authorization surface removed/renamed: code:app/staff/kennisbank/page.tsx
+Authorization surface removed/renamed: code:app/staff/layout.tsx
+Authorization surface removed/renamed: code:app/staff/manifest.webmanifest/route.ts
+Authorization surface removed/renamed: code:app/staff/meldingen/[id]/page.tsx
+Authorization surface removed/renamed: code:app/staff/meldingen/instellingen/page.tsx
+Authorization surface removed/renamed: code:app/staff/meldingen/layout.tsx
+Authorization surface removed/renamed: code:app/staff/meldingen/page.tsx
+Authorization surface removed/renamed: code:app/staff/notificaties/[id]/page.tsx
+Authorization surface removed/renamed: code:app/staff/notificaties/campagnes/[id]/page.tsx
+Authorization surface removed/renamed: code:app/staff/notificaties/instellingen/page.tsx
+Authorization surface removed/renamed: code:app/staff/notificaties/layout.tsx
+Authorization surface removed/renamed: code:app/staff/notificaties/page.tsx
+Authorization surface removed/renamed: code:app/staff/objecten/[objectId]/page.tsx
+Authorization surface removed/renamed: code:app/staff/page.tsx
+Authorization surface removed/renamed: code:app/staff/pwa/[asset]/route.ts
+Authorization surface removed/renamed: code:app/staff/updates/page.tsx
+Authorization surface removed/renamed: code:app/tickets/actions.ts
+Review changed entrypoints, grants and resources, add authorization tests, then update the metadata snapshot. Capturing a snapshot alone is not approval.

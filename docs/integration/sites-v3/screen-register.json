@@ -1101,12 +1101,17 @@
         "Zoekbare tenanttabel, status/modules/medewerkers, paginatie, detail, Nieuwe tenant",
         "Echte tenants en serverrechten; bestaande uitgebreide velden/lifecycle niet terugbrengen tot demokolommen."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/platform?view=tenants",
+      "implementation": "implemented and locally tested; supplied platform presentation over native authorized configuration and audited current-version lifecycle; phase-19.md; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-19.md",
+        "evidence/phase-19/verification.json",
+        "evidence/phase-19/result.json",
+        "evidence/phase-19/comparison.json"
+      ]
     },
     {
       "id": "P02",
@@ -1115,12 +1120,17 @@
         "Tenanthero; tabs Overzicht, Huisstijl, Modules, Communicatie, Domein",
         "Productieroute bevat een echte stabiele tenantselectie. Activeren/pauzeren, palette, whitelabel, moduleafhankelijkheden, afzender en domein werken via bestaand beheer."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/platform?view=detail&tenant=<stable UUID>&tab=<tab>",
+      "implementation": "implemented and locally tested; supplied platform presentation over native authorized configuration and audited current-version lifecycle; phase-19.md; shared module icon/name and communication summary presentation follow-up tracked for P03/P04; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-19.md",
+        "evidence/phase-19/verification.json",
+        "evidence/phase-19/result.json",
+        "evidence/phase-19/comparison.json"
+      ]
     },
     {
       "id": "P03",

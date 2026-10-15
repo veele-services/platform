@@ -1,0 +1,102 @@
+{
+  "runtimeCommit": "4413214760f56c174d5903cc10bd453c79e08624",
+  "implemented": true,
+  "locallyTested": true,
+  "deployed": false,
+  "liveVerified": false,
+  "browserChains": {
+    "passed": 8,
+    "failed": 0,
+    "browserErrors": []
+  },
+  "nativeDatabase": {
+    "passed": 32,
+    "failed": 0,
+    "lifecycleAndConcurrency": 11,
+    "existingProvisioningAndDomains": 21
+  },
+  "wholeUnitSuite": {
+    "passed": 1942,
+    "filesPassed": 202,
+    "failed": 0,
+    "runtimeCommit": "41b6a8bc0989cac06e41936229cb1577a2348e33",
+    "laterChanges": "Source button class and Dutch invitation labels; targeted ESLint and TypeScript pass in final build."
+  },
+  "coldProductionBuild": {
+    "compiled": true,
+    "typescript": true,
+    "generatedPages": 108
+  },
+  "actualStandalonePackaging": {
+    "archiveSha256": "30b324f4aeb118ca9d24d7744a6725a3bc281a41c96acd64eee6d60114b18cda",
+    "tracedModules": 19,
+    "ownServerJs": true,
+    "browserChainPassed": true,
+    "deploymentAttestation": false
+  },
+  "securityAdvisors": {
+    "securityIssues": 0,
+    "performanceScope": "Existing schema-wide performance advisories retained; no new table or index."
+  },
+  "newMigration": "20261015181959_platform_tenant_lifecycle.sql",
+  "localMigrationManifest": {
+    "applied": 173,
+    "mismatches": 0
+  },
+  "viewedComparisons": [
+    "tenants-target-1440.png",
+    "tenants-target-768.png",
+    "tenants-target-390.png",
+    "tenants-source-1440.png",
+    "tenants-source-768.png",
+    "tenants-source-390.png",
+    "tenant-overview-target-1440.png",
+    "tenant-overview-target-768.png",
+    "tenant-overview-target-390.png",
+    "tenant-overview-source-1440.png",
+    "tenant-overview-source-768.png",
+    "tenant-overview-source-390.png",
+    "tenant-huisstijl-target-1440.png",
+    "tenant-huisstijl-target-768.png",
+    "tenant-huisstijl-target-390.png",
+    "tenant-huisstijl-source-1440.png",
+    "tenant-huisstijl-source-768.png",
+    "tenant-huisstijl-source-390.png",
+    "tenant-modules-target-1440.png",
+    "tenant-modules-target-768.png",
+    "tenant-modules-target-390.png",
+    "tenant-modules-source-1440.png",
+    "tenant-modules-source-768.png",
+    "tenant-modules-source-390.png",
+    "tenant-communicatie-target-1440.png",
+    "tenant-communicatie-target-768.png",
+    "tenant-communicatie-target-390.png",
+    "tenant-communicatie-source-1440.png",
+    "tenant-communicatie-source-768.png",
+    "tenant-communicatie-source-390.png",
+    "tenant-domein-target-1440.png",
+    "tenant-domein-target-768.png",
+    "tenant-domein-target-390.png",
+    "tenant-domein-source-1440.png",
+    "tenant-domein-source-768.png",
+    "tenant-domein-source-390.png",
+    "native-domain-editor-1440.png",
+    "native-domain-editor-768.png",
+    "native-domain-editor-390.png",
+    "tenant-pause-confirm-1440.png",
+    "tenants-full-target-1440.png",
+    "tenants-full-target-768.png",
+    "tenants-full-target-390.png",
+    "tenants-full-source-1440.png",
+    "tenants-full-source-768.png",
+    "tenants-full-source-390.png"
+  ],
+  "sourceComparisons": 18,
+  "knownPresentationFollowup": [
+    "P02 module source icon/name mapping and non-technical introductory copy are finalized with shared onboarding module cards.",
+    "P02 communication template summary card is finalized with P04 template integration.",
+    "P09 platform bell geometry/behaviour is assessed with the notifications route."
+  ],
+  "authorizationInventory": "Pending final whole-scope reconciliation, including app route group renames and new RPCs. Old 1192-row review ledger alone is insufficient.",
+  "outboundEmail": "Actual local SMTP OTP. No external email delivery or DNS/Caddy/runtime mutation."
+}
