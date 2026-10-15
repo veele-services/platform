@@ -101,6 +101,7 @@ jobs:
           RELEASE_SHA: ${{ github.sha }}
           RELEASE_ARTIFACT_PATH: ${{ runner.temp }}/fieldgrid-release-smoke.tar.gz
         run: |
+          node --test scripts/test-standalone-materialization.mjs
           scripts/package-release.sh
           node scripts/test-release-artifact.mjs
       - name: Reject recognized privileged credentials in public browser artifacts

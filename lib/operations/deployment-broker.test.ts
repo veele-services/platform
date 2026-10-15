@@ -41,8 +41,7 @@ describe("staging deployment broker boundary", () => {
     const packaging = read("scripts/package-release.sh");
     const verification = read(".github/workflows/_verify.yml");
     const staging = read(".github/workflows/deploy-staging.yml");
-    expect(packaging).toContain('pnpm_hoist_root="$standalone_root/node_modules/.pnpm/node_modules"');
-    expect(packaging).toContain('rsync -aL "$pnpm_hoist_root/" "$work/release/node_modules/"');
+    expect(packaging).not.toContain("pnpm install");
     expect(packaging).toContain("require('@swc/helpers/_/_interop_require_default')");
     expect(verification).toContain("node scripts/test-release-artifact.mjs");
     expect(staging).toContain("node scripts/test-release-artifact.mjs");

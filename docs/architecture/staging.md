@@ -85,6 +85,13 @@ accepted.
 
 ### Filesystem layout
 
+The standalone release materializes only Next.js's traced runtime dependency
+graph into regular files. Packaging must support the actual traced pnpm layout
+without assuming a `.pnpm/node_modules` hoist directory exists. Links escaping
+the trace and conflicting module resolutions fail closed. No dependencies are
+installed or copied from an untraced workspace during packaging. The resulting
+archive remains link-free and is boot-tested before promotion.
+
 The future staging runtime uses this layout:
 
 ```text

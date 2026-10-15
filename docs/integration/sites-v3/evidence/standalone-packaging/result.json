@@ -1,0 +1,12 @@
+{
+  "appCommit": "25d658e24a50",
+  "runtime": "packaged server.js, NODE_ENV production, explicit isolated local services",
+  "tracedModules": 19,
+  "nodeTests": 4,
+  "brokerAndWorkflowTests": 25,
+  "coldBuild": true,
+  "archiveBootStaticSmoke": true,
+  "authenticatedTaskLifecycle": true,
+  "deployed": false,
+  "liveVerified": false
+}

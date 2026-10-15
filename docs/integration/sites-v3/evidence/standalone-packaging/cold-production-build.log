@@ -1,0 +1,172 @@
+▲ Next.js 16.3.8 (webpack)
+- Environments: .env.local
+✓ Running next.config.ts took 28ms
+- Experiments (use with caution):
+  ✓ globalNotFound
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 34.5s
+  Running TypeScript ...
+  Finished TypeScript in 25.1s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/100) ...
+  Generating static pages using 11 workers (25/100) 
+  Generating static pages using 11 workers (50/100) 
+  Generating static pages using 11 workers (75/100) 
+✓ Generating static pages using 11 workers (100/100) in 646ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /aanvraag
+├ ƒ /api/addresses
+├ ƒ /api/auth/session
+├ ƒ /api/branding/[tenantId]/email-logo
+├ ƒ /api/crm
+├ ƒ /api/crm/[...path]
+├ ƒ /api/crm/availability
+├ ƒ /api/crm/intake
+├ ƒ /api/customer-files/[kind]/[id]
+├ ƒ /api/customer-portal/files/[kind]/[id]
+├ ƒ /api/customer-portal/request
+├ ƒ /api/customer-portal/snapshot
+├ ƒ /api/customer-portal/state
+├ ƒ /api/customer-portal/tickets
+├ ƒ /api/customer-portal/visit
+├ ƒ /api/customer-portal/visit-files/[id]
+├ ƒ /api/email/auth
+├ ƒ /api/email/events
+├ ƒ /api/files/attachment/[id]
+├ ƒ /api/files/commercial/[id]
+├ ƒ /api/files/customer-document/[id]
+├ ƒ /api/files/dossier-document/[id]
+├ ƒ /api/files/invoice-concept/[id]
+├ ƒ /api/files/invoice/[id]
+├ ƒ /api/files/object-document/[id]
+├ ƒ /api/files/personnel-document/[id]
+├ ƒ /api/files/work-order-report/[id]
+├ ƒ /api/healthz
+├ ƒ /api/knowledge
+├ ƒ /api/management-cockpit
+├ ƒ /api/management-entities
+├ ƒ /api/management-entities/customers
+├ ƒ /api/management-finance
+├ ƒ /api/management-governance
+├ ƒ /api/management-governance/files
+├ ƒ /api/management-indexation
+├ ƒ /api/management-overview
+├ ƒ /api/management-reports
+├ ƒ /api/management-reports/pdf
+├ ƒ /api/management-sla
+├ ƒ /api/mollie/webhook
+├ ƒ /api/notifications/push
+├ ƒ /api/objects/vault
+├ ƒ /api/payments/create
+├ ƒ /api/product
+├ ƒ /api/product/files/[id]
+├ ƒ /api/push/subscribe
+├ ƒ /api/routes/estimate
+├ ƒ /api/search
+├ ƒ /api/tickets/files
+├ ƒ /api/tickets/files/[id]
+├ ƒ /api/tickets/push
+├ ƒ /api/veele-website/requests
+├ ƒ /api/worker
+├ ƒ /app
+├ ƒ /app/[view]
+├ ƒ /app/aanvragen
+├ ƒ /app/besluiten
+├ ƒ /app/compliance
+├ ƒ /app/gebruikers
+├ ƒ /app/indexatie
+├ ƒ /app/kennisbank
+├ ƒ /app/kennisbank/[slug]
+├ ƒ /app/klanten
+├ ƒ /app/klanten/[customerId]
+├ ƒ /app/meldingen
+├ ƒ /app/meldingen/[id]
+├ ƒ /app/meldingen/instellingen
+├ ƒ /app/notificaties
+├ ƒ /app/notificaties/[id]
+├ ƒ /app/notificaties/campagnes/[id]
+├ ƒ /app/notificaties/instellingen
+├ ƒ /app/objecten
+├ ƒ /app/objecten/[objectId]
+├ ƒ /app/omzet
+├ ƒ /app/opvolging
+├ ƒ /app/overzicht
+├ ƒ /app/personeel
+├ ƒ /app/personeel/[personnelId]
+├ ƒ /app/personeel/acties
+├ ƒ /app/planning
+├ ƒ /app/sla
+├ ƒ /app/support
+├ ƒ /app/support/[id]
+├ ƒ /app/support/instellingen
+├ ƒ /app/taken
+├ ƒ /app/taken/beheer
+├ ƒ /app/taken/templates
+├ ƒ /app/updates
+├ ƒ /app/weekrapport
+├ ƒ /app/werkbonnen
+├ ƒ /app/werkbonnen/[workOrderId]
+├ ƒ /auth/confirm
+├ ƒ /auth/forgot
+├ ƒ /auth/invite
+├ ƒ /auth/reset
+├ ƒ /auth/signout
+├ ƒ /auth/verify
+├ ƒ /booking/[token]
+├ ƒ /fieldgrid-site/[[...path]]
+├ ƒ /fieldgrid-site/robots.txt
+├ ƒ /fieldgrid-site/sitemap.xml
+├ ƒ /klant
+├ ƒ /klant/aanvragen
+├ ƒ /klant/documenten
+├ ƒ /klant/kennisbank
+├ ƒ /klant/kennisbank/[slug]
+├ ƒ /klant/notificaties
+├ ƒ /klant/notificaties/[id]
+├ ƒ /klant/notificaties/campagnes/[id]
+├ ƒ /klant/notificaties/instellingen
+├ ƒ /klant/updates
+├ ƒ /login
+├ ƒ /pay/[token]
+├ ƒ /platform
+├ ƒ /platform/crm
+├ ƒ /platform/kennisbank
+├ ƒ /platform/kennisbank/[slug]
+├ ƒ /platform/notificaties
+├ ƒ /platform/notificaties/[id]
+├ ƒ /platform/notificaties/campagnes/[id]
+├ ƒ /platform/notificaties/instellingen
+├ ƒ /platform/productbeheer
+├ ƒ /platform/support
+├ ƒ /platform/support/[id]
+├ ƒ /platform/support/instellingen
+├ ƒ /platform/team
+├ ƒ /quote/[token]
+├ ƒ /staff
+├ ƒ /staff/kennisbank
+├ ƒ /staff/kennisbank/[slug]
+├ ƒ /staff/manifest.webmanifest
+├ ƒ /staff/meldingen
+├ ƒ /staff/meldingen/[id]
+├ ƒ /staff/meldingen/instellingen
+├ ƒ /staff/notificaties
+├ ƒ /staff/notificaties/[id]
+├ ƒ /staff/notificaties/campagnes/[id]
+├ ƒ /staff/notificaties/instellingen
+├ ƒ /staff/objecten/[objectId]
+├ ƒ /staff/pwa/[asset]
+└ ƒ /staff/updates
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
