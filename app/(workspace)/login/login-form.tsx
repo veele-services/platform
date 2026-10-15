@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { ArrowRight, Mail, ShieldCheck } from "lucide-react";
-import { OTP_COOLDOWN_SECONDS } from "@/lib/auth/login-destination";
+import { OTP_COOLDOWN_SECONDS, otpNext } from "@/lib/auth/login-destination";
 import { loginOtp, type OtpState } from "./actions";
 
 const initialOtpState: OtpState = { step: "email" };
@@ -10,6 +10,9 @@ const initialOtpState: OtpState = { step: "email" };
 export function LoginForm({ next }: { next?: string; staffLogin?: boolean }) {
   const [state, action, pending] = useActionState(loginOtp, initialOtpState);
   const [clock, setClock] = useState(0);
+  useEffect(() => {
+    if (state.redirectTo) window.location.replace(otpNext(state.redirectTo));
+  }, [state.redirectTo]);
   useEffect(() => {
     if (state.step !== "code" || !state.requestedAt) return;
     const timer = window.setInterval(() => setClock(Date.now()), 1000);
@@ -19,12 +22,16 @@ export function LoginForm({ next }: { next?: string; staffLogin?: boolean }) {
     ? Math.max(0, Math.ceil((state.requestedAt + OTP_COOLDOWN_SECONDS * 1000 - (clock || state.requestedAt)) / 1000))
     : 0;
 
+  if (state.redirectTo) {
+    return <div className="auth-form" role="status"><p>Je omgeving wordt geopend…</p><a href={otpNext(state.redirectTo)}>Open je omgeving</a></div>;
+  }
   if (state.step === "code") {
     const destination = state.next ?? next ?? "/app";
     return (
       <form action={action} className="auth-form">
         <input type="hidden" name="email" value={state.email ?? ""} />
         <input type="hidden" name="next" value={destination} />
+        <input type="hidden" name="navigation" value="browser" />
         {state.notice && <p className="auth-message success" role="status">{state.notice}</p>}
         <p className="staff-login-recipient">Code verstuurd naar <strong>{state.email}</strong></p>
         <label>

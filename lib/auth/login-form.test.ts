@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  state: { step: "email" } as { step: "email" | "code"; email?: string; next?: string; requestedAt?: number; notice?: string; error?: string },
+  state: { step: "email" } as { step: "email" | "code"; email?: string; next?: string; requestedAt?: number; notice?: string; error?: string;redirectTo?:string },
   loginOtp: vi.fn(), staffOtp: vi.fn(), signIn: vi.fn(), action: vi.fn(), pending: false,
 }));
 vi.mock("react", async importOriginal => ({
@@ -37,6 +37,7 @@ describe("one compact OTP form for every workspace", () => {
     expect(html).toContain("Vul de volledige code uit de e-mail in.");
     expect(html).not.toContain("zescijferige");
     expect(html).toContain("Code controleren");
+    expect(html).toContain('name="navigation" value="browser"');
     expect(html).toContain("Nieuwe code aanvragen (60s)");
     expect(html).toContain("Ander e-mailadres gebruiken");
     expect(html).not.toContain("token_hash");
@@ -49,5 +50,8 @@ describe("one compact OTP form for every workspace", () => {
     expect(html).toContain('role="alert"');
     expect(html).toContain("De code is ongeldig of verlopen.");
     expect(html).toContain('name="next" value="/staff/werkbon/123"');
+  });
+  it('replaces the verified code form with a same-origin continuation without credentials',()=>{
+    mocks.state={step:'code',redirectTo:'/staff?tab=planning'};const html=renderToStaticMarkup(createElement(LoginForm,{}));expect(html).toContain('href="/staff?tab=planning"');expect(html).toContain('role="status"');expect(html).not.toContain('name="code"');expect(html).not.toContain('access_token');
   });
 });

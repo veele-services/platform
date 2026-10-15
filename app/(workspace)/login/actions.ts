@@ -18,6 +18,7 @@ export type OtpState = {
   requestedAt?: number;
   notice?: string;
   error?: string;
+  redirectTo?: string;
 };
 export type StaffOtpState = OtpState;
 
@@ -32,6 +33,7 @@ const staffOtpVerifySchema = z.object({
   email: z.string().trim().toLowerCase().email().max(320),
   code: z.string().trim().regex(/^\d{6,10}$/),
   next: z.string().max(2048).optional(),
+  navigation: z.literal("browser").optional(),
 });
 
 export async function signIn(_?: AuthState, _formData?: FormData): Promise<AuthState> {
@@ -120,6 +122,14 @@ export async function loginOtp(_: OtpState, formData: FormData): Promise<OtpStat
   } catch {
     await discardSession();
     return invalid(input.data.email, input.data.next);
+  }
+  // The new form navigates on the browser's current tenant origin after Auth
+  // cookies are written. Next's internal Server Action redirect render may use
+  // the bound platform origin, producing a different presentation session key
+  // before the first real tenant request. Existing open forms keep their legacy
+  // redirect response; this transport flag never selects or grants a workspace.
+  if (input.data.navigation === "browser") {
+    return { step: "code", next: destination, redirectTo: destination };
   }
   redirect(destination);
 }

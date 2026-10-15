@@ -31,4 +31,6 @@ Uitlegbanners blijven aan de bestaande accountregistratie gekoppeld en gebruiken
 
 ## Bewijsstatus
 
+De eerste echte SMTP/OTP-proef vond een bestaande overgangsfout: Next kon de eerste beveiligde serverrender na een Server Action-redirect tegen de interne platformorigin uitvoeren. Daardoor verschilde de presentatie-sessiesleutel van de daaropvolgende tenantaanvraag en werd de eenmalige PWA-herinnering te vroeg verbruikt. Het nieuwe formulier navigeert na geslaagde OTP-verificatie en actuele serverautorisatie op de browserorigin naar de gecontroleerde lokale bestemming. Bestaande open formulieren behouden hun redirectprotocol. APP_URL, hostroutering, sessierechten en de installatiecyclus zijn niet verruimd. Voor vier werkruimten en geweigerde bestemmingen zijn gerichte regressies toegevoegd; de echte browsercyclus wordt opnieuw gecontroleerd op het verpakte artifact.
+
 Lint en TypeScript zijn tijdens implementatie gecontroleerd. De echte browserketens, bekeken bronvergelijkingen, private-filecontroles, native regressies en releasegates zijn nog niet afgerond. Er is nog geen deployment of liveacceptatie voor deze fase.

@@ -35,6 +35,6 @@ body .fg-tabbed-content > .nt-panel.nt-permissions { border-top-left-radius:0; }
 
 /* Preserve the source inbox order; additional native administration follows it. */
 .sites-cockpit .nt-platform{display:block}
-.sites-cockpit .nt-platform>.page-intro{margin-bottom:20px}
+.sites-cockpit .nt-platform>.page-intro{margin-bottom:24px}
 .sites-cockpit .nt-platform>.panel{margin:0}
 .sites-cockpit .nt-platform>.sites-platform-extra{margin-top:24px}

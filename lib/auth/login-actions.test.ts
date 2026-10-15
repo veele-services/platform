@@ -103,6 +103,18 @@ describe("universal email OTP login actions", () => {
     expect(mocks.signOut).not.toHaveBeenCalled();
   });
 
+  it.each(['/app','/staff','/klant','/platform'] as LoginWorkspace[])("returns only the currently authorized local destination for a browser navigation to %s",async next=>{
+    mocks.access.mockResolvedValueOnce({workspaces:[next]});const input=form('verify','user@example.test',next,'01234567');input.set('navigation','browser');
+    expect(await loginOtp({step:'code'},input)).toEqual({step:'code',next,redirectTo:next});expect(mocks.verifyOtp).toHaveBeenCalledOnce();expect(mocks.access).toHaveBeenCalledOnce();expect(mocks.signOut).not.toHaveBeenCalled();
+  });
+  it('does not let browser navigation widen the verified workspace or expose a failed session',async()=>{
+    mocks.access.mockResolvedValueOnce({workspaces:['/staff']});const input=form('verify','user@example.test','/platform','01234567');input.set('navigation','browser');
+    const result=await loginOtp({step:'code'},input);expect(result.redirectTo).toBeUndefined();expect(result.error).toContain('ongeldig of verlopen');expect(mocks.signOut).toHaveBeenCalledWith({scope:'local'});
+  });
+  it('rejects an unknown navigation mode before contacting Auth',async()=>{
+    const input=form('verify','user@example.test','/staff','01234567');input.set('navigation','https://foreign.invalid');expect((await loginOtp({step:'code'},input)).error).toContain('ongeldig of verlopen');expect(mocks.verifyOtp).not.toHaveBeenCalled();
+  });
+
   it.each(["012345", "0123456", "01234567", "012345678", "0123456789"])("passes the full supported email code %s to Auth and rechecks workspace rights", async code => {
     await expect(loginOtp({ step: "code" }, form("verify", "user@example.test", "/app", code))).rejects.toThrow("redirect:/app");
     expect(mocks.verifyOtp).toHaveBeenCalledWith({ email: "user@example.test", token: code, type: "email" });
