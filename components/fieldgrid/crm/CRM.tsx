@@ -1,5 +1,5 @@
 "use client";
-import {createContext,useContext,useCallback,useEffect,useMemo,useRef,useState,type FormEvent,type ReactNode} from 'react';
+import {createContext,useContext,useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState,type FormEvent,type ReactNode} from 'react';
 import {ArrowDownToLine,ArrowRight,ArrowUpRight,Bell,CalendarDays,Check,CheckCheck,ChevronLeft,ChevronRight,Clock,Columns3,GripVertical,Inbox,List,Mail,Phone,Plus,RefreshCw,Search,Settings2,ShieldCheck,Sparkles,Target,UserRound,X} from 'lucide-react';
 import {Badge,Button,ContentTabs,Empty,Field,Metric,Modal,PageHeading,Table} from './ui';
 import {CRM_STAGES,type CrmAppointment,type CrmKind,type CrmLead,type CrmNotificationStatus,type CrmSettings,type CrmStage,type CrmState} from '@/lib/platform-crm/types';
@@ -68,8 +68,12 @@ export function CRM(){
     const week=plusDays(agendaDate,-((new Date(agendaDate+'T12:00:00Z').getUTCDay()+6)%7));
     return new URLSearchParams({tab,search:tab==='requests'?requestSearch:tab==='pipeline'?query:'',kind:tab==='requests'?requestKind:tab==='pipeline'?kind:'',owner:tab==='pipeline'?owner:'',page:String(page),pageSize:String(pageSize),detailPage:String(detailPage),detailPageSize:String(detailPageSize),taskFilter,showCancelled:String(showCancelled),mailStatus,...(tab==='agenda'?{from:agendaMode==='week'?week:agendaDate,...(agendaMode==='week'?{until:plusDays(week,6)}:{})}:{}),...(leadId?{lead:leadId}:{})}).toString();
   },[tab,query,requestSearch,kind,requestKind,owner,page,pageSize,detailPage,detailPageSize,taskFilter,showCancelled,mailStatus,agendaDate,agendaMode,leadId]);
-  const refresh=useCallback(async()=>{controller.current?.abort();const request=new AbortController();controller.current=request;try{const result=await api('?'+parameters,'GET',undefined,undefined,request.signal);if(mounted.current&&!request.signal.aborted)setData(result);return result}catch(e){if(e&&typeof e==='object'&&'status'in e&&e.status===403)setData(null);throw e}},[parameters]);
-  useEffect(()=>{mounted.current=true;let active=true;void Promise.resolve().then(()=>refresh()).catch(e=>{if(active&&e.name!=='AbortError')setError(e.message)}).finally(()=>{if(active)setLoading(false)});const update=()=>{if(document.visibilityState==='visible')void refresh().catch(()=>{})};const timer=setInterval(update,30000);window.addEventListener('focus',update);return()=>{active=false;mounted.current=false;controller.current?.abort();clearInterval(timer);window.removeEventListener('focus',update)}},[refresh]);
+  // A mutation may finish after the user changes a filter. Always refresh the
+  // latest committed selection, including from an older event callback.
+  const latestParameters=useRef(parameters);
+  useLayoutEffect(()=>{latestParameters.current=parameters},[parameters]);
+  const refresh=useCallback(async()=>{controller.current?.abort();const request=new AbortController();controller.current=request;try{const result=await api('?'+latestParameters.current,'GET',undefined,undefined,request.signal);if(mounted.current&&!request.signal.aborted)setData(result);return result}catch(e){if(e&&typeof e==='object'&&'status'in e&&e.status===403)setData(null);throw e}},[]);
+  useEffect(()=>{mounted.current=true;let active=true;void Promise.resolve().then(()=>refresh()).catch(e=>{if(active&&e.name!=='AbortError')setError(e.message)}).finally(()=>{if(active)setLoading(false)});const update=()=>{if(document.visibilityState==='visible')void refresh().catch(()=>{})};const timer=setInterval(update,30000);window.addEventListener('focus',update);return()=>{active=false;mounted.current=false;controller.current?.abort();clearInterval(timer);window.removeEventListener('focus',update)}},[refresh,parameters]);
   const navigate=(nextTab:string,nextLead:string|null=leadId)=>{setPage(1);const params=new URLSearchParams();if(nextTab!=='pipeline')params.set('tab',nextTab);if(nextLead)params.set('lead',nextLead);router.push(`/platform/crm${params.size?'?'+params:''}`,{scroll:false})};
   const openLead=(id:string)=>{setError('');setNotice('');setDetailPage(1);navigate(tab,id)};
   const mutate:Mutate=async(path,method,body,message='Wijziging opgeslagen.')=>{

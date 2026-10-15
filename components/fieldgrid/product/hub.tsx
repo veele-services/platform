@@ -60,7 +60,7 @@ type Modal =
       section: ProductSection;
       id: string;
     };
-function ProductManagementControls({platform,children}:{platform:boolean;children:ReactNode}){return platform?<details className="sites-platform-extra"><summary>Ideeën, roadmap en releases beheren</summary>{children}</details>:<>{children}</>}
+function ProductManagementControls({platform,readOnly=false,children}:{platform:boolean;readOnly?:boolean;children:ReactNode}){return platform?<details className="sites-platform-extra"><summary>{readOnly?"Meer productinformatie":"Ideeën, roadmap en releases beheren"}</summary>{children}</details>:<>{children}</>}
 const empty: ProductList = { items: [], total: 0, page: 1, pageSize: 25 };
 async function request(url: string) {
   const r = await fetch(url, {
@@ -465,10 +465,10 @@ export function ProductHub({
     </>
   );
   return (
-    <div className={sites?'sites-information':platformSites?'product-hub sites-platform-product':'product-hub'}>
+    <div className={sites?'sites-information':portalSites?'sites-portal-updates':platformSites?'product-hub sites-platform-product':'product-hub'}>
       {platformSites && <><PageHeading eyebrow="FIELDGRID PLATFORM" title="Productbeheer" help="Beheer modules, ideeën, roadmap en updates zonder publicatie met beschikbaarheid te verwarren."/><PlatformProductOverview roadmap={lists.roadmap.items} open={(section,id)=>{void openDetail(section,id);}}/></>}
-      {portalSites&&<><PageHeading eyebrow={snapshot.workspace==='staff'?'PERSONEEL':'MIJN OMGEVING'} title="Wat is er nieuw?" className="ps-page-heading"/><PortalInformationList staff={snapshot.workspace==='staff'} items={lists.releases.items.map(item=>({id:item.id,title:item.title,detail:'version' in item?`Update ${item.version}`:'Productupdate'}))} onOpen={id=>{void openDetail('releases',id);}} emptyTitle="Nog geen updates"/></>}
-      <ProductManagementControls platform={platformSites||portalSites}>
+      {portalSites&&<><PageHeading eyebrow={snapshot.workspace==='staff'?'PERSONEEL':'KLANTPORTAAL'} title="Wat is er nieuw?" className="ps-page-heading"/><PortalInformationList staff={snapshot.workspace==='staff'} items={lists.releases.items.map(item=>({id:item.id,title:item.title,detail:'publishedAt' in item&&item.publishedAt?`Update ${new Intl.DateTimeFormat('nl-NL',{timeZone:'Europe/Amsterdam',day:'numeric',month:'long',year:'numeric'}).format(new Date(item.publishedAt))}`:'Productupdate'}))} onOpen={id=>{void openDetail('releases',id);}} emptyTitle="Nog geen updates"/></>}
+      <ProductManagementControls platform={platformSites||portalSites} readOnly={portalSites&&!admin}>
       <PageHeading
         eyebrow={sites?'ORGANISATIE':admin ? "PLATFORMBEHEER" : "FIELDGRID ONTWIKKELING"}
         title={
