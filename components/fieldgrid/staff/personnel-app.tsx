@@ -1,4 +1,6 @@
 "use client";
+import { SourcePortalFrame } from "../portals/source-frame";
+import { SourceNativeDialog } from "../source-native-dialog";
 import { AccountMenu } from "../account-menu";
 import { ActionIcon } from "../action-icon";
 import { EmptyState } from "../empty-state";
@@ -7,7 +9,7 @@ import { ContentTabs } from "../content-tabs";
 import "./portal-consistency.css";
 import { AddressInput } from "../address-input";
 import { addressSchema } from "@/lib/addresses/model";
-import { GuideBanner, GuideForTitle } from "@/components/fieldgrid/guides/guide";
+import { GuideBanner } from "@/components/fieldgrid/guides/guide";
 
 import Link from "next/link";
 import { ListPagination, useListPagination } from "../list-pagination";
@@ -20,8 +22,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
   List, LockKeyhole, LogOut, MoreHorizontal,
-  Info, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Square, TicketCheck, Umbrella, UserRound,
-  X,
+  Info, MapPin, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Square, TicketCheck, Umbrella, UserRound,
 } from "lucide-react";
 import {
   useEffect,
@@ -190,7 +191,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
   if (!profile) return <StaffProfileRecovery tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/>;
 
   const title = view === "planning" ? "Planning" : view === "nieuws" ? "Nieuws" : view === "uren" ? "Mijn uren" : moreView === "menu" ? "Meer" : ({ verlof: "Verlof", beschikbaarheid: "Beschikbaarheid", documenten: "Documenten", instellingen: "Instellingen", profiel: "Profiel" } as Record<MoreView, string>)[moreView];
-  return <TenantThemeProvider primary={tenant.primaryColor} accent={tenant.accentColor}><div className={`personnel-app${view === "planning" ? " ps-planning-screen" : ""}`} style={personnelThemeStyle(tenant.primaryColor, tenant.accentColor)}>
+  return <SourcePortalFrame><TenantThemeProvider primary={tenant.primaryColor} accent={tenant.accentColor}><div className={`personnel-app portal-demo${view === "planning" ? " ps-planning-screen" : ""}`} style={personnelThemeStyle(tenant.primaryColor, tenant.accentColor)}>
     <aside className="ps-sidebar">
       <div className="ps-sidebar-brand"><div className="ps-sidebar-logo"><FieldgridBrand tenantName={tenant.name} logoUrl={data.brandingLogoUrl}/></div><small>PERSONEELSAPP</small></div>
       <nav className="ps-nav" aria-label="Hoofdnavigatie">
@@ -223,10 +224,10 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         </div>
       </header>
       <main className="ps-content"><GuideBanner guideKey={`staff.${view === "meer" && moreView !== "menu" ? moreView : view}`}/>
-        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid", "instellingen"].includes(moreView)) && <PageHeading eyebrow="PERSONEEL" title={title} help={view === "nieuws" ? "Berichten komen van je organisatie. Markeer een bericht als gelezen nadat je het hebt bekeken." : moreView === "menu" ? "Je personeelsgegevens, verlof, beschikbaarheid en voorkeuren vind je hier." : moreView === "documenten" ? "Hier staan de documenten die je organisatie met jou heeft gedeeld." : "Werk je contact- en vervoersgegevens bij voor je organisatie."} className="ps-page-heading" actions={moreView !== "menu" && view === "meer" ? <ActionIcon className="ps-secondary" label="Terug" icon={<ChevronLeft/>} onClick={() => setMoreView("menu")}/> : undefined}/>}
+        {view === "planning" ? <h1 className="ps-visually-hidden">Planning</h1> : view !== "uren" && !(view === "meer" && ["verlof", "beschikbaarheid", "instellingen", "profiel"].includes(moreView)) && <PageHeading eyebrow="PERSONEEL" title={title} help={view === "nieuws" ? "Berichten komen van je organisatie. Markeer een bericht als gelezen nadat je het hebt bekeken." : moreView === "menu" ? "Je personeelsgegevens, verlof, beschikbaarheid en voorkeuren vind je hier." : moreView === "documenten" ? "Hier staan de documenten die je organisatie met jou heeft gedeeld." : "Werk je contact- en vervoersgegevens bij voor je organisatie."} className="ps-page-heading" actions={moreView !== "menu" && view === "meer" ? <ActionIcon className="ps-secondary" label="Terug" icon={<ChevronLeft/>} onClick={() => setMoreView("menu")}/> : undefined}/>}
         {view === "planning" && (tenant.enabledServices.includes("planning") ? <PlanningScreen orders={assigned} assignments={assignments} data={data} timezone={tenant.timezone} onOpen={openOrder} onHours={() => navigate("uren")} onNews={() => navigate("nieuws")}/> : <Empty icon={CalendarDays} title="Planning niet ingeschakeld">Vraag je beheerder om de module Planning te activeren.</Empty>)}
         {view === "nieuws" && <NewsScreen data={data} onRead={(id) => run(() => markAnnouncementRead(id), "Gemarkeerd als gelezen")}/>}
-        {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run}/>}
+        {view === "uren" && <HoursScreen data={data} personnelId={profile.id} timezone={tenant.timezone} pending={pending} run={run} onPlanning={()=>navigate("planning")}/>}
         {view === "meer" && <MoreScreen view={moreView} setView={setMoreView} data={data} profile={profile} timezone={tenant.timezone} email={context.user.email ?? profile.email ?? ""} tenantName={tenant.name} notificationPreferences={notificationPreferences} ticketsEnabled={ticketsEnabled} pending={pending} run={run} pwaInstall={pwaInstall}/>}
       </main>
       <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">
@@ -241,7 +242,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
     {profile.onboarding_completed_at === null && !onboardingSaved && <Onboarding profile={profile} depots={data.staffDepots} email={context.user.email ?? profile.email ?? ""} notificationPreferences={notificationPreferences} pending={pending} run={run} onCompleted={() => { pwaInstall.onboardingCompleted(); setOnboardingSaved(true); }}/>}
     <StaffPwaInstallDialog identity={pwaIdentity} controller={pwaInstall}/>
     <Toaster richColors position="top-center"/>
-  </div></TenantThemeProvider>;
+  </div></TenantThemeProvider></SourcePortalFrame>;
 }
 
 function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, onNews }: { orders: StaffOrder[]; assignments: Assignment[]; data: StaffWorkspaceData; timezone: string; onOpen: (order: StaffOrder) => void; onHours: () => void; onNews: () => void }) {
@@ -279,14 +280,14 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
   return <div className="ps-planning-grid">
     <section className="ps-planning-main">
       <div className="ps-planning-controls">
-        <div className="ps-datebar">
-          <div className="ps-week-navigation"><button className="ps-week-arrow" aria-label="Vorige week" onClick={() => setSelectedDay(addStaffDays(selectedDay, -7))}><ChevronLeft/></button><strong>{dateLabel}</strong><button className="ps-week-arrow" aria-label="Volgende week" onClick={() => setSelectedDay(addStaffDays(selectedDay, 7))}><ChevronRight/></button></div>
+        <div className="portal-demo-planhead">
+          <div className="ps-week"><button aria-label="Vorige dag" onClick={() => setSelectedDay(addStaffDays(selectedDay, -1))}><ChevronLeft/></button><strong>{dateLabel}</strong><button aria-label="Volgende dag" onClick={() => setSelectedDay(addStaffDays(selectedDay, 1))}><ChevronRight/></button></div>
           <div className="ps-view-toggle" aria-label="Planningweergave"><button className={mode === "lijst" ? "active" : ""} aria-pressed={mode === "lijst"} onClick={() => setMode("lijst")}><List/>Lijst</button><button className={mode === "agenda" ? "active" : ""} aria-pressed={mode === "agenda"} onClick={() => setMode("agenda")}><CalendarDays/>Agenda</button></div>
         </div>
-        <div className="ps-week" tabIndex={0} onKeyDown={onKey} onTouchStart={(event) => { swipe.current = event.touches[0]?.clientX ?? null; }} onTouchEnd={(event) => swipeEnd(event.changedTouches[0]?.clientX ?? 0)}>
-          <div className="ps-week-days">{week.map((date) => <button key={date} className={`ps-week-day${date === selectedDay ? " active" : ""}${orderDays.includes(date) ? " has-work" : ""}`} aria-label={staffDayLabel(date)} aria-pressed={date === selectedDay} onClick={() => setSelectedDay(date)}><span>{staffDayLabel(date, "short").split(" ")[0]}</span><strong>{Number(date.slice(-2))}</strong><i/></button>)}</div>
+        <div className="portal-demo-weekstrip" tabIndex={0} aria-label="Kies een planningsdag" onKeyDown={onKey} onTouchStart={(event) => { swipe.current = event.touches[0]?.clientX ?? null; }} onTouchEnd={(event) => swipeEnd(event.changedTouches[0]?.clientX ?? 0)}>
+          {week.map(date=><button key={date} className={date===selectedDay?"active":""} aria-label={staffDayLabel(date)} aria-pressed={date===selectedDay} onClick={()=>setSelectedDay(date)}><span>{staffDayLabel(date,"short").split(" ")[0]}</span><strong>{Number(date.slice(-2))}</strong><i className={orderDays.includes(date)?"has-order":""}/></button>)}
         </div>
-        <div className="ps-result-line"><strong>{visible.length} {visible.length === 1 ? "werkbon" : "werkbonnen"}</strong><span>{mode === "lijst" ? "Nieuwste ontvangen bovenaan" : "Op volgorde van afspraak"}</span></div>
+        <div className="ps-list-label"><strong>{visible.length} {visible.length === 1 ? "werkbon" : "werkbonnen"}</strong><span>{mode === "lijst" ? "Nieuwste ontvangen bovenaan" : "Op volgorde van afspraak"}</span></div>
       </div>
       {visible.length ? mode === "lijst" ? <div className="ps-order-list">{pagination.items.map((order) => {
         const assignment = assignmentsByOrder.get(order.id)!;
@@ -316,12 +317,12 @@ function NewsScreen({ data, onRead }: { data: StaffWorkspaceData; onRead: (id: s
   const [selected, setSelected] = useState<StaffWorkspaceData["announcements"][number] | null>(null);
   const articles = [...data.announcements].filter((item) => item.published_at && !item.withdrawn_at).sort((a, b) => Date.parse(b.published_at!) - Date.parse(a.published_at!));
   const pagination = useListPagination(articles);
-  return <><div className="ps-news-layout"><div className="ps-news-main"><div className="ps-card-list">{pagination.items.map((item) => { const read = data.announcementReads.some((entry) => entry.announcement_id === item.id); return <button className="ps-news-card" key={item.id} onClick={() => setSelected(item)}><span className="ps-news-card-meta"><span className="ps-news-label">Teamnieuws</span><small>{new Intl.DateTimeFormat("nl-NL", { dateStyle: "long" }).format(new Date(item.published_at!))}</small></span><h2 className="ps-news-card-title">{item.title}</h2><span className="ps-news-card-summary">{item.body.slice(0, 220)}</span><span className="ps-news-card-footer"><span className="ps-news-read-link">Lees bericht</span><span className="ps-status" data-status={read ? "approved" : "pending"}>{read ? "Gelezen" : "Graag lezen"}</span></span></button>; })}{!articles.length && <Empty icon={Newspaper} title="Geen nieuws">Nieuwe teamberichten verschijnen hier.</Empty>}</div><ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="nieuwsberichten" preferenceKey="staff:news"/></div><aside className="ps-panel ps-news-aside"><h2>Op de hoogte</h2><p>Belangrijke updates herken je aan ‘Graag lezen’. Bevestig na het lezen dat je de informatie hebt gezien.</p></aside></div>
+  return <><div className="ps-news-layout"><div className="ps-card-list">{pagination.items.map((item) => { const read = data.announcementReads.some((entry) => entry.announcement_id === item.id); return <button className="ps-news-card" key={item.id} onClick={() => setSelected(item)}><span className="ps-news-card-meta"><span className="ps-news-label">Teamnieuws</span><small>{new Intl.DateTimeFormat("nl-NL", { dateStyle: "long" }).format(new Date(item.published_at!))}</small></span><h2 className="ps-news-card-title">{item.title}</h2><span className="ps-news-card-summary">{item.body.slice(0, 220)}</span><span className="ps-news-card-footer"><span className="ps-news-read-link">Lees bericht</span><span className="ps-status" data-status={read ? "approved" : "pending"}>{read ? "Gelezen" : "Graag lezen"}</span></span></button>; })}{!articles.length && <Empty icon={Newspaper} title="Geen nieuws">Nieuwe teamberichten verschijnen hier.</Empty>}</div><ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="nieuwsberichten" preferenceKey="staff:news"/><aside className="ps-panel ps-news-aside"><h2>Op de hoogte</h2><p>Belangrijke updates herken je aan ‘Graag lezen’. Bevestig na het lezen dat je de informatie hebt gezien.</p></aside></div>
     {selected && <Dialog title={selected.title} kicker="TEAMNIEUWS" close={() => setSelected(null)}><p style={{ whiteSpace: "pre-wrap" }}>{selected.body}</p><div className="ps-toast-note">Gepubliceerd op {new Intl.DateTimeFormat("nl-NL", { dateStyle: "long", timeStyle: "short" }).format(new Date(selected.published_at!))}</div>{!data.announcementReads.some((entry) => entry.announcement_id === selected.id) && <button className="ps-primary" onClick={() => { onRead(selected.id); setSelected(null); }}><Check/>Markeer als gelezen</button>}</Dialog>}
   </>;
 }
 
-function HoursScreen({ data, personnelId, timezone, pending, run }: { data: StaffWorkspaceData; personnelId: string; timezone: string; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void }) {
+function HoursScreen({ data, personnelId, timezone, pending, run, onPlanning }: { data: StaffWorkspaceData; personnelId: string; timezone: string; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void; onPlanning:()=>void }) {
   const [correction, setCorrection] = useState<StaffWorkspaceData["timeEntries"][number] | null>(null);
   const [chooseCorrection, setChooseCorrection] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -380,10 +381,18 @@ function HoursScreen({ data, personnelId, timezone, pending, run }: { data: Staf
   return <>
     <PageHeading eyebrow="URENREGISTRATIE" title="Mijn uren" help="Werk, reistijd en overige werktijd blijven apart zichtbaar. Pauzes tellen niet mee in het totaal." className="ps-page-heading ps-hours-heading" actions={<button className="ps-secondary" disabled={pending || !canClose} title={closeHint} onClick={() => runDayCommand(`close:${selectedDay}`, { command: "close", workDay: selectedDay, note: null }, "Werkdag afgesloten")}><Square/>{closed ? "Werkdag afgesloten" : "Werkdag afsluiten"}</button>}/>
     <div className="ps-hours-metrics" aria-label="Geregistreerde dagtotalen">
-      <section className="ps-panel"><span>Werkdag</span><strong>{staffDuration(totals.paid)}</strong><small>{rows[0] ? `Vanaf ${staffClock(rows[0].starts_at, timezone)}${running ? " tot nu" : " · geregistreerde tijd"}` : "Nog geen geregistreerde tijd"}</small></section>
-      <section className="ps-panel"><span>Op locatie</span><strong>{staffDuration(totals.work)}</strong><small>Uit je werkbonnen</small></section>
-      <section className="ps-panel"><span>Reistijd</span><strong>{staffDuration(totals.travel)}</strong><small>Inbegrepen in totaal</small></section>
+      <section className="ps-panel"><span>Vandaag geregistreerd</span><strong>{staffDuration(totals.paid)}</strong><small>Werk, reistijd en pauze</small></section>
+      <section className="ps-panel"><span>Deze week</span><strong>{staffDuration(weekTotal)}</strong><small>{rangeDate(week[0]!)} – {rangeDate(week[6]!)}</small></section>
+      <section className="ps-panel"><span>Te controleren</span><strong>{data.staffTimeCorrectionRequests.filter(item=>item.status==="pending").length}</strong><small>{hasPendingCorrection?"Correcties in behandeling":"Je uren zijn bijgewerkt"}</small></section>
     </div>
+    <section className="ps-panel">
+      <div className="ps-panel-heading"><h2>{selectedDay===today?"Vandaag, ":""}{dayLabel}</h2><span className="ps-status" data-status={running?"in_progress":closed?"completed":"open"}>{hasPendingCorrection?"Correctie in behandeling":closed?"Werkdag afgesloten":running?"Werkdag gestart":"Nog niet gestart"}</span></div>
+      <div className="portal-demo-buttonrow">{running||rows.length?<button type="button" className="ps-primary" disabled={pending||!canClose} title={closeHint} onClick={()=>runDayCommand(`close:${selectedDay}`,{command:"close",workDay:selectedDay,note:null},"Werkdag afgesloten")}>Werkdag afsluiten</button>:<button type="button" className="ps-primary" onClick={onPlanning}>Werkdag starten</button>}<button type="button" className="ps-secondary" disabled={pending||!correctable.length} onClick={openCorrection}>Correctie aanvragen</button></div>
+      <div className="portal-demo-hours"><div><Clock3/><span>Werktijd<strong>{staffDuration(totals.work)}</strong></span></div><div><MapPin/><span>Reistijd<strong>{staffDuration(totals.travel)}</strong></span></div><div><Clock3/><span>Pauze<strong>{staffDuration(totals.break)}</strong></span></div></div>
+      {running&&<p>Je lopende tijdregistratie bedien je bij de bijbehorende werkbon in de planning.</p>}
+    </section>
+    <section className="ps-panel portal-demo-section-gap"><div className="ps-panel-heading"><h2>Weekoverzicht</h2><div className="portal-demo-buttonrow"><button type="button" className="ps-week-arrow" aria-label="Vorige week" onClick={()=>setSelectedDay(addStaffDays(selectedDay,-7))}><ChevronLeft/></button><button type="button" className="ps-week-arrow" aria-label="Volgende week" onClick={()=>setSelectedDay(addStaffDays(selectedDay,7))}><ChevronRight/></button></div></div>{visibleWeek.map(date=><button type="button" className="portal-demo-listrow" aria-pressed={date===selectedDay} key={date} onClick={()=>setSelectedDay(date)}><CalendarDays/><span><strong>{staffDayLabel(date)}</strong><small>Werk + reis · pauze apart</small></span><b>{staffDuration(dayTotals.get(date)!.paid)}</b></button>)}</section>
+    <details className="sites-native-controls"><summary>Registraties en urenbeoordeling</summary>
     <div className="ps-hours-grid">
       <div className="ps-hours-main">
         <section className="ps-panel ps-hours-day" aria-labelledby="ps-hours-day-title">
@@ -406,7 +415,7 @@ function HoursScreen({ data, personnelId, timezone, pending, run }: { data: Staf
       </div>
       <aside className="ps-hours-aside">
         <section className="ps-panel ps-hours-week-panel" aria-labelledby="ps-hours-week-title">
-          <div className="ps-hours-week-toolbar"><h2 id="ps-hours-week-title">{currentWeek ? "Deze week" : "Weekoverzicht"}</h2><div className="ps-hours-week-actions"><button className="ps-week-arrow" aria-label="Vorige week" onClick={() => setSelectedDay(addStaffDays(selectedDay, -7))}><ChevronLeft/></button><button className="ps-week-arrow" aria-label="Terug naar huidige week" title="Terug naar huidige week" disabled={currentWeek && selectedDay === today} onClick={() => setSelectedDay(today)}><RotateCcw/></button><button className="ps-week-arrow" aria-label="Volgende week" onClick={() => setSelectedDay(addStaffDays(selectedDay, 7))}><ChevronRight/></button></div></div>
+          <div className="ps-hours-week-toolbar"><h2 id="ps-hours-week-title">{currentWeek ? "Deze week" : "Weekoverzicht"}</h2><div className="ps-hours-week-actions"><button className="ps-week-arrow" aria-label="Vorige week in registraties" onClick={() => setSelectedDay(addStaffDays(selectedDay, -7))}><ChevronLeft/></button><button className="ps-week-arrow" aria-label="Terug naar huidige week" title="Terug naar huidige week" disabled={currentWeek && selectedDay === today} onClick={() => setSelectedDay(today)}><RotateCcw/></button><button className="ps-week-arrow" aria-label="Volgende week in registraties" onClick={() => setSelectedDay(addStaffDays(selectedDay, 7))}><ChevronRight/></button></div></div>
           {!currentWeek && <small className="ps-hours-week-range" aria-live="polite">{rangeDate(week[0]!)} – {rangeDate(week[6]!)}</small>}
           <div className="ps-hours-week-overview" aria-label="Geregistreerde tijd per weekdag">{visibleWeek.map(date => <button type="button" className="ps-hours-week-day" aria-pressed={date === selectedDay} aria-label={`${staffDayLabel(date)}: ${staffDuration(dayTotals.get(date)!.paid)}`} onClick={() => setSelectedDay(date)} key={date}><span>{new Intl.DateTimeFormat("nl-NL", { weekday: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`))}</span><strong>{staffDuration(dayTotals.get(date)!.paid)}</strong></button>)}</div>
           <div className="ps-hours-week-total"><span>Totaal</span><strong>{staffDuration(weekTotal)}</strong></div>
@@ -414,6 +423,7 @@ function HoursScreen({ data, personnelId, timezone, pending, run }: { data: Staf
         <section className="ps-panel ps-hours-retention"><h2>DUIDELIJK GEREGISTREERD</h2><p>Je uren blijven beschikbaar nadat werkbonnen uit de dagplanning zijn verdwenen.</p></section>
       </aside>
     </div>
+    </details>
     {chooseCorrection && <Dialog title="Correctie doorgeven" kicker="MIJN UREN" close={() => setChooseCorrection(false)}><p>Kies de registratie die je wilt corrigeren.</p><div className="ps-hours-correction-options">{correctable.map(entry => <button type="button" className="ps-secondary" key={entry.id} onClick={() => { setChooseCorrection(false); setCorrection(entry); }}><span>{entry.kind === "work" ? "Werk op locatie" : entry.kind === "travel" ? "Reistijd" : entry.kind === "break" ? "Pauze" : "Overige werktijd"} · {staffClock(entry.starts_at, timezone)} – {staffClock(entry.ends_at!, timezone)}</span><ChevronRight/></button>)}</div></Dialog>}
     {correction && <CorrectionDialog entry={correction} timezone={timezone} pending={pending} close={() => setCorrection(null)} submit={input => run(() => requestTimeCorrection(input), "Correctieverzoek verstuurd; je uren blijven ongewijzigd", () => setCorrection(null))}/>}
   </>;
@@ -460,8 +470,8 @@ function MoreScreen({ view, setView, data, profile, timezone, email, tenantName,
   if (view === "verlof") return <LeaveScreen requests={data.staffLeaveRequests} entitlements={data.staffLeaveEntitlements} timezone={timezone} pending={pending} run={run}/>;
   if (view === "beschikbaarheid") return <AvailabilityScreen key={profile.id} profile={profile} pending={pending} run={run} onLeave={() => setView("verlof")}/>;
   if (view === "documenten") return <DocumentsScreen data={data} profile={profile}/>;
-  if (view === "profiel") return <ProfileScreen key={profile.id} profile={profile} depots={data.staffDepots} email={email} pending={pending} run={run}/>;
-  if (view === "instellingen") return <SettingsScreen key={profile.id} profile={profile} email={email} tenantName={tenantName} notificationPreferences={notificationPreferences} pending={pending} run={run} pwaInstall={pwaInstall}/>;
+  if (view === "profiel") return <SettingsScreen key={profile.id} title="Profiel" profile={profile} email={email} tenantName={tenantName} notificationPreferences={notificationPreferences} pending={pending} run={run} pwaInstall={pwaInstall} fullProfile={<ProfileScreen profile={profile} depots={data.staffDepots} email={email} pending={pending} run={run}/>}/>;
+  if (view === "instellingen") return <SettingsScreen key={profile.id} profile={profile} email={email} tenantName={tenantName} notificationPreferences={notificationPreferences} pending={pending} run={run} pwaInstall={pwaInstall} fullProfile={<ProfileScreen profile={profile} depots={data.staffDepots} email={email} pending={pending} run={run}/>}/>;
   const actions: Array<[MoreView, string, string, ComponentType<{ size?: number }>]> = [
     ["verlof", "Verlof", "Aanvragen en saldo", Umbrella], ["beschikbaarheid", "Beschikbaarheid", "Jouw vaste week", CalendarCheck],
     ["documenten", "Documenten", "Handboeken en instructies", FileText], ["instellingen", "Instellingen", "Profiel en meldingen", Settings], ["profiel", "Profiel", "Contact- en vervoersgegevens", UserRound],
@@ -469,10 +479,10 @@ function MoreScreen({ view, setView, data, profile, timezone, email, tenantName,
   const shifts = data.openShifts.filter((shift) => shift.status === "open");
   return <div className="ps-more-screen">
     <section className="ps-profile-summary" aria-label="Mijn profiel"><span>{initials(profile.preferred_name || profile.full_name)}</span><div><small>MIJN PROFIEL</small><h2>{profile.preferred_name || profile.full_name}</h2><p>{profile.employee_number}</p></div></section>
-    <div className="ps-more-grid" aria-label="Personeelszaken"><Link className="ps-more-card" href="/staff/kennisbank"><FileText aria-hidden="true"/><span><strong>Kennisbank</strong><small>Handleidingen en antwoorden</small></span></Link><Link className="ps-more-card" href="/staff/updates"><Newspaper aria-hidden="true"/><span><strong>Wat is er nieuw?</strong><small>Productupdates van Fieldgrid</small></span></Link>
-      {actions.map(([key, title, text, Icon]) => <button className="ps-more-card" key={key} onClick={() => setView(key)}><Icon aria-hidden="true"/><span><strong>{title}</strong><small>{text}</small></span></button>)}
-      <Link className="ps-more-card" href="/staff/notificaties"><Bell aria-hidden="true"/><span><strong>Notificaties</strong><small>Inbox en persoonlijke voorkeuren</small></span></Link>
-      <StaffTicketsEntry className="ps-more-card" enabled={ticketsEnabled}><TicketCheck aria-hidden="true"/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span></StaffTicketsEntry>
+    <div className="portal-demo-more" aria-label="Personeelszaken"><Link className="ps-panel portal-demo-help" href="/staff/kennisbank"><FileText aria-hidden="true"/><span><strong>Kennisbank</strong><small>Handleidingen en antwoorden</small></span></Link><Link className="ps-panel portal-demo-help" href="/staff/updates"><Newspaper aria-hidden="true"/><span><strong>Wat is er nieuw?</strong><small>Productupdates van Fieldgrid</small></span></Link>
+      {actions.map(([key, title, text, Icon]) => <button className="ps-panel portal-demo-help" key={key} onClick={() => setView(key)}><Icon aria-hidden="true"/><span><strong>{title}</strong><small>{text}</small></span></button>)}
+      <Link className="ps-panel portal-demo-help" href="/staff/notificaties"><Bell aria-hidden="true"/><span><strong>Notificaties</strong><small>Inbox en persoonlijke voorkeuren</small></span></Link>
+      <StaffTicketsEntry className="ps-panel portal-demo-help" enabled={ticketsEnabled}><TicketCheck aria-hidden="true"/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span></StaffTicketsEntry>
     </div>
     {shifts.length > 0 && <section className="ps-panel ps-open-shifts" aria-label="Open diensten"><div className="ps-panel-heading"><div><span>OPEN DIENSTEN</span><h2>Interesse doorgeven</h2></div><CalendarDays/></div>{shifts.map((shift) => {
       const interest = data.shiftInterests.find((item) => item.open_shift_id === shift.id && item.personnel_id === profile.id);
@@ -531,16 +541,10 @@ function LeaveScreen({ requests, entitlements, timezone, pending, run }: { reque
   const requestYears = new Set(requests.flatMap(request => [request.starts_on.slice(0, 4), request.ends_on.slice(0, 4)]));
   return <div className="ps-leave-screen">
     <PageHeading eyebrow="PERSONEELSZAKEN" title="Verlof" help="Een aanvraag reserveert nog geen verlof. Je ontvangt een melding wanneer je manager een besluit neemt." className="ps-page-heading" actions={<ActionIcon className="ps-primary" label="Verlof aanvragen" icon={<Plus/>} onClick={() => setOpen(true)}/> }/>
-    <div className="ps-stat-grid" aria-label="Verlofoverzicht"><div><small>Beschikbaar saldo</small><strong>{availableMinutes === null ? "Nog niet ingesteld" : leaveDuration(Math.max(0, availableMinutes))}</strong><small>{year}</small></div><div><small>Goedgekeurd</small><strong>{leaveDuration(approvedMinutes)}</strong><small>Dit kalenderjaar</small></div><div><small>In afwachting</small><strong>{pendingCount}</strong><small>{pendingCount === 1 ? "Aanvraag" : "Aanvragen"}</small></div></div>
+    <div className="ps-stat-grid portal-demo-three" aria-label="Verlofoverzicht"><div className="ps-panel"><small>Beschikbaar saldo</small><strong>{availableMinutes === null ? "Nog niet ingesteld" : leaveDuration(Math.max(0, availableMinutes))}</strong><small>{year}</small></div><div className="ps-panel"><small>Goedgekeurd</small><strong>{leaveDuration(approvedMinutes)}</strong><small>Dit kalenderjaar</small></div><div className="ps-panel"><small>In afwachting</small><strong>{pendingCount}</strong><small>{pendingCount === 1 ? "Aanvraag" : "Aanvragen"}</small></div></div>
     <section className="ps-panel ps-leave-list" aria-labelledby="ps-leave-list-title">
       <div className="ps-panel-heading"><h2 id="ps-leave-list-title">Mijn aanvragen</h2><span className="ps-leave-year">{requestYears.size > 1 ? "Alle jaren" : [...requestYears][0] ?? year}</span></div>
-      {pagination.items.map(request => <article className="ps-leave-request" key={request.id}>
-        <div className="ps-leave-request-heading"><h3>{leaveLabels[request.leave_type] ?? request.leave_type}</h3><span className="ps-status" data-status={request.status}>{request.status === "pending" ? "In afwachting" : request.status === "approved" ? "Goedgekeurd" : request.status === "rejected" ? "Afgewezen" : "Ingetrokken"}</span></div>
-        <p className="ps-leave-dates">{dateLabel(request.starts_on)} – {dateLabel(request.ends_on)}</p>
-        {(request.approved_minutes ?? request.requested_minutes) != null && <p>{request.status === "approved" ? "Goedgekeurd" : "Aangevraagd"}: {leaveDuration(request.approved_minutes ?? request.requested_minutes ?? 0)}</p>}
-        {request.note && <p>{request.note}</p>}
-        {request.status === "pending" && <button className="ps-secondary" disabled={pending} onClick={() => withdraw(request)}>Aanvraag intrekken</button>}
-      </article>)}
+      {pagination.items.map(request=><article className="portal-demo-listrow" key={request.id}><Umbrella/><span><strong>{leaveLabels[request.leave_type]??request.leave_type}</strong><small>{dateLabel(request.starts_on)} – {dateLabel(request.ends_on)}</small>{(request.approved_minutes??request.requested_minutes)!=null&&<small>{request.status==="approved"?"Goedgekeurd":"Aangevraagd"}: {leaveDuration(request.approved_minutes??request.requested_minutes??0)}</small>}{request.note&&<small>{request.note}</small>}</span><span className="ps-status" data-status={request.status}>{request.status==="pending"?"In behandeling":request.status==="approved"?"Goedgekeurd":request.status==="rejected"?"Afgewezen":"Ingetrokken"}</span>{request.status==="pending"&&<button type="button" className="ps-text-button" disabled={pending} onClick={()=>withdraw(request)}>Intrekken</button>}</article>)}
       {!requests.length && <EmptyState title="Nog geen verlofaanvragen" description="Je aanvragen en besluiten verschijnen hier."/>}
     </section>
     <ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="aanvragen" busy={pending} preferenceKey="staff:leave"/>
@@ -587,11 +591,12 @@ function AvailabilityScreen({ profile, pending, run, onLeave }: { profile: Staff
     <PageHeading eyebrow="PERSONEELSZAKEN" title="Beschikbaarheid" help="Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan." className="ps-page-heading"/>
     <div className="ps-availability-grid">
       <section className="ps-panel ps-availability-week" aria-labelledby="ps-availability-title"><form onSubmit={submit}>
-        <div className="ps-panel-heading"><h2 id="ps-availability-title">Mijn vaste week</h2><span className="ps-status" data-status={enabled ? "approved" : "managed"}>{enabled ? "Bewerken toegestaan" : "Beheerd door planning"}</span></div>
+        <div className="ps-panel-heading"><h2 id="ps-availability-title">Mijn vaste week</h2><span className="ps-status" data-status={enabled ? "approved" : "managed"}>{enabled ? "Vrijgegeven voor bewerken" : "Beheerd door planning"}</span></div>
         {!enabled && <p className="ps-availability-managed"><LockKeyhole size={19} aria-hidden="true"/><span>Je organisatie beheert je beschikbaarheid. Neem voor een wijziging contact op met de planning.</span></p>}
         <div className="ps-availability-days">{dayKeys.map((key) => {
           const required = Boolean(week[key].start || week[key].end);
-          return <div className="ps-availability-day" key={key}><span>{dayLabels[key]}</span><input aria-label={`${dayLabels[key]} vanaf`} aria-describedby="ps-availability-help" type={enabled ? "time" : "text"} placeholder="--:--" required={required} disabled={!enabled || pending} value={week[key].start} onChange={(event) => setTime(key, "start", event.target.value)}/><input aria-label={`${dayLabels[key]} tot`} aria-describedby={invalidDay === key ? "ps-availability-error" : "ps-availability-help"} aria-invalid={invalidDay === key || undefined} type={enabled ? "time" : "text"} placeholder="--:--" required={required} disabled={!enabled || pending} value={week[key].end} onChange={(event) => setTime(key, "end", event.target.value)}/></div>;
+          const available=Boolean(week[key].start||week[key].end);
+          return <div className="portal-demo-availability" key={key}><label><input type="checkbox" aria-label={dayLabels[key]} checked={available} disabled={!enabled||pending} onChange={event=>{setWeek(current=>({...current,[key]:event.target.checked?{start:value.week[key].start,end:value.week[key].end}:{start:"",end:""}}));setInvalidDay(null);}}/>{dayLabels[key]}</label><input aria-label={`${dayLabels[key]} vanaf`} aria-describedby="ps-availability-help" type="time" required={required} disabled={!enabled||pending||!available} value={week[key].start} onChange={event=>setTime(key,"start",event.target.value)}/><span>tot</span><input aria-label={`${dayLabels[key]} tot`} aria-describedby={invalidDay===key?"ps-availability-error":"ps-availability-help"} aria-invalid={invalidDay===key||undefined} type="time" required={required} disabled={!enabled||pending||!available} value={week[key].end} onChange={event=>setTime(key,"end",event.target.value)}/></div>;
         })}</div>
         <p id="ps-availability-help" className="ps-availability-help">Laat beide tijden leeg als je die dag niet beschikbaar bent.</p>
         {invalidDay && <p id="ps-availability-error" className="ps-availability-error" role="alert">{dayLabels[invalidDay]}: vul beide tijden in; de eindtijd moet na de begintijd liggen.</p>}
@@ -602,18 +607,18 @@ function AvailabilityScreen({ profile, pending, run, onLeave }: { profile: Staff
           <div className="ps-field"><label htmlFor="ps-availability-note">Planningsopmerking</label><textarea id="ps-availability-note" disabled={!enabled || pending} rows={4} maxLength={1000} value={value.planningNote} onChange={(event) => setValue({ ...value, planningNote: event.target.value })}/></div>
         </details>
       </form></section>
-      <aside className="ps-availability-aside" aria-label="Over beschikbaarheid">
+      <details className="sites-native-controls"><summary>Over beschikbaarheid</summary><aside className="ps-availability-aside" aria-label="Over beschikbaarheid">
         <section className="ps-panel"><div className="heading-with-help"><h2>Goed om te weten</h2><HelpTip>Je beschikbaarheid ondersteunt de planning; bestaande afspraken veranderen alleen na controle door de planner.</HelpTip></div><p>Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan.</p></section>
         <section className="ps-panel"><h2>Tijdelijk afwezig?</h2><p>Voor vakantie of een vrije dag dien je een verlofaanvraag in.</p><button type="button" className="ps-text-button" onClick={onLeave}>Naar mijn verlof</button></section>
-      </aside>
+      </aside></details>
     </div>
   </div>;
 }
 
 function DocumentsScreen({ data, profile }: { data: StaffWorkspaceData; profile: StaffPersonnel }) {
-  const docs = data.personnelDocuments.filter(item => item.personnel_id === profile.id && item.visible_to_employee);
-  const pagination = useListPagination(docs);
-  return <><section className="ps-panel ps-documents" aria-label="Mijn documenten">{pagination.items.map(item => <a className="ps-list-row" href={`/api/files/personnel-document/${item.id}`} target="_blank" rel="noreferrer" key={item.id}><span className="ps-object-icon"><FileText/></span><span><strong>{item.title}</strong><small>{item.file_name ?? `Versie ${item.version}`}</small></span><span className="ps-document-open" aria-hidden="true"><Eye/></span></a>)}{!docs.length && <Empty icon={FileText} title="Geen documenten">Documenten die HR met je deelt verschijnen hier.</Empty>}</section><ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="documenten" preferenceKey={`staff:${profile.id}:documents`}/></>;
+  const docs=data.personnelDocuments.filter(item=>item.personnel_id===profile.id&&item.visible_to_employee),pagination=useListPagination(docs);
+  const [selected,setSelected]=useState<string|null>(null),document=docs.find(item=>item.id===selected);
+  return <><section className="ps-panel" aria-label="Mijn documenten">{pagination.items.map(item=><button type="button" className="portal-demo-listrow" onClick={()=>setSelected(item.id)} key={item.id}><FileText/><span><strong>{item.title}</strong><small>{item.file_name??"Document"} · Versie {item.version} · Beschikbaar</small></span><Eye size={18}/></button>)}{!docs.length&&<Empty icon={FileText} title="Geen documenten">Documenten die HR met je deelt verschijnen hier.</Empty>}</section><ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="documenten" preferenceKey={`staff:${profile.id}:documents`}/>{document&&<SourceNativeDialog sourceForm title={document.title} eyebrow="DOCUMENTEN" description="" onClose={()=>setSelected(null)} footer={<a className="primary-button" href={`/api/files/personnel-document/${document.id}`}>Document downloaden</a>}><p>Versie {document.version} · {document.file_name??document.title}</p><iframe className="portal-document-preview" title={document.title} src={`/api/files/personnel-document/${document.id}?preview=1`} sandbox=""/><p>Dit voorbeeld gebruikt het oorspronkelijke afgeschermde bestand. Kun je het bestand niet in je browser bekijken, gebruik dan de downloadknop.</p></SourceNativeDialog>}</>;
 }
 
 function ProfileScreen({ profile, depots, email, pending, run }: { profile: StaffPersonnel; depots: StaffWorkspaceData["staffDepots"]; email: string; pending: boolean; run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string) => void }) {
@@ -667,10 +672,10 @@ function ProfileScreen({ profile, depots, email, pending, run }: { profile: Staf
   </form></section>;
 }
 
-function SettingsScreen({ profile, email, tenantName, notificationPreferences, pending, run, pwaInstall }: {
+function SettingsScreen({ profile, email, tenantName, notificationPreferences, pending, run, pwaInstall, fullProfile, title="Instellingen" }: {
   profile: StaffPersonnel; email: string; tenantName: string; notificationPreferences: NotificationPreferences; pending: boolean;
   run: (task: () => Promise<{ ok: boolean; error?: string }>, success: string, after?: () => void) => void;
-  pwaInstall: StaffPwaInstall;
+  pwaInstall: StaffPwaInstall; fullProfile:ReactNode; title?:string;
 }) {
   const [section, setSection] = useState<"profile" | "notifications" | "account">("profile");
   const [contact, setContact] = useState(() => ({ fullName: profile.full_name, mobilePhone: profile.mobile_phone ?? "", version: profile.version ?? 1 }));
@@ -700,25 +705,24 @@ function SettingsScreen({ profile, email, tenantName, notificationPreferences, p
     }, "Meldingsvoorkeuren opgeslagen");
   };
   return <div className="ps-settings-screen">
-    <PageHeading eyebrow="MIJN ACCOUNT" title="Instellingen" help="Beheer je persoonlijke voorkeuren. Je e-mailadres wordt beheerd door personeelszaken." className="ps-page-heading"/>
+    <PageHeading eyebrow="MIJN ACCOUNT" title={title} help="Beheer je persoonlijke voorkeuren. Je e-mailadres wordt beheerd door personeelszaken." className="ps-page-heading"/>
     <ContentTabs label="Instellingenonderdelen" value={section} onValueChange={value => setSection(value as typeof section)} tabs={[
       {id:"profile",title:"Mijn profiel",content:<section className="ps-panel ps-settings-profile" aria-label="Mijn profiel">
-        <div className="ps-settings-identity"><span>{initials(profile.full_name)}</span><div><h2>{profile.full_name}</h2><p>Medewerker · {tenantName}</p></div></div>
-        <form onSubmit={saveContact}>
-          <label className="ps-field">Naam<input autoComplete="name" required minLength={2} maxLength={160} disabled={pending} value={contact.fullName} onChange={(event) => setContact({ ...contact, fullName: event.target.value })}/></label>
+        <form className="portal-demo-form" onSubmit={saveContact}>
+          <div className="portal-demo-two"><label className="mc-field"><span>Voornaam</span><input autoComplete="given-name" required maxLength={160} disabled={pending} value={contact.fullName.split(" ")[0]} onChange={event=>setContact({...contact,fullName:[event.target.value,...contact.fullName.split(" ").slice(1)].join(" ")})}/></label><label className="mc-field"><span>Achternaam</span><input autoComplete="family-name" maxLength={160} disabled={pending} value={contact.fullName.split(" ").slice(1).join(" ")} onChange={event=>setContact({...contact,fullName:[contact.fullName.split(" ")[0],event.target.value].join(" ")})}/></label></div>
           <div className="ps-field"><label htmlFor="ps-settings-email">E-mailadres</label><input id="ps-settings-email" type="email" autoComplete="email" readOnly aria-readonly="true" aria-describedby="ps-settings-email-help" value={email}/><small id="ps-settings-email-help">Je e-mailadres wordt beheerd door personeelszaken.</small></div>
           <label className="ps-field">Telefoonnummer<input type="tel" autoComplete="tel" maxLength={50} disabled={pending} value={contact.mobilePhone} onChange={(event) => setContact({ ...contact, mobilePhone: event.target.value })}/></label>
-          <button type="submit" className="ps-primary" disabled={pending}>Gegevens opslaan</button>
-        </form>
+          <button type="submit" className="ps-primary" disabled={pending}>Profiel opslaan</button>
+        </form><details className="sites-native-controls"><summary>Adres, noodcontact en vervoer</summary>{fullProfile}</details>
       </section>},
       {id:"notifications",title:"Meldingen",content:<section className="ps-panel ps-settings-notifications" aria-label="Meldingen">
         <h2>Meldingen</h2>
-        {([["push", "Pushmeldingen", "Nieuwe werkbonnen en belangrijke updates"], ["email", "E-mail", "Nieuws en personeelszaken"], ["quietEnabled", "Stille uren", `Van ${preferences.quietStart} tot ${preferences.quietEnd}`]] as const).map(([field, label, description]) => <div className="ps-settings-row" key={field}><div><strong>{label}</strong><small>{description}</small></div><input className="ps-settings-switch" role="switch" type="checkbox" aria-label={label} checked={preferences[field]} disabled={pending} onChange={(event) => togglePreference(field, event.target.checked)}/></div>)}
+        {([["push", "Pushmeldingen", "Nieuwe werkbonnen en belangrijke updates"], ["email", "E-mail", "Nieuws en personeelszaken"], ["quietEnabled", "Stille uren", `Van ${preferences.quietStart} tot ${preferences.quietEnd}`]] as const).map(([field, label, description]) => <div className="portal-demo-toggle" key={field}><div><strong>{label}</strong><small>{description}</small></div><input className="ps-settings-switch" role="switch" type="checkbox" aria-label={label} checked={preferences[field]} disabled={pending} onChange={(event) => togglePreference(field, event.target.checked)}/></div>)}
         <p className="ps-hours-info"><Info aria-hidden="true"/><span>Push werkt op apparaten waarvoor je toestemming hebt gegeven. Je ontvangt meldingen volgens je voorkeuren en het beleid van je organisatie.</span></p>
         <div className="ps-settings-notification-actions"><button type="button" className="ps-secondary" onClick={() => toast("Testmelding", { description: "Dit is een testmelding in je personeelsapp." })}><Bell/>Testmelding tonen</button><button type="button" className="ps-text-button" onClick={() => setDialog("push")}>Apparaat instellen</button><Link className="ps-text-button" href="/staff/notificaties/instellingen">Per onderwerp</Link></div>
       </section>},
       {id:"account",title:"Account & toegang",content:<section className="ps-panel ps-settings-account" aria-label="Account & toegang">
-        <h2>Account & toegang</h2>
+        <h2>Veilig inloggen met je e-mailadres</h2><p>Je personeelsapp bij {tenantName} gebruikt een eenmalige e-mailcode.</p>
         <div className="ps-settings-row"><div><strong>Inloggen met e-mailcode</strong><small>Geen wachtwoord onthouden</small></div><span className="ps-status" data-status="approved">OTP</span></div>
         <div className="ps-settings-row"><div><strong>Dit apparaat</strong><small>Browser · huidige sessie</small></div><span className="ps-status" data-status="approved">Actief</span></div>
         <StaffPwaInstallSetting controller={pwaInstall}/>
@@ -732,28 +736,8 @@ function SettingsScreen({ profile, email, tenantName, notificationPreferences, p
 }
 
 function Dialog({ title, kicker, close, children, footer }: { title: string; kicker: string; close: () => void; children: ReactNode; footer?: ReactNode }) {
-  const panel = useRef<HTMLElement>(null);
-  const closeRef = useRef(close);
-  useEffect(() => { closeRef.current = close; }, [close]);
-  useEffect(() => {
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const focusable = () => [...(panel.current?.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [])];
-    focusable()[0]?.focus();
-    const key = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); closeRef.current(); return; }
-      if (event.key !== "Tab") return;
-      const items = focusable();
-      if (!items.length) return;
-      const first = items[0]; const last = items.at(-1)!;
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-    };
-    document.addEventListener("keydown", key);
-    return () => { document.removeEventListener("keydown", key); document.body.style.overflow = previousOverflow; previous?.focus(); };
-  }, []);
-  return <div className="ps-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}><section ref={panel} className="ps-modal" role="dialog" aria-modal="true" aria-labelledby="ps-dialog-title"><header className="ps-modal-header"><div><span>{kicker}</span><h2 id="ps-dialog-title">{title}</h2></div><ActionIcon className="ps-icon-button" onClick={close} label="Sluiten" icon={<X/>}/></header><div className="ps-modal-body"><GuideForTitle title={title}/>{children}</div>{footer && <footer className="ps-modal-footer">{footer}</footer>}</section></div>;
+  const [dirty,setDirty]=useState(false);
+  return <SourceNativeDialog sourceForm title={title} eyebrow={kicker} description="" dirty={dirty} onClose={close} footer={footer}><div onInput={()=>setDirty(true)} onChange={()=>setDirty(true)}>{children}</div></SourceNativeDialog>;
 }
 
 function Empty({ title, children }: { icon: ComponentType<{ size?: number }>; title: string; children: ReactNode }) {

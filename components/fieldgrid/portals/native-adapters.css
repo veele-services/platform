@@ -1,0 +1,21 @@
+/* Minimal bridges for native branding, lifecycle controls and private files. */
+.sites-portals .portal-demo .brand-logo-image{display:block;object-fit:contain;object-position:left;max-width:100%}
+.sites-portals .portal-demo .ps-sidebar-logo .brand-logo-image{width:160px;height:57px;background:white;border-radius:9px;padding:8px}
+.sites-portals .portal-demo .ps-mobile-brand .brand-logo-image{width:122px;height:32px}
+.sites-portals .portal-demo .sites-native-controls{margin-top:22px}
+.sites-portals .portal-demo .sites-native-controls>summary{cursor:pointer;color:var(--brand-muted);font-size:12px;margin-bottom:16px}
+.sites-portals .portal-demo .sites-native-controls .ps-hours-grid{grid-template-columns:minmax(0,1fr)}
+.sites-portals .portal-demo .portal-demo-listrow .ps-secondary{flex:none}
+.sites-portals .portal-demo .portal-demo-availability input[type=time]:disabled{opacity:.35}
+.sites-portals .portal-demo .portal-demo-availability input[type=checkbox]{appearance:auto}
+.sites-portals .portal-demo .ps-availability-grid{grid-template-columns:minmax(0,1fr)}
+.sites-portals .portal-demo .sites-native-controls .ps-availability-aside{display:grid}
+.sites-portals .portal-demo .portal-document-preview{display:block;width:100%;height:500px;max-height:60dvh;border:1px solid var(--brand-border);border-radius:10px;background:#fff}
+.sites-portals .portal-demo .ps-stat-grid.portal-demo-three>.ps-panel{border:1px solid var(--brand-border);background:var(--brand-surface);border-radius:var(--ps-radius)}
+.sites-portals.sites-portal,.sites-portals.sites-portal>.portal-demo{display:contents}
+.sites-portals .portal-demo .sites-staff-native-dialog{display:block;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);min-height:0;max-width:calc(100vw - 32px);padding:0;gap:0;outline:0}
+.sites-portals .portal-demo .sites-staff-native-dialog header [data-slot=dialog-header]{gap:4px;text-align:left}
+.sites-portals .portal-demo .sites-staff-native-dialog .mc-dialog-body .form-grid{display:grid;gap:18px}
+.sites-portals .portal-demo .sites-staff-native-dialog .mc-dialog-body label{font-size:12px}
+.sites-portals .portal-demo .sites-staff-native-dialog .mc-dialog-body :is(input:not([type=checkbox]):not([type=radio]),select,textarea){width:100%;min-height:44px;border:1px solid var(--brand-border);border-radius:9px;padding:11px 13px;background:white;color:var(--brand-ink);font:inherit}
+@media(max-width:600px){.sites-portals .portal-demo .sites-staff-native-dialog{width:100vw;max-width:100vw;max-height:100dvh;height:100dvh;top:0;left:0;transform:none;margin:0;border:0;border-radius:0}.sites-portals .portal-demo .sites-staff-native-dialog .mc-dialog-body :is(input,select,textarea){font-size:16px}}

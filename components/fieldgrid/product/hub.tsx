@@ -1,4 +1,6 @@
 "use client";
+import {useSourcePortal} from "../portals/context";
+import {PortalInformationList} from "../portals/information-list";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Plus, Eye, RefreshCw, Columns3, List, Search, ArrowUpRight } from "lucide-react";
 import { PageHeading } from "../page-heading";
@@ -84,7 +86,7 @@ export function ProductHub({
 }) {
   const admin = snapshot.access.canManage,
     management = snapshot.workspace === "backoffice";
-  const presentation=useDashboardPresentation(),sites=management&&presentation==='sites', platformSites=snapshot.workspace==='platform'&&presentation==='sites';
+  const presentation=useDashboardPresentation(),sites=management&&presentation==='sites', platformSites=snapshot.workspace==='platform'&&presentation==='sites',portalSites=useSourcePortal();
   const tabs = admin
     ? [
         ["ideas", "Ideeën"],
@@ -465,7 +467,8 @@ export function ProductHub({
   return (
     <div className={sites?'sites-information':platformSites?'product-hub sites-platform-product':'product-hub'}>
       {platformSites && <><PageHeading eyebrow="FIELDGRID PLATFORM" title="Productbeheer" help="Beheer modules, ideeën, roadmap en updates zonder publicatie met beschikbaarheid te verwarren."/><PlatformProductOverview roadmap={lists.roadmap.items} open={(section,id)=>{void openDetail(section,id);}}/></>}
-      <ProductManagementControls platform={platformSites}>
+      {portalSites&&<><PageHeading eyebrow={snapshot.workspace==='staff'?'PERSONEEL':'MIJN OMGEVING'} title="Wat is er nieuw?" className="ps-page-heading"/><PortalInformationList staff={snapshot.workspace==='staff'} items={lists.releases.items.map(item=>({id:item.id,title:item.title,detail:'version' in item?`Update ${item.version}`:'Productupdate'}))} onOpen={id=>{void openDetail('releases',id);}} emptyTitle="Nog geen updates"/></>}
+      <ProductManagementControls platform={platformSites||portalSites}>
       <PageHeading
         eyebrow={sites?'ORGANISATIE':admin ? "PLATFORMBEHEER" : "FIELDGRID ONTWIKKELING"}
         title={

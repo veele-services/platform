@@ -1,4 +1,5 @@
 "use client";
+import {AccountMenu} from "../account-menu";
 import { GuideBanner } from "@/components/fieldgrid/guides/guide";
 
 import type { CSSProperties, ReactNode } from "react";
@@ -7,8 +8,8 @@ import Link from "next/link";
 import { FieldgridBrand } from "../brand";
 import { useRouter } from "next/navigation";
 import {
-  BookOpen, CalendarCheck, CalendarDays, ChevronRight, Clock3, FileText, LogOut,
-  MoreHorizontal, Newspaper, Settings, Settings2, Umbrella, UserRound,
+  BookOpen, CalendarCheck, CalendarDays, Clock3, FileText,
+  MoreHorizontal, Newspaper, Settings, Umbrella,
 } from "lucide-react";
 import { NotificationBell } from "@/components/fieldgrid/notifications/inbox";
 import { createClient } from "@/lib/supabase/client";
@@ -32,6 +33,7 @@ export function StaffRouteShellClient({
   actorKey,
   children,
   name,
+  email,
   style,
   tenantId,
   ticketsEnabled,
@@ -41,15 +43,14 @@ export function StaffRouteShellClient({
   actorKey: string;
   children: ReactNode;
   name: string;
+  email:string|null;
   style: CSSProperties;
   tenantId: string;
   ticketsEnabled: boolean;
 }) {
   const router = useRouter();
   const [sync, setSync] = useState<SyncState>("connecting");
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [refreshPending, startRefresh] = useTransition();
-  const profileMenuWrap = useRef<HTMLDivElement>(null);
   const refreshRequested = useRef(false);
   const subscriptionReady = useRef(false);
   const title = active === "knowledge" ? "Kennisbank" : active === "updates" ? "Wat is er nieuw?" : active === "tickets" ? "Tickets" : "Notificaties";
@@ -132,50 +133,8 @@ export function StaffRouteShellClient({
     };
   }, [refresh, tenantId]);
 
-  useEffect(() => {
-    if (!profileMenuOpen) return;
-    const wrap = profileMenuWrap.current;
-    const trigger = wrap?.querySelector<HTMLButtonElement>(".ps-profile-button");
-    const items = () => [...(wrap?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
-    const closeOutside = (event: PointerEvent) => {
-      if (!wrap?.contains(event.target as Node)) setProfileMenuOpen(false);
-    };
-    const closeOnFocusLoss = (event: FocusEvent) => {
-      if (!wrap?.contains(event.target as Node)) setProfileMenuOpen(false);
-    };
-    const key = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setProfileMenuOpen(false);
-        trigger?.focus();
-        return;
-      }
-      const menuItems = items();
-      const current = menuItems.indexOf(document.activeElement as HTMLElement);
-      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-        event.preventDefault();
-        menuItems[(current + (event.key === "ArrowDown" ? 1 : -1) + menuItems.length) % menuItems.length]?.focus();
-      } else if (event.key === "Home") {
-        event.preventDefault();
-        menuItems[0]?.focus();
-      } else if (event.key === "End") {
-        event.preventDefault();
-        menuItems.at(-1)?.focus();
-      }
-    };
 
-    items()[0]?.focus();
-    document.addEventListener("pointerdown", closeOutside);
-    document.addEventListener("focusin", closeOnFocusLoss);
-    document.addEventListener("keydown", key);
-    return () => {
-      document.removeEventListener("pointerdown", closeOutside);
-      document.removeEventListener("focusin", closeOnFocusLoss);
-      document.removeEventListener("keydown", key);
-    };
-  }, [profileMenuOpen]);
-
-  return <div className="personnel-app ps-route-shell" style={style}>
+  return <div className="personnel-app portal-demo ps-route-shell" style={style}>
     <aside className="ps-sidebar">
       <div className="ps-sidebar-brand"><div className="ps-sidebar-logo"><FieldgridBrand tenantName={tenantName} logoUrl={logoUrl}/></div><small>PERSONEELSAPP</small></div>
       <nav className="ps-nav" aria-label="Hoofdnavigatie">
@@ -194,7 +153,7 @@ export function StaffRouteShellClient({
     <div className="ps-workspace">
       <header className="ps-topbar">
         <div className="ps-topbar-leading"><div className="ps-mobile-brand"><FieldgridBrand tenantName={tenantName} logoUrl={logoUrl}/></div><div className={`ps-sync ${sync}`} role="status" aria-label={syncLabel(sync)}><i/><span>{syncLabel(sync, true)}</span></div><div className="ps-breadcrumb"><span>Mijn werkplek</span><span aria-hidden="true">/</span><strong>{title}</strong></div></div>
-        <div className="ps-top-actions"><NotificationBell workspace="staff" actorKey={actorKey}/><div className="ps-profile-wrap" ref={profileMenuWrap}><button className="ps-profile-button" aria-label={`Profielmenu van ${name}`} aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={() => setProfileMenuOpen((open) => !open)}><span>{initials(name)}</span><small>{name}</small><ChevronRight/></button><form id="staff-route-signout" action="/auth/signout" method="post"/>{profileMenuOpen && <div className="ps-profile-menu" role="menu"><Link role="menuitem" href="/staff?tab=meer&section=profiel" onClick={() => setProfileMenuOpen(false)}><UserRound/>Profiel</Link><Link role="menuitem" href="/staff?tab=meer&section=instellingen" onClick={() => setProfileMenuOpen(false)}><Settings2/>Instellingen</Link><button role="menuitem" type="submit" form="staff-route-signout"><LogOut/>Uitloggen</button></div>}</div></div>
+        <div className="ps-top-actions"><NotificationBell workspace="staff" actorKey={actorKey}/><AccountMenu name={name} email={email} role="Medewerker" triggerLabel={`Profielmenu van ${name}`} profileLabel="Profiel" profileHref="/staff?tab=meer&section=profiel" settingsHref="/staff?tab=meer&section=instellingen" preferencesHref="/staff/notificaties/instellingen"/></div>
       </header>
       <main className="ps-content ps-route-content"><GuideBanner guideKey={`staff.${active}`}/>{children}</main>
       <nav className="ps-bottom-nav" aria-label="Mobiele navigatie">

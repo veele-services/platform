@@ -104,7 +104,7 @@ export type StaffPwaInstall = ReturnType<typeof useStaffPwaInstall>;
 export function StaffPwaInstallDialog({ identity, controller }: { identity: StaffPwaIdentity; controller: StaffPwaInstall }) {
   const { offer, installed, nativeReady, ios, pending, message, close, install } = controller;
   return <Dialog open={offer !== null} onOpenChange={open => { if (!open) close(); }}>
-    <StaffDialogContent className="ps-pwa-dialog" showCloseButton={false} onEscapeKeyDown={event => { if (pending) event.preventDefault(); }}>
+    <StaffDialogContent nativeFrame className="ps-pwa-dialog" showCloseButton={false} onEscapeKeyDown={event => { if (pending) event.preventDefault(); }}>
       <DialogHeader>
         <div className="ps-pwa-brand"><Image unoptimized src={identity.iconUrl} width={80} height={80} alt={`Appicoon van ${identity.name}`}/></div>
         <span className="eyebrow">{offer === "onboarding" ? "Je profiel is klaar" : offer === "reminder" ? "Eenmalige herinnering" : "Op dit apparaat"}</span>

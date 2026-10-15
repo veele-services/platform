@@ -7,6 +7,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useOptionalTenantTheme } from "@/components/fieldgrid/tenant-theme"
+import { useSourcePortal } from "@/components/fieldgrid/portals/context"
 
 function Dialog({
   ...props
@@ -21,9 +22,11 @@ function DialogTrigger({
 }
 
 function DialogPortal({
+  children,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
+  const sourcePortal=useSourcePortal()
+  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props}>{sourcePortal?<div className="sites-portals sites-portal"><div className="portal-demo">{children}</div></div>:children}</DialogPrimitive.Portal>
 }
 
 function DialogClose({
