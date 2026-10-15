@@ -23,6 +23,8 @@ De bron zet een lokale vlag voor een hele werkdag. De huidige uitvoering is geko
 
 De bron bevat vereenvoudigde werkbonacties en een demonstratieherstart. Deze vervangen geen vrijgave, toegewezen inzet, meerwerkbeoordeling, gecontroleerde rapportoplevering of ondertekening. Voor deze aanvullende processen blijven echte bediening en statuscontrole beschikbaar. Het werkbonframe gebruikt de bestaande toegankelijke Radix-dialogen, met dezelfde bronklassen en frame-indeling, zodat geneste uitvoeringsvensters hun focus en bediening behouden.
 
+De taakcheckboxes en direct zichtbare rapportnotitie volgen de bron. Tijdverlenging, taakresultaatdetails, meerwerk en kosten staan onder de aanvullende uitvoeringsbediening. Incident, bijlagen, klantzichtbaarheid en de werkelijke rapportgeschiedenis blijven afzonderlijk bereikbaar. Onbewaarde notities blijven de bestaande sluit-/afrondcontrole blokkeren. De verpakte browserproef vond een dubbele CSS-centrering tussen Radix/Tailwind en het bronframe; de onafhankelijke `translate` wordt binnen dit frame expliciet uitgeschakeld, zodat alleen de broncentrering geldt.
+
 Personeelsdocumenten bevatten de oorspronkelijke afgeschermde bytes. Een niet ondersteund voorbeeldtype opent niet inline en kan via de bestaande download worden opgehaald. De personeelsbinding of zichtbaarheid wordt ook na het lezen van het bestand opnieuw gecontroleerd. Een browservoorbeeld is geen gegenereerd demodocument.
 
 De bron biedt rechtstreeks ‘Technische support’. Binnen het bestaande personeel → tenant → Fieldgrid-model ontvangt de tenant de melding. De interface licht deze grens toe. Er wordt geen technische medewerkerrol, verborgen scope of onbeoordeelde doorgifte toegevoegd.

@@ -13,7 +13,7 @@
 .sites-portals .portal-demo .portal-document-preview{display:block;width:100%;height:500px;max-height:60dvh;border:1px solid var(--brand-border);border-radius:10px;background:#fff}
 .sites-portals .portal-demo .ps-stat-grid.portal-demo-three>.ps-panel{border:1px solid var(--brand-border);background:var(--brand-surface);border-radius:var(--ps-radius)}
 .sites-portals.sites-portal,.sites-portals.sites-portal>.portal-demo{display:contents}
-.sites-portals .portal-demo .sites-staff-native-dialog{display:block;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);min-height:0;max-width:calc(100vw - 32px);padding:0;gap:0;outline:0}
+.sites-portals .portal-demo .sites-staff-native-dialog{display:block;position:fixed;top:50%;left:50%;translate:none;transform:translate(-50%,-50%);min-height:0;max-width:calc(100vw - 32px);padding:0;gap:0;outline:0}
 .sites-portals .portal-demo .sites-staff-native-dialog header [data-slot=dialog-header]{gap:4px;text-align:left}
 .sites-portals .portal-demo .sites-staff-native-dialog .mc-dialog-body .form-grid{display:grid;gap:18px}
 .sites-portals .portal-demo .sites-staff-native-dialog .mc-dialog-body label{font-size:12px}
