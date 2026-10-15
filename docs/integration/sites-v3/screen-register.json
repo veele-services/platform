@@ -1366,7 +1366,7 @@
         "Nog te factureren, te controleren en onbetaald onderscheiden; echte bronallocatie en financiële rechten."
       ],
       "route": null,
-      "implementation": "implemented; financial source control; final whole-scope acceptance pending",
+      "implementation": "implemented; 7284ea42; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -1385,11 +1385,16 @@
         "Versies en rolgebonden goedkeuring; verwerking via bestaande contract-/tarieflogica, geen lokale optelling."
       ],
       "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "implementation": "implemented; native versioned agreements and explicit source consent; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-5/native-regression.log",
+        "evidence/phase-5/concurrency.log",
+        "evidence/phase-5/real-browser-source-chain.log",
+        "evidence/phase-5/comparison.json"
+      ]
     },
     {
       "id": "T12",

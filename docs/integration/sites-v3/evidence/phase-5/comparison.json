@@ -1,0 +1,380 @@
+[
+  {
+    "key": "empty",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "height": 571.9375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 88
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 46.5
+        },
+        {
+          "cls": "mc-empty",
+          "height": 171.1875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "height": 571.9375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 88
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 46.5
+        },
+        {
+          "cls": "mc-empty",
+          "height": 171.1875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "empty",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "height": 580.078125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 78
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 46.5
+        },
+        {
+          "cls": "mc-empty",
+          "height": 171.1875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "height": 580.078125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 78
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 46.5
+        },
+        {
+          "cls": "mc-empty",
+          "height": 171.1875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "empty",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 855.265625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 158.15625
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 218
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 96
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 46.5
+        },
+        {
+          "cls": "mc-empty",
+          "height": 171.1875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 82.421875
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 855.265625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 158.15625
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 218
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 96
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 46.5
+        },
+        {
+          "cls": "mc-empty",
+          "height": 171.1875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 82.421875
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "populated",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "height": 472.609375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 88
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 118.359375
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "height": 472.609375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 88
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 118.359375
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "populated",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "height": 480.75,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 78
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 118.359375
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "height": 480.75,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 78
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 118.359375
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "populated",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 758.078125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 158.15625
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 218
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 96
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 120.5
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 82.421875
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 758.078125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 158.15625
+        },
+        {
+          "cls": "fs-index-flow",
+          "height": 218
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 96
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 120.5
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 82.421875
+        }
+      ]
+    },
+    "viewed": true
+  }
+]

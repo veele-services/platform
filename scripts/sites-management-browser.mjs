@@ -1,0 +1,30 @@
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+import {chromium,expect} from '@playwright/test';
+import {createClient} from '@supabase/supabase-js';
+import {createBrowserClient} from '@supabase/ssr';
+import pg from 'pg';
+import {localWorkOrderTestConfig} from './work-order-test-target.mjs';
+
+/** Real local Auth/DB/Next, separate immutable Sites reference runtime. Only
+ * outside shell/prototype/dev chrome is hidden, never content or layout. */
+export async function managementBrowser(){
+ const local=localWorkOrderTestConfig();assert.equal(local.API_URL,'http://127.0.0.1:60321');const db=new pg.Client({connectionString:local.DB_URL});await db.connect();const admin=createClient(local.API_URL,local.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}}),browser=await chromium.launch(),context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const authenticate=async(owner,email,origin)=>{assert.ok(!(await admin.auth.admin.createUser({id:owner,email,password:'Fieldgrid-E2E-2026',email_confirm:true,user_metadata:{full_name:'FICTITIOUS manager'}})).error);const jar=new Map(),auth=createBrowserClient(local.API_URL,local.ANON_KEY,{isSingleton:false,auth:{autoRefreshToken:false,detectSessionInUrl:false,persistSession:true},cookies:{getAll:()=>[...jar].map(([name,value])=>({name,value})),setAll:items=>{for(const{name,value}of items){if(value)jar.set(name,value);else jar.delete(name)}}}});assert.ok(!(await auth.auth.signInWithPassword({email,password:'Fieldgrid-E2E-2026'})).error);await context.addCookies([...jar].map(([name,value])=>({name,value,url:origin})))};
+ const reference=async(seed,path)=>{const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});await context.addInitScript(seed=>localStorage.setItem('fieldgrid-platform-demo-v1',JSON.stringify({actions:[],visits:[],role:'Eigenaar',tenant:'FICTITIOUS Sites management',brand:'#222C35',accent:'#41AC42',...seed})),seed);const page=await context.newPage();await page.goto('http://127.0.0.1:3311/#'+path,{waitUntil:'networkidle',timeout:90000});return{page,close:()=>context.close()}};
+ return{db,admin,browser,context,page,errors,authenticate,reference,close:async()=>{await db.query('rollback');await db.end();await browser.close()}};
+}
+async function hideChrome(page){await page.evaluate(()=>{if(document.getElementById('sites-comparison-chrome'))return;const style=document.createElement('style');style.id='sites-comparison-chrome';style.nonce=document.querySelector('script[nonce]')?.nonce||'';style.textContent='.prototype-toolbar,.workspace-topbar,nextjs-portal{visibility:hidden!important}';document.head.append(style)})}
+export async function captureManagementPair({page,reference,directory,key,selector='.fs-module'}){
+ await mkdir(directory,{recursive:true});const comparisons=[];
+ for(const p of[page,reference])await hideChrome(p);
+ for(const width of[1440,768,390]){
+  for(const p of[page,reference]){await p.setViewportSize({width,height:1000});await p.mouse.move(width-1,999);await p.evaluate(async selector=>{window.scrollTo(0,0);await Promise.all([...new Set([...document.querySelectorAll(selector+' *')].map(n=>getComputedStyle(n).font).filter(Boolean))].map(font=>document.fonts.load(font)));await document.fonts.ready;await new Promise(r=>setTimeout(r,500));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))},selector)}
+  for(const[p,side]of[[page,'target'],[reference,'source']]){await p.screenshot({path:directory+'/'+key+'-full-'+side+'-'+width+'.png',fullPage:true});await p.locator(selector).screenshot({path:directory+'/'+key+'-'+side+'-'+width+'.png'});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),side+' horizontal page overflow')}
+  const metric=p=>p.locator(selector).evaluate(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,heading:getComputedStyle(el.querySelector('h1')).font,children:[...el.children].map(n=>({cls:n.className,height:n.getBoundingClientRect().height}))}));comparisons.push({key,width,target:await metric(page),source:await metric(reference),viewed:false});
+ }
+ for(const p of[page,reference]){await p.setViewportSize({width:1440,height:1000});await p.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>setTimeout(r,500))})}
+ for(const[p,side]of[[page,'target'],[reference,'source']])await p.locator(selector).screenshot({path:directory+'/'+key+'-'+side+'-1440.png'});
+ return comparisons;
+}
+export async function captureManagementDialog(page,path){const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await dialog.locator('.mc-dialog-body').evaluate(el=>{el.scrollTop=0});await page.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))});await dialog.screenshot({path})}

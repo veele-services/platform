@@ -8195,6 +8195,28 @@ export type Database = {
         Args: { source_id: string; source_kind: string; target_tenant: string }
         Returns: boolean
       }
+      cockpit_indexation_command: {
+        Args: {
+          command: string
+          input: Json
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_indexation_evidence: {
+        Args: {
+          search?: string
+          selected_evidence?: string
+          target_customer: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_indexation_query: {
+        Args: { payload?: Json; target_tenant: string }
+        Returns: Json
+      }
       cockpit_maintenance: { Args: { batch_size?: number }; Returns: number }
       cockpit_sla_command: {
         Args: {

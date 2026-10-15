@@ -1,0 +1,18 @@
+▶ Indexation: native agreement versions, explicit owner approval and real evidence boundary
+  ✔ only current financial/customer authority can read the register and private storage is inaccessible (32.951781ms)
+  ✔ drafts freeze actual source prices; arbitrary client base amounts and stale fingerprints cannot be saved (86.094099ms)
+  ✔ submission creates one real source action; finance staff cannot act as owner (56.180379ms)
+  ✔ owner approval alone cannot process a tariff; filenames and unscanned files are not evidence (108.824343ms)
+  ✔ archived customer evidence is neither offered nor accepted for a new tariff (44.76086ms)
+  ✔ processing uses native agreement creation, preserves every non-price attribute and is idempotent (101.268754ms)
+  ✔ stored versions cannot be rewritten and a changed source must be consciously reopened and reassessed (158.99307ms)
+  ✔ new automatic programme tasks use the date-effective line; existing tasks retain frozen source prices (38.113505ms)
+✔ Indexation: native agreement versions, explicit owner approval and real evidence boundary (1806.40516ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1879.697888

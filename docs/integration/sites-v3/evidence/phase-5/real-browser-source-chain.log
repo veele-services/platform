@@ -1,0 +1,31 @@
+NAV: /app/indexatie
+NAV: /app/indexatie
+NAV: /app/indexatie
+PASS: real Auth/SSR; retained source comparisons from the preceding visual run
+NAV: /app/indexatie
+NAV: /app/indexatie
+NAV: /app/indexatie
+NAV: /app/indexatie
+NAV: /app/indexatie
+NAV: /app/indexatie
+NAV: /app/indexatie
+NAV: /app/indexatie
+PASS: persisted concept, one real approval action and explicit owner decision without customer price mutation
+NAV: /app/indexatie
+DEV: [Fast Refresh] rebuilding
+DEV: [Fast Refresh] done in 671ms
+DEV: [Fast Refresh] rebuilding
+DEV: [Fast Refresh] done in 438ms
+NAV: /app/indexatie
+NAV: /app/indexatie
+NAV: /app/indexatie
+PASS: native customer-document upload, real scanner receipt, byte-equal private download and one native accepted tariff successor
+NAV: /app/indexatie
+NAV: /app/indexatie
+DEV: [Fast Refresh] rebuilding
+DEV: [Fast Refresh] done in 668ms
+DEV: [Fast Refresh] rebuilding
+DEV: [Fast Refresh] done in 396ms
+NAV: /app/indexatie
+NAV: /app/indexatie
+PASS: anonymous/origin/revoked finance access denied, private detail cleared

@@ -24,7 +24,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BookOpen, Archive, ArrowDownAZ, Bell, BriefcaseBusiness, Building2, CalendarDays, ChevronRight, ClipboardCheck,
-  Clock3, CreditCard, FileText, LayoutDashboard, Megaphone,
+  Clock3, CreditCard, FileText, LayoutDashboard, Megaphone, TrendingUp, Wallet,
   Menu, PackageCheck, Settings, ShieldCheck, ClipboardList, MessageSquareText, FileCheck2,
   UsersRound, Wrench,X, Plus, Eye,
 } from "lucide-react";
@@ -47,7 +47,7 @@ import {
 
 } from "@/app/(workspace)/app/operations-actions";
 
-export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging" | "meldingen" | "support" | "notificaties" | "gebruikers" | "updates" | "kennisbank" | "besluiten" | "compliance" | "sla" | "omzet";
+export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging" | "meldingen" | "support" | "notificaties" | "gebruikers" | "updates" | "kennisbank" | "besluiten" | "compliance" | "sla" | "omzet" | "indexatie";
 
 const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboard; href: string }> = [
   { id: "overzicht", label: "Overzicht", icon: LayoutDashboard, href: "/app" },
@@ -63,7 +63,8 @@ const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboa
   { id: "nieuws", label: "Nieuws", icon: Megaphone, href: "/app/nieuws" },
   { id: "opvolging", label: "Control Center", icon: ClipboardList, href: "/app/opvolging" },
   { id: "sla", label: "SLA-bewaking", icon: ShieldCheck, href: "/app/sla" },
-  { id: "omzet", label: "Omzetbewaking", icon: CreditCard, href: "/app/omzet" },
+  { id: "omzet", label: "Omzetbewaking", icon: Wallet, href: "/app/omzet" },
+  { id: "indexatie", label: "Prijsindexatie", icon: TrendingUp, href: "/app/indexatie" },
   { id: "besluiten", label: "Beslisnotities", icon: MessageSquareText, href: "/app/besluiten" },
   { id: "compliance", label: "Documenten & compliance", icon: FileCheck2, href: "/app/compliance" },
   { id: "kennisbank", label: "Kennisbank", icon: BookOpen, href: "/app/kennisbank" },
@@ -78,10 +79,10 @@ const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboa
 const serviceByView: Partial<Record<BackofficeView, string>> = {
   aanvragen: "planning", planning: "planning", werkbonnen: "planning", taken: "planning",
   klanten: "planning", objecten: "planning", personeel: "personeel", nieuws: "personeel",
-  controle: "rapportage", facturen: "finance", compliance: "rapportage", sla: "rapportage", omzet: "finance",
+  controle: "rapportage", facturen: "finance", compliance: "rapportage", sla: "rapportage", omzet: "finance", indexatie: "finance",
 };
 
-const managementViews: BackofficeView[] = ["opvolging","sla","omzet","besluiten","compliance"];
+const managementViews: BackofficeView[] = ["opvolging","sla","indexatie","omzet","besluiten","compliance"];
 const organisationViews: BackofficeView[] = ["kennisbank","nieuws", "instellingen", "gebruikers", "updates"];
 
 const statusLabel: Record<string, string> = {
