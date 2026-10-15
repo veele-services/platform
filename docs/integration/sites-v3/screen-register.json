@@ -1512,12 +1512,17 @@
         "`P/src/App.tsx` → `InformationView`; bestaande tabellen/artikeldetails",
         "Echte content en module-/rolrechten; geen demoberichten als volledige kennisbankimport."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/app/nieuws; /app/kennisbank; /app/updates",
+      "implementation": "implemented; runtime d4278440; source information tables/dialogs with native content and publication/reader/idea rights; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-16.md",
+        "evidence/phase-16/verification.json",
+        "evidence/phase-16/result.json",
+        "evidence/phase-16/comparison.json"
+      ]
     },
     {
       "id": "T16",
