@@ -1,0 +1,88 @@
+{
+  "runtimeCommit": "b1b8c1838986f1f6a97318543fef931bb1dd0d22",
+  "implemented": true,
+  "locallyTested": true,
+  "deployed": false,
+  "liveVerified": false,
+  "browserChains": {
+    "passed": 17,
+    "failed": 0,
+    "browserErrors": []
+  },
+  "nativeDatabase": {
+    "passed": 36,
+    "failed": 0
+  },
+  "wholeUnitSuite": {
+    "passed": 1942,
+    "filesPassed": 202,
+    "failed": 0
+  },
+  "coldProductionBuild": {
+    "compiled": true,
+    "typescript": true,
+    "generatedPages": 108
+  },
+  "actualStandalonePackaging": {
+    "archiveSha256": "d5eb86037a09e5247be6b00ded071b35e915e55baeb33a01f95a93422d5a7e82",
+    "tracedModules": 19,
+    "ownServerJs": true,
+    "browserChainPassed": true,
+    "deploymentAttestation": false
+  },
+  "settingsFunctionalRegression": {
+    "runtimeCommit": "f13fc48f38f2dd8237e7a41a563504b9b77c7141",
+    "passed": 29,
+    "newVisualAcceptance": false
+  },
+  "authorizationSurfacesReviewed": 1192,
+  "sourceFilesByteIdentical": 279,
+  "credentialScan": {
+    "textArtifacts": 303,
+    "recognizedFormatFindings": 0,
+    "unknownFormatsCovered": false
+  },
+  "newMigrations": [],
+  "viewedComparisons": [
+    "shell-target-1440.png",
+    "shell-target-768.png",
+    "shell-target-390.png",
+    "shell-source-1440.png",
+    "shell-source-768.png",
+    "shell-source-390.png",
+    "account-target-1440.png",
+    "account-target-768.png",
+    "account-target-390.png",
+    "account-source-1440.png",
+    "account-source-768.png",
+    "account-source-390.png",
+    "search-target-1440.png",
+    "search-target-768.png",
+    "search-target-390.png",
+    "search-source-1440.png",
+    "search-source-768.png",
+    "search-source-390.png",
+    "bell-target-1440.png",
+    "bell-target-768.png",
+    "bell-target-390.png",
+    "bell-source-1440.png",
+    "bell-source-768.png",
+    "bell-source-390.png",
+    "source-feedback-target-1440.png",
+    "source-feedback-target-768.png",
+    "source-feedback-target-390.png",
+    "source-feedback-source-1440.png",
+    "source-feedback-source-768.png",
+    "source-feedback-source-390.png",
+    "native-support-editor-1440.png",
+    "native-support-editor-768.png",
+    "native-support-editor-390.png",
+    "native-notification-editor-1440.png",
+    "native-notification-editor-768.png",
+    "native-notification-editor-390.png",
+    "native-ticket-clock-1440.png",
+    "native-scrolled-search-1440.png"
+  ],
+  "captureMethod": "CDP without screenshot styles; fonts loaded and compositor settled before capture. Mobile notification editor recaptured and viewed with complete title and close control.",
+  "outboundEmail": "Only .invalid central provider capture and actual local SMTP OTP; no external delivery claim."
+}

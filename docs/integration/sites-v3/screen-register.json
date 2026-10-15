@@ -1550,12 +1550,17 @@
         "`P/src/App.tsx` → `SourceDetail`; responsive navigatie, globale zoekresultaten, accountmenu, brongegevens/Opvolging",
         "Echte brongebaseerde doorklikken en zoekscope; vertrouwelijke financiële/HR-/compliancedata nooit via detaildialoog of ID-wissel uitlekken."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "All /app backoffice shell; /api/search; /api/management-cockpit; native notification and ticket commands",
+      "implementation": "implemented and locally tested; Source shell, current authorized source projections, categorized search, personal notifications, native feedback, draft and current-account boundaries; phase-18.md; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-18.md",
+        "evidence/phase-18/verification.json",
+        "evidence/phase-18/result.json",
+        "evidence/phase-18/comparison.json"
+      ]
     },
     {
       "id": "S01",
