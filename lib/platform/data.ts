@@ -10,6 +10,7 @@ import { ticketQuerySchema } from "@/lib/tickets/model";
 import {getNotificationAccess} from '@/lib/notifications/data';
 import type { PlatformSupportSummary } from "./cockpit";
 import type { WorkspaceDomain } from "@/lib/tenancy/workspace-domain";
+import {readAllPlatformRows} from "./read-all-rows";
 
 export type PlatformTemplate = {
   key: TemplateKey;
@@ -77,15 +78,15 @@ export async function getPlatformData(): Promise<PlatformData> {
     ? (await getTicketList("platform", ticketQuerySchema.parse({ pageSize: 10 }))).counts
     : null);
   const [tenantsResult, brandingResult, settingsResult, domainsResult, personnelResult, membershipsResult, invitationsResult, templatesResult, workspaceDomainsResult, support] = await Promise.all([
-    admin.from("tenants").select("id,name,slug,status,version,timezone,created_at").order("created_at", { ascending: false }),
-    admin.from("tenant_branding").select("tenant_id,primary_color,accent_color,logo_path,sender_name,sender_email"),
-    admin.from("tenant_settings").select("tenant_id,enabled_services,white_label_enabled"),
-    admin.from("tenant_domains").select("tenant_id,host,verified_at").order("created_at"),
-    admin.from("personnel").select("tenant_id,id").eq("status", "active"),
-    admin.from("tenant_memberships").select("tenant_id,user_id,roles,status").eq("status", "active").contains("roles", ["tenant_admin"]),
-    admin.from("tenant_admin_invitations").select("tenant_id,full_name,email,status,auth_user_id,created_at").order("created_at", { ascending: false }),
-    admin.from("tenant_message_templates").select("tenant_id,template_key,channel,subject,body,default_subject,default_body,revision,customized").order("template_key"),
-    admin.from("tenant_workspace_domains").select("id,tenant_id,host,environment,status,verification_token,verified_at").eq("environment", process.env.DEPLOY_TARGET ?? "local"),
+    readAllPlatformRows((from,to) => admin.from("tenants").select("id,name,slug,status,version,timezone,created_at").order("created_at", { ascending: false }).order("id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_branding").select("tenant_id,primary_color,accent_color,logo_path,sender_name,sender_email").order("tenant_id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_settings").select("tenant_id,enabled_services,white_label_enabled").order("tenant_id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_domains").select("tenant_id,host,verified_at").order("created_at").order("id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("personnel").select("tenant_id,id").eq("status", "active").order("id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_memberships").select("tenant_id,user_id,roles,status").eq("status", "active").contains("roles", ["tenant_admin"]).order("id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_admin_invitations").select("tenant_id,full_name,email,status,auth_user_id,created_at").order("created_at", { ascending: false }).order("id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_message_templates").select("tenant_id,template_key,channel,subject,body,default_subject,default_body,revision,customized").order("template_key").order("tenant_id").order("template_key").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_workspace_domains").select("id,tenant_id,host,environment,status,verification_token,verified_at").eq("environment", process.env.DEPLOY_TARGET ?? "local").order("id").range(from,to)),
     supportPromise,
   ]);
   [tenantsResult, brandingResult, settingsResult, domainsResult, personnelResult, membershipsResult, invitationsResult, templatesResult, workspaceDomainsResult].forEach((result) => assertResult(result.error));
