@@ -32,3 +32,5 @@ Een afzonderlijke browsercontrole vernieuwt de echte RSC-route na een nieuwe ser
 De 30 native databasecontroles, 26 gerichte units, ESLint en de koude TypeScript-/productiebuild slagen. De security-advisor meldt geen problemen. De globale replay/upgrade, uiteindelijke exacte-SHA-releasecontrole, shell-/modalaudit van T17 en overige matrixrijen blijven vereist. Deze lokale kandidaatrelease bevatte de fase-12-werkboom boven `d8851f00`; de verpakking is geen releaseattestation. De uiteindelijke promotie wordt opnieuw voor haar eigen exacte commit gebouwd.
 
 Zie `evidence/phase-12/`.
+
+De uitgebreidere hercontrole in fase 13 reproduceerde een documentherlading bij dezelfde geverifieerde identiteit en focusverlies tijdens de bestaande accountcontrole. Het herstel bewaart nu uitsluitend begrensde UI-mechaniek in tabopslag en herstelt focus na het vrijgeven van de ongewijzigde accountgrens. Zoektekst, bedrijfsgegevens, rechten en credentials worden daarvoor niet opgeslagen. De echte RSC-/documentherladingscontrole en de volledige commerciële keten slagen opnieuw; zie `phase-13.md`.

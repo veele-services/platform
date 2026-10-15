@@ -1271,11 +1271,16 @@
         "Bestaande planning, toewijzing, navigatie en dossiers behouden; demo vervangt geen rijk operationeel planbord."
       ],
       "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "implementation": "implemented and locally tested; source geometry/composition plus preserved full native planning, crew scopes, travel, release and undo; phase-13.md; outside shell T17 pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-13/browser.log",
+        "evidence/phase-13/native-database.log",
+        "evidence/phase-13/comparison.json",
+        "evidence/phase-13/local-artifact.json"
+      ]
     },
     {
       "id": "T04",

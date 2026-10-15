@@ -1,0 +1,164 @@
+[
+  {
+    "key": "board",
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "height": 918,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "pb-root planboard-viewport sites-planboard",
+          "height": 795.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "height": 918,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 98.1875
+        },
+        {
+          "cls": "ed-plan-legend",
+          "height": 18
+        },
+        {
+          "cls": "panel ed-planboard",
+          "height": 359.90625
+        },
+        {
+          "cls": "ed-section-label",
+          "height": 24
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 147.40625
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true,
+    "implementation": "3dfa7723f9b427198f1ab19201eda1e7d282d9de",
+    "reference": "3999c85b76aecf729f3b2bba86e1535255915848",
+    "observed": "Main content compared and all six images viewed. Source heading/date/controls, exact row/ruler/personnel dimensions, font cascade, panel and mobile composition. Native nine assignment states, actual sorted people/times, configured 12-hour range and richer resizable backlog retained; see phase-13.md. Outside shell remains T17."
+  },
+  {
+    "key": "board",
+    "width": 768,
+    "target": {
+      "width": 684,
+      "height": 881,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "pb-root planboard-viewport sites-planboard",
+          "height": 758.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "height": 934,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 98.1875
+        },
+        {
+          "cls": "ed-plan-legend",
+          "height": 18
+        },
+        {
+          "cls": "panel ed-planboard",
+          "height": 371.28125
+        },
+        {
+          "cls": "ed-section-label",
+          "height": 24
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 152.03125
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true,
+    "implementation": "3dfa7723f9b427198f1ab19201eda1e7d282d9de",
+    "reference": "3999c85b76aecf729f3b2bba86e1535255915848",
+    "observed": "Main content compared and all six images viewed. Source heading/date/controls, exact row/ruler/personnel dimensions, font cascade, panel and mobile composition. Native nine assignment states, actual sorted people/times, configured 12-hour range and richer resizable backlog retained; see phase-13.md. Outside shell remains T17."
+  },
+  {
+    "key": "board",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 1168.703125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "pb-root planboard-viewport sites-planboard",
+          "height": 1063.703125
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 1234.203125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 252.3125
+        },
+        {
+          "cls": "ed-plan-legend",
+          "height": 44.390625
+        },
+        {
+          "cls": "panel ed-planboard",
+          "height": 465
+        },
+        {
+          "cls": "ed-section-label",
+          "height": 24
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 195.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "viewed": true,
+    "implementation": "3dfa7723f9b427198f1ab19201eda1e7d282d9de",
+    "reference": "3999c85b76aecf729f3b2bba86e1535255915848",
+    "observed": "Main content compared and all six images viewed. Source heading/date/controls, exact row/ruler/personnel dimensions, font cascade, panel and mobile composition. Native nine assignment states, actual sorted people/times, configured 12-hour range and richer resizable backlog retained; see phase-13.md. Outside shell remains T17."
+  }
+]

@@ -1,0 +1,6 @@
+PASS: real native all/request/quote union and source six-column list and summary at 1440/768/390
+PASS: real source subject/scope update survives lost response with idempotent retry and retains exact native prices and terms
+PASS: full native price editor, actual publication, ClamAV PDF storage/download and central policy/mail transport with explicit local provider capture
+PASS: actual version-bound telephone acceptance creates a separate unassigned planned order; immutable PDF unchanged and no fabricated invoice/payment
+PASS: full native intake wizard persists a real request without an object; source edit preserves original customer wording
+PASS: actual search/reset and revoked read scope clear the open source and rows

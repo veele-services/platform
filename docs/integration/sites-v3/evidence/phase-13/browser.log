@@ -1,0 +1,7 @@
+PASS: real authenticated board, source header/geometry and viewed-candidate captures at desktop/tablet/mobile; no page overflow including 320px
+PASS: actual pointer drag and resize commit correct native minute-precise intervals with source row/header/personnel dimensions
+PASS: native crew editor and pointer scope choice preserve whole-visit shifts and individual unequal intervals
+PASS: actual manual travel saves with signature check and joins its native work-order bar at equal height
+PASS: native undo from the source filter restores the preceding per-person intervals
+PASS: source-framed release uses actual versioned native publication and creates exactly one dispatch per assigned staff member
+PASS: date changes, empty backlog without unnecessary vertical scroll, live native function revocation removes private assignments

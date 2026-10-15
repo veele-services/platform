@@ -1,0 +1,48 @@
+▶ live personnel planning: actual times, free extensions, reflow and urgent windows
+  ✔ running intervals grow and overrun is individual (35.487141ms)
+  ✔ refresh preserves deliberate order bounds when individual assignments have not started or shifted (11.818214ms)
+  ✔ future work moves forward with known travel and repeated refresh does not pull it back (26.100834ms)
+  ✔ unseen work warns within thirty minutes and expired windows return to planning (24.438946ms)
+  ✔ free quarter is replay-safe, own only and does not change any billable task (57.666572ms)
+  ✔ actual stop fixes the completed card and cannot extend completed work (31.696406ms)
+  ✔ an impossible future customer window returns only the affected assignment and deduplicates notice (32.12127ms)
+  ✔ worker and private extension ledger are denied to browser roles (6.366259ms)
+✔ live personnel planning: actual times, free extensions, reflow and urgent windows (1341.687183ms)
+▶ planboard: real PostgreSQL authorization, transactions, races and integration
+  ✔ arrival preference stays unassigned until personnel planning; retry, removal and undo preserve state (417.806265ms)
+  ✔ minute precision, multiple people, history, idempotency, undo and actual/financial isolation (361.039868ms)
+  ✔ arrival vs full execution window and explicit, audited deviation confirmation (168.675679ms)
+  ✔ half-open adjacency, hard leave, inactive personnel, duplicate selection and other tenant IDs (291.688644ms)
+  ✔ two planners cannot concurrently book different orders for the same person (58.438742ms)
+  ✔ undo revalidates overlap and never overwrites later changes (209.621004ms)
+  ✔ authorizes every read/write, protects versions against raw REST updates and validates customer/object (260.704949ms)
+  ✔ released crews retain individual staff transitions and finish the shared execution only once (1211.193701ms)
+  ✔ server filters count full results across pages and keep undated/desired date context (394.77396ms)
+✔ planboard: real PostgreSQL authorization, transactions, races and integration (5646.66238ms)
+▶ travel: tenant isolation, private addresses, cache leases and version-safe estimates
+  ✔ private columns cannot be read directly or via another employee's mobility endpoint (27.564823ms)
+  ✔ staff sees only own published visits and revocation is immediate (18.160689ms)
+  ✔ daily transport overrides, confirmed locations and object arrival stay separate (64.902658ms)
+  ✔ authorization can change without changing the planning revision (10.054972ms)
+  ✔ manual set and clear reauthorize after lost manager role (22.065097ms)
+  ✔ manual set and clear reauthorize after inactive membership (20.205476ms)
+  ✔ manual set and clear reauthorize after deleted session (14.587921ms)
+  ✔ manual set and clear reauthorize after expired session (14.832203ms)
+  ✔ manual set and clear reauthorize after banned account (13.618754ms)
+  ✔ manual set and clear reauthorize after deleted account (14.047483ms)
+  ✔ manual set and clear reauthorize after anonymous account (13.036991ms)
+  ✔ manual set and clear reauthorize after suspended tenant (13.770624ms)
+  ✔ manual set and clear reauthorize after disabled planning (12.164229ms)
+  ✔ manual RPC rejects missing or mismatched session and the old writer has no bypass grants (15.425642ms)
+  ✔ CAS rejects stale planning; manual and provider fields remain independent (29.981517ms)
+  ✔ travel uses planned times without rewriting actual or projected execution (12.643856ms)
+  ✔ shared route cache is service-only, leases deduplicate and wrong leases cannot publish (14.560241ms)
+✔ travel: tenant isolation, private addresses, cache leases and version-safe estimates (1508.506564ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8706.286753
