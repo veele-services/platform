@@ -228,6 +228,7 @@ export function StaffOrderSheet({ reportingEnabled, order, data, timezone, pendi
   const object = data.objects.find((item) => item.id === order.object_id);
   const customer = data.customers.find((item) => item.id === order.customer_id);
   const tasks = data.workOrderTasks.filter((item) => item.work_order_id === order.id).map(task=>({...task,canExecute:"can_execute" in task&&task.can_execute===true}));
+  if(sourcePortal)tasks.sort((a,b)=>a.task_name.localeCompare(b.task_name,"nl")||a.id.localeCompare(b.id));
   const reports = data.reports.filter((item) => item.work_order_id === order.id);
   const assignment = data.assignments.find((item) => item.work_order_id === order.id && item.status !== "cancelled");
   const executionStatus = order.status === "correction_required" ? order.status : assignment?.status ?? order.status;
@@ -549,14 +550,14 @@ function ReportSection({ editable, order, reports, data, pending, run, adding, s
     }, "Rapportregel verwijderd");
   };
   const reportOptions=<>
-      <select name="severity" defaultValue="" onChange={invalidateMutation}><option value="">Normale notitie</option><option value="low">Incident · laag</option><option value="medium">Incident · middel</option><option value="high">Incident · hoog</option><option value="critical">Incident · kritiek</option></select>
-      <label><Camera/> Bijlagen toevoegen · max. 5, elk 10 MB<input name="photos" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple onChange={(event) => { invalidateMutation(); setFileError(attachmentError(event.currentTarget.files)); }}/></label>
+      <select disabled={pending} name="severity" defaultValue="" onChange={invalidateMutation}><option value="">Normale notitie</option><option value="low">Incident · laag</option><option value="medium">Incident · middel</option><option value="high">Incident · hoog</option><option value="critical">Incident · kritiek</option></select>
+      <label><Camera/> Bijlagen toevoegen · max. 5, elk 10 MB<input disabled={pending} name="photos" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple onChange={(event) => { invalidateMutation(); setFileError(attachmentError(event.currentTarget.files)); }}/></label>
       {fileError && <p role="alert">{fileError}</p>}
-      <label><input type="checkbox" name="customerVisible" onChange={invalidateMutation}/> Deze notitie en bijlagen opnemen in het klantrapport</label>
+      <label><input disabled={pending} type="checkbox" name="customerVisible" onChange={invalidateMutation}/> Deze notitie en bijlagen opnemen in het klantrapport</label>
       <p>Alleen klantgeschikte inhoud delen. Geen toegangscodes of interne personeelsgegevens.</p>
   </>;
   const reportForm=<form className={sourcePortal?"portal-demo-form":"staff-report-form"} onSubmit={submit} onChange={()=>{invalidateMutation();if(sourcePortal)setAdding(true);}}>
-      <label className={sourcePortal?"mc-field":undefined}>{sourcePortal&&<span>Rapportnotitie</span>}<textarea name="body" required maxLength={5000} rows={sourcePortal?6:5} placeholder="Beschrijf wat je hebt uitgevoerd…" onChange={invalidateMutation}/></label>
+      <label className={sourcePortal?"mc-field":undefined}>{sourcePortal&&<span>Rapportnotitie</span>}<textarea disabled={pending} name="body" required maxLength={5000} rows={sourcePortal?6:5} placeholder="Beschrijf wat je hebt uitgevoerd…" onChange={invalidateMutation}/></label>
       {sourcePortal?<details className="sites-native-controls"><summary>Incident, bijlagen en zichtbaarheid</summary>{reportOptions}</details>:reportOptions}
       <button className={sourcePortal?"secondary-button":"primary-button"} disabled={pending}>{pending ? "Opslaan…" : sourcePortal?"Notitie opslaan":"Opslaan"}</button>{sourcePortal&&<small>Je notitie blijft bij deze werkbon. Alleen expliciet gedeelde inhoud komt in het klantrapport.</small>}
     </form>;

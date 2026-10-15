@@ -1,4 +1,5 @@
 "use client";
+import {useSourcePortal} from "../portals/context";
 
 import { useRef, useState, useTransition } from "react";
 import { Check, Mail } from "lucide-react";
@@ -14,10 +15,11 @@ export function CustomerPreferenceFields({value,change,disabled=false}:{value:Cu
   <input className="switch" type="checkbox" name={key} aria-label={`E-mail ${label.toLowerCase()}`} checked={value[key as keyof CustomerPreferences]} disabled={disabled} onChange={event=>change({...value,[key]:event.target.checked})}/></label>)}</>;
 }
 export function CustomerPreferencesForm({value,version,save}:{value:CustomerPreferences;version:number;save:(value:CustomerPreferences,version:number,id:string)=>Promise<CustomerFormResult&{preferenceVersion?:number}>}){
+ const source=useSourcePortal();
  const [draft,setDraft]=useState(value),[sourceVersion,setSourceVersion]=useState(version),[error,setError]=useState(""),[success,setSuccess]=useState(false),[pending,start]=useTransition(),keys=useRef(new Map<string,string>());
- return <form className="card card-pad" onSubmit={event=>{event.preventDefault();const key=JSON.stringify({value:draft,version:sourceVersion});let id=keys.current.get(key);if(!id){id=crypto.randomUUID();keys.current.set(key,id);}
+ return <form className="card card-pad portal-demo-form" onSubmit={event=>{event.preventDefault();const key=JSON.stringify({value:draft,version:sourceVersion});let id=keys.current.get(key);if(!id){id=crypto.randomUUID();keys.current.set(key,id);}
   start(async()=>{try{const result=await save(draft,sourceVersion,id);if(!result.ok){setError(result.error);return;}if(result.preferenceVersion!==undefined)setSourceVersion(result.preferenceVersion);setError("");setSuccess(true);}catch{setError("Opslaan kon niet worden bevestigd. Probeer dezelfde voorkeuren opnieuw.");}});
- }}><div className="section-heading"><h2>E-mailnotificaties</h2><Mail/></div><p className="meta">Kies welke updates je per e-mail ontvangt. Ze blijven ook zichtbaar in het portaal.</p>
+ }}><div className="section-heading"><h2>{source?"E-mailvoorkeuren":"E-mailnotificaties"}</h2><Mail/></div><p className="meta">Kies welke updates je per e-mail ontvangt. Ze blijven ook zichtbaar in het portaal.</p>
   {error&&<p className="form-error" role="alert">{error}</p>}{success&&<p className="notice" role="status"><Check/>Je voorkeuren zijn opgeslagen.</p>}
   <CustomerPreferenceFields value={draft} change={next=>{setDraft(next);setSuccess(false);}} disabled={pending}/><div className="section-gap"><button className="button primary" disabled={pending}>{pending?"Opslaan…":"Voorkeuren opslaan"}</button></div>
  </form>;

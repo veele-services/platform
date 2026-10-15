@@ -20,9 +20,9 @@ import { TenantThemeProvider } from "../tenant-theme";
 import { HelpTip } from "../help-tip";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Bell, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
+  Bell, BookOpen, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
   List, LockKeyhole, LogOut, MoreHorizontal,
-  Info, MapPin, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Square, TicketCheck, Umbrella, UserRound,
+  Info, MapPin, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Sparkles, Square, TicketCheck, Umbrella, UserRound,
 } from "lucide-react";
 import {
   useEffect,
@@ -198,7 +198,7 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
         <button className={`ps-nav-button${view === "planning" ? " active" : ""}`} onClick={() => navigate("planning")}><CalendarDays/><span>Dagplanning</span></button>
         <button className={`ps-nav-button${view === "nieuws" ? " active" : ""}`} onClick={() => navigate("nieuws")}><Newspaper/><span>Nieuws</span>{unreadNews > 0 && <b>{unreadNews}</b>}</button>
         <button className={`ps-nav-button${view === "uren" ? " active" : ""}`} onClick={() => navigate("uren")}><Clock3/><span>Mijn uren</span></button>
-        <Link className="ps-nav-button" href="/staff/kennisbank"><FileText/><span>Kennisbank</span></Link><Link className="ps-nav-button" href="/staff/updates"><Newspaper/><span>Wat is er nieuw?</span></Link>
+        <Link className="ps-nav-button" href="/staff/kennisbank"><BookOpen/><span>Kennisbank</span></Link><Link className="ps-nav-button" href="/staff/updates"><Sparkles/><span>Wat is er nieuw?</span></Link>
         <StaffTicketsEntry className="ps-nav-button" enabled={ticketsEnabled}/>
         <span className="ps-nav-section">PERSONEELSZAKEN</span>
         <button className={`ps-nav-button${view === "meer" && moreView === "verlof" ? " active" : ""}`} onClick={() => { setView("meer"); setMoreView("verlof"); }}><Umbrella/><span>Verlof</span></button>
@@ -285,7 +285,7 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
           <div className="ps-view-toggle" aria-label="Planningweergave"><button className={mode === "lijst" ? "active" : ""} aria-pressed={mode === "lijst"} onClick={() => setMode("lijst")}><List/>Lijst</button><button className={mode === "agenda" ? "active" : ""} aria-pressed={mode === "agenda"} onClick={() => setMode("agenda")}><CalendarDays/>Agenda</button></div>
         </div>
         <div className="portal-demo-weekstrip" tabIndex={0} aria-label="Kies een planningsdag" onKeyDown={onKey} onTouchStart={(event) => { swipe.current = event.touches[0]?.clientX ?? null; }} onTouchEnd={(event) => swipeEnd(event.changedTouches[0]?.clientX ?? 0)}>
-          {week.map(date=><button key={date} className={date===selectedDay?"active":""} aria-label={staffDayLabel(date)} aria-pressed={date===selectedDay} onClick={()=>setSelectedDay(date)}><span>{staffDayLabel(date,"short").split(" ")[0]}</span><strong>{Number(date.slice(-2))}</strong><i className={orderDays.includes(date)?"has-order":""}/></button>)}
+          {week.map(date=><button key={date} className={date===selectedDay?"active":""} aria-label={staffDayLabel(date)} aria-pressed={date===selectedDay} onClick={()=>setSelectedDay(date)}><span>{staffDayLabel(date,"short").split(" ")[0].toLocaleUpperCase("nl-NL")}</span><strong>{Number(date.slice(-2))}</strong><i className={orderDays.includes(date)?"has-order":""}/></button>)}
         </div>
         <div className="ps-list-label"><strong>{visible.length} {visible.length === 1 ? "werkbon" : "werkbonnen"}</strong><span>{mode === "lijst" ? "Nieuwste ontvangen bovenaan" : "Op volgorde van afspraak"}</span></div>
       </div>
@@ -296,7 +296,7 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
         const interval = assignmentInterval(assignment, timezone);
         const contact = contacts.find((item) => item.work_order_id === order.id && item.roles.includes("site")) ?? contacts.find((item) => item.work_order_id === order.id);
         const published = order.published_at ?? assignment.created_at;
-        return <button className="ps-order-card" data-status={assignment.status} key={order.id} onClick={() => onOpen(order)} aria-label={`${order.work_order_number} ${object?.name ?? order.title}`}>
+        return <button className="ps-order-card" key={order.id} onClick={() => onOpen(order)} aria-label={`${order.work_order_number} ${object?.name ?? order.title}`}>
           <span className="ps-order-card-head"><span className="ps-order-time"><Clock3/>{interval.start}<i>–</i>{interval.end}</span><span className="ps-status" data-status={assignment.status}>{interval.paused ? "Gepauzeerd" : staffExecutionLabel(assignment.status, order.report_state)}</span></span>
           <span className="ps-order-main"><span className="ps-object-icon"><Building2/></span><span className="ps-order-copy"><strong className="ps-order-title">{object?.name || customer?.name || order.title}</strong><span className="ps-order-address">{objectAddress(object?.address)}</span>{contact?.phone && <span className="ps-order-phone"><Phone/>{contact.phone}</span>}</span><ChevronRight className="ps-order-chevron"/></span>
           <span className="ps-order-meta"><span>{order.work_order_number}</span><time dateTime={published}>Ontvangen {staffClock(published, timezone)}</time></span>
@@ -479,7 +479,7 @@ function MoreScreen({ view, setView, data, profile, timezone, email, tenantName,
   const shifts = data.openShifts.filter((shift) => shift.status === "open");
   return <div className="ps-more-screen">
     <section className="ps-profile-summary" aria-label="Mijn profiel"><span>{initials(profile.preferred_name || profile.full_name)}</span><div><small>MIJN PROFIEL</small><h2>{profile.preferred_name || profile.full_name}</h2><p>{profile.employee_number}</p></div></section>
-    <div className="portal-demo-more" aria-label="Personeelszaken"><Link className="ps-panel portal-demo-help" href="/staff/kennisbank"><FileText aria-hidden="true"/><span><strong>Kennisbank</strong><small>Handleidingen en antwoorden</small></span></Link><Link className="ps-panel portal-demo-help" href="/staff/updates"><Newspaper aria-hidden="true"/><span><strong>Wat is er nieuw?</strong><small>Productupdates van Fieldgrid</small></span></Link>
+    <div className="portal-demo-more" aria-label="Personeelszaken"><Link className="ps-panel portal-demo-help" href="/staff/kennisbank"><BookOpen aria-hidden="true"/><span><strong>Kennisbank</strong><small>Handleidingen en antwoorden</small></span></Link><Link className="ps-panel portal-demo-help" href="/staff/updates"><Sparkles aria-hidden="true"/><span><strong>Wat is er nieuw?</strong><small>Productupdates van Fieldgrid</small></span></Link>
       {actions.map(([key, title, text, Icon]) => <button className="ps-panel portal-demo-help" key={key} onClick={() => setView(key)}><Icon aria-hidden="true"/><span><strong>{title}</strong><small>{text}</small></span></button>)}
       <Link className="ps-panel portal-demo-help" href="/staff/notificaties"><Bell aria-hidden="true"/><span><strong>Notificaties</strong><small>Inbox en persoonlijke voorkeuren</small></span></Link>
       <StaffTicketsEntry className="ps-panel portal-demo-help" enabled={ticketsEnabled}><TicketCheck aria-hidden="true"/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span></StaffTicketsEntry>

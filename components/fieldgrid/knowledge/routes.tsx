@@ -18,7 +18,7 @@ export async function KnowledgePage({ workspace, slug }: { workspace: KnowledgeW
   const content=<KnowledgeHub key={`${actor.tenantId}:${actor.userId}:${workspace}:${slug??"list"}`} actorKey={`${actor.tenantId}:${actor.userId}:${workspace}`} workspace={workspace} initial={initial} article={article}/>;
   if(workspace==="platform")return content;
   if(workspace==="staff")return <StaffRouteShell active="knowledge">{content}</StaffRouteShell>;
-  if(workspace==="customer")return <CustomerProductFrame>{content}</CustomerProductFrame>;
+  if(workspace==="customer")return <CustomerProductFrame active="knowledge">{content}</CustomerProductFrame>;
   const context=await getAuthContext();if(!context.tenant)notFound();
   return <BackofficeShell context={{...context,tenant:context.tenant}} data={await getPlanningShellData(context.tenant.id)} initialView="kennisbank" presentation="sites-management">{content}</BackofficeShell>;
 }

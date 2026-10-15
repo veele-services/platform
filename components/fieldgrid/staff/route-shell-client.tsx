@@ -9,7 +9,7 @@ import { FieldgridBrand } from "../brand";
 import { useRouter } from "next/navigation";
 import {
   BookOpen, CalendarCheck, CalendarDays, Clock3, FileText,
-  MoreHorizontal, Newspaper, Settings, Umbrella,
+  MoreHorizontal, Newspaper, Sparkles, Settings, Umbrella,
 } from "lucide-react";
 import { NotificationBell } from "@/components/fieldgrid/notifications/inbox";
 import { createClient } from "@/lib/supabase/client";
@@ -141,7 +141,7 @@ export function StaffRouteShellClient({
         <Link className="ps-nav-button" href="/staff?tab=planning"><CalendarDays/><span>Dagplanning</span></Link>
         <Link className="ps-nav-button" href="/staff?tab=nieuws"><Newspaper/><span>Nieuws</span></Link>
         <Link className="ps-nav-button" href="/staff?tab=uren"><Clock3/><span>Mijn uren</span></Link>
-        <Link className={`ps-nav-button${active === "knowledge" ? " active" : ""}`} href="/staff/kennisbank"><BookOpen/><span>Kennisbank</span></Link><Link className={`ps-nav-button${active === "updates" ? " active" : ""}`} href="/staff/updates"><Newspaper/><span>Wat is er nieuw?</span></Link><StaffTicketsEntry className={`ps-nav-button${active === "tickets" ? " active" : ""}`} active={active === "tickets"} enabled={ticketsEnabled}/>
+        <Link className={`ps-nav-button${active === "knowledge" ? " active" : ""}`} href="/staff/kennisbank"><BookOpen/><span>Kennisbank</span></Link><Link className={`ps-nav-button${active === "updates" ? " active" : ""}`} href="/staff/updates"><Sparkles/><span>Wat is er nieuw?</span></Link><StaffTicketsEntry className={`ps-nav-button${active === "tickets" ? " active" : ""}`} active={active === "tickets"} enabled={ticketsEnabled}/>
         <span className="ps-nav-section">PERSONEELSZAKEN</span>
         <Link className="ps-nav-button" href="/staff?tab=meer&section=verlof"><Umbrella/><span>Verlof</span></Link>
         <Link className="ps-nav-button" href="/staff?tab=meer&section=beschikbaarheid"><CalendarCheck/><span>Beschikbaarheid</span></Link>

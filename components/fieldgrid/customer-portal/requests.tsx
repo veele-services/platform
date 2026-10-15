@@ -17,7 +17,7 @@ export function CustomerServiceRequestForm({workspace,services,service,objectId,
  return <CustomerDialog guideKey="feature.customer-request" title="Dienst aanvragen" kicker="Diensten & aanvragen" close={close} busy={pending} dirty={dirty}
   footer={<><button className="button" type="button" disabled={pending} onClick={cancel}>Annuleren</button><button className="button primary" form={formId} disabled={pending}>{pending?"Versturen…":"Aanvraag versturen"}</button></>}>
    <p className="form-intro">Vertel ons wat je nodig hebt. Je accountmanager beoordeelt je aanvraag en neemt contact met je op.</p>{error&&<p className="form-error" role="alert">{error}</p>}
-   <form id={formId} onSubmit={event=>{event.preventDefault();const parsed=customerServiceRequestInputSchema.safeParse(draft);if(!parsed.success){setError(parsed.error.issues[0]?.message??"Controleer je gegevens.");return;}
+   <form id={formId} className="portal-demo-form" onSubmit={event=>{event.preventDefault();const parsed=customerServiceRequestInputSchema.safeParse(draft);if(!parsed.success){setError(parsed.error.issues[0]?.message??"Controleer je gegevens.");return;}
     const input=parsed.data,key=JSON.stringify(input);let id=keys.current.get(key);if(!id){id=crypto.randomUUID();keys.current.set(key,id);}
     start(async()=>{try{const result=await save(input,id);if(!result.ok){setError(result.error);return;}close();}catch{setError("Versturen kon niet worden bevestigd. Probeer dezelfde aanvraag opnieuw; je invoer blijft staan.");}});
    }}><label className="field"><span>Gewenste dienst *</span><select name="service" value={draft.service} disabled={pending} onChange={event=>setDraft({...draft,service:event.target.value})}>

@@ -39,7 +39,8 @@ export function GuideBanner({ guideKey, className = "" }: { guideKey?: string; c
   const [pending,start] = useTransition(),[error,setError] = useState("");
   const presentation=useDashboardPresentation(),sourcePortal=useSourcePortal();
   if (presentation==='sites'&&!sourcePortal || !account?.ready || !guideKey || !isGuideKey(guideKey) || account.dismissed.has(guideKey) || !/^\/(app|staff|klant)(\/|$)/.test(path)) return null;
-  const [title,explanation] = guideCatalogue[guideKey];
+  const [title,nativeExplanation] = guideCatalogue[guideKey];
+  const explanation=sourcePortal&&guideKey==="staff.planning"?"Hier staan jouw toegewezen werkbonnen. Open een bon voor locatie en instructies, registreer onderweg en start daarna je werk.":nativeExplanation;
   if(sourcePortal)return <aside className={`portal-demo-guide ${className}`} aria-label={`Uitleg: ${title}`} data-guide-key={guideKey}><Info size={19} aria-hidden="true"/><div><strong>{title}</strong><p>{explanation}</p>{error&&<p role="alert">{error}</p>}</div><button type="button" aria-label="Uitleg sluiten" disabled={pending} onClick={()=>start(async()=>{setError("");try{const result=await dismissAccountGuide(guideKey);if(result.ok)account.record(guideKey);else setError(result.error);}catch{setError("De leesbevestiging is niet opgeslagen. Probeer het kruisje opnieuw.");}})}><X size={18}/></button></aside>;
   return <aside className={`fg-guide ${className}`} aria-label={`Uitleg: ${title}`} data-guide-key={guideKey}>
     <Info className="fg-guide-icon" size={20} aria-hidden="true"/>
