@@ -24,7 +24,7 @@ export async function captureManagementPair({page,reference,directory,key,select
   const metric=p=>p.locator(selector).evaluate(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,heading:getComputedStyle(el.querySelector('h1')||el.querySelector('h2')).font,children:[...el.children].map(n=>({cls:n.className,height:n.getBoundingClientRect().height}))}));comparisons.push({key,width,target:await metric(page),source:await metric(reference),viewed:false});
  }
  for(const p of[page,reference]){await p.setViewportSize({width:1440,height:1000});await p.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>setTimeout(r,500))})}
- for(const[p,side]of[[page,'target'],[reference,'source']])await captureManagementImage(p,directory+'/'+key+'-'+side+'-1440.png',selector);
+ for(const[p,side]of[[page,'target'],[reference,'source']]){await captureManagementImage(p,directory+'/'+key+'-full-'+side+'-1440.png');await captureManagementImage(p,directory+'/'+key+'-'+side+'-1440.png',selector);}
  return comparisons;
 }
 export async function captureManagementDialog(page,path){const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await dialog.locator('.mc-dialog-body').evaluate(el=>{el.scrollTop=0});await page.evaluate(async()=>{await Promise.all([...document.querySelectorAll('dialog[open] *')].filter(n=>n.textContent?.trim()).map(n=>document.fonts.load(getComputedStyle(n).font,n.textContent.slice(0,200))));await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))});await captureManagementImage(page,path,'dialog[open]')}
