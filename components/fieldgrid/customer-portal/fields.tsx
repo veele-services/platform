@@ -17,7 +17,7 @@ export function ProfileFields({ value, change, section="all", disabled=false, em
   onChange={event=>change({...value,[key]:event.target.value})} {...props}/>;
  return <>{section!=="billing"&&<><div className="grid2">{field("firstName","Voornaam",{autoComplete:"given-name",maxLength:80})}{field("lastName","Achternaam",{autoComplete:"family-name",maxLength:100})}</div>
   {field("company","Organisatie",{autoComplete:"organization"})}
-  <CustomerField label="E-mailadres voor inloggen" name="loginEmail" type="email" value={email} disabled/><p className="meta email-note">Je accountmanager beheert dit e-mailadres.</p>
+  <CustomerField label="E-mailadres voor inloggen" name="loginEmail" type="email" value={email} readOnly disabled/><p className="meta email-note">Je accountmanager beheert dit e-mailadres.</p>
   {field("phone","Telefoonnummer",{type:"tel",autoComplete:"tel",maxLength:40})}</>}
   {section!=="person"&&<><hr className="divider"/><h3>Factuurgegevens</h3><div className="section-gap">{field("invoiceEmail","E-mailadres voor facturen",{type:"email",maxLength:254})}<AddressInput required disabled={disabled} initial={value.address??{street:value.street,postal_code:value.postalCode,city:value.city}} onChange={address=>change({...value,address,street:address.street,postalCode:address.postal_code,city:address.city})}/>
    {field("companyNumber","KvK-nummer",{inputMode:"numeric",maxLength:8,pattern:"[0-9]{8}"})}</div></>}

@@ -4,7 +4,8 @@ import { SourceNativeDialog } from "../source-native-dialog";
 import { AccountMenu } from "../account-menu";
 import { ActionIcon } from "../action-icon";
 import { EmptyState } from "../empty-state";
-import { PageHeading } from "../page-heading";
+import { PageHeading as NativePageHeading } from "../page-heading";
+import {useSourcePortal} from "../portals/context";
 import { ContentTabs } from "../content-tabs";
 import { AddressInput } from "../address-input";
 import { addressSchema } from "@/lib/addresses/model";
@@ -30,6 +31,7 @@ import {
   useState,
   useTransition,
   type ComponentType,
+  type ComponentProps,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
@@ -79,6 +81,11 @@ const objectAddress = (value: unknown) => {
 };
 const jsonObject = (value: Json | undefined | null) => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, Json> : {};
 const asText = (value: Json | undefined) => typeof value === "string" ? value : "";
+
+function PageHeading(props:ComponentProps<typeof NativePageHeading>){
+ const source=useSourcePortal();
+ return <NativePageHeading {...props} help={source?undefined:props.help} actions={source&&props.title==="Documenten"?undefined:props.actions}/>;
+}
 
 export function PersonnelApp({ context, data, personnel, notificationPreferences, sessionKey, installScope, pwaIdentity }: {
   context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> };
@@ -589,10 +596,10 @@ function AvailabilityScreen({ profile, pending, run, onLeave }: { profile: Staff
   return <div className="ps-availability-screen">
     <PageHeading eyebrow="PERSONEEL" title="Beschikbaarheid" help="Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan." className="ps-page-heading"/>
     <div className="ps-availability-grid">
-      <section className="ps-panel ps-availability-week" aria-labelledby="ps-availability-title"><form onSubmit={submit}>
+      <section className="ps-panel ps-availability-week" aria-labelledby="ps-availability-title">
         <div className="ps-panel-heading"><h2 id="ps-availability-title">Mijn vaste week</h2><span className="ps-status" data-status={enabled ? "approved" : "managed"}>{enabled ? "Vrijgegeven voor bewerken" : "Beheerd door planning"}</span></div>
         {!enabled && <p className="ps-availability-managed"><LockKeyhole size={19} aria-hidden="true"/><span>Je organisatie beheert je beschikbaarheid. Neem voor een wijziging contact op met de planning.</span></p>}
-        <p>Geef aan wanneer je doorgaans beschikbaar bent. De planning wordt door je organisatie bevestigd.</p><div className="ps-availability-days">{dayKeys.map((key) => {
+        <p>Geef aan wanneer je doorgaans beschikbaar bent. De planning wordt door je organisatie bevestigd.</p><form onSubmit={submit}><div className="ps-availability-days">{dayKeys.map((key) => {
           const required = Boolean(week[key].start || week[key].end);
           const available=Boolean(week[key].start||week[key].end);
           return <div className="portal-demo-availability" key={key}><label><input type="checkbox" aria-label={dayLabels[key]} checked={available} disabled={!enabled||pending} onChange={event=>{setWeek(current=>({...current,[key]:event.target.checked?{start:value.week[key].start,end:value.week[key].end}:{start:"",end:""}}));setInvalidDay(null);}}/>{dayLabels[key]}</label><input aria-label={`${dayLabels[key]} vanaf`} aria-describedby="ps-availability-help" type="time" required={required} disabled={!enabled||pending||!available} value={week[key].start} onChange={event=>setTime(key,"start",event.target.value)}/><span>tot</span><input aria-label={`${dayLabels[key]} tot`} aria-describedby={invalidDay===key?"ps-availability-error":"ps-availability-help"} aria-invalid={invalidDay===key||undefined} type="time" required={required} disabled={!enabled||pending||!available} value={week[key].end} onChange={event=>setTime(key,"end",event.target.value)}/></div>;
@@ -709,7 +716,7 @@ function SettingsScreen({ profile, email, tenantName, notificationPreferences, p
       {id:"profile",title:"Mijn profiel",content:<section className="ps-panel ps-settings-profile" aria-label="Mijn profiel">
         <form className="portal-demo-form" onSubmit={saveContact}>
           <div className="portal-demo-two"><label className="mc-field"><span>Voornaam</span><input autoComplete="given-name" required maxLength={160} disabled={pending} value={contact.fullName.split(" ")[0]} onChange={event=>setContact({...contact,fullName:[event.target.value,...contact.fullName.split(" ").slice(1)].join(" ")})}/></label><label className="mc-field"><span>Achternaam</span><input autoComplete="family-name" maxLength={160} disabled={pending} value={contact.fullName.split(" ").slice(1).join(" ")} onChange={event=>setContact({...contact,fullName:[contact.fullName.split(" ")[0],event.target.value].join(" ")})}/></label></div>
-          <label className="mc-field" htmlFor="ps-settings-email"><span>E-mailadres voor inloggen</span><input id="ps-settings-email" type="email" autoComplete="email" disabled aria-describedby="ps-settings-email-help" value={email}/><small id="ps-settings-email-help">Je organisatie beheert dit e-mailadres.</small></label>
+          <label className="mc-field" htmlFor="ps-settings-email"><span>E-mailadres voor inloggen</span><input id="ps-settings-email" type="email" autoComplete="email" readOnly disabled aria-describedby="ps-settings-email-help" value={email}/><small id="ps-settings-email-help">Je organisatie beheert dit e-mailadres.</small></label>
           <label className="mc-field"><span>Telefoonnummer</span><input type="tel" autoComplete="tel" maxLength={50} disabled={pending} value={contact.mobilePhone} onChange={(event) => setContact({ ...contact, mobilePhone: event.target.value })}/></label><label className="mc-field"><span>Woonplaats</span><input disabled value={String(jsonObject(profile.home_address).city??"")} aria-describedby="ps-settings-address-help"/></label><small id="ps-settings-address-help">Wijzig je volledige adres via Adres, noodcontact en vervoer.</small>
           <button type="submit" className="primary-button" disabled={pending}>Profiel opslaan</button>
         </form><details className="sites-native-controls"><summary>Adres, noodcontact en vervoer</summary>{fullProfile}</details>
