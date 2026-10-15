@@ -87,7 +87,7 @@ function PlatformSupportConversation({id, access, options, onClose}: {id: string
           <p className="ticket-prewrap">{message.redacted ? "Dit bericht is gecontroleerd geredigeerd." : <TicketMessageBody body={message.body}/>}</p>
           <TicketFiles files={message.attachments}/><small>{ticketDate(message.createdAt, data.timezone)}</small>
         </div>)}
-        {(data.allowedActions.includes("reply") || data.allowedActions.includes("note")) && data.allowedAudiences.length > 0 && <TicketComposer access={access} data={data} onSaved={saved} onStateChange={setComposer}/>}
+        {(data.allowedActions.includes("reply") || data.allowedActions.includes("note")) && data.allowedAudiences.length > 0 && <TicketComposer compact access={access} data={data} onSaved={saved} onStateChange={setComposer}/>}
         <Link className="text-link" href={`/platform/support/${data.id}`}>Volledige afhandeling, context en historie</Link>
       </div>}
     </SourceNativeDialog>

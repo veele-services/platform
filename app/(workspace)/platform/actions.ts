@@ -268,6 +268,9 @@ export async function savePlatformTemplate(input: unknown): Promise<PlatformMuta
     return { ok: true, revision: template.revision };
   } catch (error) {
     unstable_rethrow(error);
+    const code=error && typeof error==='object' && 'code' in error ? String(error.code) : '';
+    if(code==='40001')return {ok:false,error:'Het template is intussen gewijzigd. Laad de actuele versie; je invoer blijft bewaard.'};
+    if(code==='42501')return {ok:false,error:'Je platformtoegang is gewijzigd. Meld je opnieuw aan om het template te bewaren.'};
     return { ok: false, error: message(error) };
   }
 }

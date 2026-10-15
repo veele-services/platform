@@ -12,7 +12,7 @@ export function PlatformSupportDefaults({data}: {data: TicketSettings}) {
   const categories = data.categories.filter(item => item.active && item.route === "platform_support");
   const [selected, setSelected] = useState(categories[0]?.id ?? "");
   const category = categories.find(item => item.id === selected);
-  return <Panel title="Supportinstellingen" action={categories.length > 1 && <select className="secondary-button" aria-label="Intakecategorie" value={selected} onChange={event => {if(confirmDiscard())setSelected(event.target.value);}}>{categories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}>
+  return <Panel className="sites-platform-support-defaults" title="Supportinstellingen" action={categories.length > 1 && <select className="secondary-button" aria-label="Intakecategorie" value={selected} onChange={event => {if(confirmDiscard())setSelected(event.target.value);}}>{categories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}>
     {category ? <SupportCategoryDefaults key={category.id} category={category} data={data}/> : <Empty title="Nog geen supportcategorieën" text="Voeg onder de uitgebreide instellingen een intakecategorie toe."/>}
   </Panel>;
 }

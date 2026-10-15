@@ -12,3 +12,8 @@
 .sites-platform-extra{margin-top:20px;font-size:12px;color:var(--brand-muted)}
 .sites-platform-extra>summary{cursor:pointer}
 .sites-platform-extra[open]>summary{margin-bottom:18px}
+
+.sites-platform-support-defaults .section-heading{flex-wrap:wrap}
+.sites-platform-support-defaults .section-heading>select{min-width:0;max-width:100%;flex:1 1 200px}
+.sites-platform .sites-support-composer{margin-top:20px}
+.sites-platform .sites-support-composer>.sites-platform-extra{margin-top:0}

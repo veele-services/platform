@@ -9,7 +9,7 @@ const state=vi.hoisted(()=>({guard:vi.fn(),rpc:vi.fn(),claims:vi.fn(),invite:vi.
 vi.mock("@/lib/platform/data",()=>({requirePlatformAdmin:state.guard}));
 vi.mock('@/lib/platform/team',()=>({getPlatformTeamActor:async()=>({context:await state.guard(),db:{auth:{getClaims:state.claims}}})}));
 vi.mock("@/lib/supabase/admin",()=>({createAdminClient:()=>({rpc:state.rpc,from:state.from,auth:{admin:{inviteUserByEmail:state.invite,listUsers:state.list}}})}));
-import {createPlatformTenant,retryTenantAdminInvitation} from "@/app/(workspace)/platform/actions";
+import {createPlatformTenant,retryTenantAdminInvitation,savePlatformTemplate} from "@/app/(workspace)/platform/actions";
 const actor="a0000000-0000-4000-8000-000000000001",tenant="a0000000-0000-4000-8000-000000000002",owner="a0000000-0000-4000-8000-000000000003";
 const input={requestKey:"a0000000-0000-4000-8000-000000000005",name:"FICTITIOUS tenant",slug:"fixture",domain:"",adminName:"Original owner",adminEmail:"owner@example.test",primaryColor:"#222C35",accentColor:"#41AC42",enabledServices:["planning"],senderEmail:""};
 beforeEach(()=>{
@@ -63,4 +63,9 @@ it("a late failed attempt may only mark an unfinished invitation, without replac
  expect(state.is).toHaveBeenCalledWith("bound_at",null);expect(state.in).toHaveBeenCalledWith("status",["pending","failed"]);
  expect(state.rpc).toHaveBeenCalledTimes(1);
  expect((await retryTenantAdminInvitation(tenant)).ok).toBe(false);
+});
+it('reports a safe actionable native template conflict without exposing database diagnostics',async()=>{
+ state.rpc.mockResolvedValue({data:null,error:{code:'40001',message:'FICTITIOUS PRIVATE DATABASE DIAGNOSTIC'}});
+ const result=await savePlatformTemplate({tenantId:tenant,key:'invoice',subject:'FICTITIOUS invoice',body:'Beste {klantnaam}, hierbij de factuur.',reset:false,revision:1,requestId:input.requestKey});
+ expect(result).toEqual({ok:false,error:'Het template is intussen gewijzigd. Laad de actuele versie; je invoer blijft bewaard.'});
 });
