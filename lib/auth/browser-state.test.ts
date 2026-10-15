@@ -1,9 +1,18 @@
 import { describe,expect,it } from "vitest";
-import { cleanAccountBrowserState,cosmeticPlanningPreferences,customerScroll,rememberCustomerScroll } from "./browser-state";
+import { cleanAccountBrowserState,cosmeticPlanningPreferences,cosmeticDisclosurePreferences,customerScroll,rememberCustomerScroll } from "./browser-state";
 function storage(seed:Record<string,string>):Storage{
   const values=new Map(Object.entries(seed));return {get length(){return values.size;},key:i=>[...values.keys()][i]??null,getItem:key=>values.get(key)??null,setItem:(key,value)=>{values.set(key,value);},removeItem:key=>{values.delete(key);},clear:()=>values.clear()};
 }
 describe("account browser-state minimization",()=>{
+  it('limits disclosure recovery to tab-local UI mechanics and clears it at the account boundary',()=>{
+    const key='fieldgrid:disclosure:tenant:actor:commercial',payload=JSON.stringify({open:true,focus:2,selection:[3,8],query:'FICTITIOUS private query',record:{id:'private'},permissions:['owner']});
+    const local=storage({[key]:payload}),session=storage({[key]:payload});
+    cleanAccountBrowserState(local,session,false);
+    expect(local.getItem(key)).toBeNull();expect(JSON.parse(session.getItem(key)!)).toEqual({open:true,focus:2,selection:[3,8]});
+    cleanAccountBrowserState(local,session);expect(session.getItem(key)).toBeNull();
+    expect(cosmeticDisclosurePreferences({open:true,focus:Infinity,selection:[8,3]})).toEqual({open:true,focus:-1,selection:null});
+    expect(cosmeticDisclosurePreferences({open:'yes',focus:2})).toBeNull();
+  });
   it("removes legacy search values and search-bearing keys while preserving visual preferences and unrelated storage",()=>{
     const local=storage({"fieldgrid:planboard:tenant:actor":JSON.stringify({search:"FICTITIOUS private search",from:"08:00",to:"17:00",zoom:"wide",height:190,collapsed:true,view:"all",status:"completed",address:"FICTITIOUS private address"}),unrelated:"keep"});
     const session=storage({"customer-scroll:/app/klanten?q=FICTITIOUS": "140",unrelated:"also keep"});
