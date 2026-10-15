@@ -8225,6 +8225,10 @@ export type Database = {
         Args: { payload?: Json; target_tenant: string }
         Returns: Json
       }
+      cockpit_invoice_list: {
+        Args: { filters?: Json; target_tenant: string }
+        Returns: Json
+      }
       cockpit_maintenance: { Args: { batch_size?: number }; Returns: number }
       cockpit_overview_query: {
         Args: { payload?: Json; target_tenant: string }
@@ -10595,3 +10599,4 @@ export const Constants = {
     },
   },
 } as const
+

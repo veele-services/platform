@@ -27,7 +27,7 @@ export function SitesWorkOrdersList({initial,options,tenant,userId,create=false}
  const [wizard,setWizard]=useState(create&&canCreate),[selected,setSelected]=useState<WorkOrderListRow|null>(null),[source,setSource]=useState<string|null>(null),[releasing,setReleasing]=useState<WorkOrderListRow|null>(null);
  const [command,setCommand]=useState<{row:WorkOrderListRow;action:'archive'|'cancel'|'delete';mutationId:string}|null>(null),[reason,setReason]=useState(''),[pending,start]=useTransition();
  const seq=useRef(0);
- const forbidden=useCallback(()=>{setData(null);setSelected(null);setSource(null);setReleasing(null);setWizard(false);setCommand(null);setError('Werkbonnen zijn niet beschikbaar binnen je actuele rechten.')},[]);
+ const forbidden=useCallback(()=>{seq.current++;setLoading(false);setData(null);setSelected(null);setSource(null);setReleasing(null);setWizard(false);setCommand(null);setError('Werkbonnen zijn niet beschikbaar binnen je actuele rechten.')},[]);
  const reload=()=>setRefresh(n=>n+1);
  const update=(patch:Record<string,string|null>,reset=true)=>{const next=new URLSearchParams(window.location.search);next.delete('new');Object.entries(patch).forEach(([k,v])=>v?next.set(k,v):next.delete(k));if(reset)next.delete('page');window.history.replaceState(null,'','/app/werkbonnen'+(next.size?'?'+next:''))};
  useEffect(()=>{const focus=()=>{if(document.visibilityState==='visible')setRefresh(n=>n+1)};window.addEventListener('focus',focus);const timer=setInterval(focus,30000);return()=>{clearInterval(timer);window.removeEventListener('focus',focus)}},[]);

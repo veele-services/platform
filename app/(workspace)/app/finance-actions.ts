@@ -177,6 +177,7 @@ export async function sendInvoice(formData: FormData): Promise<ActionResult<{ pa
       targetUrl: paymentUrl,
       targetLabel: effectiveTemplate.cta_label,
       mode: "delivery",
+      allowLocalLinks: env.DEPLOY_TARGET === "local",
     });
     const oldRender = (prior.data?.render_snapshot ?? {}) as Record<string, Json>;
     const linked = await admin.from("mail_deliveries").update({render_snapshot:{...oldRender,invoice_id:invoice.id},branding_snapshot:brandingSnapshot as Json}).eq("tenant_id",context.tenant.id).eq("id",claim.delivery_id);

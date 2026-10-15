@@ -1,0 +1,11 @@
+import {describe,it,expect} from 'vitest';
+import {invoiceActions,invoiceRoute,invoiceListQuery} from './source-invoices';
+import {invoiceOutstanding} from './invoice-resource';
+const id='11111111-1111-4111-8111-111111111111';
+describe('Source invoice adapters retain real routes and separate financial authority',()=>{
+ it('keeps native dossier/search links without passing record controls into the SQL list',()=>{const parsed=invoiceRoute({record:id,page:'3',q:'invoice'});expect(parsed.record).toBe(id);expect(parsed.query).toMatchObject({q:'invoice',page:3,stage:'unpaid'});expect(parsed.query).not.toHaveProperty('record');expect(invoiceListQuery.safeParse({record:id}).success).toBe(false)});
+ it('rejects surplus authority, invalid records and unbounded list selectors',()=>{for(const v of[{tenant:id},{record:'bad'},{role:'owner'},{pageSize:101},{stage:'anything'}])expect(()=>invoiceRoute(v)).toThrow()});
+ it('shows no mutations to a financial reader or a planner with unrelated legacy authority',()=>{expect(Object.values(invoiceActions({roles:['finance'],enabledServices:['finance'],permissions:['backoffice.access','backoffice.finance.read']}))).toEqual([false,false,false,false,false]);expect(Object.values(invoiceActions({roles:['planner'],enabledServices:['finance'],permissions:null}))).toEqual([false,false,false,false,false])});
+ it('requires the specific native command and cannot infer payment authority from finance write',()=>{const permissions=['backoffice.access','backoffice.finance.read','backoffice.finance.write','backoffice.functions.register_manual_payment'];expect(invoiceActions({roles:['finance'],enabledServices:['finance'],permissions})).toEqual({finalize:false,send:false,bundle:false,manualPayment:true,repair:false});expect(invoiceActions({roles:['finance'],enabledServices:[],permissions}).manualPayment).toBe(false)});
+ it('uses actual remaining allocations and never treats a draft, credit or void invoice as collectible',()=>{const row={finalized_at:'2026-10-15T12:00Z',total_cents:1308,paid_cents:500};expect(invoiceOutstanding({...row,status:'partially_paid'})).toBe(808);for(const status of ['draft','credited','void','paid'] as const)expect(invoiceOutstanding({...row,status,paid_cents:status==='paid'?1308:500})).toBe(0);expect(invoiceOutstanding({...row,status:'sent',finalized_at:null})).toBe(0)});
+});
