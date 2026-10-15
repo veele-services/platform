@@ -78,22 +78,23 @@ export async function getPlatformData(): Promise<PlatformData> {
     ? (await getTicketList("platform", ticketQuerySchema.parse({ pageSize: 10 }))).counts
     : null);
   const [tenantsResult, brandingResult, settingsResult, domainsResult, personnelResult, membershipsResult, invitationsResult, templatesResult, workspaceDomainsResult, support] = await Promise.all([
-    readAllPlatformRows((from,to) => admin.from("tenants").select("id,name,slug,status,version,timezone,created_at").order("created_at", { ascending: false }).order("id").range(from,to)),
-    readAllPlatformRows((from,to) => admin.from("tenant_branding").select("tenant_id,primary_color,accent_color,logo_path,sender_name,sender_email").order("tenant_id").range(from,to)),
-    readAllPlatformRows((from,to) => admin.from("tenant_settings").select("tenant_id,enabled_services,white_label_enabled").order("tenant_id").range(from,to)),
-    readAllPlatformRows((from,to) => admin.from("tenant_domains").select("tenant_id,host,verified_at").order("created_at").order("id").range(from,to)),
-    readAllPlatformRows((from,to) => admin.from("personnel").select("tenant_id,id").eq("status", "active").order("id").range(from,to)),
-    readAllPlatformRows((from,to) => admin.from("tenant_memberships").select("tenant_id,user_id,roles,status").eq("status", "active").contains("roles", ["tenant_admin"]).order("id").range(from,to)),
-    readAllPlatformRows((from,to) => admin.from("tenant_admin_invitations").select("tenant_id,full_name,email,status,auth_user_id,created_at").order("created_at", { ascending: false }).order("id").range(from,to)),
-    readAllPlatformRows((from,to) => admin.from("tenant_message_templates").select("tenant_id,template_key,channel,subject,body,default_subject,default_body,revision,customized").order("template_key").order("tenant_id").order("template_key").range(from,to)),
-    readAllPlatformRows((from,to) => admin.from("tenant_workspace_domains").select("id,tenant_id,host,environment,status,verification_token,verified_at").eq("environment", process.env.DEPLOY_TARGET ?? "local").order("id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenants").select("id,name,slug,status,version,timezone,created_at",{count:"exact"}).order("created_at", { ascending: false }).order("id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_branding").select("tenant_id,primary_color,accent_color,logo_path,sender_name,sender_email",{count:"exact"}).order("tenant_id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_settings").select("tenant_id,enabled_services,white_label_enabled",{count:"exact"}).order("tenant_id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_domains").select("tenant_id,host,verified_at",{count:"exact"}).order("created_at").order("id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("personnel").select("tenant_id,id",{count:"exact"}).eq("status", "active").order("id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_memberships").select("tenant_id,user_id,roles,status",{count:"exact"}).eq("status", "active").contains("roles", ["tenant_admin"]).order("id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_admin_invitations").select("tenant_id,full_name,email,status,auth_user_id,created_at",{count:"exact"}).order("created_at", { ascending: false }).order("id").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_message_templates").select("tenant_id,template_key,channel,subject,body,default_subject,default_body,revision,customized",{count:"exact"}).order("template_key").order("tenant_id").order("template_key").range(from,to)),
+    readAllPlatformRows((from,to) => admin.from("tenant_workspace_domains").select("id,tenant_id,host,environment,status,verification_token,verified_at",{count:"exact"}).eq("environment", process.env.DEPLOY_TARGET ?? "local").order("id").range(from,to)),
     supportPromise,
   ]);
   [tenantsResult, brandingResult, settingsResult, domainsResult, personnelResult, membershipsResult, invitationsResult, templatesResult, workspaceDomainsResult].forEach((result) => assertResult(result.error));
 
   const userIds = [...new Set((membershipsResult.data ?? []).map((item) => item.user_id))];
   const authUsers = new Map<string, { email: string; name: string }>();
-  await Promise.all(userIds.map(async (userId) => {
+  // Bound Auth lookups so a large tenant register cannot exhaust the gateway.
+  for (let offset=0;offset<userIds.length;offset+=8) await Promise.all(userIds.slice(offset,offset+8).map(async (userId) => {
     const { data, error } = await admin.auth.admin.getUserById(userId);
     if (!error && data.user) {
       const displayName = typeof data.user.user_metadata?.full_name === "string" ? data.user.user_metadata.full_name.trim() : "";

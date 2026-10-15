@@ -10,3 +10,9 @@ it("fails closed on a later denied page instead of presenting an incomplete over
   const page = vi.fn().mockResolvedValueOnce({data: Array(500).fill({id: "fixture"}), error: null}).mockResolvedValueOnce({data: null, error: {message: "Denied"}});
   expect(await readAllPlatformRows(page)).toEqual({data: null, error: {message: "Denied"}});
 });
+it("uses the actual count when a gateway enforces a smaller page limit", async () => {
+  const rows = Array.from({length: 301}, (_, id) => ({id}));
+  const page = vi.fn(async (from: number) => ({data: rows.slice(from, from + 100), error: null, count: rows.length}));
+  expect((await readAllPlatformRows(page)).data).toEqual(rows);
+  expect(page.mock.calls.map(([from]) => from)).toEqual([0, 100, 200, 300]);
+});
