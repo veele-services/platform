@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Info, X } from "lucide-react";
+import {useDashboardPresentation} from '../presentation';
 import { dismissAccountGuide, loadAccountGuides } from "@/lib/guides/actions";
 import { guideCatalogue, isGuideKey, sectionGuideKeys, type GuideKey } from "@/lib/guides/catalogue";
 import "./guide.css";
@@ -35,7 +36,8 @@ export function AccountGuideProvider({ initialDismissed, children }: { initialDi
 export function GuideBanner({ guideKey, className = "" }: { guideKey?: string; className?: string }) {
   const account = useContext(GuideContext), path = usePathname();
   const [pending,start] = useTransition(),[error,setError] = useState("");
-  if (!account?.ready || !guideKey || !isGuideKey(guideKey) || account.dismissed.has(guideKey) || !/^\/(app|staff|klant)(\/|$)/.test(path)) return null;
+  const presentation=useDashboardPresentation();
+  if (presentation==='sites' || !account?.ready || !guideKey || !isGuideKey(guideKey) || account.dismissed.has(guideKey) || !/^\/(app|staff|klant)(\/|$)/.test(path)) return null;
   const [title,explanation] = guideCatalogue[guideKey];
   return <aside className={`fg-guide ${className}`} aria-label={`Uitleg: ${title}`} data-guide-key={guideKey}>
     <Info className="fg-guide-icon" size={20} aria-hidden="true"/>

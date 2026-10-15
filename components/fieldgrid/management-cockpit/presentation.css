@@ -103,3 +103,7 @@
 
 /* Real route links retain the source button geometry on narrow screens. */
 @media(max-width:620px){.sites-cockpit .resource-header-actions>a.secondary-button{flex:1}}
+
+/* Native catalogue fields keep their full workflow inside the source frame. */
+.sites-cockpit .sites-catalogue-editor>.wo-dialog-body{padding:0;overflow:visible}
+.sites-cockpit .sites-catalogue-editor>.catalogue-steps{padding:0 0 16px;margin-bottom:20px}

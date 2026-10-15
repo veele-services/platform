@@ -8,5 +8,5 @@ export default async function TemplatesPage() {
   const context = await getAuthContext();
   if (!context.tenant?.enabledServices.includes("planning") || !context.tenant.roles.some(r => ["tenant_admin","management","planner"].includes(r))) notFound();
   const [shell, options] = await Promise.all([getPlanningShellData(context.tenant.id), getWorkOrderOptions(context.tenant.id)]);
-  return <BackofficeShell context={{ ...context, tenant: context.tenant }} data={shell} initialView="taken"><WorkOrderTemplates tenant={context.tenant} options={options}/></BackofficeShell>;
+  return <BackofficeShell context={{ ...context, tenant: context.tenant }} data={shell} initialView="taken" presentation="sites-management"><WorkOrderTemplates tenant={context.tenant} options={options}/></BackofficeShell>;
 }
