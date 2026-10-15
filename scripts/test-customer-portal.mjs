@@ -178,6 +178,15 @@ test("customer portal has explicit bootstrap identity and independent exact obje
    assert.deepEqual(await save(),result);assert.equal((await db.query("select count(*)::int count from public.audit_events where tenant_id=$1 and entity_id=$2",[tenant,customer])).rows[0].count,audit);
    await assert.rejects(save([...args.slice(0,5),{...input,phone:"0301234569"},key]),error=>error.code==="23505");
    await assert.rejects(save([...args.slice(0,6),randomUUID()]),error=>error.code==="40001");
+   // KvK is optional in the native form. Empty input must remain the schema's
+   // canonical empty string, including a replay, rather than violating NOT NULL.
+   const current=await workspace(),emptyKey=randomUUID();
+   const emptyArgs=[tenant,account,current.account.version,current.profile.customerVersion,current.profile.contactVersion,{...input,companyNumber:""},emptyKey];
+   const emptyResult=await save(emptyArgs),withoutNumber=await workspace();
+   assert.equal(withoutNumber.profile.companyNumber,"");
+   assert.equal(withoutNumber.profile.email,before.profile.email);
+   assert.equal((await db.query("select company_number from public.customers where id=$1",[customer])).rows[0].company_number,"");
+   assert.deepEqual(await save(emptyArgs),emptyResult);
    await db.query("update public.customer_portal_accounts set can_edit_profile=false where id=$1",[account]);await deny(save());
    await db.query("update public.customer_portal_accounts set can_edit_profile=true where id=$1",[account]);
    assert.equal((await db.query("select preferences from public.customers where tenant_id=$1 and id=$2",[tenant,customer])).rows[0].preferences,"INTERNAL CRM CANARY");

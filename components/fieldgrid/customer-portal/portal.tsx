@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import {CustomerContentLink as Link} from "./context";
 import {CustomerShell,customerNavigation} from "./shell";
 import { PageHeading } from "../page-heading";
 

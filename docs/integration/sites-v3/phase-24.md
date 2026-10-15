@@ -27,3 +27,7 @@ Bij meerdere gekoppelde klanten blijft het expliciet gekozen account via de quer
 ## Bewijsstatus
 
 Lint en TypeScript zijn tijdens implementatie gecontroleerd. Echte klantketens, bekeken vergelijkingsbeelden, native regressies en releasegates zijn nog niet afgerond. Er is nog geen deployment of liveacceptatie voor deze fase.
+
+De echte klantbrowserketen vond een bestaande opslagfout bij een leeg optioneel KvK-nummer: `customer_portal_profile_save` schreef `NULL` naar `customers.company_number`, terwijl dit veld een verplichte tekstkolom is met lege tekst als standaard. Een regressie reproduceerde SQLSTATE `23502` vóór het herstel. Voorwaartse migratie `20261015220720_customer_profile_optional_company_number.sql` bewaart de lege tekst; de overige functie-inhoud en bestaande bevoegdheden blijven gelijk. De 30 native klantportaalcontroles slagen daarna, inclusief eigen account, versies, idempotentie en ongewijzigd inlogadres. Query-first lokaal toegepast, security-advisor zonder meldingen en met de CLI in de lokale migratiehistorie vastgelegd. Dit is nog geen gehoste migratie of deployment.
+
+Echte navigatielinks krijgen de oorspronkelijke brondeclaraties van de navigatieknoppen. Alleen de selector is uitgebreid; kleur, afmetingen, typografie en responsive regels blijven uit de bron komen. Voorkeurenschakelaars gebruiken hun eigen bronstijl, zonder de breedteregel voor gewone formulierinvoer. De mobiele Meer-pagina behoudt eveneens het expliciet geselecteerde klantaccount in kennisbank- en updatelinks.

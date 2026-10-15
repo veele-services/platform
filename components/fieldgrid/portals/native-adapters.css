@@ -1,4 +1,5 @@
 /* Minimal bridges for native branding, lifecycle controls and private files. */
+.sites-portals .customer-portal .nav-group a{text-decoration:none}
 .sites-portals .portal-demo .brand-logo-image{display:block;object-fit:contain;object-position:left;max-width:100%}
 .sites-portals .portal-demo .ps-sidebar-logo .brand-logo-image{width:160px;height:57px;background:white;border-radius:9px;padding:8px}
 .sites-portals .portal-demo .ps-mobile-brand .brand-logo-image{width:122px;height:32px}

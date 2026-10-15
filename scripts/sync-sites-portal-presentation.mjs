@@ -9,7 +9,12 @@ for(const file of ['app/globals.css','components/fieldgrid/content-tabs.css','pr
  if(file==='app/globals.css')tree.nodes=tree.nodes.filter(node=>node.type==='atrule'&&node.name==='font-face');
  tree.walkRules(rule=>{
   let parent=rule.parent;while(parent){if(parent.type==='atrule'&&/keyframes$/i.test(parent.name))return;parent=parent.parent}
-  rule.selectors=rule.selectors.map(selector=>selector.includes('.prototype-root')?selector.replaceAll('.prototype-root',root):selector===':root'?root:':where('+root+') '+selector);
+  rule.selectors=rule.selectors.map(selector=>{
+   // Real content routes use links. Preserve every supplied navigation
+   // declaration for those anchors as well as the prototype's buttons.
+   const linked=selector.replaceAll('.nav-group button','.nav-group :is(button,a)');
+   return linked.includes('.prototype-root')?linked.replaceAll('.prototype-root',root):linked===':root'?root:':where('+root+') '+linked;
+  });
  });
  parts.push('/* Source: '+file+' */\n'+tree.toString());
 }
