@@ -1,0 +1,49 @@
+▶ waiting customer payments recheck authorization before reservations and receipt replay
+  ✔ account revocation while waiting on command lock creates no reservation (48.978026ms)
+  ✔ object binding revocation while waiting on invoice lock creates no reservation (67.10471ms)
+  ✔ merchant revocation while a receipt replay waits denies that replay (33.373079ms)
+✔ waiting customer payments recheck authorization before reservations and receipt replay (1632.468804ms)
+▶ Financial source control: real report approval, independent transactions and current authority
+  ✔ simultaneous identical retries approve the real report and append one financial review (416.312702ms)
+  ✔ different request keys for one source fingerprint have one winner (284.694904ms)
+  ✔ financial command authority is rechecked after the native planning lock wait (228.341803ms)
+  ✔ expired sessions cannot approve after waiting on the native work order (189.685094ms)
+  ✔ revoked native report approval during its row wait rolls back the entire financial transaction (274.510846ms)
+  ✔ a worker holding the source signal cannot deadlock a native financial confirmation through progress metadata (404.512205ms)
+✔ Financial source control: real report approval, independent transactions and current authority (7904.28878ms)
+▶ Management finance: canonical invoice-source parity and real source approval
+  ✔ the native invoice DTO is unchanged, including remaining allocations, VAT groups and rejection of untrusted billing hints (24.593626ms)
+  ✔ financial counts, literal search, independent selection and raw-table isolation use current tenant authority (84.863288ms)
+  ✔ a real financial confirmation executes the existing full report review, closes source follow-up and replays once (340.650475ms)
+  ✔ an actually accepted periodic quote can be classified inside fixed price without blocking native period invoicing or confusing outstanding payments (465.356799ms)
+  ✔ current licensing/session authority, immutable reviews and bounded service-only maintenance fail closed (36.239459ms)
+  ✔ the internal shared source is not executable as anon, authenticated or service_role (8.821616ms)
+✔ Management finance: canonical invoice-source parity and real source approval (2306.015843ms)
+▶ payment provider evidence and issued customer capabilities cannot be rewritten by finance
+  ✔ finance can read provider evidence but cannot forge checkout, status or allocations (17.710023ms)
+  ✔ payment summaries and finalized invoice identity cannot be edited outside the payment functions (14.307282ms)
+  ✔ a payment group cannot include a different customer invoice (10.061774ms)
+  ✔ issued group identities and item membership are immutable, cancellation remains possible (13.321329ms)
+  ✔ provider settlement verifies identity, allocation totals and repeats only once, including expired or cancelled links (38.003479ms)
+  ✔ manual payment remains audited and cannot occupy the provider retry namespace (15.833093ms)
+  ✔ provider preparation is atomic, repairs only unbound empty attempts and preserves terminal history on retry (91.4097ms)
+✔ payment provider evidence and issued customer capabilities cannot be rewritten by finance (1343.433346ms)
+▶ Source invoices: native source amounts, actual invoices and payment authority
+  ✔ public invoker/private guarded helper preserve closed paths and deny anonymous, service and raw source access (7.859451ms)
+  ✔ a received report is not billable until its real native approval (114.819043ms)
+  ✔ finalizing actual sources moves the amount once from concepts to unpaid invoices (59.60825ms)
+  ✔ strict selectors reject alternate authority, wildcards remain literal (155.371041ms)
+  ✔ stable server paging includes draft/history without inventing an outstanding balance (71.629561ms)
+  ✔ the explicit native overdue status contributes to the late balance (24.360273ms)
+  ✔ partial allocation, retry and final payment update real balances without overpaying (72.512528ms)
+  ✔ missing concept authority yields an unknown metric, never false zero or hidden source disclosure (26.063593ms)
+  ✔ current tenant, roles, session, module and each required read authority fail closed (45.757539ms)
+✔ Source invoices: native source amounts, actual invoices and payment authority (1713.758831ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15281.114145

@@ -1,0 +1,27 @@
+{
+  "checks": [
+    "real-auth",
+    "native-report-source-approval",
+    "real-concept-VAT-amount",
+    "native-concept-PDF-preview",
+    "native-finalization",
+    "scanned-private-invoice-PDF",
+    "anonymous-file-denial",
+    "central-frozen-document-mail-local-capture",
+    "source-three-metrics-and-eight-columns",
+    "source-summary-three-widths",
+    "native-partial-payment",
+    "source-real-final-payment",
+    "lost-response-payment-retry-no-duplicate-allocation",
+    "actual-same-customer-bundle",
+    "clipboard-unavailable-readable-link",
+    "immutable-original-PDF",
+    "existing-native-record-deep-link",
+    "paid-no-second-payment",
+    "strict-private-resource-API",
+    "foreign-resource-denial",
+    "live-function-revocation",
+    "delayed-authorized-response-cannot-resurrect-private-data"
+  ],
+  "browserErrors": []
+}

@@ -1,0 +1,19 @@
+▶ Source invoices: native source amounts, actual invoices and payment authority
+  ✔ public invoker/private guarded helper preserve closed paths and deny anonymous, service and raw source access (8.45401ms)
+  ✔ a received report is not billable until its real native approval (130.863523ms)
+  ✔ finalizing actual sources moves the amount once from concepts to unpaid invoices (70.831301ms)
+  ✔ strict selectors reject alternate authority, wildcards remain literal (136.684097ms)
+  ✔ stable server paging includes draft/history without inventing an outstanding balance (61.47851ms)
+  ✔ the explicit native overdue status contributes to the late balance (15.875649ms)
+  ✔ partial allocation, retry and final payment update real balances without overpaying (60.602163ms)
+  ✔ missing concept authority yields an unknown metric, never false zero or hidden source disclosure (21.848292ms)
+  ✔ current tenant, roles, session, module and each required read authority fail closed (40.446664ms)
+✔ Source invoices: native source amounts, actual invoices and payment authority (1665.052213ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1741.623457

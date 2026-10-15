@@ -1,0 +1,6 @@
+PASS: actual approved source → source concept → native PDF preview → native finalization and scanned private PDF, with VAT-accurate amounts
+PASS: existing invoice dispatch, frozen document and central mail policy/transport; only external .invalid provider acceptance is captured locally
+PASS: full native payment/history interface records an actual partial allocation and updates the source balance
+PASS: actual same-customer invoice bundle and usable private link when clipboard copying is unavailable
+PASS: source payment form settles the remaining real balance; original invoice PDF is unchanged
+PASS: original dossier deep links, private resource scope, current read revocation and no second payment after settlement

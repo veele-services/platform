@@ -1,0 +1,65 @@
+{
+  "runtimeCommit": "780993b56ce50f710bc8c5d1c4b505263a255750",
+  "implemented": true,
+  "locallyTested": true,
+  "deployed": false,
+  "liveVerified": false,
+  "sourceInvoiceDatabase": {
+    "passed": 10,
+    "failed": 0
+  },
+  "nativeFinanceCombined": {
+    "passed": 36,
+    "failed": 0
+  },
+  "wholeUnitSuite": {
+    "passed": 1938,
+    "filesPassed": 200,
+    "failed": 0
+  },
+  "coldProductionBuild": {
+    "compiled": true,
+    "typescript": true,
+    "generatedPages": 104
+  },
+  "actualStandalonePackaging": {
+    "ownServerJs": true,
+    "browserChainPassed": true,
+    "deploymentAttestation": false,
+    "sharedUIBrowserRegressions": [
+      "native work-order wizard, metadata retry and versioned report review",
+      "native task catalogue, categories, extra work and checklist versions"
+    ]
+  },
+  "migrations": {
+    "count": 171,
+    "newFrozenCaptures": [
+      "20261015124733_source_invoice_list.sql",
+      "20261015125054_source_invoice_permissions.sql",
+      "20261015131558_source_invoice_overdue_state.sql"
+    ]
+  },
+  "viewedComparisons": [
+    "invoices-source-1440.png",
+    "invoices-source-768.png",
+    "invoices-source-390.png",
+    "invoices-target-1440.png",
+    "invoices-target-768.png",
+    "invoices-target-390.png",
+    "summary-source-1440.png",
+    "summary-source-768.png",
+    "summary-source-390.png",
+    "summary-target-1440.png",
+    "summary-target-768.png",
+    "summary-target-390.png",
+    "native-concept-preview-1440.png",
+    "native-partial-payment-1440.png",
+    "source-payment-1440.png",
+    "source-payment-768.png",
+    "source-payment-390.png"
+  ],
+  "comparisonBoundary": "main.backoffice-content and dialog; shell remains T17",
+  "necessaryIntegrationDifferences": "See phase-15.md",
+  "externalMailDelivery": "Local .invalid provider capture, not actual delivery",
+  "paymentProviderCheckout": "Not exercised; native manual allocations and same-customer bundle were exercised"
+}

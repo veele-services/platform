@@ -1359,12 +1359,17 @@
         "`ExistingDashboards.tsx`; factuuroverzicht en bron/detailinteracties",
         "Bestaande facturatie, documenten, betaalstatus en lifecycle behouden; lokale demonstratie is geen boekhouding."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/app/facturen",
+      "implementation": "implemented; runtime 780993b5; native invoice/PDF/mail/payment lifecycle; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-15.md",
+        "evidence/phase-15/verification.json",
+        "evidence/phase-15/result.json",
+        "evidence/phase-15/comparison.json"
+      ]
     },
     {
       "id": "T08",
