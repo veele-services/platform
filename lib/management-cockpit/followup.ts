@@ -45,7 +45,7 @@ export const followupHistorySchema=z.array(z.object({id,event:z.string(),revisio
 export type FollowupHistory=z.infer<typeof followupHistorySchema>;
 export type FollowupDetail={action:FollowupAction;history:FollowupHistory};
 
-export const followupSourceQuerySchema=z.object({sourceKind:z.enum(['tenant','customer','object','personnel','work_order','commercial_request','quote','agreement','ticket']),sourceId:id,page:z.coerce.number().int().min(1).max(100000).default(1)}).strict();
+export const followupSourceQuerySchema=z.object({sourceKind:z.enum(['tenant','customer','object','personnel','work_order','commercial_request','quote','agreement','ticket','invoice']),sourceId:id,page:z.coerce.number().int().min(1).max(100000).default(1)}).strict();
 export type FollowupSource={source:{id:string;kind:string;label:string;href:string};tenantName:string;today:string;actions:FollowupAction[];total:number;page:number};
 export function projectFollowupSource(value:unknown,focus:z.infer<typeof followupSourceQuerySchema>,tenantName:string):FollowupSource{
  const{raw,actions}=followupActions(value,tenantName),source=raw.sourceOptions.find(s=>s.id===focus.sourceId&&s.kind===focus.sourceKind);

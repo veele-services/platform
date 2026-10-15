@@ -8155,6 +8155,18 @@ export type Database = {
         }
         Returns: Json
       }
+      cockpit_finance_command: {
+        Args: { input: Json; request_id: string; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_finance_maintenance: {
+        Args: { batch_size?: number }
+        Returns: number
+      }
+      cockpit_finance_query: {
+        Args: { payload?: Json; target_tenant: string }
+        Returns: Json
+      }
       cockpit_followup: { Args: { target_tenant: string }; Returns: Json }
       cockpit_followup_command: {
         Args: {

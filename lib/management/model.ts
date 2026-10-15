@@ -17,7 +17,7 @@ export function hasManagementPermission(tenant: { permissions?: string[] | null 
   return tenant.permissions == null || tenant.permissions.includes(capability);
 }
 export const backofficePagePermission: Record<string, string> = {
-  aanvragen: "commercial", planning: "planning", werkbonnen: "work_orders", taken: "tasks", klanten: "customers", objecten: "objects", personeel: "personnel", rapporten: "reports", facturen: "finance", nieuws: "news", opvolging: "followup", besluiten:"decisions", compliance:"compliance", sla:"sla", instellingen: "settings", updates: "product",
+  aanvragen: "commercial", planning: "planning", werkbonnen: "work_orders", taken: "tasks", klanten: "customers", objecten: "objects", personeel: "personnel", rapporten: "reports", facturen: "finance", nieuws: "news", opvolging: "followup", besluiten:"decisions", compliance:"compliance", sla:"sla", omzet:"finance", instellingen: "settings", updates: "product",
 };
 export function permissionForPath(pathname: string): string | null {
   const parts = pathname.split("/").filter(Boolean);

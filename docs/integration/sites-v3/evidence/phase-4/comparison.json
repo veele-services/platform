@@ -1,0 +1,710 @@
+[
+  {
+    "tab": "Nog te factureren",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "height": 790.578125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 396.328125
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "height": 790.578125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 396.328125
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "tab": "Nog te factureren",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "height": 808.71875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 396.328125
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "height": 808.71875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 396.328125
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "tab": "Nog te factureren",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1181.421875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 380.75
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 67
+        },
+        {
+          "cls": "content-tabs",
+          "height": 412.875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 100.5625
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1181.421875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 380.75
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 67
+        },
+        {
+          "cls": "content-tabs",
+          "height": 412.875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 100.5625
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "tab": "Te controleren",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "height": 671.25,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 277
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "height": 671.25,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 277
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "tab": "Te controleren",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "height": 720.890625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 308.5
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "height": 720.890625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 308.5
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "tab": "Te controleren",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1058.90625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 380.75
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 67
+        },
+        {
+          "cls": "content-tabs",
+          "height": 290.359375
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 100.5625
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1058.90625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 380.75
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 67
+        },
+        {
+          "cls": "content-tabs",
+          "height": 290.359375
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 100.5625
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "tab": "Openstaande facturen",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "height": 790.578125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 396.328125
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "height": 790.578125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 396.328125
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "tab": "Openstaande facturen",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "height": 808.71875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 396.328125
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "height": 808.71875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 396.328125
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "tab": "Openstaande facturen",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1181.421875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 380.75
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 67
+        },
+        {
+          "cls": "content-tabs",
+          "height": 412.875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 100.5625
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1181.421875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 380.75
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 67
+        },
+        {
+          "cls": "content-tabs",
+          "height": 412.875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 100.5625
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "tab": "Afgehandelde controles",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "height": 808.71875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 414.46875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "height": 808.71875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 414.46875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 46.140625
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "tab": "Afgehandelde controles",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "height": 826.859375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 414.46875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "height": 826.859375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 42
+        },
+        {
+          "cls": "content-tabs",
+          "height": 414.46875
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 64.28125
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "tab": "Afgehandelde controles",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1197.921875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 380.75
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 67
+        },
+        {
+          "cls": "content-tabs",
+          "height": 429.375
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 100.5625
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1197.921875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 380.75
+        },
+        {
+          "cls": "fs-toolbar",
+          "height": 67
+        },
+        {
+          "cls": "content-tabs",
+          "height": 429.375
+        },
+        {
+          "cls": "fs-notice neutral",
+          "height": 100.5625
+        }
+      ]
+    },
+    "viewed": true
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "tenant": "e0aa0c0c-3b1d-411d-8149-7fb0f03419a9",
+  "task": "1114d1d1-e96f-4502-82e8-239bd70e2839",
+  "checks": [
+    "real-auth-SSR",
+    "four-tabs-3-widths",
+    "stale-source-reassessment",
+    "native-report-approval",
+    "immutable-review-history",
+    "native-source-link",
+    "anonymous-origin-revocation"
+  ],
+  "browserErrors": [],
+  "viewed": true
+}
