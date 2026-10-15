@@ -8218,6 +8218,23 @@ export type Database = {
         Returns: Json
       }
       cockpit_maintenance: { Args: { batch_size?: number }; Returns: number }
+      cockpit_reports_command: {
+        Args: {
+          command: string
+          input: Json
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_reports_maintenance: {
+        Args: { batch_size?: number }
+        Returns: number
+      }
+      cockpit_reports_query: {
+        Args: { payload?: Json; target_tenant: string }
+        Returns: Json
+      }
       cockpit_sla_command: {
         Args: {
           command: string

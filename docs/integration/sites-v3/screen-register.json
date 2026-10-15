@@ -1365,7 +1365,7 @@
         "`P/src/FinanceSLA.tsx` → `FinanceView`; categorieën, bronregels, controle-uitkomst en onderbouwing",
         "Nog te factureren, te controleren en onbetaald onderscheiden; echte bronallocatie en financiële rechten."
       ],
-      "route": null,
+      "route": "/app/omzet",
       "implementation": "implemented; 7284ea42; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
@@ -1384,8 +1384,8 @@
         "`P/src/FinanceSLA.tsx` → `IndexationView`; concept, goedkeuring, verwerking, tarief/percentage/ingangsdatum en historie",
         "Versies en rolgebonden goedkeuring; verwerking via bestaande contract-/tarieflogica, geen lokale optelling."
       ],
-      "route": null,
-      "implementation": "implemented; native versioned agreements and explicit source consent; final whole-scope acceptance pending",
+      "route": "/app/indexatie",
+      "implementation": "implemented; e53cfaaa; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -1443,12 +1443,16 @@
         "`P/src/Governance.tsx` → `ReportsView`; periode, toelichting, snapshot, archief, bekijken, PDF en rapportplanning",
         "Onveranderlijke opgeslagen snapshot, consistente metrics en echte jobs. Lokale planningsinstelling bewijst geen verzonden rapport."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/app/weekrapport",
+      "implementation": "implemented; source UI, immutable native-source snapshots, tenant PDF and real bounded scheduled jobs; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-6/native-regression.log",
+        "evidence/phase-6/real-browser-chain.log",
+        "evidence/phase-6/comparison.json"
+      ]
     },
     {
       "id": "T15",

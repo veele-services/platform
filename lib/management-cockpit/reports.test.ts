@@ -1,0 +1,13 @@
+import {describe,it,expect,vi} from 'vitest';
+vi.mock('server-only',()=>({}));
+import {PDFDocument} from 'pdf-lib';
+import {reportCommandSchema,reportQuerySchema,reportRows,reportSnapshotSchema,slaLabel} from './reports';
+import {renderManagementReport} from '@/lib/pdf/management-report';
+const snapshot=()=>reportSnapshotSchema.parse({id:'00000000-0000-4000-8000-000000000001',period:'Week 42',version:1,role:'Management',createdAt:'2026-10-15T10:00:00.000Z',today:'2026-10-15',date:'2026-10-15',open:3,overdue:1,sla:75,slaTotal:4,confirmed:12345,review:5000,unpaid:2500,compliance:2,decisions:1,finance:true,quality:true,comment:'Vaste managementtoelichting.',tenant:'FICTITIOUS rapportorganisatie',brand:'#222c35',accent:'#54b5b7'});
+describe('Report adapters',()=>{
+ it('accepts bounded routes and rejects extra data or forged snapshot fields',()=>{expect(reportQuerySchema.parse({record:snapshot().id})).toMatchObject({tab:'overview',page:1});expect(reportQuerySchema.safeParse({page:'0'}).success).toBe(false);expect(reportCommandSchema.safeParse({command:'create',requestId:snapshot().id,input:{period:'Week 42',comment:'',open:999}}).success).toBe(false);expect(reportCommandSchema.safeParse({command:'schedule',requestId:snapshot().id,input:{enabled:true,day:0,time:'08:00',audience:'Eigenaar',revision:0}}).success).toBe(false)});
+ it('keeps actual financial categories distinct and omits unauthorized scopes',()=>{const r=snapshot();expect(reportRows(r).map(row=>row[0])).toEqual(['Open acties','Achterstallige acties','SLA op koers','Bevestigd nog te factureren','Financieel te controleren','Gefactureerd, nog onbetaald','Documenten met aandacht','Vastgestelde besluiten']);expect(reportRows({...r,finance:false,quality:false})).toHaveLength(4)});
+ it('uses an explicit absence of measurements rather than inventing a successful SLA',()=>{expect(slaLabel(null)).toBe('—');expect(reportRows({...snapshot(),sla:null,slaTotal:0})[2]).toEqual(['SLA op koers','—','Er zijn geen serviceafspraken binnen dit toegangsprofiel.'])});
+ it('renders a reproducible real PDF using frozen branding and timestamp',async()=>{const r=snapshot(),a=await renderManagementReport(r),b=await renderManagementReport(r);expect(a).toEqual(b);const pdf=await PDFDocument.load(a);expect(pdf.getTitle()).toBe(r.tenant+' - '+r.period);expect(pdf.getCreationDate()).toEqual(new Date(r.createdAt));expect(pdf.getPageCount()).toBe(1)});
+ it('paginates long real commentary without dropping the final page',async()=>{const r={...snapshot(),comment:'Uitgebreide toelichting over de werkelijke stand van zaken. '.repeat(150)},pdf=await PDFDocument.load(await renderManagementReport(r));expect(pdf.getPageCount()).toBeGreaterThan(2)});
+});

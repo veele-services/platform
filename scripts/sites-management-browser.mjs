@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {mkdir} from 'node:fs/promises';
+import {mkdir,writeFile} from 'node:fs/promises';
 import {chromium,expect} from '@playwright/test';
 import {createClient} from '@supabase/supabase-js';
 import {createBrowserClient} from '@supabase/ssr';
@@ -19,12 +19,20 @@ export async function captureManagementPair({page,reference,directory,key,select
  await mkdir(directory,{recursive:true});const comparisons=[];
  for(const p of[page,reference])await hideChrome(p);
  for(const width of[1440,768,390]){
-  for(const p of[page,reference]){await p.setViewportSize({width,height:1000});await p.mouse.move(width-1,999);await p.evaluate(async selector=>{window.scrollTo(0,0);await Promise.all([...new Set([...document.querySelectorAll(selector+' *')].map(n=>getComputedStyle(n).font).filter(Boolean))].map(font=>document.fonts.load(font)));await document.fonts.ready;await new Promise(r=>setTimeout(r,500));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))},selector)}
-  for(const[p,side]of[[page,'target'],[reference,'source']]){await p.screenshot({path:directory+'/'+key+'-full-'+side+'-'+width+'.png',fullPage:true});await p.locator(selector).screenshot({path:directory+'/'+key+'-'+side+'-'+width+'.png'});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),side+' horizontal page overflow')}
+  for(const p of[page,reference]){await p.setViewportSize({width,height:1000});await p.mouse.move(width-1,999);await p.evaluate(async selector=>{window.scrollTo(0,0);await Promise.all([...document.querySelectorAll(selector+' *')].filter(n=>n.textContent?.trim()).map(n=>document.fonts.load(getComputedStyle(n).font,n.textContent.slice(0,200))));await document.fonts.ready;await new Promise(r=>setTimeout(r,500));await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))},selector)}
+  for(const[p,side]of[[page,'target'],[reference,'source']]){await captureManagementImage(p,directory+'/'+key+'-full-'+side+'-'+width+'.png');await captureManagementImage(p,directory+'/'+key+'-'+side+'-'+width+'.png',selector);assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),side+' horizontal page overflow')}
   const metric=p=>p.locator(selector).evaluate(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,heading:getComputedStyle(el.querySelector('h1')).font,children:[...el.children].map(n=>({cls:n.className,height:n.getBoundingClientRect().height}))}));comparisons.push({key,width,target:await metric(page),source:await metric(reference),viewed:false});
  }
  for(const p of[page,reference]){await p.setViewportSize({width:1440,height:1000});await p.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>setTimeout(r,500))})}
- for(const[p,side]of[[page,'target'],[reference,'source']])await p.locator(selector).screenshot({path:directory+'/'+key+'-'+side+'-1440.png'});
+ for(const[p,side]of[[page,'target'],[reference,'source']])await captureManagementImage(p,directory+'/'+key+'-'+side+'-1440.png',selector);
  return comparisons;
 }
-export async function captureManagementDialog(page,path){const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await dialog.locator('.mc-dialog-body').evaluate(el=>{el.scrollTop=0});await page.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))});await dialog.screenshot({path})}
+export async function captureManagementDialog(page,path){const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await dialog.locator('.mc-dialog-body').evaluate(el=>{el.scrollTop=0});await page.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))});await captureManagementImage(page,path,'dialog[open]')}
+
+/** Direct CDP capture preserves the rendered page. Playwright's temporary
+ * screenshot stylesheet invalidates the nonce-protected font cascade in the
+ * authenticated app; CDP injects no styles and changes no text or geometry. */
+export async function captureManagementImage(page,path,selector){
+ const clip=await page.evaluate(selector=>{if(selector){const r=document.querySelector(selector).getBoundingClientRect();return{x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height,scale:1}}return{x:0,y:0,width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,scale:1}},selector),session=await page.context().newCDPSession(page);
+ try{const{data}=await session.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,fromSurface:true,clip});await writeFile(path,Buffer.from(data,'base64'))}finally{await session.detach()}
+}

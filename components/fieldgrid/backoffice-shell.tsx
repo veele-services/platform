@@ -47,7 +47,7 @@ import {
 
 } from "@/app/(workspace)/app/operations-actions";
 
-export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging" | "meldingen" | "support" | "notificaties" | "gebruikers" | "updates" | "kennisbank" | "besluiten" | "compliance" | "sla" | "omzet" | "indexatie";
+export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging" | "meldingen" | "support" | "notificaties" | "gebruikers" | "updates" | "kennisbank" | "besluiten" | "compliance" | "sla" | "omzet" | "indexatie" | "weekrapport";
 
 const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboard; href: string }> = [
   { id: "overzicht", label: "Overzicht", icon: LayoutDashboard, href: "/app" },
@@ -63,10 +63,11 @@ const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboa
   { id: "nieuws", label: "Nieuws", icon: Megaphone, href: "/app/nieuws" },
   { id: "opvolging", label: "Control Center", icon: ClipboardList, href: "/app/opvolging" },
   { id: "sla", label: "SLA-bewaking", icon: ShieldCheck, href: "/app/sla" },
-  { id: "omzet", label: "Omzetbewaking", icon: Wallet, href: "/app/omzet" },
   { id: "indexatie", label: "Prijsindexatie", icon: TrendingUp, href: "/app/indexatie" },
+  { id: "omzet", label: "Omzetbewaking", icon: Wallet, href: "/app/omzet" },
   { id: "besluiten", label: "Beslisnotities", icon: MessageSquareText, href: "/app/besluiten" },
   { id: "compliance", label: "Documenten & compliance", icon: FileCheck2, href: "/app/compliance" },
+  { id: "weekrapport", label: "Weekrapport", icon: FileText, href: "/app/weekrapport" },
   { id: "kennisbank", label: "Kennisbank", icon: BookOpen, href: "/app/kennisbank" },
   { id: "updates", label: "Roadmap & updates", icon: Megaphone, href: "/app/updates" },
   { id: "gebruikers", label: "Gebruikers en rollen", icon: UsersRound, href: "/app/gebruikers" },
@@ -79,10 +80,10 @@ const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboa
 const serviceByView: Partial<Record<BackofficeView, string>> = {
   aanvragen: "planning", planning: "planning", werkbonnen: "planning", taken: "planning",
   klanten: "planning", objecten: "planning", personeel: "personeel", nieuws: "personeel",
-  controle: "rapportage", facturen: "finance", compliance: "rapportage", sla: "rapportage", omzet: "finance", indexatie: "finance",
+  controle: "rapportage", facturen: "finance", compliance: "rapportage", sla: "rapportage", omzet: "finance", indexatie: "finance", weekrapport: "rapportage",
 };
 
-const managementViews: BackofficeView[] = ["opvolging","sla","indexatie","omzet","besluiten","compliance"];
+const managementViews: BackofficeView[] = ["opvolging","sla","indexatie","omzet","besluiten","compliance","weekrapport"];
 const organisationViews: BackofficeView[] = ["kennisbank","nieuws", "instellingen", "gebruikers", "updates"];
 
 const statusLabel: Record<string, string> = {

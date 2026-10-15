@@ -1,0 +1,218 @@
+[
+  {
+    "key": "overview",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "height": 997.546875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 858.4375
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "height": 997.546875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 858.4375
+        }
+      ]
+    },
+    "viewed": true,
+    "notes": "Direct CDP; original source DOM/copy retained. Actual date/data, absence-of-measurement label and truthful planning text are intentional integration differences."
+  },
+  {
+    "key": "overview",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "height": 1220.09375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 129.28125
+        },
+        {
+          "cls": "content-tabs",
+          "height": 1046.8125
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "height": 1220.09375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 129.28125
+        },
+        {
+          "cls": "content-tabs",
+          "height": 1046.8125
+        }
+      ]
+    },
+    "viewed": true,
+    "notes": "Direct CDP; original source DOM/copy retained. Actual date/data, absence-of-measurement label and truthful planning text are intentional integration differences."
+  },
+  {
+    "key": "overview",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1487.59375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 1307.359375
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1487.59375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 1307.359375
+        }
+      ]
+    },
+    "viewed": true,
+    "notes": "Direct CDP; original source DOM/copy retained. Actual date/data, absence-of-measurement label and truthful planning text are intentional integration differences."
+  },
+  {
+    "key": "archive",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "height": 352.609375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 213.5
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "height": 352.609375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 213.5
+        }
+      ]
+    },
+    "viewed": true,
+    "notes": "Direct CDP; original source DOM/copy retained. Actual date/data, absence-of-measurement label and truthful planning text are intentional integration differences."
+  },
+  {
+    "key": "archive",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "height": 386.78125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 129.28125
+        },
+        {
+          "cls": "content-tabs",
+          "height": 213.5
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "height": 386.78125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 129.28125
+        },
+        {
+          "cls": "content-tabs",
+          "height": 213.5
+        }
+      ]
+    },
+    "viewed": true,
+    "notes": "Direct CDP; original source DOM/copy retained. Actual date/data, absence-of-measurement label and truthful planning text are intentional integration differences."
+  },
+  {
+    "key": "archive",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 381.734375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 201.5
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 381.734375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 201.5
+        }
+      ]
+    },
+    "viewed": true,
+    "notes": "Direct CDP; original source DOM/copy retained. Actual date/data, absence-of-measurement label and truthful planning text are intentional integration differences."
+  }
+]
