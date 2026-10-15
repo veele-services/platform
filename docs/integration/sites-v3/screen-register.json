@@ -1290,12 +1290,18 @@
         "`ExistingDashboards.tsx`; Taken & tarieven",
         "Bestaande taak-/tariefgegevens, geldige mutaties en rechten behouden. Niet verwarren met CRM-opvolgtaken."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/app/taken; /app/taken/beheer; /app/taken/templates",
+      "implementation": "implemented; 25d658e2; source task list/detail with native versioned tariff, category numbering, proofs, extra work and checklist lifecycles; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-11.md",
+        "evidence/phase-11/native-regression.log",
+        "evidence/phase-11/real-standalone-browser-chain.log",
+        "evidence/phase-11/comparison.json",
+        "standalone-packaging.md"
+      ]
     },
     {
       "id": "T06",

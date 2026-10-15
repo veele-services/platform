@@ -1,0 +1,25 @@
+▶ task catalogue numbering, immutable requirements and tenant/finance boundaries
+  ✔ automatic codes skip legacy collisions and strict retries never consume numbers (63.062663ms)
+  ✔ category prefix changes affect future codes, not existing task identity (49.446145ms)
+  ✔ edits create a new revision and preserve historical prices and evidence requirements (44.88352ms)
+  ✔ frozen task requirements enforce photo evidence and required customer signing (43.641791ms)
+  ✔ staff, other tenants and direct writes fail closed; planners cannot read or replace existing rates (41.492367ms)
+✔ task catalogue numbering, immutable requirements and tenant/finance boundaries (1362.588926ms)
+▶ Work-order lineage conserves scope, historical evidence and occurrence identity
+  ✔ scope transfer is atomic, exact-once and preserves the original task (84.790428ms)
+  ✔ split depth, tenant access and direct transfer bypasses fail closed (29.852431ms)
+  ✔ duplicate and warranty have fresh execution and no copied price entitlement (32.219514ms)
+  ✔ material usage is retry-safe and unavailable through direct table APIs (45.284738ms)
+  ✔ execution after transfer uses only own scope, supports N/A, and records exact crew contributions (148.455853ms)
+  ✔ split performances share the original fixed-price entitlement and preserve allocated history (28.406773ms)
+  ✔ a partially invoiced source transfers only its unperformed remainder and cannot bill the root twice (440.90712ms)
+  ✔ six-week generator is repeatable and preserves skipped and manually moved visits (206.078633ms)
+✔ Work-order lineage conserves scope, historical evidence and occurrence identity (2199.599054ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3700.295763
