@@ -15,7 +15,7 @@
 .sites-portals .portal-demo .portal-demo-listrow .ps-secondary{flex:none}
 .sites-portals .portal-demo .portal-demo-availability input[type=time]:disabled{opacity:.35}
 .sites-portals .portal-demo .portal-demo-availability input[type=checkbox]{appearance:auto}
-.sites-portals .portal-demo .portal-demo-check input[type=checkbox]{width:16px;min-width:16px;height:16px;min-height:16px;flex:none}
+.sites-portals .portal-demo .portal-demo-check input[type=checkbox]{width:18px;min-width:18px;height:18px;min-height:18px;flex:none}
 .sites-portals .portal-demo .portal-demo-check>span{display:grid;min-width:0;gap:4px}
 .sites-portals .portal-demo .address-fields{gap:18px}
 .sites-portals .portal-demo .address-fields>label{display:grid;gap:7px;font-size:12px;font-weight:500;color:var(--brand-ink)}
@@ -40,3 +40,5 @@
 /* Native Radix dialogs keep their existing overlay/menu stack. The inactive
  * mobile navigation must not paint over their full-height source footer. */
 @media(max-width:600px){body:has(.sites-portals [data-slot=dialog-content][data-state=open]) .sites-portals .ps-bottom-nav{visibility:hidden}}
+
+@media(min-width:601px){.sites-portals .portal-demo .sites-staff-native-dialog .mc-dialog-frame>footer .order-action{width:100%;justify-content:flex-end}.sites-portals .portal-demo .sites-staff-native-dialog .mc-dialog-frame>footer .order-action>button{flex:none}}
