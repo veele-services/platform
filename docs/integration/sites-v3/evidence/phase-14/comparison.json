@@ -1,0 +1,236 @@
+[
+  {
+    "key": "orders",
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "height": 434.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-work-order-list",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "height": 376.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 117.796875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "orders",
+    "width": 768,
+    "target": {
+      "width": 684,
+      "height": 434.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-work-order-list",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "height": 376.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 117.796875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "orders",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 482.46875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-work-order-list",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 413.8125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 116.3125
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 120.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "review",
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "height": 434.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-work-order-list",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "height": 376.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 117.796875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "review",
+    "width": 768,
+    "target": {
+      "width": 684,
+      "height": 434.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-work-order-list",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "height": 376.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 117.796875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "review",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 473.8125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-work-order-list",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 413.8125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 116.3125
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 120.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "viewed": true
+  }
+]

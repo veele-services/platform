@@ -1289,12 +1289,17 @@
         "`ExistingDashboards.tsx`; werkbonnen en rapportcontrole",
         "Echte werkboncyclus, uitvoering, beoordeling, correctie en bronkoppelingen; geen vereenvoudigde lokale status als volledige verwerking."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/app/werkbonnen; /app/rapporten",
+      "implementation": "implemented and locally tested; source seven-column lists and compact dialogs; full native creation, metadata, immutable tasks, report correction/resubmission/version-bound approval; phase-14.md; outside shell T17 pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-14.md",
+        "evidence/phase-14/verification.json",
+        "evidence/phase-14/browser-result.json",
+        "evidence/phase-14/comparison.json"
+      ]
     },
     {
       "id": "T05",

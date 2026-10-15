@@ -1,0 +1,86 @@
+{
+  "runtimeCommit": "7bbc542c98e558ed739674b3664e75893aa77335",
+  "implemented": true,
+  "locallyTested": true,
+  "deployed": false,
+  "liveVerified": false,
+  "sourceReportListDatabase": {
+    "command": "FIELDGRID_LOCAL_REPLAY_DIR=<isolated-local-stack> node --test scripts/test-report-review-list.mjs",
+    "passed": 8,
+    "failed": 0
+  },
+  "nativeRegression": {
+    "scripts": [
+      "test-work-orders.mjs",
+      "test-work-order-lineage.mjs",
+      "test-work-order-reports.mjs",
+      "test-work-order-rpc-guards.mjs",
+      "test-report-rls-helpers.mjs"
+    ],
+    "passed": 56,
+    "failed": 0
+  },
+  "targetedUnits": {
+    "passed": 22,
+    "failed": 0
+  },
+  "wholeUnitSuite": {
+    "filesPassed": 199,
+    "passed": 1933,
+    "failed": 0
+  },
+  "targetedEslint": "passed without warnings",
+  "coldProductionBuild": {
+    "compiled": true,
+    "typescript": true,
+    "generatedPages": 102
+  },
+  "actualStandalonePackaging": {
+    "startedOwnServerJs": true,
+    "localAuthDatabaseAndScanner": true,
+    "browserChainPassed": true,
+    "browserErrors": [],
+    "artifactIsDeploymentAttestation": false
+  },
+  "migrations": {
+    "count": 168,
+    "pending": 0,
+    "unchangedExistingMigrations": true,
+    "newFrozenCaptures": [
+      "20261015114859_source_report_review_list.sql",
+      "20261015115023_source_report_review_permissions.sql"
+    ]
+  },
+  "viewedComparisons": [
+    "orders-source-1440.png",
+    "orders-source-768.png",
+    "orders-source-390.png",
+    "orders-target-1440.png",
+    "orders-target-768.png",
+    "orders-target-390.png",
+    "summary-source-1440.png",
+    "summary-source-768.png",
+    "summary-source-390.png",
+    "summary-target-1440.png",
+    "summary-target-768.png",
+    "summary-target-390.png",
+    "review-source-1440.png",
+    "review-source-768.png",
+    "review-source-390.png",
+    "review-target-1440.png",
+    "review-target-768.png",
+    "review-target-390.png",
+    "review-dialog-source-1440.png",
+    "review-dialog-source-768.png",
+    "review-dialog-source-390.png",
+    "review-dialog-target-1440.png",
+    "review-dialog-target-768.png",
+    "review-dialog-target-390.png",
+    "native-wizard-1440.png",
+    "native-wizard-768.png",
+    "native-wizard-390.png",
+    "concurrent-new-report-1440.png"
+  ],
+  "comparisonBoundary": "main.backoffice-content and dialog; outer shell is T17",
+  "necessaryIntegrationDifferences": "See phase-14.md"
+}
