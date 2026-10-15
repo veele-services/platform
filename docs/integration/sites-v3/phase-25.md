@@ -1,0 +1,20 @@
+# Platformoverzicht, acties en CRM
+
+Deze fase behandelt C01–C08, A01–A08 en R01–R11. Implementatie, lokale ketenproeven, bekeken bronvergelijkingen, deployment en livecontrole worden afzonderlijk vastgelegd. De acceptatie is nog in uitvoering.
+
+| Scope | Keuze | Native integratie en te controleren gedrag |
+| --- | --- | --- |
+| C01–C05 | Uitbreiden | Oorspronkelijke statistieken, vier CRM-containers en volgorde; werkelijke totalen, snapshots, toekomstige afspraken en open opvolging uit de begrensde native projecties. |
+| C06 | Hergebruiken/uitbreiden | Initiële laad-/foutstatus, expliciete herhaling, behoud van laatst opgehaalde gegevens, focuscontrole en dertigsecondeninterval. |
+| C07–C08 | Hergebruiken | Bestaande inrichting-, uitnodiging-, support- en tenantprojecties, echte tenantdetails en actuele platformrechten. |
+| A01–A05 | Uitbreiden | Exact acht oorspronkelijke actietegels; echte CRM-routes, lead-/afspraakformulieren, aanvragen, opvolging en beschikbaarheid. |
+| A06–A08 | Hergebruiken | Werkelijke zesstapsinrichting, geselecteerde tenanthuisstijl en centrale/tenantgebonden templates; eerder afzonderlijk gecontroleerd in fasen 20–21. |
+| R01–R04 | Uitbreiden | Origineel bord, lijst, filters, drag/drop, dossier, notities, nieuwe lead en blijvende aanvraagsnapshots; bestaande serverautorisatie, versies en idempotentie. |
+| R05–R06 | Uitbreiden | Week/lijst/datum, echte telefonische reservering, bevestigen, verplaatsen, conflictbehoud, annuleren en afgeschermde ICS. |
+| R07–R08 | Uitbreiden | Werkelijke taakopslag/bewerken/afronden/heropenen en agenda-instellingen die de publieke beschikbaarheid bepalen zonder bestaande afspraken te herschrijven. |
+| R09–R10 | Hergebruiken/uitbreiden | Globale SendGrid-service, geregistreerde primaire beheerder, centrale policy/outbox/worker, blijvende verzendinhoud en veilige statusafhankelijke herhaling. |
+| R11 | Hergebruiken | Fouten, onzekere responses, behoud van invoer, geblokkeerde dubbele acties en afzonderlijke prototype-/productiegrenzen. Geen productiebedrijfstoestand in browseropslag. |
+
+De browserproef vond bij de native verantwoordelijke-keuze een ontbrekende expliciete toegankelijke naam: de oorspronkelijke veldwrapper kon het interne select-element van de nieuwe registryadapter niet rechtstreeks labelen. Alleen `aria-label="Verantwoordelijke"` is toegevoegd. De DOM-compositie, opties, uiterlijk en servercontrole van geldige beheerders blijven gelijk. Deze minimale toegankelijkheidsafwijking wordt apart van de bronpresentatie bijgehouden.
+
+De afzonderlijke ontwerpreferentie krijgt uitsluitend fictieve, werkelijk opgehaalde lokale CRM-projecties via een alleen-lezen testadapter. Schrijfverzoeken naar deze referentie worden geweigerd. De geïntegreerde Next-app gebruikt de echte private API, servercommando’s en PostgreSQL; geen referentie-response wordt als bewijs van een werkelijke mutatie gebruikt.

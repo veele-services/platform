@@ -33,7 +33,7 @@ type Mutate=(path:string,method:string,body:unknown,message?:string)=>Promise<bo
 const ReloadContext=createContext<()=>Promise<CrmState>>(()=>Promise.reject(new Error('Heropen het CRM om de nieuwste gegevens te laden.')));
 const OwnerContext=createContext<CrmState['owners']>([]);
 function ownerLabel(id:string,owners:CrmState['owners']){return owners.find(x=>x.id===id)?.name||'Niet toegewezen'}
-function OwnerSelect({value,onChange}:{value:string;onChange:(id:string)=>void}){const owners=useContext(OwnerContext);return <select value={value} onChange={e=>onChange(e.target.value)}><option value="">Niet toegewezen</option>{owners.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select>}
+function OwnerSelect({value,onChange}:{value:string;onChange:(id:string)=>void}){const owners=useContext(OwnerContext);return <select aria-label="Verantwoordelijke" value={value} onChange={e=>onChange(e.target.value)}><option value="">Niet toegewezen</option>{owners.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select>}
 function ReloadLatest({busy,onLoad}:{busy:boolean;onLoad:(data:CrmState)=>void}){
  const reload=useContext(ReloadContext),[failure,setFailure]=useState('');
  return <><Button disabled={busy} onClick={async()=>{try{setFailure('');onLoad(await reload())}catch{setFailure('De nieuwste gegevens konden niet worden geladen. Je invoer blijft behouden.')}}}><RefreshCw size={14}/>Nieuwste gegevens laden</Button>{failure&&<Feedback error={failure}/>}</>;

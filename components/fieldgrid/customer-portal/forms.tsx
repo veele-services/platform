@@ -45,7 +45,7 @@ export function CustomerProfileForm({profile,allowed,accountVersion,save}:{profi
  }}>{!source&&<div className="section-heading"><h2>Contact & organisatie</h2></div>}{!allowed&&<p className="form-intro">Je contactpersoon beheert deze gegevens. Je kunt ze hier bekijken.</p>}
   {error&&<p className="form-error" role="alert">{error}</p>}{success&&<p className="notice" role="status"><Check/>Je gegevens zijn opgeslagen.</p>}
   <ProfileFields value={draft} change={value=>{setDraft(value);setErrors({});setSuccess(false);}} email={profile.email} disabled={!allowed||pending} errors={errors}/>
-  {allowed&&<button className="button primary" disabled={pending}><Save/>{pending?"Opslaan…":"Gegevens opslaan"}</button>}
+  {allowed&&<button className={source?"primary-button":"button primary"} disabled={pending}>{!source&&<Save/>}{pending?"Opslaan…":"Gegevens opslaan"}</button>}
  </form>;
  return source?<section className="card card-pad"><h2>Mijn gegevens</h2>{form}</section>:form;
 }
