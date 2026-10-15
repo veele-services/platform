@@ -28,4 +28,6 @@ De P02-modulekaarten gebruiken nu de broniconen en -namen voor planning, rapport
 
 ## Bewijsstatus
 
+De eerste verpakte browsercontroles maakten daadwerkelijk één tenant en uitnodiging aan, maar de daaropvolgende lezing werd onderbroken door een verbroken lokale Supabase-gatewayverbinding (`UND_ERR_SOCKET`). De serverclient herhaalt daarom alleen GET/HEAD bij expliciet herkende transportfouten, maximaal tweemaal. HTTP-weigeringen, mutaties, RPC's, verzending en afgebroken verzoeken worden niet herhaald. Negen gerichte controles verifiëren die grens, inclusief onzekere schrijfuitkomsten en annulering tijdens het wachten. Dit verandert geen autorisatie of transacties.
+
 Provisioning en templates slagen afzonderlijk voor elf native database-/concurrentiecontroles. De beveiligingsadviseur meldt geen nieuwe problemen. Echte browserketens, gepakte runtime, desktop-/tablet-/mobielvergelijkingen en hun precieze beperkingen worden na uitvoering afzonderlijk vastgelegd. Het schermregister blijft tot die tijd open voor P03/P04. De globale autorisatie-inventaris moet vóór promotie nog worden gereconcilieerd; er is geen deployment- of liveacceptatieclaim.
