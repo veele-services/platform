@@ -24,3 +24,7 @@
 .fg-team-audit-note { margin:0;padding:16px;color:var(--brand-muted);font-size:12px; }
 @media(max-width:900px) { .fg-team-rights { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:540px) { .fg-team-rights,.fg-team-fields,.fg-team-choices { grid-template-columns:minmax(0,1fr); }.fg-team-surface { padding:18px; }.fg-team-form { padding:20px; }.fg-team > .unified-page-heading .fg-search { flex:1; } }
+
+.sites-cockpit .fg-team>.resource-table-panel td:nth-child(3),.sites-cockpit .fg-team>.resource-table-panel th:nth-child(3){white-space:nowrap}
+.sites-cockpit .fg-team>.resource-table-panel td:nth-child(3) small{white-space:normal}
+.sites-cockpit .fg-team>.resource-table-panel th>button{min-height:0}
