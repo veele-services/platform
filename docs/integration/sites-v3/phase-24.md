@@ -22,6 +22,8 @@ Vaste instructies en bezoekverzoeken blijven geversioneerde auditregels. De inte
 
 De bron bevat vereenvoudigde object- en bezoekvensters. De bestaande aanvullende object-, verzoek-, voorstel-, rapport-, betaal- en gesprekbediening blijft bereikbaar in het bronframe. Leesrechten worden niet omgezet in schrijfrechten omdat de demo een bewerkbaar veld toont. Kennisbank en updates gebruiken echte route-links binnen dezelfde shell; ze vereisen dezelfde actuele native klantidentiteit en publicatiedoelgroep.
 
+Bij meerdere gekoppelde klanten blijft het expliciet gekozen account via de queryparameter behouden in kennisbank-/updatelinks, deelbare artikellinks, verwante artikelen en terugnavigatie. De server valideert de UUID en laat `getCustomerPortal(account)` de actuele binding controleren. De contextprovider is uitsluitend presentatie; een URL of lokale keuze verleent geen accounttoegang. Andere werkruimten, externe links, bestandsroutes en ankers worden niet herschreven.
+
 ## Bewijsstatus
 
 Lint en TypeScript zijn tijdens implementatie gecontroleerd. Echte klantketens, bekeken vergelijkingsbeelden, native regressies en releasegates zijn nog niet afgerond. Er is nog geen deployment of liveacceptatie voor deze fase.

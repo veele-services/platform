@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
-import Link from "next/link";
+import {CustomerContentLink as Link} from "../customer-portal/context";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Copy, Pencil, Plus, Search } from "lucide-react";
 import { PageHeading } from "../page-heading";

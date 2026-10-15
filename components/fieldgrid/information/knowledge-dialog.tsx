@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useRef,useState} from 'react';
-import Link from 'next/link';
+import {CustomerContentLink as Link} from '../customer-portal/context';
 import {knowledgeArticleSchema,knowledgePaths,type KnowledgeArticle,type KnowledgeWorkspace} from '@/lib/knowledge/model';
 import {SourceNativeDialog} from '../source-native-dialog';
 import {KnowledgeBody,knowledgeHeadings} from '../knowledge/article';
