@@ -1,4 +1,13 @@
 /* Exact Sites 3999c85 declarations; selectors isolated to the authenticated management surface; source fonts use isolated family aliases. */
+/* Source font cascade: app/globals.css */
+@font-face{font-family:'FieldgridSitesInter';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/fieldgrid/inter-latin-400-normal.woff2') format('woff2')}
+@font-face{font-family:'FieldgridSitesInter';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/fieldgrid/inter-latin-500-normal.woff2') format('woff2')}
+@font-face{font-family:'FieldgridSitesInter';font-style:normal;font-weight:600;font-display:swap;src:url('/fonts/fieldgrid/inter-latin-600-normal.woff2') format('woff2')}
+@font-face{font-family:'FieldgridSitesInter';font-style:normal;font-weight:700;font-display:swap;src:url('/fonts/fieldgrid/inter-latin-700-normal.woff2') format('woff2')}
+@font-face{font-family:'FieldgridSitesPoppins';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/fieldgrid/poppins-latin-400-normal.woff2') format('woff2')}
+@font-face{font-family:'FieldgridSitesPoppins';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/fieldgrid/poppins-latin-500-normal.woff2') format('woff2')}
+@font-face{font-family:'FieldgridSitesPoppins';font-style:normal;font-weight:600;font-display:swap;src:url('/fonts/fieldgrid/poppins-latin-600-normal.woff2') format('woff2')}
+@font-face{font-family:'FieldgridSitesPoppins';font-style:normal;font-weight:700;font-display:swap;src:url('/fonts/fieldgrid/poppins-latin-700-normal.woff2') format('woff2')}
 /* Source font cascade: portal-source/staff.css */
 @font-face {
   font-family: "FieldgridSitesInter";

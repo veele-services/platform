@@ -9,7 +9,7 @@ const sourceFonts=css=>css.replace(/\bPoppins\b/g,'FieldgridSitesPoppins').repla
 const root='.sites-cockpit',parts=[];
 // Portals.tsx imports these faces in the source app. Their final cascade also
 // determines the backoffice glyphs; keep that cascade, not only the WOFF files.
-for(const file of['portal-source/staff.css','portal-source/customer-portal.css']){
+for(const file of['app/globals.css','portal-source/staff.css','portal-source/customer-portal.css']){
  const tree=postcss.parse(await readFile(new URL('../design-reference/sites-v3/platform/src/'+file,import.meta.url),'utf8'));
  const faces=[];tree.walkAtRules('font-face',rule=>faces.push(rule.toString()));
  parts.push('/* Source font cascade: '+file+' */\n'+faces.join('\n'));
