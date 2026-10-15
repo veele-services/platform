@@ -28,6 +28,13 @@ test("account guide receipts persist across sessions and never modify another ac
    await assert.rejects(as(second,otherSession,"update public.account_guide_dismissals set user_id=$1",[first]),e=>e.code==="42501");
    await assert.rejects(as(second,otherSession,"insert into public.account_guide_dismissals(user_id,guide_key) values($1,'feature.signature')",[first]),e=>e.code==="42501");
   });
+  await t.test("knowledge and release guides use independent account receipts across devices",async()=>{
+   const keys=["customer.knowledge","customer.updates","staff.knowledge","staff.updates"];
+   for(const key of keys)await dismiss(key,first,nextSession);
+   const receipts=(await state())[0].receipts;
+   for(const key of keys)assert.ok(receipts.includes(key));
+   assert.deepEqual((await state(second,otherSession))[0].receipts,["customer.dashboard"]);
+  });
   await t.test("unknown keys, anonymous/service callers and mismatched, expired, banned or revoked sessions fail closed",async()=>{
    await assert.rejects(dismiss("arbitrary content"),e=>e.code==="23514");
    for(const role of["anon","service_role"])await assert.rejects(dismiss("feature.signature",first,session,role),e=>e.code==="42501");
