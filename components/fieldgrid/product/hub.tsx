@@ -463,7 +463,7 @@ export function ProductHub({
     </>
   );
   return (
-    <div className={sites?'sites-information':'product-hub'}>
+    <div className={sites?'sites-information':platformSites?'product-hub sites-platform-product':'product-hub'}>
       {platformSites && <><PageHeading eyebrow="FIELDGRID PLATFORM" title="Productbeheer" help="Beheer modules, ideeën, roadmap en updates zonder publicatie met beschikbaarheid te verwarren."/><PlatformProductOverview roadmap={lists.roadmap.items} open={(section,id)=>{void openDetail(section,id);}}/></>}
       <ProductManagementControls platform={platformSites}>
       <PageHeading
