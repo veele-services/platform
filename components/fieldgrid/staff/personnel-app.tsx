@@ -379,7 +379,7 @@ function HoursScreen({ data, personnelId, timezone, pending, run, onPlanning }: 
     else setChooseCorrection(true);
   };
   return <>
-    <PageHeading eyebrow="URENREGISTRATIE" title="Mijn uren" help="Werk, reistijd en overige werktijd blijven apart zichtbaar. Pauzes tellen niet mee in het totaal." className="ps-page-heading ps-hours-heading" actions={<button className="ps-secondary" disabled={pending || !canClose} title={closeHint} onClick={() => runDayCommand(`close:${selectedDay}`, { command: "close", workDay: selectedDay, note: null }, "Werkdag afgesloten")}><Square/>{closed ? "Werkdag afgesloten" : "Werkdag afsluiten"}</button>}/>
+    <PageHeading eyebrow="PERSONEEL" title="Mijn uren" help="Werk, reistijd en overige werktijd blijven apart zichtbaar. Pauzes tellen niet mee in het totaal." className="ps-page-heading ps-hours-heading" actions={<button className="ps-secondary" disabled={pending || !canClose} title={closeHint} onClick={() => runDayCommand(`close:${selectedDay}`, { command: "close", workDay: selectedDay, note: null }, "Werkdag afgesloten")}><Square/>{closed ? "Werkdag afgesloten" : "Werkdag afsluiten"}</button>}/>
     <div className="ps-hours-metrics" aria-label="Geregistreerde dagtotalen">
       <section className="ps-panel"><span>Vandaag geregistreerd</span><strong>{staffDuration(totals.paid)}</strong><small>Werk, reistijd en pauze</small></section>
       <section className="ps-panel"><span>Deze week</span><strong>{staffDuration(weekTotal)}</strong><small>{rangeDate(week[0]!)} – {rangeDate(week[6]!)}</small></section>
@@ -539,16 +539,15 @@ function LeaveScreen({ requests, entitlements, timezone, pending, run }: { reque
   const leaveDuration = (minutes: number) => minutes % 60 === 0 ? `${minutes / 60} uur` : staffDuration(minutes);
   const dateLabel = (day: string) => new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`));
   const requestYears = new Set(requests.flatMap(request => [request.starts_on.slice(0, 4), request.ends_on.slice(0, 4)]));
-  return <div className="ps-leave-screen">
-    <PageHeading eyebrow="PERSONEELSZAKEN" title="Verlof" help="Een aanvraag reserveert nog geen verlof. Je ontvangt een melding wanneer je manager een besluit neemt." className="ps-page-heading" actions={<ActionIcon className="ps-primary" label="Verlof aanvragen" icon={<Plus/>} onClick={() => setOpen(true)}/> }/>
-    <div className="ps-stat-grid portal-demo-three" aria-label="Verlofoverzicht"><div className="ps-panel"><small>Beschikbaar saldo</small><strong>{availableMinutes === null ? "Nog niet ingesteld" : leaveDuration(Math.max(0, availableMinutes))}</strong><small>{year}</small></div><div className="ps-panel"><small>Goedgekeurd</small><strong>{leaveDuration(approvedMinutes)}</strong><small>Dit kalenderjaar</small></div><div className="ps-panel"><small>In afwachting</small><strong>{pendingCount}</strong><small>{pendingCount === 1 ? "Aanvraag" : "Aanvragen"}</small></div></div>
+  return <div className="portal-demo-leave">
+    <PageHeading eyebrow="PERSONEEL" title="Verlof" help="Een aanvraag reserveert nog geen verlof. Je ontvangt een melding wanneer je manager een besluit neemt." className="ps-page-heading" actions={<button type="button" className="primary-button" onClick={() => setOpen(true)}><Plus/>Verlof aanvragen</button> }/>
+    <div className="portal-demo-three" aria-label={`Verlofoverzicht ${year}`}><div className="ps-panel"><small>Beschikbaar saldo</small><strong>{availableMinutes === null ? "Nog niet ingesteld" : leaveDuration(Math.max(0, availableMinutes))}</strong></div><div className="ps-panel"><small>Goedgekeurd</small><strong>{leaveDuration(approvedMinutes)}</strong></div><div className="ps-panel"><small>In behandeling</small><strong>{pendingCount}</strong></div></div>
     <section className="ps-panel ps-leave-list" aria-labelledby="ps-leave-list-title">
       <div className="ps-panel-heading"><h2 id="ps-leave-list-title">Mijn aanvragen</h2><span className="ps-leave-year">{requestYears.size > 1 ? "Alle jaren" : [...requestYears][0] ?? year}</span></div>
       {pagination.items.map(request=><article className="portal-demo-listrow" key={request.id}><Umbrella/><span><strong>{leaveLabels[request.leave_type]??request.leave_type}</strong><small>{dateLabel(request.starts_on)} – {dateLabel(request.ends_on)}</small>{(request.approved_minutes??request.requested_minutes)!=null&&<small>{request.status==="approved"?"Goedgekeurd":"Aangevraagd"}: {leaveDuration(request.approved_minutes??request.requested_minutes??0)}</small>}{request.note&&<small>{request.note}</small>}</span><span className="ps-status" data-status={request.status}>{request.status==="pending"?"In behandeling":request.status==="approved"?"Goedgekeurd":request.status==="rejected"?"Afgewezen":"Ingetrokken"}</span>{request.status==="pending"&&<button type="button" className="ps-text-button" disabled={pending} onClick={()=>withdraw(request)}>Intrekken</button>}</article>)}
       {!requests.length && <EmptyState title="Nog geen verlofaanvragen" description="Je aanvragen en besluiten verschijnen hier."/>}
     </section>
     <ListPagination total={pagination.total} page={pagination.page} pageSize={pagination.pageSize} onPageChange={pagination.setPage} onPageSizeChange={pagination.setPageSize} noun="aanvragen" busy={pending} preferenceKey="staff:leave"/>
-    <p className="ps-hours-info"><Info/><span>Een aanvraag reserveert nog geen verlof. Je ontvangt een melding zodra je manager een besluit heeft genomen.</span></p>
     {open && <Dialog title="Verlof aanvragen" kicker="PERSONEELSZAKEN" close={close} footer={<><button type="button" className="ps-secondary" onClick={close}>Annuleren</button><button type="submit" form="staff-leave-request" className="ps-primary" disabled={pending}>Aanvraag indienen</button></>}><form id="staff-leave-request" className="ps-form" onChange={() => { createKey.current = null; }} onSubmit={submit}><label className="ps-field">Type<select name="leaveType" required><option value="vacation">Vakantie</option><option value="short">Kort verlof</option><option value="care">Zorgverlof</option><option value="unpaid">Onbetaald verlof</option><option value="other">Anders</option></select></label><div className="ps-form-grid"><label className="ps-field">Vanaf<input type="date" name="startsOn" required/></label><label className="ps-field">Tot en met<input type="date" name="endsOn" required/></label></div><label className="ps-field">Toelichting<textarea name="note" rows={4} maxLength={1000}/></label></form></Dialog>}
   </div>;
 }
@@ -588,7 +587,7 @@ function AvailabilityScreen({ profile, pending, run, onLeave }: { profile: Staff
     }, "Beschikbaarheid opgeslagen");
   };
   return <div className="ps-availability-screen">
-    <PageHeading eyebrow="PERSONEELSZAKEN" title="Beschikbaarheid" help="Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan." className="ps-page-heading"/>
+    <PageHeading eyebrow="PERSONEEL" title="Beschikbaarheid" help="Je beschikbaarheid helpt de planning. Een wijziging past bestaande afspraken niet automatisch aan." className="ps-page-heading"/>
     <div className="ps-availability-grid">
       <section className="ps-panel ps-availability-week" aria-labelledby="ps-availability-title"><form onSubmit={submit}>
         <div className="ps-panel-heading"><h2 id="ps-availability-title">Mijn vaste week</h2><span className="ps-status" data-status={enabled ? "approved" : "managed"}>{enabled ? "Vrijgegeven voor bewerken" : "Beheerd door planning"}</span></div>
@@ -705,7 +704,7 @@ function SettingsScreen({ profile, email, tenantName, notificationPreferences, p
     }, "Meldingsvoorkeuren opgeslagen");
   };
   return <div className="ps-settings-screen">
-    <PageHeading eyebrow="MIJN ACCOUNT" title={title} help="Beheer je persoonlijke voorkeuren. Je e-mailadres wordt beheerd door personeelszaken." className="ps-page-heading"/>
+    <PageHeading eyebrow="PERSONEEL" title={title} help="Beheer je persoonlijke voorkeuren. Je e-mailadres wordt beheerd door personeelszaken." className="ps-page-heading"/>
     <ContentTabs label="Instellingenonderdelen" value={section} onValueChange={value => setSection(value as typeof section)} tabs={[
       {id:"profile",title:"Mijn profiel",content:<section className="ps-panel ps-settings-profile" aria-label="Mijn profiel">
         <form className="portal-demo-form" onSubmit={saveContact}>
