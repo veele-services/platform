@@ -7,31 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       account_guide_dismissals: {
@@ -8145,6 +8120,16 @@ export type Database = {
         Args: { kind: string; record_id: string; target_tenant: string }
         Returns: Json
       }
+      cockpit_evidence_options: {
+        Args: {
+          search?: string
+          selected_evidence?: string
+          source_id: string
+          source_kind: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
       cockpit_followup: { Args: { target_tenant: string }; Returns: Json }
       cockpit_followup_command: {
         Args: {
@@ -8155,6 +8140,25 @@ export type Database = {
         }
         Returns: Json
       }
+      cockpit_governance_command: {
+        Args: {
+          command: string
+          input: Json
+          module: string
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_governance_query: {
+        Args: { module: string; payload?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_governance_upload_allowed: {
+        Args: { source_id: string; source_kind: string; target_tenant: string }
+        Returns: boolean
+      }
+      cockpit_maintenance: { Args: { batch_size?: number }; Returns: number }
       commercial_booking: {
         Args: { command_id: string; input: Json; target_tenant: string }
         Returns: Json
@@ -10403,9 +10407,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: [

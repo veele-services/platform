@@ -1,0 +1,16 @@
+▶ Management governance: real concurrent transactions and authority after lock waits
+  ✔ simultaneous publication retries create one signed-off version and action (128.61212ms)
+  ✔ competing revisions have one winner without a partial draft or duplicate version (126.400154ms)
+  ✔ source revocation while publication waits for the linked action rolls back the entire revision (101.35093ms)
+  ✔ a proposed owner banned while the action row is locked cannot receive a published revision (94.651041ms)
+  ✔ requirement editing and Control Center assignment share canonical lock order and current revisions (330.945443ms)
+  ✔ session revocation while waiting for the requirement row prevents mutation (50.721871ms)
+✔ Management governance: real concurrent transactions and authority after lock waits (1990.776376ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2065.056063

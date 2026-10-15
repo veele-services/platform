@@ -17,6 +17,8 @@ import "./travel.css";
 import "./commercial.css";
 import "@/components/fieldgrid/backoffice-portal.css";
 import "@/components/fieldgrid/shell-chrome.css";
+import "@/components/fieldgrid/content-tabs.css";
+import "@/components/fieldgrid/heading-help-tip.css";
 import "./dashboard-system.css";
 import "@/components/fieldgrid/management-cockpit/presentation.css";
 

@@ -10,7 +10,7 @@ import { z } from "zod";
 import { getAuthContext, hasAnyRole, type AppRole, type AuthContext, type TenantContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { uploadScannedFile } from "@/lib/files/scanned-storage";
+import { uploadScannedFile,scannedUploadMatches } from "@/lib/files/scanned-storage";
 import type { ActionResult } from "@/lib/actions/result";
 import { message } from "@/lib/actions/result";
 import { validateDossierDocumentName, CUSTOMER_DOCUMENT_MAX_BYTES, customerDocumentExtension, customerDocumentFileName } from "@/lib/customers/documents";
@@ -488,9 +488,9 @@ export async function uploadCustomerDocument(formData: FormData): Promise<Action
     const path = `${context.tenant.id}/${customer.id}/${randomBytes(16).toString("hex")}.${extension}`;
     const bucket = createAdminClient().storage.from("customer-documents");
     if(input.requestId){
-      const existing=await supabase.from("customer_documents").select("id,created_by,customer_id,sha256,title,previous_id").eq("tenant_id",context.tenant.id).eq("id",input.requestId).maybeSingle();
+      const existing=await supabase.from("customer_documents").select("id,created_by,customer_id,sha256,title,previous_id,storage_path,category,document_on,valid_until,file_name,mime_type,size_bytes").eq("tenant_id",context.tenant.id).eq("id",input.requestId).maybeSingle();
       if(existing.error)throw existing.error;
-      if(existing.data){if(existing.data.created_by!==context.user.id||existing.data.customer_id!==customer.id||existing.data.sha256!==createHash("sha256").update(bytes).digest("hex")||existing.data.title!==input.title||existing.data.previous_id!==(input.previousId||null))throw new Error("Deze uploadpoging is al gebruikt. Open een nieuw uploadvenster.");return {ok:true};}
+      if(existing.data){if(existing.data.created_by!==context.user.id||existing.data.customer_id!==customer.id||existing.data.sha256!==createHash("sha256").update(bytes).digest("hex")||existing.data.title!==input.title||existing.data.previous_id!==(input.previousId||null)||existing.data.category!==input.category||existing.data.document_on!==(input.documentOn||null)||existing.data.valid_until!==(input.validUntil||null)||existing.data.file_name!==customerDocumentFileName(file.name)||existing.data.mime_type!==file.type||existing.data.size_bytes!==file.size||!await scannedUploadMatches("customer-documents",existing.data.storage_path,bytes,file.type))throw new Error("Deze uploadpoging is al gebruikt. Open een nieuw uploadvenster.");return {ok:true};}
     }
     await uploadScannedFile(supabase, "customer-documents", path, bytes, file.type);
     const { error } = await supabase.from("customer_documents").insert({

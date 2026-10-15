@@ -9,6 +9,7 @@ import { prepareNotificationEvent, prepareCrmNotifications, processNotificationD
 import { processDeferredMail } from "@/lib/notifications/deferred-mail";
 import { cleanupTicketUploads, processTicketScans } from "@/lib/tickets/scan-worker";
 import { ticketRpc } from "@/lib/tickets/rpc";
+import { processManagementSignals } from "@/lib/management-cockpit/worker";
 import { ticketWorkerHealthy } from "@/lib/tickets/worker-health";
 
 function secretMatches(header: string | null, expected: string | undefined) {
@@ -35,6 +36,7 @@ export async function POST(request:Request){
  const dossier=await processDossierReminders();
  const objectReminders=await admin.rpc("process_object_reminders");if(objectReminders.error)throw new Error("Objectherinneringen konden niet worden verwerkt.");
  const customerReminders=await admin.rpc("process_customer_reminders");if(customerReminders.error)throw new Error("Klantherinneringen konden niet worden verwerkt.");
+ const managementSignals=await processManagementSignals();
  const expiredSignatureUploads=await cleanupExpiredSignatureUploads();
  const ticketDeadlines=await ticketRpc(admin,"process_ticket_deadlines",{});
  // Only historical ticket rows remain here. New ticket fanout is central.
@@ -43,7 +45,7 @@ export async function POST(request:Request){
  const notificationDeliveries=await processNotificationDeliveries();
  const deferredMail=await processDeferredMail();
  const ticketScans=await processTicketScans();const expiredTicketUploads=await cleanupTicketUploads();
- const outcome={claimed:data?.length??0,sent,failed,livePlanning:livePlanning.data,dossier,objectReminders:objectReminders.data,customerReminders:customerReminders.data,expiredSignatureUploads,ticketDeadlines,ticketDeliveries,crmNotifications,notificationDeliveries,deferredMail,ticketScans,expiredTicketUploads};
+ const outcome={claimed:data?.length??0,sent,failed,livePlanning:livePlanning.data,dossier,objectReminders:objectReminders.data,customerReminders:customerReminders.data,managementSignals,expiredSignatureUploads,ticketDeadlines,ticketDeliveries,crmNotifications,notificationDeliveries,deferredMail,ticketScans,expiredTicketUploads};
  const healthy=ticketWorkerHealthy(outcome)&&notificationDeliveries.failed===0&&notificationDeliveries.uncertain===0&&deferredMail.failed===0;
  return NextResponse.json({status:healthy?"ok":"degraded",...outcome},{status:healthy?200:503,headers:{"cache-control":"no-store"}});
 }

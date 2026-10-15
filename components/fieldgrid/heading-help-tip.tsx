@@ -1,7 +1,6 @@
 "use client";
 import {useId,useState,type ReactNode} from 'react';
 import {CircleHelp} from 'lucide-react';
-import './heading-help-tip.css';
 /** Sites heading help; associated tooltip and Escape keep touch/keyboard access. */
 export function HeadingHelpTip({label,children}:{label:string;children:ReactNode}){
  const[open,setOpen]=useState(false),[offset,setOffset]=useState(0),id=useId();

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { uploadScannedFile } from "@/lib/files/scanned-storage";
+import { uploadScannedFile,scannedUploadMatches } from "@/lib/files/scanned-storage";
 import type { Json } from "@/lib/database.types";
 import type { ActionResult } from "@/lib/actions/result";
 import { canReadDossier, recordKinds, validateDossierInput, recordDeadline, privacyText, type RecordKind } from "@/lib/personnel/dossier";
@@ -194,17 +194,19 @@ export async function saveDossierRecord(form:FormData):Promise<ActionResult<{id:
 
 export async function uploadDossierDocument(form:FormData):Promise<ActionResult> {
  try {
-  const input=z.object({personnelId:z.string().uuid(),title:z.string().trim().min(2).max(160),category:z.enum(["contract","addendum","certificate","review","training","instruction","asset","notice"]),previousId:z.string().uuid().or(z.literal("")),relatedId:z.string().uuid().or(z.literal("")).default(""),documentDate:z.string().date().or(z.literal("")),expiresOn:z.string().date().or(z.literal("")).default(""),retention:z.string().max(500),privacyConfirmed:z.literal("on")}).parse(Object.fromEntries(form));
+  const input=z.object({personnelId:z.string().uuid(),requestId:z.uuid().optional(),title:z.string().trim().min(2).max(160),category:z.enum(["contract","addendum","certificate","review","training","instruction","asset","notice"]),previousId:z.string().uuid().or(z.literal("")),relatedId:z.string().uuid().or(z.literal("")).default(""),documentDate:z.string().date().or(z.literal("")),expiresOn:z.string().date().or(z.literal("")).default(""),retention:z.string().max(500),privacyConfirmed:z.literal("on")}).parse(Object.fromEntries(form));
   const {db,tenant,context,person}=await authorize(input.personnelId);
   const file=form.get("document");if(!(file instanceof File)||!file.size)throw new Error("Selecteer een bestand.");
   privacyText(`${input.title} ${file.name}`);if(/\bVOG\b|verklaring.omtrent.gedrag|medisch|paspoort/i.test(`${input.title} ${file.name}`))throw new Error("VOG, identiteitskopieën en medische bestanden horen niet in dit dossier.");
   const bytes=new Uint8Array(await file.arrayBuffer());const extension=customerDocumentExtension(file.type,bytes);
+  if(input.requestId){const existing=await db.from("personnel_documents").select("created_by,personnel_id,title,document_type,sha256,previous_id,dossier_data,storage_path,file_name,mime_type,size_bytes").eq("tenant_id",tenant.id).eq("id",input.requestId).maybeSingle();if(existing.error)throw existing.error;if(existing.data){const d=existing.data,data=d.dossier_data as Record<string,unknown>;if(d.created_by!==context.user.id||d.personnel_id!==person.id||d.title!==input.title||d.document_type!==input.category||d.sha256!==createHash("sha256").update(bytes).digest("hex")||d.previous_id!==(input.previousId||null)||d.file_name!==customerDocumentFileName(file.name)||d.mime_type!==file.type||d.size_bytes!==file.size||data.expiresOn!==input.expiresOn||data.documentDate!==input.documentDate||data.retention!==(input.retention||"Nog te beoordelen")||!await scannedUploadMatches("personnel-documents",d.storage_path,bytes,file.type))throw new Error("Deze uploadpoging hoort bij andere gegevens. Open een nieuw uploadvenster.");if(input.relatedId){const link=await db.from("personnel_contracts").select("dossier_data").eq("tenant_id",tenant.id).eq("personnel_id",person.id).eq("id",input.relatedId).maybeSingle();const ids=(link.data?.dossier_data as Record<string,unknown>|undefined)?.document_ids;if(!Array.isArray(ids)||!ids.includes(input.requestId))throw new Error("Document opgeslagen; de overeenkomstkoppeling is nog niet bevestigd. Koppel het document via Bewerken.");}return {ok:true};}}
+
   let version=1;
   if(input.previousId){const {data:previous}=await db.from("personnel_documents").select("version").eq("tenant_id",tenant.id).eq("personnel_id",person.id).eq("id",input.previousId).single();if(!previous)throw new Error("Vorige versie niet gevonden.");version=previous.version+1;}
   const path=`${tenant.id}/${person.id}/${randomBytes(16).toString("hex")}.${extension}`;
   const bucket=createAdminClient().storage.from("personnel-documents");
   await uploadScannedFile(db,"personnel-documents",path,bytes,file.type);
-  const {data:document,error}=await db.from("personnel_documents").insert({tenant_id:tenant.id,personnel_id:person.id,title:input.title,document_type:input.category,storage_path:path,file_name:customerDocumentFileName(file.name),mime_type:file.type,size_bytes:file.size,sha256:createHash("sha256").update(bytes).digest("hex"),created_by:context.user.id,version,previous_id:input.previousId||null,dossier_managed:true,dossier_status:"stored",visible_to_employee:false,dossier_data:{documentDate:input.documentDate,expiresOn:input.expiresOn,retention:input.retention||"Nog te beoordelen",classification:"Vertrouwelijk HR",malwareScan:"Gecontroleerd met ClamAV"}}).select("id").single();
+  const {data:document,error}=await db.from("personnel_documents").insert({id:input.requestId,tenant_id:tenant.id,personnel_id:person.id,title:input.title,document_type:input.category,storage_path:path,file_name:customerDocumentFileName(file.name),mime_type:file.type,size_bytes:file.size,sha256:createHash("sha256").update(bytes).digest("hex"),created_by:context.user.id,version,previous_id:input.previousId||null,dossier_managed:true,dossier_status:"stored",visible_to_employee:false,dossier_data:{documentDate:input.documentDate,expiresOn:input.expiresOn,retention:input.retention||"Nog te beoordelen",classification:"Vertrouwelijk HR",malwareScan:"Gecontroleerd met ClamAV"}}).select("id").single();
   if(error){await bucket.remove([path]);throw new Error("Documentregistratie is niet gelukt.");}
   if(input.relatedId){
    const {data:contract}=await db.from("personnel_contracts").select("dossier_data,dossier_revision").eq("tenant_id",tenant.id).eq("personnel_id",person.id).eq("id",input.relatedId).single();

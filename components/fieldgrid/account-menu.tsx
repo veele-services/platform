@@ -6,7 +6,6 @@ import { Bell, LogOut, Settings, UserRound } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useTenantTheme } from "./tenant-theme";
-import "./shell-chrome.css";
 
 export const accountInitials = (name: string) => name.trim().split(/\s+/).filter(Boolean).map(part => part[0]).join("").slice(0, 2).toUpperCase() || "FG";
 

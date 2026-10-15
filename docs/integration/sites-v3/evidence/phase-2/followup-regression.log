@@ -1,0 +1,22 @@
+▶ Management cockpit: concurrent commits and rights revoked while waiting
+  ✔ simultaneous retries create one action, event and receipt (43.510259ms)
+  ✔ one revision cannot be overwritten by two simultaneous commands (76.117618ms)
+  ✔ permission revocation rejects a waiting idempotent receipt replay (78.34555ms)
+  ✔ session revocation rejects a command already waiting for the action row (52.050812ms)
+✔ Management cockpit: concurrent commits and rights revoked while waiting (1450.269034ms)
+▶ Management cockpit preserves source authority, deadlines and tenant/HR boundaries
+  ✔ fresh management only, no portal/cross-tenant access or direct private-table grants (207.967249ms)
+  ✔ new action is committed once and points to an authorized real source (168.279814ms)
+  ✔ assign, snooze, complete and reopen preserve the original deadline and immutable events (540.716463ms)
+  ✔ source assignments update the actual dossier owner without faking execution or changing its deadline (375.314813ms)
+  ✔ HR action metadata stays protected independently of general follow-up access (391.416487ms)
+  ✔ source, function and session revocation remove the same existing action (106.197703ms)
+✔ Management cockpit preserves source authority, deadlines and tenant/HR boundaries (3018.561657ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3094.211096

@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
-import "./content-tabs.css";
 
 /** Keep panels mounted so changing tabs preserves unsaved form inputs. */
 export function ContentTabs({ label, tabs, value, onValueChange }: { label: string; value?: string; onValueChange?: (value: string) => void; tabs: Array<{ id: string; title: string; content: ReactNode }> }) {

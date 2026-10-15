@@ -1,5 +1,5 @@
 "use server";
-import { uploadScannedFile } from "@/lib/files/scanned-storage";
+import { uploadScannedFile,scannedUploadMatches } from "@/lib/files/scanned-storage";
 
 import { addressFromForm } from "@/lib/addresses/form";
 import { randomUUID } from "node:crypto";
@@ -68,15 +68,17 @@ export async function saveObjectRequirement(form:FormData):Promise<ActionResult>
 }
 export async function uploadObjectDocument(form:FormData):Promise<ActionResult>{
  try{
- const v=z.object({objectId:z.string().uuid(),title:z.string().trim().min(2).max(180),category:z.enum(["instruction","floorplan","report","agreement","photo","other","security"]),nodeId:optionalId,recordId:optionalId,orderId:optionalId,previousId:optionalId,validUntil:z.string().date().or(z.literal("")),service:z.string().max(100)}).parse(Object.fromEntries(form));
+ const v=z.object({objectId:z.string().uuid(),requestId:z.uuid().optional(),title:z.string().trim().min(2).max(180),category:z.enum(["instruction","floorplan","report","agreement","photo","other","security"]),nodeId:optionalId,recordId:optionalId,orderId:optionalId,previousId:optionalId,validUntil:z.string().date().or(z.literal("")),service:z.string().max(100)}).parse(Object.fromEntries(form));
  const {db,tenant,context}=await authorize(v.objectId);if(v.category==="security"&&!tenant.roles.some(r=>["tenant_admin","management"].includes(r)))return fail();
  const file=form.get("document");if(!(file instanceof File)||file.size<1||file.size>CUSTOMER_DOCUMENT_MAX_BYTES)return fail();
  validateDossierDocumentName(v.title,file.name);
- const bytes=new Uint8Array(await file.arrayBuffer());const ext=customerDocumentExtension(file.type,bytes);const path=`${tenant.id}/${v.objectId}/${randomUUID()}.${ext}`;
+ const bytes=new Uint8Array(await file.arrayBuffer());
+ if(v.requestId){const existing=await db.from("object_documents").select("id,created_by,object_id,title,category,storage_path,valid_until,previous_id,node_id,record_id,work_order_id,service,file_name,mime_type,size_bytes").eq("tenant_id",tenant.id).eq("id",v.requestId).maybeSingle();if(existing.error)return fail();if(existing.data){const d=existing.data;if(d.created_by!==context.user.id||d.object_id!==v.objectId||d.title!==v.title||d.category!==v.category||d.valid_until!==(v.validUntil||null)||d.previous_id!==(v.previousId||null)||d.node_id!==(v.nodeId||null)||d.record_id!==(v.recordId||null)||d.work_order_id!==(v.orderId||null)||d.service!==v.service||d.file_name!==customerDocumentFileName(file.name)||d.mime_type!==file.type||d.size_bytes!==file.size||!await scannedUploadMatches("object-documents",d.storage_path,bytes,file.type))return fail();return {ok:true};}}
+ const ext=customerDocumentExtension(file.type,bytes);const path=`${tenant.id}/${v.objectId}/${randomUUID()}.${ext}`;
  let version=1;
  if(v.previousId){const r=await db.from("object_documents").select("version,category").eq("tenant_id",tenant.id).eq("object_id",v.objectId).eq("id",v.previousId).single();if(!r.data||r.data.category==="security"&&v.category!=="security")return fail();version=r.data.version+1;}
  const admin=createAdminClient();const bucket=admin.storage.from("object-documents");await uploadScannedFile(db,"object-documents",path,bytes,file.type);
- const r=await db.from("object_documents").insert({tenant_id:tenant.id,object_id:v.objectId,title:v.title,category:v.category,node_id:v.nodeId||null,record_id:v.recordId||null,work_order_id:v.orderId||null,previous_id:v.previousId||null,version,valid_until:v.validUntil||null,service:v.service,storage_path:path,mime_type:file.type,file_name:customerDocumentFileName(file.name),size_bytes:file.size,created_by:context.user.id});
+ const r=await db.from("object_documents").insert({id:v.requestId,tenant_id:tenant.id,object_id:v.objectId,title:v.title,category:v.category,node_id:v.nodeId||null,record_id:v.recordId||null,work_order_id:v.orderId||null,previous_id:v.previousId||null,version,valid_until:v.validUntil||null,service:v.service,storage_path:path,mime_type:file.type,file_name:customerDocumentFileName(file.name),size_bytes:file.size,created_by:context.user.id});
  if(r.error){await bucket.remove([path]);return fail();}refresh(v.objectId);return {ok:true};}catch{return fail();}
 }
 export async function objectRecordVersions(objectId:string,sourceId:string):Promise<ActionResult<{versions:Json[]}>>{

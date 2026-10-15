@@ -16,7 +16,7 @@
         "Beide CTA's, perspectieftabs, demo, onboardingchecklist, FAQ en alle cards werken; plaatsing van de twee verplaatste secties exact controleren."
       ],
       "route": "https://www.fieldgrid.nl/",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -34,7 +34,7 @@
         "Alle zeven branchecards openen het juiste detail; geen oude conceptkeuze."
       ],
       "route": "https://www.fieldgrid.nl/branches",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -52,7 +52,7 @@
         "Breadcrumbs, relevante productlinks en beide conversieroutes werken; eigen titel/description."
       ],
       "route": "https://www.fieldgrid.nl/branches/schoonmaak",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -70,7 +70,7 @@
         "Geen gekopieerde schoonmaaktekst of verkeerde gerelateerde links; formulierbestemmingen werken."
       ],
       "route": "https://www.fieldgrid.nl/branches/glasbewassing",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -88,7 +88,7 @@
         "Correcte sectorselectie/content en metadata; volledige template zichtbaar."
       ],
       "route": "https://www.fieldgrid.nl/branches/facilitair",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -106,7 +106,7 @@
         "Links en CTA's werken; geen aanvullende onbewezen productclaims."
       ],
       "route": "https://www.fieldgrid.nl/branches/groenonderhoud",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -124,7 +124,7 @@
         "Eigen metadata, gerelateerde producten, leesbare mobiele content."
       ],
       "route": "https://www.fieldgrid.nl/branches/vastgoedservice",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -142,7 +142,7 @@
         "Afspraken-CTA werkt; sectorspecifieke functies niet als reeds gebouwd presenteren."
       ],
       "route": "https://www.fieldgrid.nl/branches/beveiliging",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -160,7 +160,7 @@
         "Ontwikkelstatus zichtbaar houden, ook in menu/context; juiste contactbestemming."
       ],
       "route": "https://www.fieldgrid.nl/branches/evenementen",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -178,7 +178,7 @@
         "Anoniem bereikbaar op www; links naar de zeven productdetails, geen privédashboard."
       ],
       "route": "https://www.fieldgrid.nl/platform",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -196,7 +196,7 @@
         "Directe route/refresh, demo-interactie, gerelateerde product- en CTA-links."
       ],
       "route": "https://www.fieldgrid.nl/platform/planning",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -214,7 +214,7 @@
         "Juiste content en productdemo; niets schrijft vanuit de publieke demo naar echte werkbonnen."
       ],
       "route": "https://www.fieldgrid.nl/platform/werkbonnen",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -232,7 +232,7 @@
         "Eigen content en links, behoud de in de copy beschreven functionele grenzen."
       ],
       "route": "https://www.fieldgrid.nl/platform/objecten",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -250,7 +250,7 @@
         "Mobiele presentatie, CTA's en gerelateerde onboarding-/werkboninformatie."
       ],
       "route": "https://www.fieldgrid.nl/platform/personeelsapp",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -268,7 +268,7 @@
         "Eigen demo en links; publieke visual is geen toegang tot klantdata."
       ],
       "route": "https://www.fieldgrid.nl/platform/klantportaal",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -286,7 +286,7 @@
         "Complete content/FAQ en koppeling naar personeelsapp; geen fictieve accountactivatie."
       ],
       "route": "https://www.fieldgrid.nl/platform/onboarding",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -304,7 +304,7 @@
         "Behoud bestaande productnuances; CTA's en breadcrumbs werken."
       ],
       "route": "https://www.fieldgrid.nl/platform/offertes-facturatie",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -322,7 +322,7 @@
         "Volledige stappen en gerelateerde links; beide vervolgroutes beschikbaar."
       ],
       "route": "https://www.fieldgrid.nl/werkwijze",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -340,7 +340,7 @@
         "Eigen metadata; werkende contact-/vervolglinks, geen lege placeholdertekst."
       ],
       "route": "https://www.fieldgrid.nl/over",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -358,7 +358,7 @@
         "Tabwissel en voorbeeldinteracties werken; persoonlijke demo gaat naar `/afspraak?type=demo`."
       ],
       "route": "https://www.fieldgrid.nl/demo",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -376,7 +376,7 @@
         "Valideren, teruggaan met behoud invoer, werkelijk registreren in CRM; na succes een aanvraag bevestigen, geen niet-bestaand proefaccount."
       ],
       "route": "https://www.fieldgrid.nl/proberen",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -394,7 +394,7 @@
         "Uitsluitend telefonisch, 30 minuten; telefoon verplicht. Live slots, fout/lege/loading states, 409-herstel en receipt; query kiest Productdemo vooraf."
       ],
       "route": "https://www.fieldgrid.nl/afspraak",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -429,7 +429,7 @@
         "Elke menu-, footer- en onderliggende link heeft een concrete bestemming. Toetsenbord en mobiel blijven bruikbaar."
       ],
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -446,7 +446,7 @@
         "Controleer iedere voorkomende CTA, niet alleen de hero. Een persoonlijke demo kiest het juiste querytype."
       ],
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -463,7 +463,7 @@
         "Selectiestatus, inhoud en toetsenbordpijlen volgen dezelfde keuze; demo blijft veilig demonstratief."
       ],
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -480,7 +480,7 @@
         "Voortgang reageert op de checklist; FAQ opent/sluit; reduced motion laat alle inhoud leesbaar."
       ],
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -497,7 +497,7 @@
         "Geen weggelaten secties of generieke vultekst; broncopy en beeldcrops per record behouden."
       ],
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -514,7 +514,7 @@
         "Ook onderliggende oude paden testen; onbekend pad echte 404 met werkende terugweg. Geen oude designs opnieuw activeren."
       ],
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -531,7 +531,7 @@
         "Productie-origin www; sitemap toevoegen; uitsluitend productie indexeerbaar. Sites-origin/preview-noindex niet onbedoeld meenemen naar live."
       ],
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -548,7 +548,7 @@
         "Successcreen pas na echte commit. Geen afspraak of account automatisch verzinnen. Aanvraag staat daarna in CRM en overzicht."
       ],
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -570,7 +570,7 @@
         "Afspraak en demo afzonderlijk controleren; geen video-optie of achtergebleven video-validatie; server weigert ontbrekende telefoon."
       ],
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -592,7 +592,7 @@
         "Datumwijziging verwijdert oude selectie; stale responses overschrijven geen nieuwe datum; fout/geen slots/opnieuw laden zijn bruikbaar."
       ],
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -614,7 +614,7 @@
         "Eén aanvraag/afspraak/taak/delivery bij dezelfde poging; formulierinvoer blijft bewaard; geen schijnsucces bij onzekere response."
       ],
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -636,7 +636,7 @@
         "Een latere wijziging in het leaddossier overschrijft eerder ontvangen contact-/aanvraaggegevens niet."
       ],
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -658,7 +658,7 @@
         "Concurrente/overlappende reserveringen, zomertijd en wintertijd controleren; één geldig slot kan niet dubbel worden verkocht."
       ],
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -680,7 +680,7 @@
         "Geen nieuw CRM-adresveld, geen providerkey in browser, geen willekeurige eerste Auth-user. Platformmelding zonder klanttenant correct door centrale deliveryketen."
       ],
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -702,7 +702,7 @@
         "Intake blijft bewaard bij mailfout. `accepted` is geen bezorgbewijs; retry is beleidsmatig veilig en dupliceert niet blind."
       ],
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -1328,7 +1328,7 @@
         "Eén gedeelde actie-/dossierregistratie met audit en revisiecontrole; bronwijziging en cockpit blijven consistent."
       ],
       "route": "tenant: /app/opvolging",
-      "implementation": "implemented; runtime commit pending",
+      "implementation": "implemented; runtime d912acff; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -1388,12 +1388,18 @@
         "`P/src/Governance.tsx` → `DecisionsView`; concept/vaststellen/herzien, toegangsscope, bron, motivering en vervolgactie",
         "Dossierautoriteit, versiehistorie, beperkte scopes en echte gekoppelde opvolging."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/app/besluiten",
+      "implementation": "implemented in phase-2 changeset; final release gates pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-2.md",
+        "evidence/phase-2/governance-db.log",
+        "evidence/phase-2/governance-concurrency.log",
+        "evidence/phase-2/result.json",
+        "evidence/phase-2/source-comparison.json"
+      ]
     },
     {
       "id": "T13",
@@ -1402,12 +1408,18 @@
         "`P/src/Governance.tsx` → `ComplianceView`; eis, bewijs, verloopdatum, eigenaar, beoordeling en afgeschermde dossierstate",
         "Echte private bestanden en serverrechten; een ingevulde bestandsnaam is geen upload."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/app/compliance",
+      "implementation": "implemented in phase-2 changeset; final release gates pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-2.md",
+        "evidence/phase-2/governance-db.log",
+        "evidence/phase-2/governance-concurrency.log",
+        "evidence/phase-2/result.json",
+        "evidence/phase-2/source-comparison.json"
+      ]
     },
     {
       "id": "T14",

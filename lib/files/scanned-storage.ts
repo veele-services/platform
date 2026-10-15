@@ -36,6 +36,13 @@ async function state(admin: ReturnType<typeof createAdminClient>, bucket: string
   if (result.error) throw unavailable();
   return result.data as State | null;
 }
+/** A retry may reuse only its already registered, still scanned immutable bytes.
+ * The caller must first reauthorize and match the original dossier metadata. */
+export async function scannedUploadMatches(bucket:string,path:string,bytes:Uint8Array,mime:string){
+ location(bucket,path);shape(bytes,mime);
+ const current=await state(createAdminClient(),bucket,path);
+ return !!current&&current.sha256===digest(bytes)&&current.size===bytes.length&&current.mime===mime;
+}
 async function attest(admin: ReturnType<typeof createAdminClient>, bucket: string, path: string, current: State, bytes: Uint8Array, mime: string, scan: ScanResult) {
   const result = await admin.rpc("file_scan_attest", { target_bucket: bucket, target_path: path, expected_id: current.id, expected_version: current.version,
     proof: { sha256: digest(bytes), size: bytes.length, mime, engine: scan.engine, databaseVersion: scan.databaseVersion, databaseAt: scan.databaseAt } });

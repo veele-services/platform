@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen, Archive, ArrowDownAZ, Bell, BriefcaseBusiness, Building2, CalendarDays, ChevronRight, ClipboardCheck,
   Clock3, CreditCard, FileText, LayoutDashboard, Megaphone,
-  Menu, PackageCheck, Settings, ClipboardList,
+  Menu, PackageCheck, Settings, ClipboardList, MessageSquareText, FileCheck2,
   UsersRound, Wrench,X, Plus, Eye,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
@@ -47,7 +47,7 @@ import {
 
 } from "@/app/(workspace)/app/operations-actions";
 
-export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging" | "meldingen" | "support" | "notificaties" | "gebruikers" | "updates" | "kennisbank";
+export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging" | "meldingen" | "support" | "notificaties" | "gebruikers" | "updates" | "kennisbank" | "besluiten" | "compliance";
 
 const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboard; href: string }> = [
   { id: "overzicht", label: "Overzicht", icon: LayoutDashboard, href: "/app" },
@@ -62,6 +62,8 @@ const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboa
   { id: "facturen", label: "Facturen", icon: CreditCard, href: "/app/facturen" },
   { id: "nieuws", label: "Nieuws", icon: Megaphone, href: "/app/nieuws" },
   { id: "opvolging", label: "Control Center", icon: ClipboardList, href: "/app/opvolging" },
+  { id: "besluiten", label: "Beslisnotities", icon: MessageSquareText, href: "/app/besluiten" },
+  { id: "compliance", label: "Documenten & compliance", icon: FileCheck2, href: "/app/compliance" },
   { id: "kennisbank", label: "Kennisbank", icon: BookOpen, href: "/app/kennisbank" },
   { id: "updates", label: "Roadmap & updates", icon: Megaphone, href: "/app/updates" },
   { id: "gebruikers", label: "Gebruikers en rollen", icon: UsersRound, href: "/app/gebruikers" },
@@ -74,10 +76,10 @@ const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboa
 const serviceByView: Partial<Record<BackofficeView, string>> = {
   aanvragen: "planning", planning: "planning", werkbonnen: "planning", taken: "planning",
   klanten: "planning", objecten: "planning", personeel: "personeel", nieuws: "personeel",
-  controle: "rapportage", facturen: "finance",
+  controle: "rapportage", facturen: "finance", compliance: "rapportage",
 };
 
-const managementViews: BackofficeView[] = ["opvolging"];
+const managementViews: BackofficeView[] = ["opvolging","besluiten","compliance"];
 const organisationViews: BackofficeView[] = ["kennisbank","nieuws", "instellingen", "gebruikers", "updates"];
 
 const statusLabel: Record<string, string> = {

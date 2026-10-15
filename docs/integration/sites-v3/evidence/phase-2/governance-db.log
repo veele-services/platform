@@ -1,0 +1,22 @@
+▶ Management governance: immutable decisions, real scanned evidence and current source authority
+  ✔ management page rights, private tables and tenant binding are enforced at the RPC boundary (75.120249ms)
+  ✔ draft publication is atomic and idempotent, with exactly one source-bound follow-up (384.998755ms)
+  ✔ revision retains the signed-off snapshot; old financial versions do not leak through general notes (683.329498ms)
+  ✔ saving a revision is atomic; invalid fields or stale versions leave the signed-off record untouched (639.598656ms)
+  ✔ a filename, fabricated document ID or unscanned pointer cannot count as approved evidence (444.323172ms)
+  ✔ current scanner identity and review are required; changed evidence automatically requires review again (858.55993ms)
+  ✔ automatic evidence signals follow actual review and expiry, never a manual claim of completion (725.94345ms)
+  ✔ lists, metrics, focus and immutable version history have independent bounds (2118.786907ms)
+  ✔ assignment stays consistent with the source and revoked module rights also reject receipt replay (728.07854ms)
+  ✔ the one shared action follows a revised source while historic financial notes keep their classification (1115.632973ms)
+  ✔ former personnel requirement history stays classified even without a document (586.145974ms)
+  ✔ source, evidence-function and session revocation protect current and historical data (628.460782ms)
+✔ Management governance: immutable decisions, real scanned evidence and current source authority (10066.959595ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10138.910648

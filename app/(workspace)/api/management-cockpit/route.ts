@@ -2,11 +2,11 @@ import {readBoundedJson,RequestBodyTooLargeError} from '@/lib/http/request-body'
 import {ticketRpc} from '@/lib/tickets/rpc';
 import {getServerEnv} from '@/lib/env/server';
 import {crmError} from '@/lib/platform-crm/model';
-import {cockpitActor,getFollowup,getFollowupDetail} from '@/lib/management-cockpit/data';
-import {followupQuerySchema,followupCommandSchema,followupDetailSchema} from '@/lib/management-cockpit/followup';
+import {cockpitActor,getFollowup,getFollowupDetail,getFollowupSource} from '@/lib/management-cockpit/data';
+import {followupQuerySchema,followupCommandSchema,followupDetailSchema,followupSourceQuerySchema} from '@/lib/management-cockpit/followup';
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:{'cache-control':'private, no-store'}});
 function failure(error:unknown){const mapped=crmError(error);return reply({ok:false,error:mapped.status===403?'Je actuele rechten geven geen toegang tot deze managementactie.':mapped.error},mapped.status)}
-export async function GET(request:Request){try{const params=Object.fromEntries(new URL(request.url).searchParams);return reply('id'in params?await getFollowupDetail(followupDetailSchema.parse(params)):await getFollowup(followupQuerySchema.parse(params)))}catch(error){return failure(error)}}
+export async function GET(request:Request){try{const params=Object.fromEntries(new URL(request.url).searchParams);return reply('sourceKind'in params?await getFollowupSource(followupSourceQuerySchema.parse(params)):'id'in params?await getFollowupDetail(followupDetailSchema.parse(params)):await getFollowup(followupQuerySchema.parse(params)))}catch(error){return failure(error)}}
 export async function POST(request:Request){
  try{
   const expected=new URL(getServerEnv().APP_URL);expected.host=request.headers.get('host')||'';
