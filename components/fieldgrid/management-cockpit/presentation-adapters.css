@@ -2,6 +2,7 @@
    weights and source cascade are retained under collision-free family names. */
 .sites-cockpit{font-family:FieldgridSitesInter,Arial,sans-serif}
 .sites-portal{display:contents}
+.sites-portal :is([data-slot=dropdown-menu-content],[data-slot=dropdown-menu-sub-content],[data-slot=popover-content]){font-family:FieldgridSitesInter,Arial,sans-serif}
 .sites-cockpit :is(h1,h2,h3,h4){font-family:FieldgridSitesPoppins,FieldgridSitesInter,sans-serif}
 /* Real route links retain the source button geometry on narrow screens. */
 @media(max-width:620px){.sites-cockpit .resource-header-actions>a.secondary-button{flex:1}}
