@@ -1,0 +1,44 @@
+▶ Management profiles enforce live authenticated permissions and safe ownership
+  ✔ new operational role seeds include entity-reader dependencies and reseeding preserves owner-customized permissions (15.389822ms)
+  ✔ five stable explicit profiles; owner has support, planner lacks HR/finance (10.735405ms)
+  ✔ managed role can read only its own membership before auth-context resolution (14.037854ms)
+  ✔ RPC deny does not depend on UI visibility or coarse compatibility enum (51.926449ms)
+  ✔ default Planning cannot inherit HR, financial or object-vault capabilities (7.345392ms)
+  ✔ Planning cannot use direct full rows or documents to bypass financial and HR projections (61.32614ms)
+  ✔ invitation delivery rechecks fresh owner receipt, recipient and live management profile (14.280803ms)
+  ✔ a fresh password session cannot replace recent OTP owner verification (6.328612ms)
+  ✔ role edits require expected revision and reject unknown/platform/delegation keys (37.292732ms)
+  ✔ direct membership writes cannot create unmanaged or owner escape accounts (15.174254ms)
+  ✔ single owner cannot be revoked; another tenant and inactive tenant fail closed (7.395497ms)
+  ✔ management revocation preserves a separately assigned staff identity (245.499566ms)
+  ✔ ownership needs target acceptance and demotion removes direct-grant fallback (37.66016ms)
+  ✔ command receipts are idempotent but cannot bypass revoked access (19.623931ms)
+✔ Management profiles enforce live authenticated permissions and safe ownership (1841.816442ms)
+✔ tenant house style has monotone CAS and only scoped coarse invalidation (1214.892902ms)
+▶ travel: tenant isolation, private addresses, cache leases and version-safe estimates
+  ✔ private columns cannot be read directly or via another employee's mobility endpoint (43.905765ms)
+  ✔ staff sees only own published visits and revocation is immediate (24.426483ms)
+  ✔ daily transport overrides, confirmed locations and object arrival stay separate (75.13729ms)
+  ✔ authorization can change without changing the planning revision (12.326042ms)
+  ✔ manual set and clear reauthorize after lost manager role (21.08905ms)
+  ✔ manual set and clear reauthorize after inactive membership (15.737858ms)
+  ✔ manual set and clear reauthorize after deleted session (17.716152ms)
+  ✔ manual set and clear reauthorize after expired session (19.693988ms)
+  ✔ manual set and clear reauthorize after banned account (18.099873ms)
+  ✔ manual set and clear reauthorize after deleted account (26.033426ms)
+  ✔ manual set and clear reauthorize after anonymous account (19.659946ms)
+  ✔ manual set and clear reauthorize after suspended tenant (16.513242ms)
+  ✔ manual set and clear reauthorize after disabled planning (15.346987ms)
+  ✔ manual RPC rejects missing or mismatched session and the old writer has no bypass grants (18.142317ms)
+  ✔ CAS rejects stale planning; manual and provider fields remain independent (40.46106ms)
+  ✔ travel uses planned times without rewriting actual or projected execution (16.232877ms)
+  ✔ shared route cache is service-only, leases deduplicate and wrong leases cannot publish (15.582504ms)
+✔ travel: tenant isolation, private addresses, cache leases and version-safe estimates (1636.049643ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1914.413348

@@ -1,0 +1,56 @@
+{
+  "runtimeCommit": "c43cbfb1a99b19336bb7f8009ad7eea0e9f67585",
+  "implemented": true,
+  "locallyTested": true,
+  "deployed": false,
+  "liveVerified": false,
+  "nativeDatabase": {
+    "passed": 34,
+    "failed": 0,
+    "scripts": [
+      "test-management-roles.mjs",
+      "test-tenant-house-style.mjs",
+      "test-travel.mjs"
+    ]
+  },
+  "wholeUnitSuite": {
+    "passed": 1942,
+    "filesPassed": 202,
+    "failed": 0
+  },
+  "coldProductionBuild": {
+    "compiled": true,
+    "typescript": true,
+    "generatedPages": 108
+  },
+  "actualStandalonePackaging": {
+    "ownServerJs": true,
+    "browserChainPassed": true,
+    "renderedHeadingFontMatchesSource": true,
+    "deploymentAttestation": false
+  },
+  "newMigration": "20261015152015_source_management_seed_entity_access.sql",
+  "securityAdvisors": {
+    "issues": 0
+  },
+  "viewedComparisons": [
+    "roles-source-1440.png",
+    "roles-source-768.png",
+    "roles-source-390.png",
+    "roles-target-1440.png",
+    "roles-target-768.png",
+    "roles-target-390.png",
+    "settings-source-1440.png",
+    "settings-source-768.png",
+    "settings-source-390.png",
+    "settings-target-1440.png",
+    "settings-target-768.png",
+    "settings-target-390.png",
+    "native-invitation-1440.png",
+    "native-invitation-768.png",
+    "native-invitation-390.png",
+    "native-signature-1440.png"
+  ],
+  "informationRegression": "information-regression/verification.json",
+  "outboundEmail": "Only .invalid invitation provider capture; actual local SMTP OTP login. No remote delivery claim."
+}

@@ -1,0 +1,344 @@
+[
+  {
+    "key": "roles",
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "height": 648.1875,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "management-page sites-management-users",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "height": 593.828125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 262.9375
+        },
+        {
+          "cls": "mc-info",
+          "height": 48.390625
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "roles",
+    "width": 768,
+    "target": {
+      "width": 684,
+      "height": 668.578125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "management-page sites-management-users",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "height": 614.21875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 262.9375
+        },
+        {
+          "cls": "mc-info",
+          "height": 68.78125
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "roles",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 693.78125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "management-page sites-management-users",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 593.109375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 238.9375
+        },
+        {
+          "cls": "mc-info",
+          "height": 89.171875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "settings",
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "height": 650,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "content-tabs",
+          "height": 391.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "height": 610,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "content-tabs",
+          "height": 351.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "settings",
+    "width": 768,
+    "target": {
+      "width": 684,
+      "height": 650,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "content-tabs",
+          "height": 391.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "height": 610,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "content-tabs",
+          "height": 351.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "settings",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 711.5,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "content-tabs",
+          "height": 470.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 672.5,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "content-tabs",
+          "height": 431.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": true
+  }
+]

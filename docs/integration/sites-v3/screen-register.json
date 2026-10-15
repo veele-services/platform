@@ -1531,12 +1531,17 @@
         "`P/src/App.tsx` → `RolesView`, `SettingsView`; rollenoverzicht, huisstijl/organisatie",
         "Werkelijke roltoekenning en alle bestaande instellingen behouden; opgeslagen tenantpalet werkt in backoffice/staff/klant, niet in Fieldgrid-platformchrome."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/app/gebruikers; /app/instellingen",
+      "implementation": "implemented; runtime c43cbfb1; source role/settings presentation with native five-role registry, actual OTP invitation and ownership, full preserved settings; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-17.md",
+        "evidence/phase-17/verification.json",
+        "evidence/phase-17/result.json",
+        "evidence/phase-17/comparison.json"
+      ]
     },
     {
       "id": "T17",
