@@ -1,0 +1,10 @@
+{
+  "baseline": "71df59ab0390ffeae482c7edbaf27efe3fa6546d",
+  "originalMigrations": 138,
+  "changed": [],
+  "latestLocalMigration": "20261015094130",
+  "candidateBuildBase": "d8851f00",
+  "candidateIncludesPhase12WorkingTree": true,
+  "deployed": false,
+  "liveVerified": false
+}

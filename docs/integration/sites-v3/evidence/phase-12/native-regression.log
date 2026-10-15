@@ -1,0 +1,41 @@
+▶ Source commercial tabs use one native authorized and globally paginated union
+  ✔ all covers both native kinds without duplicating requests as quote rows (65.034874ms)
+  ✔ pagination is global and stable across mixed sources, including the final partial page (56.607049ms)
+  ✔ common filters and source-specific state remain actual server filters (68.521981ms)
+  ✔ foreign resources, anonymous, staff and service callers stay outside the union (24.601763ms)
+  ✔ read function and page capability revocations are rechecked for all, requests and quotes (41.704436ms)
+✔ Source commercial tabs use one native authorized and globally paginated union (1831.530333ms)
+▶ Commercial workflow: persisted prices, revisions, scope and transactional decisions
+  ✔ request creates once, preserves original text, supports no object and rejects wrong relationships (245.347329ms)
+  ✔ intake without object can attach its definitive object from either draft editor (402.545442ms)
+  ✔ unused drafts can be deleted; dependent requests must retain their history (388.99812ms)
+  ✔ draft prices use decimal line discounts and VAT groups; no universal VAT; draft revisions CAS (114.791965ms)
+  ✔ planner-only commercial uploads retain their exact module and parent authorization (139.318394ms)
+  ✔ publication freezes safe data, GET does not decide, replacement invalidates only open versions (298.928248ms)
+  ✔ manual acceptance requires evidence and exact version; repeated conversion creates one real backlog work order (270.713136ms)
+  ✔ the request wizard creates one ordinary prospect and contact atomically on retry (93.813008ms)
+  ✔ public intake is persistent, retry-safe, private and never merges a guessed customer (349.902091ms)
+  ✔ portal bindings isolate requests, decisions and public documents from other customer objects (321.934884ms)
+  ✔ external version decisions require a conscious action, expiry and replay are enforced (438.753588ms)
+  ✔ disabling Planning revokes public intake, quote and booking mutations including retries (583.926674ms)
+  ✔ mail claims never replay uncertain sends and track a provider acceptance separately (240.938015ms)
+  ✔ approved execution invoices preserve accepted discount and grouped VAT exactly (466.639973ms)
+  ✔ recurrence preserves frequency, creates explicit visits and bills the full period only once (831.948991ms)
+  ✔ concurrent booking confirmations cannot oversubscribe and never accept paid work (206.540358ms)
+  ✔ contextual booking cancellation revokes links and releases capacity once without undoing consent (260.342701ms)
+  ✔ tenant and live session isolation, staff cannot read or mutate commercial source rows (116.99489ms)
+✔ Commercial workflow: persisted prices, revisions, scope and transactional decisions (7206.4968ms)
+▶ customer commercial commands keep selected-account scope and immutable offer guards
+  ✔ the detail retains exact account/object scope and no employee, private snapshot or storage fields (55.670641ms)
+  ✔ a reply persists in the canonical event once, and legacy receipts cannot be adopted (99.127509ms)
+  ✔ a confirmed immutable offer decision has one canonical receipt and never schedules work (58.112587ms)
+  ✔ publishing a replacement closes old decisions without rewriting historic frozen data (33.300968ms)
+✔ customer commercial commands keep selected-account scope and immutable offer guards (1396.410266ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10681.983718

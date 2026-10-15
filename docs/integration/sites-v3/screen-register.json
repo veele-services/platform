@@ -1248,12 +1248,20 @@
         "`ExistingDashboards.tsx`; Aanvragen & offertes, tabs Alle dossiers/Aanvragen/Offertes, filters en dossier",
         "Bestaande commerciële tenantintake, offertevelden, lifecycle en mutaties behouden. Dit domein is niet het nieuwe platform-CRM."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/app/aanvragen",
+      "implementation": "implemented; phase-12 source six-column list and summary over native authorized all-dossier union, versioned quotes, scanned documents, central mail, consent and separate order lifecycle; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-12.md",
+        "evidence/phase-12/native-regression.log",
+        "evidence/phase-12/real-standalone-browser-chain.log",
+        "evidence/phase-12/real-standalone-filter-chain.log",
+        "evidence/phase-12/comparison.json",
+        "evidence/phase-12/cold-production-build.log",
+        "evidence/phase-12/shared-filter-task-regression.log"
+      ]
     },
     {
       "id": "T03",

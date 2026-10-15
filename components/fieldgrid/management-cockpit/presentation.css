@@ -107,3 +107,16 @@
 /* Native catalogue fields keep their full workflow inside the source frame. */
 .sites-cockpit .sites-catalogue-editor>.wo-dialog-body{padding:0;overflow:visible}
 .sites-cockpit .sites-catalogue-editor>.catalogue-steps{padding:0 0 16px;margin-bottom:20px}
+
+/* Full native commercial lifecycles remain inside the source modal frame. */
+.sites-cockpit .sites-commercial-editor{display:grid;gap:24px;min-width:0}
+.sites-cockpit .sites-commercial-editor label{display:flex;flex-direction:column;gap:8px;font-size:12px;font-weight:500;min-width:0}
+.sites-cockpit .sites-commercial-editor :is(input:not([type=checkbox]),select,textarea){padding:11px 12px;border:1px solid var(--brand-border);border-radius:8px;background:#fff;color:var(--brand-ink);width:100%;font-size:13px;min-height:42px;outline:0}
+.sites-cockpit .sites-commercial-editor :is(input,select,textarea):focus{border-color:var(--brand-focus);box-shadow:0 0 0 2px var(--brand-accent-soft)}
+.sites-cockpit .sites-commercial-editor textarea{resize:vertical;min-height:92px}
+.sites-cockpit .sites-commercial-editor .commercial-check input{accent-color:var(--brand-accent);box-shadow:none}
+.sites-cockpit .sites-commercial-editor .commercial-action-form{background:var(--brand-surface);border-color:var(--brand-border)}
+.sites-cockpit .sites-commercial-editor .wide{grid-column:1/-1}
+.sites-cockpit .sites-commercial-editor .wizard-footer{position:sticky;bottom:-26px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 0 0;background:var(--brand-panel,#fff);border-top:1px solid var(--brand-border,#d4dce2);z-index:2}
+.sites-cockpit .sites-commercial-page{display:contents}
+@media(max-width:620px){.sites-cockpit .sites-commercial-editor :is(input:not([type=checkbox]),select,textarea){font-size:16px}.sites-cockpit .sites-commercial-editor .wizard-footer{bottom:-20px;flex-wrap:wrap}.sites-cockpit .sites-commercial-editor .wizard-footer>button{flex:1}.sites-cockpit .sites-commercial-editor .commercial-action-form,.sites-cockpit .sites-commercial-editor .commercial-wizard fieldset:not([hidden]){grid-template-columns:1fr}}
