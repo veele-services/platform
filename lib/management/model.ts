@@ -31,7 +31,7 @@ export function permissionForPath(pathname: string): string | null {
  * The canonical page permission remains unchanged for live auth resolution. */
 export function navigationPermissionForPath(pathname:string):string|null{
  const parts=pathname.split('/').filter(Boolean);if(parts[0]!=='app')return permissionForPath(pathname);
-  const adapterPermissions:Record<string,string>={overzicht:'cockpit_overview_query',klanten:'cockpit_customer_cards',objecten:'cockpit_entity_query',opvolging:'cockpit_followup',sla:'cockpit_sla_query',omzet:'cockpit_finance_query',indexatie:'cockpit_indexation_query',weekrapport:'cockpit_reports_query'};
+  const adapterPermissions:Record<string,string>={overzicht:'cockpit_overview_query',klanten:'cockpit_customer_cards',objecten:'cockpit_entity_query',personeel:'cockpit_entity_query',opvolging:'cockpit_followup',sla:'cockpit_sla_query',omzet:'cockpit_finance_query',indexatie:'cockpit_indexation_query',weekrapport:'cockpit_reports_query'};
   const adapter=adapterPermissions[parts[1]||'overzicht'];if(adapter)return `backoffice.functions.${adapter}`;
  return permissionForPath(pathname);
 }

@@ -19,4 +19,4 @@ Gebouwd, getest, gedeployed en live functioneel geverifieerd worden afzonderlijk
 
 ## Integratieafwijkingen
 
-Nog geen visuele afwijkingen geaccepteerd. Interne assetnamen/paden en importpaden mogen wijzigen om bestaande assets en hostgrenzen te behouden. Demohelpers, lokale bedrijfsdata en ownerheader-fallback worden niet in productie opgenomen.
+Noodzakelijke integratieverschillen worden per fase afzonderlijk gemotiveerd en met bekeken beelden vastgelegd. De Sites-bron blijft leidend; dit is geen algemene uitzondering voor een redesign. Interne assetnamen/paden en importpaden mogen wijzigen om bestaande assets en hostgrenzen te behouden. Demohelpers, lokale bedrijfsdata en ownerheader-fallback worden niet in productie opgenomen.

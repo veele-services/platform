@@ -100,3 +100,6 @@
 
 /* The source preview toolbar is excluded from the real workspace. */
 .sites-cockpit{--prototype-toolbar:0px}
+
+/* Real route links retain the source button geometry on narrow screens. */
+@media(max-width:620px){.sites-cockpit .resource-header-actions>a.secondary-button{flex:1}}

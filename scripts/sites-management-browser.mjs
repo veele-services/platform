@@ -27,7 +27,7 @@ export async function captureManagementPair({page,reference,directory,key,select
  for(const[p,side]of[[page,'target'],[reference,'source']])await captureManagementImage(p,directory+'/'+key+'-'+side+'-1440.png',selector);
  return comparisons;
 }
-export async function captureManagementDialog(page,path){const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await dialog.locator('.mc-dialog-body').evaluate(el=>{el.scrollTop=0});await page.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))});await captureManagementImage(page,path,'dialog[open]')}
+export async function captureManagementDialog(page,path){const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await dialog.locator('.mc-dialog-body').evaluate(el=>{el.scrollTop=0});await page.evaluate(async()=>{await Promise.all([...document.querySelectorAll('dialog[open] *')].filter(n=>n.textContent?.trim()).map(n=>document.fonts.load(getComputedStyle(n).font,n.textContent.slice(0,200))));await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))});await captureManagementImage(page,path,'dialog[open]')}
 
 /** Direct CDP capture preserves the rendered page. Playwright's temporary
  * screenshot stylesheet could replace loaded Poppins with the fallback font

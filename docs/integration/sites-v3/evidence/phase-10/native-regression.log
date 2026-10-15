@@ -1,0 +1,25 @@
+▶ Entity source: native invoker resource authority, bounded metadata and no HR/financial payload
+  ✔ customer and object refer to their actual source and native operational rows (286.72132ms)
+  ✔ customer cards preserve every native filter, sort, count and revision with RLS metadata (174.6164ms)
+  ✔ personnel preview includes actual assigned work and omits private HR fields (149.293462ms)
+  ✔ document previews expose bounded native metadata, never storage paths or fabricated content (596.634313ms)
+  ✔ revoked document and module capabilities remain independent of the base profile (1137.027186ms)
+  ✔ invalid, anonymous, service, staff, foreign and expired callers fail closed; planner receives only the native safe profile (199.882532ms)
+✔ Entity source: native invoker resource authority, bounded metadata and no HR/financial payload (3696.507811ms)
+✔ concurrent personnel numbers are unique, tenant-scoped and transactional (1476.432895ms)
+▶ HR classification applies to legacy rows as well as managed dossiers
+  ✔ staff and planner cannot read private legacy or managed HR records; HR retains originals (52.270315ms)
+  ✔ planner identity and own operational selfservice remain available without emergency contacts (25.542129ms)
+  ✔ only explicitly published own document fields reach staff; raw HR metadata stays private (39.92237ms)
+  ✔ planning receives absence time blocks without private reasons; HR and own selfservice retain their scope (61.088885ms)
+  ✔ availability projection requires a live session and module; combined roles preserve own access only (15.458532ms)
+  ✔ file descriptor keeps own downloads usable and rejects hidden, colleague and foreign files (34.964303ms)
+✔ HR classification applies to legacy rows as well as managed dossiers (1329.446432ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6728.861801

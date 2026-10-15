@@ -1305,8 +1305,8 @@
         "Echte relaties en record-ID's; object-klantbinding en personeelsrechten. Demo vervangt geen bestaande velden, documenten of dossiers."
       ],
       "route": "/app/klanten, /app/objecten, /app/personeel; /api/management-entities",
-      "implementation": "partial: phase-8 customers and phase-9 objects source lists/details with native wizards, real documents and lifecycle tested; personnel presentation pending",
-      "tested": false,
+      "implementation": "implemented: phase-8 customers, phase-9 objects and phase-10 personnel source views with native dossiers, complete wizards, private files, lifecycle and role scopes",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
       "evidence": [
@@ -1317,7 +1317,11 @@
         "phase-9.md",
         "evidence/phase-9/native-regression.log",
         "evidence/phase-9/real-browser-chain.log",
-        "evidence/phase-9/comparison.json"
+        "evidence/phase-9/comparison.json",
+        "phase-10.md",
+        "evidence/phase-10/native-regression.log",
+        "evidence/phase-10/real-browser-chain.log",
+        "evidence/phase-10/comparison.json"
       ]
     },
     {

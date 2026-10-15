@@ -1,0 +1,6 @@
+{
+  "baseline": "71df59ab0390ffeae482c7edbaf27efe3fa6546d",
+  "originalMigrationsUnchanged": 138,
+  "newMigrationsInThisPhase": 0,
+  "T06": "customers, objects and personnel implemented and locally tested; not deployed/live verified"
+}
