@@ -4,9 +4,10 @@ vi.mock("next/cache",()=>({revalidatePath:vi.fn()}));
 vi.mock("@/lib/files/scanned-storage",()=>({uploadScannedFile:vi.fn()}));
 vi.mock("@/lib/tenancy/hostname",()=>({tenantAppUrl:(slug:string,path:string)=>`https://${slug}.example.test${path}`}));
 vi.mock("@/lib/supabase/server",()=>({createClient:vi.fn()}));
-const state=vi.hoisted(()=>({guard:vi.fn(),rpc:vi.fn(),invite:vi.fn(),list:vi.fn(),from:vi.fn(),update:vi.fn(),eq:vi.fn(),is:vi.fn(),in:vi.fn(),
+const state=vi.hoisted(()=>({guard:vi.fn(),rpc:vi.fn(),claims:vi.fn(),invite:vi.fn(),list:vi.fn(),from:vi.fn(),update:vi.fn(),eq:vi.fn(),is:vi.fn(),in:vi.fn(),
  invitation:{id:"a0000000-0000-4000-8000-000000000004",full_name:"Original owner",email:"owner@example.test",status:"pending",bound_at:null as string|null}}));
 vi.mock("@/lib/platform/data",()=>({requirePlatformAdmin:state.guard}));
+vi.mock('@/lib/platform/team',()=>({getPlatformTeamActor:async()=>({context:await state.guard(),db:{auth:{getClaims:state.claims}}})}));
 vi.mock("@/lib/supabase/admin",()=>({createAdminClient:()=>({rpc:state.rpc,from:state.from,auth:{admin:{inviteUserByEmail:state.invite,listUsers:state.list}}})}));
 import {createPlatformTenant,retryTenantAdminInvitation} from "@/app/(workspace)/platform/actions";
 const actor="a0000000-0000-4000-8000-000000000001",tenant="a0000000-0000-4000-8000-000000000002",owner="a0000000-0000-4000-8000-000000000003";
@@ -14,7 +15,8 @@ const input={requestKey:"a0000000-0000-4000-8000-000000000005",name:"FICTITIOUS 
 beforeEach(()=>{
  vi.clearAllMocks();state.invitation.status="pending";state.invitation.bound_at=null;state.invitation.email="owner@example.test";
  state.guard.mockResolvedValue({user:{id:actor,email:"platform@example.test"}});
- state.rpc.mockImplementation(async(name:string)=>({data:name==="provision_platform_tenant"?tenant:true,error:null}));
+ state.rpc.mockImplementation(async(name:string)=>({data:name==="platform_tenant_provision_v3"?{tenantId:tenant}:true,error:null}));
+ state.claims.mockResolvedValue({data:{claims:{sub:actor,session_id:"a0000000-0000-4000-8000-000000000006"}},error:null});
  state.invite.mockResolvedValue({data:{user:{id:owner}},error:null});state.list.mockResolvedValue({data:{users:[]},error:null});
  state.from.mockImplementation((table:string)=>{
    if(!["tenants","tenant_admin_invitations"].includes(table))throw Error("Memberships must only be changed by the atomic binding RPC");
@@ -35,6 +37,14 @@ it("uses the stored recipient and tenant hostname, then one atomic binding",asyn
  expect((await createPlatformTenant(input)).ok).toBe(true);
  expect(state.invite).toHaveBeenCalledWith("owner@example.test",{redirectTo:"https://canonical.example.test/auth/verify",data:{full_name:"Original owner"}});
  expect(state.rpc).toHaveBeenCalledWith("complete_platform_admin_invitation",{target_tenant:tenant,actor_user_id:actor,target_user:owner});
+});
+it('binds the trusted provisioning command to the independently verified account and session',async()=>{
+ expect((await createPlatformTenant({...input,senderName:'FICTITIOUS sender'})).ok).toBe(true);
+ expect(state.rpc).toHaveBeenCalledWith('platform_tenant_provision_v3',expect.objectContaining({actor_user_id:actor,actor_session_id:'a0000000-0000-4000-8000-000000000006',request_id:input.requestKey,input:expect.objectContaining({senderName:'FICTITIOUS sender'})}));
+});
+it('rejects mismatched or unavailable session claims before any privileged provision or invitation',async()=>{
+ state.claims.mockResolvedValue({data:{claims:{sub:owner,session_id:'a0000000-0000-4000-8000-000000000006'}},error:null});
+ expect((await createPlatformTenant(input)).ok).toBe(false);expect(state.rpc).not.toHaveBeenCalled();expect(state.invite).not.toHaveBeenCalled();
 });
 it("self-recipient onboarding does not send an Auth invitation",async()=>{
  state.invitation.email="platform@example.test";

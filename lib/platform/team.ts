@@ -8,8 +8,8 @@ import { supportSnapshotSchema,platformAccountSchema } from "./team-model";
 
 export async function getPlatformTeamActor() {
   if ((await headers()).get(TENANT_SLUG_HEADER)) throw new Error("Open de Fieldgrid-platformomgeving.");
-  await requirePlatformAdmin();
-  return { db: await createClient() };
+  const context=await requirePlatformAdmin();
+  return { db: await createClient(),context };
 }
 export async function getPlatformTeam() {
   const actor = await getPlatformTeamActor();

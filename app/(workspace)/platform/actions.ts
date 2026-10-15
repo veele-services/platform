@@ -2,12 +2,14 @@
 import { uploadScannedFile } from "@/lib/files/scanned-storage";
 
 import { revalidatePath } from "next/cache";
+import {unstable_rethrow} from 'next/navigation';
 import sharp from "sharp";
 import { z } from "zod";
 import type { ActionResult } from "@/lib/actions/result";
 import { message } from "@/lib/actions/result";
 import { validateTemplateDraft, type TemplateKey } from "@/lib/communications/templates";
 import { requirePlatformAdmin } from "@/lib/platform/data";
+import {getPlatformTeamActor} from '@/lib/platform/team';
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { tenantAppUrl } from "@/lib/tenancy/hostname";
@@ -21,7 +23,7 @@ const optionalDomain = z.string().trim().toLowerCase().regex(/^[a-z0-9](?:[a-z0-
 const onboardingSchema = z.object({
   requestKey: z.string().uuid(),
   name: z.string().trim().min(2).max(120),
-  slug: z.string().trim().toLowerCase().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).refine(slug=>slug!=="www","Deze naam is gereserveerd voor de Fieldgrid-website."),
+  slug: z.string().trim().toLowerCase().max(63).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).refine(slug=>slug!=="www","Deze naam is gereserveerd voor de Fieldgrid-website."),
   domain: optionalDomain,
   adminName: z.string().trim().min(2).max(160),
   adminEmail: z.string().trim().email(),
@@ -29,7 +31,8 @@ const onboardingSchema = z.object({
   accentColor: color,
   enabledServices: z.array(moduleId).max(6),
   senderEmail: optionalEmail,
-});
+  senderName:z.string().trim().max(160).default(''),
+}).strict();
 
 export type PlatformMutationResult<T extends object = object> = ActionResult<T & { warning?: string }>;
 
@@ -80,28 +83,20 @@ async function inviteTenantAdministrator(tenantId: string, actor: { id: string; 
 
 export async function createPlatformTenant(input: unknown): Promise<PlatformMutationResult<{ tenantId: string }>> {
   try {
-    const context = await requirePlatformAdmin();
+    const {db,context}=await getPlatformTeamActor();
     const data = onboardingSchema.parse(input);
     const services = [...new Set(data.enabledServices)];
     if (services.includes("finance") && (!services.includes("planning") || !services.includes("rapportage"))) {
       throw new Error("Facturatie vereist Planning en Rapportage.");
     }
     if (services.includes("rapportage") && !services.includes("planning")) throw new Error("Rapportage vereist Planning.");
-    const admin = createAdminClient();
-    const { data: tenantId, error } = await admin.rpc("provision_platform_tenant", {
-      tenant_name: data.name,
-      tenant_slug: data.slug,
-      actor_user_id: context.user.id,
-      request_key: data.requestKey,
-      primary_color: data.primaryColor.toUpperCase(),
-      accent_color: data.accentColor.toUpperCase(),
-      enabled_services: services,
-      admin_name: data.adminName,
-      admin_email: data.adminEmail.toLowerCase(),
-      tenant_domain: data.domain || undefined,
-      sender_email: data.senderEmail || undefined,
-    });
-    if (error || !tenantId) throw error ?? new Error("Tenantprovisioning gaf geen tenant-ID terug.");
+    const {requestKey,...provisionInput}=data;
+    const claims=await db.auth.getClaims();
+    if(claims.error||claims.data?.claims.sub!==context.user.id)throw new Error('Log opnieuw in om een tenant in te richten.');
+    const sessionId=z.uuid().parse(claims.data.claims.session_id);
+    const {data:created,error}=await createAdminClient().rpc('platform_tenant_provision_v3' as never,{input:{...provisionInput,enabledServices:services},request_id:requestKey,actor_user_id:context.user.id,actor_session_id:sessionId} as never);
+    if(error)throw error;
+    const {tenantId}=z.object({tenantId:z.uuid()}).parse(created);
     let warning: string | undefined;
     try {
       await inviteTenantAdministrator(tenantId, context.user);
@@ -111,6 +106,7 @@ export async function createPlatformTenant(input: unknown): Promise<PlatformMuta
     revalidatePath("/platform");
     return { ok: true, tenantId, warning };
   } catch (error) {
+    unstable_rethrow(error);
     return { ok: false, error: message(error) };
   }
 }
@@ -247,25 +243,31 @@ export async function updatePlatformTenantCommunication(input: unknown): Promise
 
 export async function savePlatformTemplate(input: unknown): Promise<PlatformMutationResult<{ revision: number }>> {
   try {
-    const context = await requirePlatformAdmin();
-    const data = z.object({ tenantId: z.string().uuid(), key: z.enum(["invoice", "quote", "workorder", "schedule"]), subject: z.string(), body: z.string(), reset: z.boolean().default(false) }).parse(input);
+    const {context,db}=await getPlatformTeamActor();
+    const data = z.object({ tenantId: z.string().uuid(), key: z.enum(["invoice", "quote", "workorder", "schedule"]), subject: z.string(), body: z.string(), reset: z.boolean().default(false),revision:z.number().int().positive(),requestId:z.uuid() }).strict().parse(input);
     if (!data.reset) {
       const validationError = validateTemplateDraft(data.key as TemplateKey, data.subject, data.body);
       if (validationError) throw new Error(validationError);
     }
     const admin = createAdminClient();
-    const { data: template, error } = await admin.rpc("save_tenant_message_template", {
-      target_tenant_id: data.tenantId,
-      target_template_key: data.key,
-      target_subject: data.subject,
-      target_body: data.body,
+    const claims=await db.auth.getClaims();
+    if(claims.error||claims.data?.claims.sub!==context.user.id)throw new Error('Log opnieuw in om het template te bewaren.');
+    const sessionId=z.uuid().parse(claims.data.claims.session_id);
+    const { data: rawTemplate, error } = await admin.rpc("platform_template_save_v3" as never, {
+      target_tenant: data.tenantId,
+      template_key: data.key,
+      subject: data.subject,
+      body: data.body,
       reset_to_default: data.reset,
       actor_user_id: context.user.id,
-    });
-    if (error || !template) throw error ?? new Error("Template kon niet worden opgeslagen.");
+      actor_session_id:sessionId,expected_revision:data.revision,request_id:data.requestId,
+    } as never);
+    if (error) throw error;
+    const template=z.object({revision:z.number().int().positive()}).parse(rawTemplate);
     revalidatePath("/platform");
     return { ok: true, revision: template.revision };
   } catch (error) {
+    unstable_rethrow(error);
     return { ok: false, error: message(error) };
   }
 }

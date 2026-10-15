@@ -7,6 +7,7 @@ import { tenantAppUrl } from "@/lib/tenancy/hostname";
 import type { TemplateChannel, TemplateKey } from "@/lib/communications/templates";
 import { getTicketAccess, getTicketList } from "@/lib/tickets/data";
 import { ticketQuerySchema } from "@/lib/tickets/model";
+import {getNotificationAccess} from '@/lib/notifications/data';
 import type { PlatformSupportSummary } from "./cockpit";
 import type { WorkspaceDomain } from "@/lib/tenancy/workspace-domain";
 
@@ -52,6 +53,8 @@ export type PlatformData = {
   currentUserName?: string | null;
   tenants: PlatformTenant[];
   support: PlatformSupportSummary | null;
+  canManageCentralTemplates?:boolean;
+  newTenantHostTemplate:string;
 };
 
 export async function requirePlatformAdmin() {
@@ -66,6 +69,7 @@ function assertResult(error: { message: string } | null) {
 
 export async function getPlatformData(): Promise<PlatformData> {
   const context = await requirePlatformAdmin();
+  const canManageCentralTemplates=(await getNotificationAccess('platform')).tabs.includes('templates');
   const admin = createAdminClient();
   // The authenticated ticket RPC counts only explicitly granted support scope.
   // Platform administration alone does not open tenant conversations.
@@ -141,5 +145,5 @@ export async function getPlatformData(): Promise<PlatformData> {
     };
   }));
 
-  return { currentUserEmail: context.user.email, currentUserName: context.user.displayName, tenants, support };
+  return { currentUserEmail: context.user.email, currentUserName: context.user.displayName, tenants, support,canManageCentralTemplates,newTenantHostTemplate:new URL(tenantAppUrl('fieldgrid-tenant')).hostname };
 }
