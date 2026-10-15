@@ -3,12 +3,12 @@ import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { getPlanningShellData } from "@/lib/planning/data";
 import { BackofficeShell } from "@/components/fieldgrid/backoffice-shell";
-import { CustomersList } from "@/components/fieldgrid/customers/list";
+import {SitesCustomersList,type CustomerCards} from '@/components/fieldgrid/management-cockpit/customers-list';
+import {ticketRpc} from '@/lib/tickets/rpc';
 import {
   canManageCustomers,
   customerFilters,
   customerTab,
-  type CustomerList,
 } from "@/lib/customers/model";
 export default async function CustomersPage({
   searchParams,
@@ -31,11 +31,11 @@ export default async function CustomersPage({
   const filters = customerFilters.parse(query),
     db = await createClient();
   const [r, owners, shell] = await Promise.all([
-    db.rpc("customer_list", { target_tenant: context.tenant.id, filters }),
+    ticketRpc(db,"cockpit_customer_cards", { target_tenant: context.tenant.id, filters }),
     db.rpc("customer_owners", { target_tenant: context.tenant.id }),
     getPlanningShellData(context.tenant.id),
-  ]);
-  if (r.error || owners.error)
+  ]).catch(error=>{if(error&&typeof error==='object'&&'code'in error&&error.code==='42501')notFound();throw error});
+  if (owners.error)
     throw new Error("De klantenlijst kon niet worden geladen.");
   const settings = await db
     .from("tenant_settings")
@@ -49,12 +49,11 @@ export default async function CustomersPage({
       context={{ ...context, tenant: context.tenant }}
       data={shell}
       initialView="klanten"
+      presentation="sites-management"
     >
-      <CustomersList
-        key={JSON.stringify(filters)}
+      <SitesCustomersList
         tenant={context.tenant}
-        filters={filters}
-        data={r.data as unknown as CustomerList}
+        data={r as CustomerCards}
         owners={owners.data ?? []}
         defaultPaymentTermsDays={settings.data.payment_terms_days}
         create={query.new === "1"}

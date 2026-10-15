@@ -1,0 +1,17 @@
+{
+  "tenant": "c6a7b460-a27d-43e8-bd13-c1699a32444e",
+  "createdCustomer": "17287c5d-3e5d-4eed-946a-dc39bcc7d31e",
+  "document": "97a435a6-5d0d-47c0-ab30-6fe8c58f6b48",
+  "checks": [
+    "real-auth-native-list",
+    "source-seven-columns-three-widths",
+    "native-customer-work-order-source",
+    "real-scanned-document-private-download",
+    "native-five-step-edit-create",
+    "actual-contact-no-implicit-portal",
+    "server-search-stale-reset",
+    "small-mobile-filter-scroll",
+    "anonymous-foreign-revoked-scope"
+  ],
+  "browserErrors": []
+}

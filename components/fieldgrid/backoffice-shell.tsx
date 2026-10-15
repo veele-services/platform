@@ -130,7 +130,7 @@ export function BackofficeShell({ context, data, initialView, children, presenta
   const [mobileNav, setMobileNav] = useState(false);
   const sidebar=useRef<HTMLElement>(null);
   const tenant = context.tenant;
-  const visibleNav = nav.filter((item) => hasManagementPermission(tenant, permissionForPath(item.href) ?? "backoffice.access") && hasManagementPermission(tenant, navigationPermissionForPath(item.href) ?? "backoffice.access") && (item.id !== "gebruikers" || tenant.permissions?.includes("management.users.read")) && !["meldingen", "support", "notificaties"].includes(item.id) && (!serviceByView[item.id] || tenant.enabledServices.includes(serviceByView[item.id]!)));
+  const visibleNav = nav.filter((item) => hasManagementPermission(tenant, permissionForPath(item.href) ?? "backoffice.access") && hasManagementPermission(tenant, navigationPermissionForPath(item.href) ?? "backoffice.access") && (item.id !== "klanten" || hasManagementPermission(tenant,"backoffice.functions.cockpit_entity_query")) && (item.id !== "gebruikers" || tenant.permissions?.includes("management.users.read")) && !["meldingen", "support", "notificaties"].includes(item.id) && (!serviceByView[item.id] || tenant.enabledServices.includes(serviceByView[item.id]!)));
   const customerById = useMemo(() => new Map(data.customers.map((item) => [item.id, item])), [data.customers]);
   const objectById = useMemo(() => new Map(data.objects.map((item) => [item.id, item])), [data.objects]);
   const current = nav.find((item) => item.id === view)!;

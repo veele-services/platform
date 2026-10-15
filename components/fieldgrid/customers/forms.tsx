@@ -36,6 +36,7 @@ import {
 import { AddressInput } from "../address-input";
 import { useFormChanges, confirmDiscard } from "../unsaved-form";
 import { ObjectForm } from "../objects/forms";
+import {Modal as SitesModal} from "../crm/ui";
 
 export function CustomerDialog({
   title,
@@ -43,6 +44,7 @@ export function CustomerDialog({
   tenant,
   onClose,
   busy = false,
+  presentation = "existing",
   children,
 }: {
   title: string;
@@ -50,11 +52,13 @@ export function CustomerDialog({
   tenant: TenantContext;
   onClose: () => void;
   busy?: boolean;
+  presentation?: "existing" | "sites";
   children: ReactNode;
 }) {
   const close = () => {
     if (!busy && confirmDiscard()) onClose();
   };
+  if(presentation==="sites")return <SitesModal wide title={title} subtitle="KLANTDOSSIER" onClose={close}><p className="mc-muted">{description}</p>{children}</SitesModal>;
   return (
     <Dialog
       open
@@ -95,6 +99,7 @@ export function CustomerWizard({
   customer,
   onClose,
   onSaved,
+  presentation = "existing",
 }: {
   tenant: TenantContext;
   owners: Owner[];
@@ -102,6 +107,7 @@ export function CustomerWizard({
   customer?: Row<"customers">;
   onClose: () => void;
   onSaved?: (id: string) => void;
+  presentation?: "existing" | "sites";
 }) {
   const router = useRouter();
   const [id] = useState(() => customer?.id || crypto.randomUUID()),
@@ -181,6 +187,7 @@ export function CustomerWizard({
   };
   return (
     <CustomerDialog
+      presentation={presentation}
       title={customer ? "Klant bewerken" : "Nieuwe klant"}
       description="Leg de relatie vast. Objecten en afspraken voeg je daarna toe."
       tenant={tenant}

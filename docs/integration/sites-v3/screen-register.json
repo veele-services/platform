@@ -1230,7 +1230,7 @@
         "Eén bestaand `/app`-overzicht behouden; echte aggregaties en bronlinks. Geen tweede los dashboard dat gegevens anders telt."
       ],
       "route": "/app (canoniek); /app/overzicht → /app; /api/management-overview",
-      "implementation": "implemented; phase-7 native unique-visit overview and work-order source; final whole-scope acceptance pending",
+      "implementation": "implemented; 4ab6cc97; phase-7 native unique-visit overview and work-order source; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -1304,12 +1304,17 @@
         "`ExistingDashboards.tsx` → `EntityPage`; zoeken/status/sorteren/pagineren, nieuw/bewerken, dossier Overzicht/Documenten/Opvolging",
         "Echte relaties en record-ID's; object-klantbinding en personeelsrechten. Demo vervangt geen bestaande velden, documenten of dossiers."
       ],
-      "route": null,
-      "implementation": "pending",
+      "route": "/app/klanten, /app/objecten, /app/personeel; /api/management-entities",
+      "implementation": "partial: phase-8 customer source list/detail and native wizard/lifecycle implemented and tested; object/personnel presentation still pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-8.md",
+        "evidence/phase-8/native-regression.log",
+        "evidence/phase-8/real-browser-chain.log",
+        "evidence/phase-8/comparison.json"
+      ]
     },
     {
       "id": "T07",

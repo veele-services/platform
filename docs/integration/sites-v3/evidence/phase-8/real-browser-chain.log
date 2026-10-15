@@ -1,0 +1,4 @@
+PASS: real Auth/native list, seven source columns and 1440/768/390 source comparisons
+PASS: actual customer/assigned-work source and real scanned Storage document with byte-identical native download
+PASS: real five-step native edit and creation, persisted versions and contact; no implicit portal account
+PASS: live server search/reset and stale-response protection; anonymous/foreign/revoked source access denied
