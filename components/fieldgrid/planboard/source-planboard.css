@@ -35,9 +35,11 @@
 .sites-cockpit .sites-planboard .pb-source-travel .travel-status svg{width:12px;height:12px}
 .sites-cockpit .sites-planboard .pb-list-toolbar{background:#fff;border-color:var(--brand-border)}
 .sites-cockpit .sites-planboard .pb-list-scroll thead{background:var(--brand-surface)}
-.sites-cockpit .sites-planboard .pb-list-scroll th{height:45px;color:var(--brand-muted);font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;border-color:var(--brand-border)}
-.sites-cockpit .sites-planboard .pb-list-scroll td{font-size:12px;border-color:var(--brand-border)}
+.sites-cockpit .sites-planboard .pb-list-scroll th{height:45px;padding:16px 18px;background:var(--brand-surface);color:var(--brand-muted);font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;border-color:var(--brand-border)}
+.sites-cockpit .sites-planboard .pb-list-scroll td{font-size:12px;padding:18px;border-color:var(--brand-border)}
+.sites-cockpit .sites-planboard .pb-list-scroll td strong{font-size:12px;font-weight:600}
 .sites-cockpit .sites-planboard .pb-list-scroll td small{color:var(--brand-muted);font-size:10px}
+.sites-cockpit .sites-planboard .pb-status{font-size:10px;line-height:normal;padding:4px 7px;border:0;border-radius:6px;background:var(--brand-surface);color:var(--brand-muted)}
 .sites-cockpit .sites-planboard .pb-state{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 .sites-cockpit .sites-planboard .pb-legend-trigger{width:18px;min-height:18px;position:relative}
 .sites-cockpit .sites-planboard .pb-legend-trigger::before{content:'';position:absolute;inset:-12px}

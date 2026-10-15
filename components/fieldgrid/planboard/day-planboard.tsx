@@ -1210,7 +1210,7 @@ export function DayPlanboard({
                     <th>Klantvenster</th>
                     <th>Duur</th>
                     <th>Status / bezetting</th>
-                    <th>Actie</th>
+                    <th>{sites?'Acties':'Actie'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1234,7 +1234,7 @@ export function DayPlanboard({
                         </button>
                       </td>
                       <td>
-                        <strong>{order.number}</strong>
+                        {sites?<button className="ed-record" onClick={()=>open(order)}>{order.number}</button>:<strong>{order.number}</strong>}
                       </td>
                       <td>
                         <strong>{order.object}</strong>
