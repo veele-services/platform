@@ -2,14 +2,14 @@
 import {useCallback,useState} from 'react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
-import {Eye,Pencil,Plus,MoreHorizontal} from 'lucide-react';
+import {Eye,Pencil,Plus} from 'lucide-react';
 import type {TenantContext} from '@/lib/auth/context';
 import {hasManagementPermission} from '@/lib/management/model';
 import {customerStates,customerTypes,type Owner} from '@/lib/customers/model';
 import {addressLine,type Row} from '@/lib/objects/model';
 import type {EntityDetail,CustomerCards} from '@/lib/management-cockpit/entities';
 import {customerCommand} from '@/app/(workspace)/app/klanten/actions';
-import {Popover,PopoverContent,PopoverTrigger} from '@/components/ui/popover';
+import {EntityActionsMenu} from './entity-actions';
 import {CustomerWizard} from '@/components/fieldgrid/customers/forms';
 import {Badge,Button,Empty,Field,PageHeading,Pagination,Table} from '@/components/fieldgrid/crm/ui';
 import {EntityDetailDialog} from './entity-dialog';
@@ -50,7 +50,7 @@ export function SitesCustomersList({data:initial,owners,tenant,defaultPaymentTer
  <Table headers={['Klant','Klantnummer','Contact','Factuuradres','Objecten','Status','Acties']}>{data.rows.map(c=><tr key={c.id}><td><button className="ed-record" disabled={!store.isCurrent} onClick={()=>setSelected(c.id)}>{c.name}</button></td><td>{c.customer_number}</td><td>{c.contact||'Niet vastgelegd'}<small>{c.email||''}</small></td><td>{addressLine(c.address)||'Niet vastgelegd'}</td><td title="Actieve objecten">{c.objects}</td><td><Badge tone={c.status==='active'?'success':'neutral'}>{customerStates[c.status]||c.status}</Badge></td><td><div className="ed-row-actions"><button type="button" title={`Bekijk ${c.name}`} aria-label={`Bekijk ${c.name}`} className="fg-action-icon" disabled={!store.isCurrent} onClick={()=>setSelected(c.id)}><Eye size={15}/></button><button type="button" title={`Bewerk ${c.name}`} aria-label={`Bewerk ${c.name}`} className="fg-action-icon" disabled={!writable||pending||!store.isCurrent} onClick={()=>void editId(c.id)}><Pencil size={15}/></button></div></td></tr>)}</Table>
  {!data.rows.length&&<Empty title={active?'Geen klanten voor deze selectie':'Nog geen klanten'} text={active?'Pas de filters aan of wis je zoekopdracht.':'Gebruik de plusknop bovenaan om de eerste klant toe te voegen.'}/>}
  <Pagination count={data.total} page={data.page} size={data.pageSize} setPage={p=>store.update('page',String(p))}/>
- {selected&&<EntityDetailDialog key={selected} kind="customer" id={selected} onClose={()=>setSelected(null)} onEdit={edit} onForbidden={forbidden} lifecycle={detail=><>{writable&&detail.access.edit&&<Popover><PopoverTrigger asChild><button type="button" className="fg-action-icon" aria-label={`Meer acties voor ${detail.profile.name}`}><MoreHorizontal size={15}/></button></PopoverTrigger><PopoverContent className="resource-more-content" align="end"><Link prefetch={false} href={'/app/klanten/'+detail.profile.id}>Volledig dossier</Link><Link prefetch={false} href={'/app/klanten/'+detail.profile.id+'?tab=contracten'}>Contracten & diensten</Link><Link prefetch={false} href={'/app/klanten/'+detail.profile.id+'?tab=facturen'}>Facturen & betalingen</Link>{tenant.roles.some(r=>['tenant_admin','management'].includes(r))&&<><button disabled={pending||detail.profile.status==='archived'} onClick={()=>void remove(detail.profile,true)}>Archiveren</button><button disabled={pending} onClick={()=>void remove(detail.profile,false)}>Ongebruikte klant verwijderen</button></>}</PopoverContent></Popover>}</>}/>}
+ {selected&&<EntityDetailDialog key={selected} kind="customer" id={selected} onClose={()=>setSelected(null)} onEdit={edit} onForbidden={forbidden} lifecycle={detail=><>{writable&&detail.access.edit&&<EntityActionsMenu name={detail.profile.name}><Link prefetch={false} href={'/app/klanten/'+detail.profile.id}>Volledig dossier</Link><Link prefetch={false} href={'/app/klanten/'+detail.profile.id+'?tab=contracten'}>Contracten & diensten</Link><Link prefetch={false} href={'/app/klanten/'+detail.profile.id+'?tab=facturen'}>Facturen & betalingen</Link>{tenant.roles.some(r=>['tenant_admin','management'].includes(r))&&<><button disabled={pending||detail.profile.status==='archived'} onClick={()=>void remove(detail.profile,true)}>Archiveren</button><button disabled={pending} onClick={()=>void remove(detail.profile,false)}>Ongebruikte klant verwijderen</button></>}</EntityActionsMenu>}</>}/>}
  {editor&&<CustomerWizard presentation="sites" tenant={tenant} owners={owners} defaultPaymentTermsDays={defaultPaymentTermsDays} customer={editor==='new'?undefined:editor} onClose={()=>setEditor(null)} onSaved={()=>{setEditor(null);router.refresh();void store.refresh().catch(e=>setError(e.message))}}/>}
  </>;
 }

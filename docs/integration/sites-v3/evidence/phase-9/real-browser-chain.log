@@ -1,0 +1,4 @@
+PASS: real Auth, native object/customer/work-order metadata, source list/detail at 1440/768/390
+PASS: actual scanned object document/private byte-identical download and native revision-controlled object edit
+PASS: full real eight-step object creation with customer binding, manual address and two native location nodes
+PASS: original filters and native archive preserve history; revoked operational rights mask count and linked work

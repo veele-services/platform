@@ -5,6 +5,8 @@ import { getPlanningShellData } from "@/lib/planning/data";
 import { BackofficeShell } from "@/components/fieldgrid/backoffice-shell";
 import {SitesCustomersList,type CustomerCards} from '@/components/fieldgrid/management-cockpit/customers-list';
 import {ticketRpc} from '@/lib/tickets/rpc';
+import {hasManagementPermission} from '@/lib/management/model';
+import {PageHeading,Panel,Empty} from '@/components/fieldgrid/crm/ui';
 import {
   canManageCustomers,
   customerFilters,
@@ -22,6 +24,7 @@ export default async function CustomersPage({
     !context.tenant.enabledServices.includes("planning")
   )
     notFound();
+  if(!hasManagementPermission(context.tenant,'backoffice.functions.cockpit_customer_cards')||!hasManagementPermission(context.tenant,'backoffice.functions.cockpit_entity_query'))return <BackofficeShell context={{...context,tenant:context.tenant}} data={await getPlanningShellData(context.tenant.id)} initialView="klanten" presentation="sites-management"><PageHeading eyebrow="RELATIES" title="Klanten"/><Panel><Empty title="Deze weergave is afgeschermd" text="Je actuele rechten geven geen toegang tot deze lijst- en dossierweergave."/></Panel></BackofficeShell>;
   const params = await searchParams;
   const query = Object.fromEntries(
     Object.entries(params).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]),

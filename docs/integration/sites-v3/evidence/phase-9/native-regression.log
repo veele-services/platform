@@ -1,0 +1,48 @@
+▶ Customer 360 uses persistent sources, guarded relationships and exact revisions
+  ✔ account owners show the own tenant's employee name, never email or another tenant's name (68.316467ms)
+  ✔ five-step customer input is atomic and retry-safe, private customer has no required company number (54.216872ms)
+  ✔ updates use optimistic versions, address source and customer relationships are retained (14.570389ms)
+  ✔ server list filters and stable pages share one scoped source; staff and other tenant are rejected (149.141681ms)
+  ✔ contacts are versioned, primary selection is unique and wrong-customer objects are rejected (26.313596ms)
+  ✔ internal follow-up cannot cross customer or tenant, completion is persisted (51.094762ms)
+  ✔ contract draft uses existing tables; incomplete activation rejected, real evidence required (36.517802ms)
+  ✔ draft successor preserves signed agreement and operational options until activation (22.98834ms)
+  ✔ shared customer documents require live explicit bindings; no internal fields or files leak (37.69129ms)
+  ✔ history projection excludes raw audit snapshots and is unavailable to staff (19.448708ms)
+  ✔ preapproved extra work uses exact agreement, enforces cumulative limits and remains subject to review (370.569953ms)
+  ✔ daily reminders are opt-in, tenant scoped and deduplicated (35.122379ms)
+  ✔ server pagination has stable ties and live sessions are required (367.913679ms)
+✔ Customer 360 uses persistent sources, guarded relationships and exact revisions (2358.74617ms)
+▶ Entity source: native invoker resource authority, bounded metadata and no HR/financial payload
+  ✔ customer and object refer to their actual source and native operational rows (267.997327ms)
+  ✔ customer cards preserve every native filter, sort, count and revision with RLS metadata (206.579381ms)
+  ✔ personnel preview includes actual assigned work and omits private HR fields (148.845661ms)
+  ✔ document previews expose bounded native metadata, never storage paths or fabricated content (226.938918ms)
+  ✔ revoked document and module capabilities remain independent of the base profile (394.847384ms)
+  ✔ invalid, anonymous, service, staff, foreign and expired callers fail closed; planner receives only the native safe profile (102.37245ms)
+✔ Entity source: native invoker resource authority, bounded metadata and no HR/financial payload (2476.225671ms)
+▶ Object 360: real database boundaries, visit requests and session-bound vault
+  ✔ object identity, optional structure, cycles and immutable version history (273.350286ms)
+  ✔ one customer request targets one visit; retries and commercial consent (344.008878ms)
+  ✔ instruction versions and read receipts do not prevent stopping individual effort (439.788422ms)
+  ✔ request edits reset read status; regular tasks, replanning and consent prices stay distinct (422.588509ms)
+  ✔ private documents remain exact-visit and session scoped (224.278196ms)
+  ✔ dossier requires delivered email confirmation, bounded expiry and live assignment scope (292.324482ms)
+  ✔ vault values encrypted and excluded from all generic payloads (385.254621ms)
+  ✔ explicit exact-item scope, live publication and active identity required (312.570819ms)
+  ✔ vault metadata cannot enumerate unscoped items by supplying a scoped item (141.079298ms)
+  ✔ removing the staff role revokes visit and existing OTP grants without changing the JWT (443.712943ms)
+  ✔ vault window uses actual assignment bounds and bounded explicit extensions (301.459148ms)
+  ✔ OTP wrong code, reissuing, expiry, atomic one-time consumption and session binding (420.738684ms)
+  ✔ resending does not reset cumulative attempts (391.220264ms)
+  ✔ replanning between request/verify/read and secret rotation revoke grants (406.423721ms)
+  ✔ revoking customer binding and completing assignment end access (234.754142ms)
+✔ Object 360: real database boundaries, visit requests and session-bound vault (6321.888499ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11365.298046
