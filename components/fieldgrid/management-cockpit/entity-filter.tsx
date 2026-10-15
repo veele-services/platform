@@ -32,7 +32,7 @@ export function EntityFilter({active,children,preserveKey}:{active:boolean;child
  };
  useEffect(()=>{
   const state=read(),element=ref.current;if(!element||!state?.open)return;
-  element.open=true;if(!opened)setOpened(true);
+  element.open=true;
   let frame=0;
   const restore=()=>{
    cancelAnimationFrame(frame);
