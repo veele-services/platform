@@ -1,0 +1,975 @@
+[
+  {
+    "tab": "Serviceafspraken",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "height": 726.9375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 393,
+          "textHeight": 14
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "600",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 95,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "16.8px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "content-tabs",
+          "height": 456.828125
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "height": 726.9375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 393,
+          "textHeight": 14
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "600",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 95,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "16.8px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "content-tabs",
+          "height": 456.828125
+        }
+      ]
+    },
+    "viewed": true,
+    "captureState": "Register revisited after both tabs; no data or CSS normalization",
+    "meanPixelDifference": 7.522352132049519e-05,
+    "files": [
+      "agreements-target-1440.png",
+      "agreements-source-1440.png"
+    ]
+  },
+  {
+    "tab": "Serviceafspraken",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "height": 726.9375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 393,
+          "textHeight": 14
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "600",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 95,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "16.8px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "content-tabs",
+          "height": 456.828125
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "height": 726.9375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 393,
+          "textHeight": 14
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "600",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 95,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "16.8px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "content-tabs",
+          "height": 456.828125
+        }
+      ]
+    },
+    "viewed": true,
+    "meanPixelDifference": 0.00011514976048849819,
+    "files": [
+      "agreements-target-768.png",
+      "agreements-source-768.png"
+    ]
+  },
+  {
+    "tab": "Serviceafspraken",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1105.375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 328,
+          "textHeight": 31.921875
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "600",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 95,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "16px",
+            "line-height": "24px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 158.15625
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 394.25
+        },
+        {
+          "cls": "content-tabs",
+          "height": 508.96875
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1105.375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 328,
+          "textHeight": 31.921875
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "600",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 95,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "16px",
+            "line-height": "24px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 158.15625
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 394.25
+        },
+        {
+          "cls": "content-tabs",
+          "height": 508.96875
+        }
+      ]
+    },
+    "viewed": true,
+    "meanPixelDifference": 1.2639348820748755e-05,
+    "files": [
+      "agreements-target-390.png",
+      "agreements-source-390.png"
+    ]
+  },
+  {
+    "tab": "Meetdefinities",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "height": 739.484375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 393,
+          "textHeight": 14
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "500",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 93,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "16.8px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 462,
+          "textHeight": 36.59375
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "content-tabs",
+          "height": 469.375
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "height": 739.484375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 393,
+          "textHeight": 14
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "500",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 93,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "16.8px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 462,
+          "textHeight": 36.59375
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "content-tabs",
+          "height": 469.375
+        }
+      ]
+    },
+    "viewed": true,
+    "meanPixelDifference": 8.516106600511201e-05,
+    "files": [
+      "definitions-target-1440.png",
+      "definitions-source-1440.png"
+    ]
+  },
+  {
+    "tab": "Meetdefinities",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "height": 825.859375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 393,
+          "textHeight": 14
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "500",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 93,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "16.8px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 232,
+          "textHeight": 79.78125
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "content-tabs",
+          "height": 555.75
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "height": 825.859375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 393,
+          "textHeight": 14
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "500",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 93,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "16.8px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 232,
+          "textHeight": 79.78125
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 128
+        },
+        {
+          "cls": "content-tabs",
+          "height": 555.75
+        }
+      ]
+    },
+    "viewed": true,
+    "meanPixelDifference": 6.465933217525575e-05,
+    "files": [
+      "definitions-target-768.png",
+      "definitions-source-768.png"
+    ]
+  },
+  {
+    "tab": "Meetdefinities",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1513.125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 328,
+          "textHeight": 31.921875
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "500",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 93,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "16px",
+            "line-height": "24px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 289,
+          "textHeight": 79.78125
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 158.15625
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 394.25
+        },
+        {
+          "cls": "content-tabs",
+          "height": 916.71875
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1513.125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "styles": {
+        "h1": {
+          "style": {
+            "font-family": "Poppins, Inter, sans-serif",
+            "font-weight": "700",
+            "font-size": "22.4px",
+            "line-height": "29.12px",
+            "letter-spacing": "-1px"
+          },
+          "textWidth": 157,
+          "textHeight": 32
+        },
+        ".page-heading-description": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "11.2px",
+            "line-height": "17.92px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 328,
+          "textHeight": 31.921875
+        },
+        ".content-tab-list button": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "500",
+            "font-size": "11.2px",
+            "line-height": "15.68px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 93,
+          "textHeight": 14
+        },
+        ".fs-search input": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "16px",
+            "line-height": "24px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 0,
+          "textHeight": 0
+        },
+        ".fs-definition-grid p": {
+          "style": {
+            "font-family": "Inter, Arial, sans-serif",
+            "font-weight": "400",
+            "font-size": "12px",
+            "line-height": "21.6px",
+            "letter-spacing": "normal"
+          },
+          "textWidth": 289,
+          "textHeight": 79.78125
+        }
+      },
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 158.15625
+        },
+        {
+          "cls": "fs-metrics",
+          "height": 394.25
+        },
+        {
+          "cls": "content-tabs",
+          "height": 916.71875
+        }
+      ]
+    },
+    "viewed": true,
+    "meanPixelDifference": 6.138605087380504e-05,
+    "files": [
+      "definitions-target-390.png",
+      "definitions-source-390.png"
+    ]
+  }
+]

@@ -1346,12 +1346,17 @@
         "`P/src/FinanceSLA.tsx` → `SLAView`; metrics, filters, serviceafspraakdetail, contractversie en historie",
         "De bestaande ticketklok hergebruiken; geen tweede SLA-timer met afwijkende pauzes/deadlines."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/app/sla",
+      "implementation": "implemented in service-levels changeset; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-3.md",
+        "evidence/phase-3/database-and-concurrency.log",
+        "evidence/phase-3/real-browser-chain.log",
+        "evidence/phase-3/source-comparison.json"
+      ]
     },
     {
       "id": "T10",
@@ -1389,7 +1394,7 @@
         "Dossierautoriteit, versiehistorie, beperkte scopes en echte gekoppelde opvolging."
       ],
       "route": "/app/besluiten",
-      "implementation": "implemented in phase-2 changeset; final release gates pending",
+      "implementation": "implemented; runtime c53c18cb; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,
@@ -1409,7 +1414,7 @@
         "Echte private bestanden en serverrechten; een ingevulde bestandsnaam is geen upload."
       ],
       "route": "/app/compliance",
-      "implementation": "implemented in phase-2 changeset; final release gates pending",
+      "implementation": "implemented; runtime c53c18cb; final whole-scope acceptance pending",
       "tested": true,
       "deployed": false,
       "liveVerified": false,

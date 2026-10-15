@@ -1,0 +1,30 @@
+▶ Service levels: independent transactions, source clocks and authority after waits
+  ✔ simultaneous retries create one immutable norm version and receipt (268.192219ms)
+  ✔ one revision has one winner; duplicate policy identities cannot overlap (331.260797ms)
+  ✔ category revocation while waiting for the policy lock prevents the entire version commit (142.249945ms)
+  ✔ ending the source contract during a policy wait denies the new norm version (118.670921ms)
+  ✔ a ticket created during a pending norm revision keeps the exact version used for its native deadline (168.542029ms)
+  ✔ simultaneous first-response retries produce exactly one real reporter message (148.552531ms)
+  ✔ native ticket lock waits recheck the exact SLA event right before writing (67.379989ms)
+  ✔ the real bounded worker and a simultaneous first response converge on one completed source signal (174.35279ms)
+  ✔ a revoked session cannot save after a row lock wait (48.927811ms)
+✔ Service levels: independent transactions, source clocks and authority after waits (5708.039512ms)
+▶ Service levels: versioned contract norms, native ticket clock and unique source visits
+  ✔ RPCs enforce current tenant/session/module access and all new private tables deny raw access (78.992428ms)
+  ✔ a service has an actual contract/object binding and immutable, idempotent norm versions (1014.077173ms)
+  ✔ policy identity and customer-facing category are explicit; norm labels cannot switch the metric (589.510348ms)
+  ✔ new tickets bind the effective norm to the existing native deadlines; later edits do not change that clock (428.467109ms)
+  ✔ SLA events write real reporter messages and use the existing pause/resume/resolution transitions (1114.110867ms)
+  ✔ bounded real worker signals, native pauses and source assignment never create a second clock or false completion (1440.603642ms)
+  ✔ unique completed visits are independent of staff count and split orders; inspections stay a separate measure (1387.850793ms)
+  ✔ confidential tickets are omitted from SLA rows, counts and focus after exact category rights are denied (737.351251ms)
+  ✔ module, receipt replay and expired sessions use current authority (14.954661ms)
+✔ Service levels: versioned contract norms, native ticket clock and unique source visits (7951.870166ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13793.474698

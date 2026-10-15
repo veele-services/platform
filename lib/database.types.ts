@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       account_guide_dismissals: {
@@ -8159,6 +8184,23 @@ export type Database = {
         Returns: boolean
       }
       cockpit_maintenance: { Args: { batch_size?: number }; Returns: number }
+      cockpit_sla_command: {
+        Args: {
+          command: string
+          input: Json
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_sla_maintenance: {
+        Args: { batch_size?: number }
+        Returns: number
+      }
+      cockpit_sla_query: {
+        Args: { payload?: Json; target_tenant: string }
+        Returns: Json
+      }
       commercial_booking: {
         Args: { command_id: string; input: Json; target_tenant: string }
         Returns: Json
@@ -10407,6 +10449,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: [

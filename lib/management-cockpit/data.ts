@@ -5,7 +5,7 @@ import {getAuthContext} from '@/lib/auth/context';
 import {hasManagementPermission} from '@/lib/management/model';
 import {HOST_KIND_HEADER,TENANT_SLUG_HEADER} from '@/lib/tenancy/hostname';
 import {ticketRpc} from '@/lib/tickets/rpc';
-import {projectFollowup,followupQuerySchema,followupHistorySchema,projectFollowupSource,followupSourceQuerySchema,type FollowupQuery,type FollowupDetail} from './followup';
+import {projectFollowup,followupQuerySchema,followupHistorySchema,projectFollowupSource,projectTicketFollowupSource,followupSourceQuerySchema,type FollowupQuery,type FollowupDetail} from './followup';
 
 export async function cockpitActor(){
  const h=await headers();if(h.get(HOST_KIND_HEADER)!=='tenant'||!h.get(TENANT_SLUG_HEADER))throw Object.assign(new Error('Open je eigen organisatie.'),{code:'42501'});
@@ -27,4 +27,11 @@ export async function getFollowupDetail(focus:{id:string;kind:string}):Promise<F
  return{action,history};
 }
 
-export async function getFollowupSource(focus:import('zod').z.infer<typeof followupSourceQuerySchema>){const{context,db}=await cockpitActor();return projectFollowupSource(await ticketRpc(db,'cockpit_followup',{target_tenant:context.tenant.id}),focus,context.tenant.name)}
+export async function getFollowupSource(focus:import('zod').z.infer<typeof followupSourceQuerySchema>){
+ const{context,db}=await cockpitActor();
+ if(focus.sourceKind==='ticket'){
+  const ticket=await ticketRpc(db,'ticket_query',{target_tenant:context.tenant.id,actor_context:'tenant',operation:'detail',payload:{ticket_id:focus.sourceId}});
+  return projectTicketFollowupSource(await ticketRpc(db,'cockpit_followup',{target_tenant:context.tenant.id}),ticket,focus,context.tenant.name);
+ }
+ return projectFollowupSource(await ticketRpc(db,'cockpit_followup',{target_tenant:context.tenant.id}),focus,context.tenant.name);
+}

@@ -3,4 +3,4 @@ import {z} from 'zod';
 import {createAdminClient} from '@/lib/supabase/admin';
 import {ticketRpc} from '@/lib/tickets/rpc';
 /** Existing worker, service-only bounded jobs; no fabricated tenant sessions. */
-export async function processManagementSignals(){return z.number().int().nonnegative().parse(await ticketRpc(createAdminClient(),'cockpit_maintenance',{batch_size:50}))}
+export async function processManagementSignals(){const db=createAdminClient(),compliance=z.number().int().nonnegative().parse(await ticketRpc(db,'cockpit_maintenance',{batch_size:50})),sla=z.number().int().nonnegative().parse(await ticketRpc(db,'cockpit_sla_maintenance',{batch_size:50}));return compliance+sla}
