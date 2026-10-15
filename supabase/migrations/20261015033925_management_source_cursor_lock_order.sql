@@ -1,0 +1,11 @@
+-- A progress cursor is operational metadata, never the source of ticket rights,
+-- clock values or business history. Its native-ticket FK acquired KEY SHARE at
+-- worker commit while the worker still owned the SLA signal/action lock. A
+-- concurrent ticket command owned that ticket FOR UPDATE before requesting the
+-- signal lock: the inverse ordering produced a real 40P01 deadlock.
+--
+-- The worker already derives (ticket_id,tenant_id) exclusively from real active
+-- tickets, and joins them again on every scan. Keep tenant isolation, private
+-- RLS and all grants unchanged; only remove this unnecessary parent-row lock.
+-- Immutable clock bindings retain their separate native-ticket foreign key.
+alter table private.cockpit_sla_ticket_checks drop constraint cockpit_sla_ticket_checks_ticket_id_fkey;
