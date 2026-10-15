@@ -65,3 +65,7 @@ body .management-permission input[type=checkbox] { flex:none; width:18px; height
 }
 @media(max-width:380px) { .management-role-grid { grid-template-columns:minmax(0,1fr); } }
 @media(prefers-reduced-motion:reduce) { .management-permission-group > summary > svg { transition:none; } }
+/* The source role matrix remains the first view. Native users and permission
+   panels stay mounted, preserving drafts while the compact view picker moves. */
+.sites-management-users>.content-tabs>.content-tab-panel>.panel:first-child{border-top-left-radius:var(--fg-radius,20px)}
+.sites-management-users,.sites-management-users>.content-tabs{display:contents}.sites-management-users>.content-tabs>.content-tab-list{display:none}.sites-management-users>.content-tabs>.content-tab-panel:not([hidden]){display:contents;padding:0;border:0;background:transparent;box-shadow:none}.sites-management-users>.content-tabs>.content-tab-panel[hidden]{display:none!important}.sites-management-users .ed-filter-pop{display:grid;gap:14px}.sites-management-users .ed-filter-pop label{display:grid;gap:6px}.sites-management-users .ed-filter-pop :is(input,select){width:100%;min-height:42px;padding:10px 12px;border:1px solid var(--brand-border);border-radius:8px;background:var(--brand-card,#fff);color:var(--brand-ink);font:inherit}.sites-management-users .management-content-card{margin:0}.sites-management-users .list-pagination,.sites-management-users .list-pagination-summary{font-size:11px}

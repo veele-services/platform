@@ -21,6 +21,7 @@ import "@/components/fieldgrid/content-tabs.css";
 import "@/components/fieldgrid/heading-help-tip.css";
 import "./dashboard-system.css";
 import "@/components/fieldgrid/management-cockpit/presentation.css";
+import "@/components/fieldgrid/management-cockpit/presentation-adapters.css";
 
 export const metadata: Metadata = {
   title: { default: "Fieldgrid", template: "%s · Fieldgrid" },

@@ -37,6 +37,20 @@ test('Management profiles enforce live authenticated permissions and safe owners
       if (['owner','staff','outsider'].includes(name)) members[name] = (await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status) values($1,$2,$3,'active') returning id",[name==='outsider'?other:tenant,user,name==='staff'?['staff']:['tenant_admin','management']])).rows[0].id;
     }
     for (const role of (await db.query('select * from private.management_roles where tenant_id=$1',[tenant])).rows) roles[role.code]=role;
+    await t.test('new operational role seeds include entity-reader dependencies and reseeding preserves owner-customized permissions', async()=>{
+      for(const code of ['planning','administration']){
+        const rights=(await db.query('select capability from private.management_role_permissions where role_id=$1',[roles[code].id])).rows.map(row=>row.capability);
+        assert(rights.includes('backoffice.functions.cockpit_entity_query'));
+        const missing=await db.query('select c.key,d.dep from private.management_role_permissions p join public.permission_catalog c on c.key=p.capability cross join lateral unnest(c.dependencies) d(dep) where p.role_id=$1 and not exists(select 1 from private.management_role_permissions q where q.role_id=p.role_id and q.capability=d.dep)',[roles[code].id]);
+        assert.deepEqual(missing.rows,[]);
+      }
+      await db.query('savepoint customized_role_seed');
+      await db.query("delete from private.management_role_permissions where role_id=$1 and capability='backoffice.functions.cockpit_entity_query'",[roles.planning.id]);
+      await db.query('select private.management_seed($1)',[tenant]);
+      assert.equal((await db.query("select count(*)::int n from private.management_role_permissions where role_id=$1 and capability='backoffice.functions.cockpit_entity_query'",[roles.planning.id])).rows[0].n,0);
+      await db.query('rollback to savepoint customized_role_seed');
+      await db.query('release savepoint customized_role_seed');
+    });
     for(const [name,code] of [['planning','planning'],['administration','administration'],['support','support']]) {
       const result = await command('owner','invite',{name:`Fictief ${name}`,email:`${name}-${users[name]}@management.example.test`,userId:users[name],roleId:roles[code].id});members[name]=result.id;invitations[name]=result;
     }

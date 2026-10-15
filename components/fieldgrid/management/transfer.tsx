@@ -23,7 +23,7 @@ export function OwnershipTransfer({ tenant }: { tenant: TenantContext }) {
         {error && <><p className="wo-error" role="alert">{error}</p>{/opnieuw.*in|inlogcode/i.test(error) && <Link className="secondary-button" href="/login?next=%2Fapp">Opnieuw inloggen met een code</Link>}</>}
       </div><footer className="wizard-footer"><button className="secondary-button" disabled={pending} onClick={() => setOpen(false)}>Annuleren</button><button className="primary-button" disabled={pending || !confirmed} onClick={() => start(async () => {
         setError(""); if (request.current.transferId !== transfer.id) request.current = { transferId: transfer.id, id: crypto.randomUUID() };
-        const result = await runManagementCommand({ command: "accept_transfer", input: { transferId: transfer.id }, requestId: request.current.id });
+        const result = await runManagementCommand({ command: "accept_transfer", input: { transferId: transfer.id }, requestId: request.current.id }).catch(()=>({ok:false as const,error:"De acceptatie kon niet worden bevestigd. Controleer de actuele organisatie; opnieuw accepteren gebruikt dezelfde aanvraag."}));
         if (!result.ok) { setError(result.error); return; } toast.success("Eigenaarschap overgedragen"); setOpen(false); router.refresh();
       })}>{pending ? "Accepteren…" : "Eigenaarschap accepteren"}</button></footer>
     </WorkOrderDialog>}

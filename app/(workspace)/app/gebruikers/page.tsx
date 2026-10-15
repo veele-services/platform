@@ -10,5 +10,5 @@ export default async function ManagementUsersPage() {
   const actor = await getManagementActor().catch(() => null);
   if (!actor) notFound();
   const [snapshot, shell] = await Promise.all([managementRpc(actor.db, "management_query", { target_tenant: actor.context.tenant.id }), getPlanningShellData(actor.context.tenant.id)]);
-  return <BackofficeShell context={actor.context} data={shell} initialView="gebruikers"><ManagementUsers tenant={actor.context.tenant} currentUserId={actor.context.user.id} initial={managementSnapshotSchema.parse(snapshot)}/></BackofficeShell>;
+  return <BackofficeShell context={actor.context} data={shell} initialView="gebruikers" presentation="sites-management"><ManagementUsers tenant={actor.context.tenant} currentUserId={actor.context.user.id} initial={managementSnapshotSchema.parse(snapshot)}/></BackofficeShell>;
 }
