@@ -26,6 +26,7 @@ export type PlatformTenant = {
   name: string;
   slug: string;
   status: string;
+  version: number;
   timezone: string;
   createdAt: string;
   domain: string;
@@ -72,7 +73,7 @@ export async function getPlatformData(): Promise<PlatformData> {
     ? (await getTicketList("platform", ticketQuerySchema.parse({ pageSize: 10 }))).counts
     : null);
   const [tenantsResult, brandingResult, settingsResult, domainsResult, personnelResult, membershipsResult, invitationsResult, templatesResult, workspaceDomainsResult, support] = await Promise.all([
-    admin.from("tenants").select("id,name,slug,status,timezone,created_at").order("created_at", { ascending: false }),
+    admin.from("tenants").select("id,name,slug,status,version,timezone,created_at").order("created_at", { ascending: false }),
     admin.from("tenant_branding").select("tenant_id,primary_color,accent_color,logo_path,sender_name,sender_email"),
     admin.from("tenant_settings").select("tenant_id,enabled_services,white_label_enabled"),
     admin.from("tenant_domains").select("tenant_id,host,verified_at").order("created_at"),
@@ -109,6 +110,7 @@ export async function getPlatformData(): Promise<PlatformData> {
       name: tenant.name,
       slug: tenant.slug,
       status: tenant.status,
+      version: tenant.version,
       timezone: tenant.timezone,
       createdAt: tenant.created_at,
       domain: domain?.host ?? new URL(tenantAppUrl(tenant.slug)).hostname,

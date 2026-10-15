@@ -3,14 +3,16 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { BookOpen, Bell, Building2, ChevronRight, Headset, LayoutDashboard, Menu, MessageSquareText, Plus, Settings2, Sparkles, Target, Users, X } from "lucide-react";
+import { BookOpen, Bell, Building2, ChevronRight, Headset, LayoutDashboard, Menu, MessageSquareText, Plus, Settings2, Sparkles, UsersRound, Users, X } from "lucide-react";
 import { AccountMenu, accountInitials } from "@/components/fieldgrid/account-menu";
 import { ProductBrand } from "@/components/fieldgrid/brand";
 import { NotificationBell } from "@/components/fieldgrid/notifications/inbox";
 import { TenantThemeProvider } from "@/components/fieldgrid/tenant-theme";
 import { brandThemeStyle } from "@/lib/branding/palette";
+import { DashboardPresentation } from "@/components/fieldgrid/presentation";
 import "./platform.css";
 import "./platform-consistency.css";
+import "./source-platform.css";
 
 export type PlatformShellAccess = { userId: string; name: string; email: string | null; canManage: boolean; canSupport: boolean; canConfigureSupport: boolean; canNotifications: boolean };
 
@@ -24,12 +26,12 @@ export function PlatformShell({ access, children }: { access: PlatformShellAcces
   const team = path.startsWith("/platform/team"), product = path.startsWith("/platform/productbeheer");
   const knowledge = path.startsWith("/platform/kennisbank");
   const crm = path.startsWith("/platform/crm");
-  const label = crm ? "CRM & aanvragen" : knowledge ? "Kennisbank" : product ? "Productbeheer" : team ? "Supportteam" : support ? settings ? "Supportinstellingen" : "Supportdesk" : notifications ? "Notificaties" : view === "tenants" || view === "detail" ? "Tenants" : view === "templates" ? "Berichttemplates" : view === "onboarding" ? "Nieuwe tenant" : "Platformoverzicht";
+  const label = crm ? "CRM & aanvragen" : knowledge ? "Kennisbank" : product ? "Productbeheer" : team ? "Supportteam" : support ? settings ? "Supportinstellingen" : "Supportdesk" : notifications ? "Notificaties" : view === "tenants" || view === "detail" ? "Tenants" : view === "templates" ? "Berichttemplates" : view === "onboarding" ? "Nieuwe tenant" : "Overzicht";
   const links = [
     { href: "/platform/kennisbank", label: "Kennisbank", icon: BookOpen, active: knowledge },
     ...(access.canManage ? [
       { href: "/platform", label: "Overzicht", icon: LayoutDashboard, active: !crm && !knowledge && !product && !team && !support && !notifications && view === "overview" },
-      { href: "/platform/crm", label: "CRM & aanvragen", icon: Target, active: crm },
+      { href: "/platform/crm", label: "CRM & aanvragen", icon: UsersRound, active: crm },
       { href: "/platform?view=tenants", label: "Tenants", icon: Building2, active: !knowledge && !product && !team && !support && !notifications && ["tenants", "detail"].includes(view) },
       { href: "/platform?view=onboarding", label: "Nieuwe tenant", icon: Plus, active: !knowledge && !product && !team && !support && !notifications && view === "onboarding" },
       { href: "/platform/productbeheer", label: "Productbeheer", icon: Sparkles, active: product },
@@ -40,9 +42,9 @@ export function PlatformShell({ access, children }: { access: PlatformShellAcces
     ...(access.canNotifications ? [{ href: "/platform/notificaties", label: "Notificaties", icon: Bell, active: notifications }] : []),
     ...(access.canManage ? [{ href: "/platform?view=templates", label: "Berichttemplates", icon: MessageSquareText, active: !knowledge && !product && !team && !support && !notifications && view === "templates" }] : []),
   ];
-  return <TenantThemeProvider><div className="fg-console" style={brandThemeStyle()}>
+  return <DashboardPresentation value="sites"><TenantThemeProvider><div className="sites-cockpit sites-platform"><div className="fg-console ed-platform" style={brandThemeStyle()}>
     <aside className={`fg-sidebar${open ? " open" : ""}`} aria-label="Platformnavigatie"><div className="fg-sidebar-brand"><ProductBrand tone="light"/><small>Platformbeheer</small><button type="button" onClick={() => setOpen(false)} aria-label="Sluit menu"><X/></button></div><nav><span>PLATFORM</span>{links.map(item => <Link key={item.href} href={item.href} className={item.active ? "active" : undefined} aria-current={item.active ? "page" : undefined} prefetch={false} onClick={() => setOpen(false)}><item.icon/>{item.label}</Link>)}</nav><footer className="fg-account-footer"><span className="fg-account-initials" aria-hidden="true">{accountInitials(access.name)}</span><div><strong>{access.name}</strong><small>{access.canManage ? "Platformbeheerder" : "Platform-support"}</small></div></footer></aside>
     {open && <button className="fg-sidebar-shade" aria-label="Sluit navigatie" onClick={() => setOpen(false)}/>}
     <div className="fg-workspace" inert={open || undefined}><header className="fg-topbar"><div><button className="fg-menu-button" type="button" onClick={() => setOpen(true)} aria-label="Open menu"><Menu/></button><span className="fg-workspace-tag"><ProductBrand variant="wordmark"/></span><ChevronRight size={15}/><strong>{label}</strong></div><div className="fg-top-right">{crm&&access.canManage?<Link className="shell-account-button" href="/platform/crm?tab=requests" aria-label="Nieuwe websiteaanvragen" prefetch={false}><Bell size={18}/></Link>:access.canNotifications&&<NotificationBell workspace="platform" actorKey={access.userId}/>}<AccountMenu name={access.name} email={access.email} role={access.canManage ? "Platformbeheerder" : "Platform-support"} settingsHref={access.canConfigureSupport ? "/platform/support/instellingen" : undefined} preferencesHref={access.canNotifications ? "/platform/notificaties/instellingen" : undefined}/></div></header><main className="fg-main">{children}</main></div>
-  </div></TenantThemeProvider>;
+  </div></div></TenantThemeProvider></DashboardPresentation>;
 }

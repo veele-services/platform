@@ -1,0 +1,14 @@
+/* The supplied platform DOM shares the exact isolated Sites font cascade.
+   Native platform CSS still loads for its retained operational controls. */
+.sites-platform .fg-console{font-family:FieldgridSitesInter,Arial,sans-serif}
+.sites-platform .fg-console :is(h1,h2,h3,h4){font-family:FieldgridSitesPoppins,FieldgridSitesInter,sans-serif}
+.sites-platform .fg-console .fg-cockpit-facts dd{font-family:FieldgridSitesPoppins,FieldgridSitesInter,sans-serif}
+.sites-platform .fg-console .shell-account-button{font-family:FieldgridSitesInter,Arial,sans-serif}
+.sites-platform .ed-platform .fg-panel h2{font-family:FieldgridSitesInter,Arial,sans-serif}
+.sites-platform .fg-console .fg-eyebrow{color:var(--brand-muted);font-weight:450;letter-spacing:.12em;line-height:1.6}
+.sites-platform .fg-console .fg-table td small{font-size:11px}
+.sites-platform .fg-console>.fg-workspace>.fg-main>.list-pagination{font-size:10px;padding:0 3px;margin-top:-8px}
+.sites-platform .ed-platform .ed-color .sites-color-code{width:9ch;min-height:0;padding:0;border:0;background:none;font-family:monospace;border-radius:0}
+.sites-platform-extra{margin-top:20px;font-size:12px;color:var(--brand-muted)}
+.sites-platform-extra>summary{cursor:pointer}
+.sites-platform-extra[open]>summary{margin-bottom:18px}

@@ -1,19 +1,22 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useState, useTransition,type ButtonHTMLAttributes } from "react";
 import { useRouter } from "next/navigation";
-import { Globe2, Check, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, Trash2 } from "lucide-react";
 import { ActionIcon } from "@/components/fieldgrid/action-icon";
 import { managePlatformWorkspaceDomain } from "./domain-actions";
 import { workspaceDnsRecords, type WorkspaceDomain } from "@/lib/tenancy/workspace-domain";
+import {Panel,Button as SourceButton} from '@/components/fieldgrid/crm/ui';
+import {SourceNativeDialog} from '@/components/fieldgrid/source-native-dialog';
+function Button({variant,...props}:ButtonHTMLAttributes<HTMLButtonElement>&{variant?:'outline'}){return <SourceButton {...props} primary={variant!=='outline'}/>}
 
 export function TenantWorkspaceDomains({ tenantId, canonicalHost, domains }: { tenantId: string; canonicalHost: string; domains: WorkspaceDomain[] }) {
  const [host, setHost] = useState(""); const [message,setMessage] = useState<string|null>(null); const [pending,startTransition] = useTransition(); const router=useRouter();
+ const [editor,setEditor]=useState(false);
  function run(operation: "register"|"verify"|"activate"|"remove", id?: string) { startTransition(async()=>{
-  setMessage(null); const result=await managePlatformWorkspaceDomain({tenantId,host,id,operation});
-  if(!result.ok) setMessage(result.error); else {setMessage(operation==="activate"?"Domein actief. Het oorspronkelijke tenantadres blijft bereikbaar.":operation==="verify"?"DNS geverifieerd. Richt Caddy in voordat je het domein activeert.":"Domeinkoppeling opgeslagen.");if(operation==="register")setHost("");router.refresh();}
+  setMessage(null);try{const result=await managePlatformWorkspaceDomain({tenantId,host,id,operation});
+  if(!result.ok) setMessage(result.error); else {setMessage(operation==="activate"?"Domein actief. Het oorspronkelijke tenantadres blijft bereikbaar.":operation==="verify"?"DNS geverifieerd. Richt Caddy in voordat je het domein activeert.":"Domeinkoppeling opgeslagen.");if(operation==="register")setHost("");router.refresh();}}catch{setMessage('Opslaan is niet bevestigd. Je invoer blijft bewaard; probeer opnieuw.')}
  }); }
- return <section className="fg-panel fg-workspace-domains"><div className="fg-panel-heading"><div><span className="fg-eyebrow">TENANTADRES</span><h2>Eigen domein</h2></div><Globe2/></div>
+ return <><Panel title="Workspace-domein"><div className="ed-facts"><div><span>Standaardadres</span><strong>{canonicalHost}</strong></div><div><span>Eigen domein</span><strong>{domains[0]?.host||'Nog niet ingesteld'}</strong></div></div><SourceButton onClick={()=>setEditor(true)}>{domains.length?'Domein aanpassen':'Domein toevoegen'}</SourceButton></Panel>{editor&&<SourceNativeDialog title="Eigen domein toevoegen" eyebrow="FIELDGRID PLATFORM" description="Koppel een tenantadres via de bestaande DNS-controle en activeringsprocedure." dirty={Boolean(host.trim())} busy={pending} onClose={()=>{setEditor(false);setHost('');setMessage(null)}}><section className="fg-panel fg-workspace-domains">
   <p className="fg-panel-description">Koppel een eigen adres aan de backoffice, personeelsapp en klantportaal. Het vaste adres blijft {canonicalHost}.</p>
   <form className="fg-domain-add" onSubmit={event=>{event.preventDefault();run("register");}}><label className="fg-field"><span>Domeinnaam</span><input aria-label="Eigen domeinnaam" value={host} onChange={event=>setHost(event.target.value)} placeholder="app.organisatie.nl" required maxLength={253}/></label><Button type="submit" disabled={pending||!host.trim()}>Domein koppelen</Button></form>
   {message&&<p role="status" className="fg-domain-message">{message}</p>}
@@ -21,5 +24,5 @@ export function TenantWorkspaceDomains({ tenantId, canonicalHost, domains }: { t
     <p className="fg-panel-description">Voeg deze DNS-records toe. Stel Caddy en HTTPS in voor dit adres vóór activering.</p><dl className="fg-domain-records">{workspaceDnsRecords(domain.host,domain.verificationToken,canonicalHost).map(record=><div key={record.type}><dt>{record.type}</dt><dd><span>{record.name}</span><code>{record.value}</code></dd></div>)}</dl>
     <div className="fg-domain-actions"><Button variant="outline" disabled={pending} onClick={()=>run("verify",domain.id)}><Check size={16}/>DNS controleren</Button>{domain.status==="verified"&&<Button disabled={pending} onClick={()=>run("activate",domain.id)}>Activeren na Caddy-inrichting</Button>}</div>
   </div>)}
- </section>;
+ </section></SourceNativeDialog>}</>;
 }
