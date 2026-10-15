@@ -51,7 +51,7 @@ export async function getFollowupSource(focus:import('zod').z.infer<typeof follo
   const wire=entityWireSchema.parse(await ticketRpc(db,'cockpit_entity_query',{target_tenant:context.tenant.id,source_kind:focus.sourceKind,source_id:focus.sourceId}));
   if(wire.profile.id!==focus.sourceId||wire.profile.kind!==focus.sourceKind)throw Object.assign(new Error('Geen toegankelijke bron.'),{code:'42501'});
   const paths={customer:'klanten',object:'objecten',personnel:'personeel'},source={id:wire.profile.id,kind:focus.sourceKind,label:wire.profile.name,href:'/app/'+paths[focus.sourceKind]+'/'+wire.profile.id};
-  return{...await attach(source),reference:wire.profile.number,status:({active:'Actief',lead:'Prospect',paused:'Gepauzeerd',inactive:'Inactief',archived:'Gearchiveerd',invited:'Uitgenodigd',former:'Uit dienst'} as Record<string,string>)[wire.profile.status]||wire.profile.status};
+  return{...await attach(source),canOpenDossier:focus.sourceKind!=='personnel'||wire.access.documents,reference:wire.profile.number,status:({active:'Actief',lead:'Prospect',paused:'Gepauzeerd',inactive:'Inactief',archived:'Gearchiveerd',invited:'Uitgenodigd',former:'Uit dienst'} as Record<string,string>)[wire.profile.status]||wire.profile.status};
  }
  if(focus.sourceKind==='commercial_request'||focus.sourceKind==='quote'){
   const quote=focus.sourceKind==='quote',table=quote?'quotes':'requests';
@@ -68,7 +68,7 @@ export async function getFollowupSource(focus:import('zod').z.infer<typeof follo
   let result:import('./followup').FollowupSource={source,tenantName:context.tenant.name,today,actions:[],total:0,page:1,canFollowup:!!raw};if(raw){raw.sourceOptions.push(source);result={...projectFollowupSource(raw,focus,context.tenant.name),canFollowup:true}}
   if(!dossier.finance)financial={rows:[],total:0};
   const day=dossier.order.start?new Intl.DateTimeFormat('en-CA',{timeZone:context.tenant.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(dossier.order.start)):null;
-  return{...result,workOrder:{number:dossier.order.number,title:dossier.order.title,customerObject:[dossier.order.customer,dossier.order.object].filter(Boolean).join(' · '),status:dossier.order.status,owner:(dossier.order.plannerId?raw?.owners.find(o=>o.id===dossier.order.plannerId)?.name||'Toegewezen planner':result.actions.find(a=>a.owner)?.owner)||'Niet toegewezen',date:day?['year','month','day'].map(k=>day.find(p=>p.type===k)!.value).join('-'):null,description:dossier.order.description,finance:dossier.finance,financialRows:financial.rows,financialTotal:financial.total}};
+  return{...result,workOrder:{number:dossier.order.number,title:dossier.order.title,customerObject:[dossier.order.customer,dossier.order.object].filter(Boolean).join(' · '),status:dossier.order.status,owner:(dossier.order.plannerId?raw?.owners.find(o=>o.id===dossier.order.plannerId)?.name||'Toegewezen planner':result.actions.find(a=>a.owner)?.owner)||'Niet toegewezen',date:day?['year','month','day'].map(k=>day.find(p=>p.type===k)!.value).join('-'):null,description:dossier.order.description,finance:dossier.finance,canReviewFinance:context.tenant.enabledServices.includes('finance')&&hasManagementPermission(context.tenant,'backoffice.finance.read')&&hasManagementPermission(context.tenant,'backoffice.functions.cockpit_finance_query'),financialRows:financial.rows,financialTotal:financial.total}};
  }
  if(focus.sourceKind==='invoice'){
   if(!context.tenant.enabledServices.includes('finance'))throw Object.assign(new Error('Geen financiële toegang.'),{code:'42501'});

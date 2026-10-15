@@ -64,7 +64,7 @@ export function GlobalSearch({ actorKey }: { actorKey: string }) {
   let index = -1;
   return <div ref={root} className="shell-global-search">
     <div className="shell-search-field"><Search size={17} aria-hidden="true"/><input type="search" aria-label={sites?'Zoeken in Fieldgrid':'Zoek in je organisatie'} placeholder={sites?'Zoek in jouw omgeving…':'Zoek in je organisatie…'} role="combobox" aria-autocomplete="list" aria-expanded={visible} aria-controls={visible ? `${id}-list` : undefined} aria-activedescendant={visible && active >= 0 && results[active] ? `${id}-${active}` : undefined} autoComplete="off" value={query} maxLength={100} onChange={event => { setQuery(event.target.value); setActive(-1); setOpen(true); }} onFocus={() => setOpen(true)} onKeyDown={event => {
-      if (event.key === "Escape") { setOpen(false); setActive(-1); }
+      if (event.key === "Escape") { setOpen(false); setActive(-1);if(sites)setQuery(''); }
       if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setOpen(true); setActive(value => results.length ? value < 0 ? event.key === "ArrowDown" ? 0 : results.length - 1 : (value + (event.key === "ArrowDown" ? 1 : -1) + results.length) % results.length : -1); }
       if (event.key === "Enter") { event.preventDefault(); const result=results[active>=0?active:0];if(result)navigate(result,result.group); }
       if (event.key === "Tab") setOpen(false);
