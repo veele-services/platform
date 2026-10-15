@@ -1,0 +1,2 @@
+/* Preserve the reference fragment's placement in the source page grid. */
+.sites-cockpit .sites-work-order-list{display:contents}

@@ -21,6 +21,7 @@ describe("work-order navigation and recovery", () => {
     const source = "/app/werkbonnen?q=entree&planning=tentative&page=3";
     expect(workOrderReturn(source)).toBe(source);
     expect(workOrderReturn("/app/planning?day=2033-10-05")).toContain("day=2033-10-05");
+    expect(workOrderReturn("/app/rapporten?stage=open&page=2")).toBe("/app/rapporten?stage=open&page=2");
     for (const path of ["https://example.test", "//example.test", "/app/werkbonnen-elsewhere", "/app/werkbonnen\\example", "/app/werkbonnen\nother", "javascript:alert(1)"])
       expect(workOrderReturn(path)).toBe("/app/werkbonnen");
   });

@@ -5,7 +5,7 @@ import type { WorkOrderDossier, WorkOrderListData, WorkOrderOptions, WorkOrderQu
 export async function getWorkOrderList(tenantId: string, query: WorkOrderQuery): Promise<WorkOrderListData> {
   const db = await createClient();
   const { data, error } = await db.rpc("work_order_list", { target_tenant: tenantId, filters: query });
-  if (error) throw new Error("De werkbonnen konden niet worden geladen. Probeer opnieuw.");
+  if (error) throw Object.assign(new Error("De werkbonnen konden niet worden geladen. Probeer opnieuw."),{code:error.code});
   return data as unknown as WorkOrderListData;
 }
 export async function getWorkOrderOptions(tenantId: string): Promise<WorkOrderOptions> {

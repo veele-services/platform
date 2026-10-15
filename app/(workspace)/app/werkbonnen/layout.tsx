@@ -8,5 +8,5 @@ export default async function WorkOrdersLayout({ children }: { children: ReactNo
   const context = await getAuthContext();
   if (!context.tenant?.enabledServices.includes("planning") || !context.tenant.roles.some(r => ["tenant_admin", "management", "planner", "finance"].includes(r))) notFound();
   const shell = await getPlanningShellData(context.tenant.id);
-  return <BackofficeShell context={{ ...context, tenant: context.tenant }} data={shell} initialView="werkbonnen">{children}</BackofficeShell>;
+  return <BackofficeShell context={{ ...context, tenant: context.tenant }} data={shell} initialView="werkbonnen" presentation="sites-management">{children}</BackofficeShell>;
 }

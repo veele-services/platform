@@ -8145,6 +8145,14 @@ export type Database = {
         Args: { kind: string; record_id: string; target_tenant: string }
         Returns: Json
       }
+      cockpit_customer_cards: {
+        Args: { filters?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_entity_query: {
+        Args: { source_id: string; source_kind: string; target_tenant: string }
+        Returns: Json
+      }
       cockpit_evidence_options: {
         Args: {
           search?: string
@@ -8218,6 +8226,14 @@ export type Database = {
         Returns: Json
       }
       cockpit_maintenance: { Args: { batch_size?: number }; Returns: number }
+      cockpit_overview_query: {
+        Args: { payload?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_report_review_list: {
+        Args: { filters?: Json; target_tenant: string }
+        Returns: Json
+      }
       cockpit_reports_command: {
         Args: {
           command: string
@@ -8250,6 +8266,14 @@ export type Database = {
       }
       cockpit_sla_query: {
         Args: { payload?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_work_order_financial_sources: {
+        Args: { target_order: string; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_work_order_source: {
+        Args: { target_order: string; target_tenant: string }
         Returns: Json
       }
       commercial_booking: {

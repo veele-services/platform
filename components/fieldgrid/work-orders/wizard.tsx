@@ -10,6 +10,7 @@ import { localDateTime } from "@/lib/planning/time";
 import { customerTimeWindows, customerWindowChoice, twoHourCustomerWindow } from "@/lib/work-orders/customer-window";
 import { CustomerWizard } from "@/components/fieldgrid/customers/forms";
 import { ObjectWizard } from "@/components/fieldgrid/objects/forms";
+import {useDashboardPresentation} from "../presentation";
 import { WorkOrderDialog } from "./dialog";
 import { contactRoleLabels, orderHours, priorityLabels, signatureLabels } from "./presentation";
 
@@ -18,6 +19,7 @@ type ContactChoice = { id: string; roles: Array<"site" | "requester" | "extra_ap
 const steps = ["Klant en object", "Werkzaamheden", "Contacten en instructies", "Uitvoering", "Controle en ondertekening", "Samenvatting"];
 
 export function WorkOrderWizard({ tenant, options: initialOptions, dossier, onClose, onSaved }: { tenant: TenantContext; options: WorkOrderOptions; dossier?: WorkOrderDossier; onClose: () => void; onSaved: (id: string) => void }) {
+  const sites=useDashboardPresentation()==="sites";
   const order = dossier?.order;
   const [id] = useState(() => order?.id ?? crypto.randomUUID());
   const [mutationId, setMutationId] = useState(() => crypto.randomUUID());
@@ -123,7 +125,7 @@ export function WorkOrderWizard({ tenant, options: initialOptions, dossier, onCl
     catch { fail("Het nieuwe dossier is opgeslagen, maar de keuzelijst kon niet worden vernieuwd. Sluit deze wizard pas nadat je invoer is bewaard."); }
   };
   return <>
-    <WorkOrderDialog title={order ? `Bewerk ${order.number}` : "Nieuwe werkbon"} description="Leg werkzaamheden en het gewenste aankomstvenster vast. Plan medewerkers later in." tenant={tenant} onClose={onClose} dirty={dirty} busy={pending}>
+    <WorkOrderDialog title={order ? `Bewerk ${order.number}` : "Nieuwe werkbon"} eyebrow={sites?'UITVOERING':'WERKBON'} description="Leg werkzaamheden en het gewenste aankomstvenster vast. Plan medewerkers later in." tenant={tenant} onClose={onClose} dirty={dirty} busy={pending}>
       <ol className="wizard-progress">{steps.map((label, index) => <li key={label} className={index < step ? "active" : ""} aria-current={step === index + 1 ? "step" : undefined}><span>{index + 1}</span><small>{label}</small></li>)}</ol>
       <form ref={formRef} className="commercial-wizard" noValidate onChange={event => { if (!(event.target as HTMLElement).closest("[data-planning-warning]")) markChanged(); }} onSubmit={save}>
         {error && <p ref={errorRef} tabIndex={-1} className="wo-error" role="alert">{error}</p>}
@@ -167,7 +169,7 @@ export function WorkOrderWizard({ tenant, options: initialOptions, dossier, onCl
         <footer className="wizard-footer"><button type="button" className="secondary-button" disabled={pending} onClick={() => step === 1 ? (!dirty || window.confirm("Je wijzigingen zijn nog niet opgeslagen. Wil je ze weggooien?")) && onClose() : setStep(s => s - 1)}><ChevronLeft size={16}/>{step === 1 ? "Annuleren" : "Vorige"}</button><div className="wo-heading-actions">{step === 6 && (!order || order.planningState === "draft") && <button type="submit" value="draft" className="secondary-button" disabled={pending}>Bewaar concept</button>}{step < 6 ? <button key="next" type="button" className="primary-button" disabled={pending} onClick={() => { if (checkStep()) setStep(s => s + 1); }}>Volgende<ChevronRight size={16}/></button> : <button key="save" type="submit" value="save" className="primary-button" disabled={pending}>{pending ? "Opslaan…" : order ? "Wijzigingen opslaan" : "Maak werkbon"}</button>}</div></footer>
       </form>
     </WorkOrderDialog>
-    {nested === "customer" && <CustomerWizard tenant={tenant} owners={options.planners.map(p => ({ ...p, commercial: false }))} defaultPaymentTermsDays={options.defaultPaymentTermsDays} onClose={() => setNested(null)} onSaved={id => { void refreshOptions(id, "customer"); }}/>}
-    {nested === "object" && <ObjectWizard tenant={tenant} customers={options.customers.map(c => ({ ...c, status: "active" }))} customerId={customerId} onClose={() => setNested(null)} onSaved={id => { void refreshOptions(id, "object"); }}/>}
+    {nested === "customer" && <CustomerWizard presentation={sites?"sites":"existing"} tenant={tenant} owners={options.planners.map(p => ({ ...p, commercial: false }))} defaultPaymentTermsDays={options.defaultPaymentTermsDays} onClose={() => setNested(null)} onSaved={id => { void refreshOptions(id, "customer"); }}/>}
+    {nested === "object" && <ObjectWizard presentation={sites?"sites":"existing"} tenant={tenant} customers={options.customers.map(c => ({ ...c, status: "active" }))} customerId={customerId} onClose={() => setNested(null)} onSaved={id => { void refreshOptions(id, "object"); }}/>}
   </>;
 }

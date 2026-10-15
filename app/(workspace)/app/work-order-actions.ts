@@ -1,16 +1,18 @@
 "use server";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import {unstable_rethrow} from 'next/navigation';
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkOrderList, getWorkOrderOptions } from "@/lib/work-orders/data";
-import { saveWorkOrderSchema, workOrderQuery, type SaveWorkOrderInput, type WorkOrderQuery, type WorkOrderResult, type WorkTemplate, type ChecklistQuestion } from "@/lib/work-orders/model";
+import { saveWorkOrderSchema, workOrderQuery, type SaveWorkOrderInput, type WorkOrderQuery, type WorkOrderResult, type WorkTemplate, type ChecklistQuestion,type WorkOrderDossier } from "@/lib/work-orders/model";
+import {hasManagementPermission} from '@/lib/management/model';
 import type { Json } from "@/lib/database.types";
 import type { SignatureSettings, WorkOrderExceptionData } from "@/lib/work-orders/model";
 
 async function access(staff = false) {
   const { tenant } = await getAuthContext();
-  if (!tenant?.enabledServices.includes("planning") || !tenant.roles.some(r => ["tenant_admin", "management", "planner", "finance", ...(staff ? ["staff"] : [])].includes(r))) throw new Error("Geen toegang tot werkbonnen.");
+  if (!tenant?.enabledServices.includes("planning") || !tenant.roles.some(r => ["tenant_admin", "management", "planner", "finance", ...(staff ? ["staff"] : [])].includes(r))) throw Object.assign(new Error("Geen toegang tot werkbonnen."),{code:'42501'});
   return tenant;
 }
 function refreshOrders() { revalidatePath("/app", "layout"); revalidatePath("/staff"); revalidatePath("/klant", "layout"); }
@@ -20,7 +22,22 @@ function errorResult(error: unknown): WorkOrderResult {
   return { ok: false, code: e?.code, error: e?.code === "40001" ? "De werkbon is intussen gewijzigd. Bekijk de actuele versie en probeer opnieuw." : ["23514", "23P01"].includes(e?.code ?? "") ? e.message! : "Opslaan is niet gelukt. Controleer je toegang en probeer opnieuw; je invoer blijft bewaard." };
 }
 export async function loadWorkOrders(query: WorkOrderQuery) { const tenant = await access(); return getWorkOrderList(tenant.id, workOrderQuery.parse(query)); }
+export async function readWorkOrderSourceList(query:WorkOrderQuery){
+ try{const tenant=await access();if(!hasManagementPermission(tenant,'backoffice.work_orders.read')||!hasManagementPermission(tenant,'backoffice.functions.work_order_list'))return {ok:false as const,code:'42501',error:'Werkbonnen zijn niet beschikbaar binnen je actuele rechten.'};
+ return {ok:true as const,data:await getWorkOrderList(tenant.id,workOrderQuery.parse(query))};
+ }catch(error){unstable_rethrow(error);return {ok:false as const,code:(error as {code?:string}).code,error:'Werkbonnen konden niet worden vernieuwd. Controleer je toegang en probeer opnieuw.'};}
+}
 export async function loadWorkOrderOptions() { const tenant = await access(); return getWorkOrderOptions(tenant.id); }
+export async function readWorkOrderSource(id:string):Promise<{ok:true;data:WorkOrderDossier}|{ok:false;error:string;code?:string}>{
+ try{
+  const tenant=await access();
+  if(!hasManagementPermission(tenant,'backoffice.work_orders.read')||!hasManagementPermission(tenant,'backoffice.functions.work_order_dossier'))return {ok:false,code:'42501',error:'Deze werkbon is niet beschikbaar binnen je actuele rechten.'};
+  const db=await createClient(),r=await db.rpc('work_order_dossier',{target_tenant:tenant.id,target_order:z.uuid().parse(id)});
+  if(r.error)throw r.error;if(!r.data)return {ok:false,code:'42501',error:'Deze werkbon is niet beschikbaar binnen je actuele rechten.'};
+  const data=r.data as unknown as WorkOrderDossier;
+  return {ok:true,data:{...data,order:{...data.order,canEdit:data.order.canEdit&&hasManagementPermission(tenant,'backoffice.work_orders.write')&&hasManagementPermission(tenant,'backoffice.functions.save_work_order')}}};
+ }catch(error){unstable_rethrow(error);return {ok:false,code:(error as {code?:string}).code,error:'Het werkbondossier kon niet worden geladen. Controleer je toegang en probeer opnieuw.'};}
+}
 export async function saveWorkOrder(input: SaveWorkOrderInput): Promise<WorkOrderResult> {
   try { const tenant = await access(); const value = saveWorkOrderSchema.parse(input); const db = await createClient();
     const { data, error } = await db.rpc("save_work_order", { target_tenant: tenant.id, input: value });
