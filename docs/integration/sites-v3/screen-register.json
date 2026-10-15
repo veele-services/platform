@@ -1212,11 +1212,15 @@
         "Echte modules/entitlements en hun afhankelijkheden behouden; geen demoflag als productierecht."
       ],
       "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "implementation": "implemented; Source platform information/team adapters; phases 16/22; runtime 0b2e587c",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-22/result.json",
+        "evidence/phase-22/comparison.json",
+        "phase-22.md"
+      ]
     },
     {
       "id": "P08",
@@ -1226,12 +1230,15 @@
         "Primaire beheerder expliciet bepalen; supportrechten apart. Uitnodiging/lifecycle koppelen aan echte accounts, geen lokale naamrij als geslaagde uitnodiging."
       ],
       "route": "platform: /platform/team",
-      "implementation": "extended; primary identity database tested; complete source UI acceptance pending",
-      "tested": false,
+      "implementation": "implemented; Source platform information/team adapters; phases 16/22; runtime 0b2e587c",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
       "evidence": [
-        "evidence/phase-1/primary-admin-6.log"
+        "evidence/phase-1/primary-admin-6.log",
+        "evidence/phase-22/result.json",
+        "evidence/phase-22/comparison.json",
+        "phase-22.md"
       ]
     },
     {
@@ -1242,11 +1249,15 @@
         "Bestaande content, leesrechten en notificatielifecycle aansluiten; CRM-bel gaat naar aanvragen zoals in bron."
       ],
       "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "implementation": "implemented; Source platform information/team adapters; phases 16/22; runtime 0b2e587c",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-22/result.json",
+        "evidence/phase-22/comparison.json",
+        "phase-22.md"
+      ]
     },
     {
       "id": "T01",

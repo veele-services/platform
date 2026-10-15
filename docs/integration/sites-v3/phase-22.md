@@ -1,6 +1,6 @@
 # Productbeheer, supportteam en platforminformatie
 
-Deze fase behandelt P07, P08 en P09. De meegeleverde platformpresentatie blijft de referentie; de bestaande product-, account-, kennisbank- en notificatieprocessen blijven de gegevens- en autorisatiebron. De browseracceptatie en releasegates zijn nog in uitvoering.
+Deze fase behandelt P07, P08 en P09. De meegeleverde platformpresentatie blijft de referentie; de bestaande product-, account-, kennisbank- en notificatieprocessen blijven de gegevens- en autorisatiebron. De lokale browseracceptatie is voltooid. De gezamenlijke releasegates, deployment en liveacceptatie zijn afzonderlijke vervolgstappen.
 
 | Onderdeel | Keuze | Uitwerking |
 | --- | --- | --- |
@@ -26,4 +26,10 @@ De eerder gevonden modules-/afzenderadviezen gebruiken nu leesbare bronparagrafe
 
 ## Bewijsstatus
 
-De bestaande native regressies voor supportteam, primaire beheerder, managementrollen, productbeheer, kennisbank en notificaties slagen gezamenlijk voor 77 controles. Nieuwe verpakte browserketens, bekeken bronvergelijkingen en de verdere releasegates worden afzonderlijk vastgelegd. Er is nog geen deployment of liveacceptatie.
+Het [bewijsregister](evidence/phase-22/result.json) bevat zeven geslaagde browserketens op het werkelijk verpakte artifact `0b2e587c9048160bc995226755c0c4373e28ad19`, met nul browserfouten. Echte lokale SMTP/OTP-verificatie, primaire beheerregistratie en CRM-ontvanger, supportuitnodiging met één Auth-account en vier begrensde rechten, native verzendpolicy/providerclaim, daadwerkelijk ingelogde supportmedewerker en blokkade op CRM/beheer, moduleafhankelijkheden, roadmapdetails, kennisbank bewerken/publiceren, read-only support, eigen notificaties lezen/bevestigen/archiveren en intrekken van een eerder werkende supportsessie zijn gecontroleerd. De verzendtransportproef gebruikt de begrensde lokale providerregistratie en fictieve `.invalid`-ontvangers; dit bewijst geen externe bezorging.
+
+Alle 36 opgenomen beelden zijn bekeken: twaalf bron-/doelparen op 1440, 768 en 390 pixels en vier native detail-/uitnodigingsvensters op diezelfde breedten. De geïmporteerde bron-UI en de originele lettertypen zijn gelijk gebleven. De referentie gebruikt een afzonderlijke, uitsluitend leesbare lege CRM-adapter om de originele Cloudflare-worker buiten deze Next-omgeving te houden; er is geen Sites-backend of owner-fallback naar productie gekopieerd. De geïsoleerde referentieruntime staat los van de echte testdatabase.
+
+De actuele bronkaarten gebruiken bestaande modulegegevens en alfabetisch gesorteerde native artikelen; aantallen/volgorde zijn daardoor data-afhankelijk. Extra echte filters, zoek-/vernieuwbediening en paginatie blijven behouden. Bij informatiepagina's maken deze knoppen de kop op desktop 13 pixels hoger en op mobiel een extra regel. Dit is een beperkte integratieafwijking om bestaande beheerfuncties bereikbaar te houden. Breedte, bronpaneel, kaarten, tekstbehandeling en vensterframe zijn bekeken. Lange echte e-mailadressen en expliciet supportbereik mogen afbreken; de tabel houdt op mobiel de bronmatige interne horizontale scroll, zonder pagina-overloop.
+
+De native regressies voor supportteam, primaire beheerder, managementrollen, productbeheer, kennisbank en notificaties slagen gezamenlijk voor 77 controles. De volledige unitrun vóór de personeelsuitbreiding bevat 1958 geslaagde tests. De nieuwe OTP-navigatie is daarna gericht herhaald; het opgenomen koude artifact compileert alle 108 pagina's, materialiseert 19 vereiste modules en slaagt voor de aparte release-opstartproef. Er is nog geen deployment of liveacceptatie.
