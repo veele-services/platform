@@ -11,7 +11,7 @@ vi.mock("@/lib/pdf/invoice",()=>({renderInvoicePdf:vi.fn()}));
 vi.mock("@/lib/notifications/mail-attachment",()=>({readMailAttachment:mocks.attachment}));
 vi.mock("@/lib/notifications/deferred-mail",()=>({deferNotificationMail:async()=>false,retryDeferredDocumentMail:async()=>false}));
 vi.mock("@/lib/tenancy/hostname",()=>({tenantAppUrl:(_slug:string,path:string="")=>`https://tenant.example.test${path}`}));
-import { createPaymentBundle, sendInvoice } from "@/app/app/finance-actions";
+import { createPaymentBundle, sendInvoice } from "@/app/(workspace)/app/finance-actions";
 const invoiceId="11111111-1111-4111-8111-111111111111";
 const keys=["backoffice.access","backoffice.finance.write","backoffice.functions.send_invoice","backoffice.functions.create_payment_bundle"];
 function context(permissions=keys){return{user:{id:"actor"},tenant:{id:"tenant",slug:"tenant",enabledServices:["finance"],permissions}};}

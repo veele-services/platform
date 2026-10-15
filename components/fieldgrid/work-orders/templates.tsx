@@ -12,7 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@/compone
 import { Plus, Trash2, ArrowLeft, Pencil, Eye, Send, Archive } from "lucide-react";
 import type { TenantContext } from "@/lib/auth/context";
 import type { ChecklistQuestion, WorkOrderOptions, WorkTemplate } from "@/lib/work-orders/model";
-import { mutateWorkTemplate } from "@/app/app/work-order-actions";
+import { mutateWorkTemplate } from "@/app/(workspace)/app/work-order-actions";
 import { WorkOrderDialog } from "./dialog";
 import "./templates.css";
 import { WorkOrderSignatureSettings } from "./settings";

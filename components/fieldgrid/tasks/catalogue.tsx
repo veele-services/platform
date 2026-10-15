@@ -8,7 +8,7 @@ import type { TenantContext } from "@/lib/auth/context";
 import type { WorkspaceData } from "@/lib/data/workspace";
 import { loadTaskCatalogue, saveTaskCatalogue, type CatalogueCommand } from "@/lib/tasks/actions";
 import type { CatalogueTask, TaskCatalogueData, TaskCategory } from "@/lib/tasks/model";
-import { allowExtraWork } from "@/app/app/operations-actions";
+import { allowExtraWork } from "@/app/(workspace)/app/operations-actions";
 import { ActionIcon } from "../action-icon";
 import { EmptyState } from "../empty-state";
 import { ContentTabs } from "../content-tabs";

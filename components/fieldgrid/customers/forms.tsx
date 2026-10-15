@@ -32,7 +32,7 @@ import {
   saveCustomerContact,
   readCustomers,
   customerCommand,
-} from "@/app/app/klanten/actions";
+} from "@/app/(workspace)/app/klanten/actions";
 import { AddressInput } from "../address-input";
 import { useFormChanges, confirmDiscard } from "../unsaved-form";
 import { ObjectForm } from "../objects/forms";

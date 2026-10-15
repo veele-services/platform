@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { readWorkOrderSignatureSettings, saveWorkOrderSignatureSettings } from "@/app/app/work-order-actions";
+import { readWorkOrderSignatureSettings, saveWorkOrderSignatureSettings } from "@/app/(workspace)/app/work-order-actions";
 import type { SignatureSettings } from "@/lib/work-orders/model";
 import "../tenant-settings.css";
 

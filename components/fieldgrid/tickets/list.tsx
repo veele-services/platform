@@ -7,7 +7,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Eye, MoreHorizontal, Plus, Search, Set
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { ticketPaths, ticketWorkspaceLabels, type TicketAccess, type TicketListData, type TicketOptions, type TicketQuery, type TicketRow } from "@/lib/tickets/model";
-import { runTicketCommand } from "@/app/tickets/actions";
+import { runTicketCommand } from "@/app/(workspace)/tickets/actions";
 import { TicketCreate } from "./create";
 import { ticketAssigneeLabel, ticketContextLabel, ticketDate, ticketNextActor, ticketPriorityLabels, ticketStatusLabels, ticketTone } from "./presentation";
 import { CompactFilterMenu } from "../compact-filter-menu";

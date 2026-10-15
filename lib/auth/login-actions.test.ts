@@ -11,7 +11,7 @@ vi.mock("@/lib/auth/login-access", () => ({ getLoginAccess: mocks.access }));
 vi.mock("next/headers", () => ({ headers: mocks.headers }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`redirect:${url}`); } }));
 
-import { loginOtp, signIn } from "@/app/login/actions";
+import { loginOtp, signIn } from "@/app/(workspace)/login/actions";
 import type { LoginWorkspace } from "./login-destination";
 
 function form(intent: string, email = "user@example.test", next?: string, code?: string) {

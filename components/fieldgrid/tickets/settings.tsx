@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, LockKeyhole, Pencil, Plus, ShieldCheck, ShieldMinus } from "lucide-react";
-import { confirmTicketVerification, requestTicketVerification, runTicketCommand } from "@/app/tickets/actions";
+import { confirmTicketVerification, requestTicketVerification, runTicketCommand } from "@/app/(workspace)/tickets/actions";
 import { ticketPaths, type TicketAccess, type TicketCategory, type TicketGrant, type TicketGroup, type TicketPerson, type TicketScope, type TicketSettings } from "@/lib/tickets/model";
 import { TicketDialog } from "./dialog";
 import { TicketPushControl } from "./push";

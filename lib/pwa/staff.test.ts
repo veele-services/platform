@@ -10,8 +10,8 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: mocks.admin }));
 vi.mock("@/lib/files/scanned-storage", () => ({ readScannedFile: mocks.file }));
 import { getStaffPwaIdentity, getStaffPwaSource } from "./staff";
 import { renderStaffPwaImage } from "./image";
-import { GET as manifestGET } from "@/app/staff/manifest.webmanifest/route";
-import { GET as imageGET } from "@/app/staff/pwa/[asset]/route";
+import { GET as manifestGET } from "@/app/(workspace)/staff/manifest.webmanifest/route";
+import { GET as imageGET } from "@/app/(workspace)/staff/pwa/[asset]/route";
 
 const tenantId = "10000000-0000-4000-8000-000000000001";
 const fixtureTenant = () => ({ id: tenantId, name: "Fictieve werkgever", tenant_branding: { primary_color: "#31495e", logo_path: `${tenantId}/fixture.png` }, tenant_settings: { white_label_enabled: false } });

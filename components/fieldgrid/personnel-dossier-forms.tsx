@@ -9,7 +9,7 @@ import { brandThemeStyle } from "@/lib/branding/palette";
 import { dossierDefinitions, validateDossierInput, noticeDeadline, type DossierRecord, type DossierValues, type RecordKind } from "@/lib/personnel/dossier";
 import type { DossierData } from "@/lib/personnel/dossier-data";
 import type { WorkspaceData } from "@/lib/data/workspace";
-import { saveDossierRecord, saveQualificationCatalog, uploadDossierDocument, updateDossierDocument } from "@/app/app/personeel/dossier-actions";
+import { saveDossierRecord, saveQualificationCatalog, uploadDossierDocument, updateDossierDocument } from "@/app/(workspace)/app/personeel/dossier-actions";
 
 type Common = {personnelId:string;primary:string;accent:string;onClose:()=>void};
 export function useUnsaved(dirty:boolean) {

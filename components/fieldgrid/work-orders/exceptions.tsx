@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { readWorkOrderExceptions, saveWorkOrderException } from "@/app/app/work-order-actions";
+import { readWorkOrderExceptions, saveWorkOrderException } from "@/app/(workspace)/app/work-order-actions";
 import type { WorkOrderExceptionData } from "@/lib/work-orders/model";
 const labels = { no_access: "Geen toegang", absence: "Medewerker uitgevallen", material: "Materiaal ontbreekt", unsafe: "Onveilige situatie", damage: "Schade", customer_cancelled: "Klant heeft afgezegd", customer_absent: "Klant niet aanwezig", delay: "Vertraging", other: "Andere bijzonderheid" };
 export function WorkOrderExceptions({ orderId, attachments = [], allowCustomerAbsent = true }: { orderId: string; attachments?: Array<{ id: string; file_name: string }>; allowCustomerAbsent?: boolean }) {

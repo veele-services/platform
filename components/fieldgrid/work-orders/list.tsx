@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { TenantContext } from "@/lib/auth/context";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { workOrderViews, type WorkOrderListData, type WorkOrderOptions, type WorkOrderQuery, type WorkOrderListRow } from "@/lib/work-orders/model";
-import { mutateWorkOrder } from "@/app/app/work-order-actions";
+import { mutateWorkOrder } from "@/app/(workspace)/app/work-order-actions";
 import { executionLabels } from "@/lib/dossiers/status";
 import { WorkOrderWizard } from "./wizard";
 import { canReleaseWorkOrder, WorkOrderReleaseDialog } from "./release";

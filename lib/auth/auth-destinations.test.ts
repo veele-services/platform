@@ -6,8 +6,8 @@ const auth = vi.hoisted(() => ({ exchangeCodeForSession: vi.fn(), verifyOtp: vi.
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth }) }));
 vi.mock("@/lib/auth/login-access", () => ({ getLoginAccess: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`redirect:${url}`); } }));
-import { GET } from "@/app/auth/confirm/route";
-import { signIn } from "@/app/login/actions";
+import { GET } from "@/app/(workspace)/auth/confirm/route";
+import { signIn } from "@/app/(workspace)/login/actions";
 
 describe("obsolete authentication entry points require OTP instead of installing sessions", () => {
   beforeEach(() => { vi.clearAllMocks(); });

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import { runTicketCommand } from "@/app/tickets/actions";
+import { runTicketCommand } from "@/app/(workspace)/tickets/actions";
 import { ticketCreateSchema, type TicketAccess, type TicketOptions } from "@/lib/tickets/model";
 import { localToInstant } from "@/lib/planning/time";
 import { TicketDialog } from "./dialog";

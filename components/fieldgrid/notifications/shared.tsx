@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { useStaffDialogFocus } from "@/lib/staff/use-dialog-focus";
 import { personnelThemeStyle } from "@/lib/staff/theme";
-import { runNotificationCommand } from "@/app/notifications/actions";
+import { runNotificationCommand } from "@/app/(workspace)/notifications/actions";
 import type { NotificationAccess, NotificationCommand } from "@/lib/notifications/model";
 import "./notifications.css";
 

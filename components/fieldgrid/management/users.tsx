@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import type { TenantContext } from "@/lib/auth/context";
 import { managementModuleNames, type ManagementRole, type ManagementSnapshot } from "@/lib/management/model";
 import { managementPermissionLabel } from "@/lib/management/labels";
-import { inviteManagementUser, runManagementCommand } from "@/app/app/gebruikers/actions";
+import { inviteManagementUser, runManagementCommand } from "@/app/(workspace)/app/gebruikers/actions";
 import { PageHeading } from "../page-heading";
 import { ContentTabs } from "../content-tabs";
 import { ActionIcon } from "../action-icon";

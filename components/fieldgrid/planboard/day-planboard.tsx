@@ -36,7 +36,7 @@ import {
   loadPlanboard,
   loadPlanboardOrder,
   savePlanning,
-} from "@/app/app/planning/actions";
+} from "@/app/(workspace)/app/planning/actions";
 import type { TenantContext } from "@/lib/auth/context";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { createClient } from "@/lib/supabase/client";

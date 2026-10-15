@@ -50,8 +50,8 @@ import {
   runStaffLeaveCommand, toggleShiftInterest, transitionWorkOrder,
   updateStaffAvailability, updateStaffProfile,
   updateStaffContact,
-} from "@/app/staff/actions";
-import { runNotificationCommand } from "@/app/notifications/actions";
+} from "@/app/(workspace)/staff/actions";
+import { runNotificationCommand } from "@/app/(workspace)/notifications/actions";
 import { StaffOrderSheet, type StaffOrder } from "@/components/fieldgrid/staff-app";
 import { defaultAvailability, defaultTransport } from "@/lib/staff/onboarding";
 import { Onboarding } from "@/components/fieldgrid/staff/onboarding";

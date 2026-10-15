@@ -15,8 +15,8 @@ vi.mock("@/lib/tenancy/request",()=>({requestMatchesTenant:async()=>true}));
 vi.mock("@/lib/tenancy/hostname",()=>({tenantAppUrl:(_slug:string,path:string)=>`https://tenant.staging.fieldgrid.nl${path}`}));
 vi.mock("@/lib/branding/logo",()=>({getBrandingLogoUrl:state.logo}));
 vi.mock("next/navigation",()=>({notFound:()=>{throw Error("not-found");}}));
-import { POST } from "@/app/api/payments/create/route";
-import PaymentPage from "@/app/pay/[token]/page";
+import { POST } from "@/app/(workspace)/api/payments/create/route";
+import PaymentPage from "@/app/(workspace)/pay/[token]/page";
 
 const token="fictitious-payment-capability-for-tests";
 const request=()=>new Request("https://tenant.staging.fieldgrid.nl/api/payments/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token})});

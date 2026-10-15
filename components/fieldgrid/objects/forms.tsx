@@ -12,7 +12,7 @@ import { localDateTime } from "@/lib/planning/time";
 import type { ActionResult } from "@/lib/actions/result";
 import type { TenantContext } from "@/lib/auth/context";
 import { objectStates,objectTypes,recordStates,nodeKinds,valuesOf,type ObjectData,type Row,type RecordKind } from "@/lib/objects/model";
-import { saveObject,saveObjectNode,saveObjectRecord,uploadObjectDocument } from "@/app/app/objecten/actions";
+import { saveObject,saveObjectNode,saveObjectRecord,uploadObjectDocument } from "@/app/(workspace)/app/objecten/actions";
 
 export function ObjectDialog({title,description,children,tenant,onClose}:{title:string;description:string;children:ReactNode;tenant:Pick<TenantContext,"primaryColor"|"accentColor">;onClose:()=>void}){
  return <Dialog open onOpenChange={open=>{if(!open&&confirmDiscard())onClose();}}><DialogContent showCloseButton={false} className="dossier-dialog object-dialog" style={brandThemeStyle(tenant.primaryColor,tenant.accentColor)}><header><div><span className="eyebrow">OBJECTDOSSIER</span><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></div><button type="button" className="icon-button" aria-label="Sluiten" onClick={()=>{if(confirmDiscard())onClose();}}><X size={20}/></button></header>{children}</DialogContent></Dialog>;

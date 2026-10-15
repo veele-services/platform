@@ -1,0 +1,16 @@
+▶ Platform CRM: concurrent intake, reservation, revision and revocation
+  ✔ identical simultaneous retries commit one immutable request, task and outbox event (25.716378ms)
+  ✔ two different visitors racing one slot produce one reservation and no partial losing intake (17.857911ms)
+  ✔ concurrent rescheduling to one slot keeps the losing appointment at its original time (49.26569ms)
+  ✔ simultaneous updates cannot overwrite the same lead revision (14.204205ms)
+  ✔ a revoked registry is rechecked after a blocked idempotency lock, including receipt replay (47.17696ms)
+  ✔ a revoked session is rechecked after waiting on the lead row (31.952883ms)
+✔ Platform CRM: concurrent intake, reservation, revision and revocation (1229.815587ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1305.397294

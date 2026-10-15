@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Plus, RefreshCw } from "lucide-react";
-import { loadTicketAccess, loadTicketList } from "@/app/tickets/actions";
+import { loadTicketAccess, loadTicketList } from "@/app/(workspace)/tickets/actions";
 import { ticketPaths, ticketQuerySchema, type TicketAccess, type TicketListData, type TicketQuery } from "@/lib/tickets/model";
 import { ticketStatusLabels, ticketNextActor } from "./presentation";
 import { ContentSection } from "../content-section";

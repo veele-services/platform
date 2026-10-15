@@ -8,7 +8,7 @@ const state=vi.hoisted(()=>({guard:vi.fn(),rpc:vi.fn(),invite:vi.fn(),list:vi.fn
  invitation:{id:"a0000000-0000-4000-8000-000000000004",full_name:"Original owner",email:"owner@example.test",status:"pending",bound_at:null as string|null}}));
 vi.mock("@/lib/platform/data",()=>({requirePlatformAdmin:state.guard}));
 vi.mock("@/lib/supabase/admin",()=>({createAdminClient:()=>({rpc:state.rpc,from:state.from,auth:{admin:{inviteUserByEmail:state.invite,listUsers:state.list}}})}));
-import {createPlatformTenant,retryTenantAdminInvitation} from "@/app/platform/actions";
+import {createPlatformTenant,retryTenantAdminInvitation} from "@/app/(workspace)/platform/actions";
 const actor="a0000000-0000-4000-8000-000000000001",tenant="a0000000-0000-4000-8000-000000000002",owner="a0000000-0000-4000-8000-000000000003";
 const input={requestKey:"a0000000-0000-4000-8000-000000000005",name:"FICTITIOUS tenant",slug:"fixture",domain:"",adminName:"Original owner",adminEmail:"owner@example.test",primaryColor:"#222C35",accentColor:"#41AC42",enabledServices:["planning"],senderEmail:""};
 beforeEach(()=>{

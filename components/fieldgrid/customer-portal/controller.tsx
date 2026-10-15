@@ -22,7 +22,7 @@ import { CustomerCommercialDetail } from "./commercial-detail";
 import { CustomerTicketDialog } from "./tickets";
 import { CustomerPaymentDialog } from "./payment";
 import { markCustomerPortalNews } from "@/lib/customer-portal/news-action";
-import { customerCoreAvailability,customerCoreResources,customerPortalViewSchema,customerRouteHref,loadCustomerVisit,type CustomerPortalView } from "@/app/klant/route-model";
+import { customerCoreAvailability,customerCoreResources,customerPortalViewSchema,customerRouteHref,loadCustomerVisit,type CustomerPortalView } from "@/app/(workspace)/klant/route-model";
 import { CustomerPortal,type CustomerPortalActions } from "./portal";
 import { CustomerDialog } from "./dialog";
 import { CustomerObjectForm } from "./forms";

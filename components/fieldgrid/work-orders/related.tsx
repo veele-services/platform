@@ -8,7 +8,7 @@ import type { TenantContext } from "@/lib/auth/context";
 import { followupReasons, type RelatedContext } from "@/lib/work-orders/lineage";
 import { recurrenceSchema, type Recurrence } from "@/lib/work-orders/recurrence";
 import { tenantToday } from "@/lib/planning/time";
-import { readWorkOrderRelated, createRelatedWorkOrder, changeWorkOrderSeries, recordWorkOrderMaterial } from "@/app/app/work-order-related-actions";
+import { readWorkOrderRelated, createRelatedWorkOrder, changeWorkOrderSeries, recordWorkOrderMaterial } from "@/app/(workspace)/app/work-order-related-actions";
 import { ObjectForm } from "@/components/fieldgrid/objects/forms";
 import { WorkOrderDialog } from "./dialog";
 import { ContentSection } from "../content-section";

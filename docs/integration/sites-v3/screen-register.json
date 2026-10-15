@@ -15,12 +15,15 @@
         "Volledige hero met product-/fotogrid, alle secties en lange copy; zie volgorde hieronder",
         "Beide CTA's, perspectieftabs, demo, onboardingchecklist, FAQ en alle cards werken; plaatsing van de twee verplaatste secties exact controleren."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W02",
@@ -30,12 +33,15 @@
         "Brancheoverzicht met vijf kernsectoren en twee ontwikkelrichtingen",
         "Alle zeven branchecards openen het juiste detail; geen oude conceptkeuze."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/branches",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W03",
@@ -45,12 +51,15 @@
         "Schoonmaakcopy, eigen beeld, voordelen, praktijk, stappen en FAQ",
         "Breadcrumbs, relevante productlinks en beide conversieroutes werken; eigen titel/description."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/branches/schoonmaak",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W04",
@@ -60,12 +69,15 @@
         "Glasbewassingcopy, sectorspecifieke foto en voorbeelden",
         "Geen gekopieerde schoonmaaktekst of verkeerde gerelateerde links; formulierbestemmingen werken."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/branches/glasbewassing",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W05",
@@ -75,12 +87,15 @@
         "Facilitaire dienstverlening, locatiecontext en eigen lange copy",
         "Correcte sectorselectie/content en metadata; volledige template zichtbaar."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/branches/facilitair",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W06",
@@ -90,12 +105,15 @@
         "Groenonderhoud, eigen beeld, praktijk en FAQ",
         "Links en CTA's werken; geen aanvullende onbewezen productclaims."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/branches/groenonderhoud",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W07",
@@ -105,12 +123,15 @@
         "Vastgoedservice, klantlocaties en eigen inhoud",
         "Eigen metadata, gerelateerde producten, leesbare mobiele content."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/branches/vastgoedservice",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W08",
@@ -120,12 +141,15 @@
         "Verticale uitbreiding met de bestaande aanduiding in ontwikkeling",
         "Afspraken-CTA werkt; sectorspecifieke functies niet als reeds gebouwd presenteren."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/branches/beveiliging",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W09",
@@ -135,12 +159,15 @@
         "Evenementen als ontwikkelrichting, eigen foto en inhoud",
         "Ontwikkelstatus zichtbaar houden, ook in menu/context; juiste contactbestemming."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/branches/evenementen",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W10",
@@ -150,12 +177,15 @@
         "Publiek productoverzicht met productonderdelen en verbonden werkdag",
         "Anoniem bereikbaar op www; links naar de zeven productdetails, geen privédashboard."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/platform",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W11",
@@ -165,12 +195,15 @@
         "Planningtemplate, eigen copy, voordelen, demo en FAQ",
         "Directe route/refresh, demo-interactie, gerelateerde product- en CTA-links."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/platform/planning",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W12",
@@ -180,12 +213,15 @@
         "Digitale werkbonnen en uitvoeringscontext",
         "Juiste content en productdemo; niets schrijft vanuit de publieke demo naar echte werkbonnen."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/platform/werkbonnen",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W13",
@@ -195,12 +231,15 @@
         "Klanten & Object 360",
         "Eigen content en links, behoud de in de copy beschreven functionele grenzen."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/platform/objecten",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W14",
@@ -210,12 +249,15 @@
         "Personeelsapp en mobiele werkdag",
         "Mobiele presentatie, CTA's en gerelateerde onboarding-/werkboninformatie."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/platform/personeelsapp",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W15",
@@ -225,12 +267,15 @@
         "Klantportaal, locaties en terugkoppeling",
         "Eigen demo en links; publieke visual is geen toegang tot klantdata."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/platform/klantportaal",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W16",
@@ -240,12 +285,15 @@
         "Personeel & onboarding, eigen onboardingbeeld",
         "Complete content/FAQ en koppeling naar personeelsapp; geen fictieve accountactivatie."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/platform/onboarding",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W17",
@@ -255,12 +303,15 @@
         "Offertes & facturatie",
         "Behoud bestaande productnuances; CTA's en breadcrumbs werken."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/platform/offertes-facturatie",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W18",
@@ -270,12 +321,15 @@
         "Procesuitleg van inrichting tot gebruik",
         "Volledige stappen en gerelateerde links; beide vervolgroutes beschikbaar."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/werkwijze",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W19",
@@ -285,12 +339,15 @@
         "Over Fieldgrid, merkverhaal en bijbehorende compositie",
         "Eigen metadata; werkende contact-/vervolglinks, geen lege placeholdertekst."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/over",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W20",
@@ -300,12 +357,15 @@
         "Interactieve productdemo met de bestaande tabs en voorbeelduitvoering",
         "Tabwissel en voorbeeldinteracties werken; persoonlijke demo gaat naar `/afspraak?type=demo`."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/demo",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W21",
@@ -315,12 +375,15 @@
         "Drie stappen: organisatie, kennismaken, controleren; eigen illustratieve panelen en receipt",
         "Valideren, teruggaan met behoud invoer, werkelijk registreren in CRM; na succes een aanvraag bevestigen, geen niet-bestaand proefaccount."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/proberen",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W22",
@@ -330,12 +393,15 @@
         "Twee stappen: onderwerp/moment en contactgegevens; kennismaking of productdemo",
         "Uitsluitend telefonisch, 30 minuten; telefoon verplicht. Live slots, fout/lege/loading states, 409-herstel en receipt; query kiest Productdemo vooraf."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/afspraak",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W23",
@@ -345,12 +411,15 @@
         "Bestaande pagina-opmaak en leesstructuur",
         "Vóór productie de prototypeprivacy vervangen door feitelijke productie-inhoud; geen prototypeverklaring als definitief beleid publiceren."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl/privacy",
+      "implementation": "implemented; production privacy facts still require final review",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W24",
@@ -359,12 +428,15 @@
         "Logo naar home; desktop-megamenu's en mobiel menu; één disclosure tegelijk; sluiten bij Escape, buitenklik en navigatie; sticky-headerstate; footer",
         "Elke menu-, footer- en onderliggende link heeft een concrete bestemming. Toetsenbord en mobiel blijven bruikbaar."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W25",
@@ -373,12 +445,15 @@
         "“Probeer nu 30 dagen gratis” naar `/proberen`; “Plan een afspraak in” naar `/afspraak`; bestaande kortere headerlabels behouden",
         "Controleer iedere voorkomende CTA, niet alleen de hero. Een persoonlijke demo kiest het juiste querytype."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W26",
@@ -387,12 +462,15 @@
         "Voor kantoor / Voor je team / Voor je klant; demo planning/werkbon/klant; mobiele personeelsappvisual",
         "Selectiestatus, inhoud en toetsenbordpijlen volgen dezelfde keuze; demo blijft veilig demonstratief."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W27",
@@ -401,12 +479,15 @@
         "Checklist met voortgang; bestaande FAQ-disclosures en revealpresentatie",
         "Voortgang reageert op de checklist; FAQ opent/sluit; reduced motion laat alle inhoud leesbaar."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W28",
@@ -415,12 +496,15 @@
         "Breadcrumbs, beeldhero, voordelen, lange tekst, stappen, demo, FAQ, gerelateerde pagina's",
         "Geen weggelaten secties of generieke vultekst; broncopy en beeldcrops per record behouden."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W29",
@@ -429,12 +513,15 @@
         "Legacy-prefixen `signature`, `horizon`, `atlas`, `flow`, `people` permanent naar hetzelfde pad zonder prefix",
         "Ook onderliggende oude paden testen; onbekend pad echte 404 met werkende terugweg. Geen oude designs opnieuw activeren."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "W30",
@@ -443,12 +530,15 @@
         "Lokale Poppins/Inter, echte SVG-logo's, 12 WebP-assets, alt-teksten, semantische headings, metadata en JSON-LD",
         "Productie-origin www; sitemap toevoegen; uitsluitend productie indexeerbaar. Sites-origin/preview-noindex niet onbedoeld meenemen naar live."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json"
+      ]
     },
     {
       "id": "I01",
@@ -457,12 +547,20 @@
         "`kind=trial`; organisatie, branche, team, doel, contactgegevens; lead + nieuwe aanvraagsnapshot + opvolging + historie + centraal notificatie-event",
         "Successcreen pas na echte commit. Geen afspraak of account automatisch verzinnen. Aanvraag staat daarna in CRM en overzicht."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
     },
     {
       "id": "I02",
@@ -471,12 +569,20 @@
         "`kind=appointment/demo`; contactgegevens en Amsterdam-slot; dezelfde registraties plus afspraakreservering",
         "Afspraak en demo afzonderlijk controleren; geen video-optie of achtergebleven video-validatie; server weigert ontbrekende telefoon."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
     },
     {
       "id": "I03",
@@ -485,12 +591,20 @@
         "`GET /api/crm/availability?date=YYYY-MM-DD`; alleen openbare beschikbaarheid, geen persoonsgegevens",
         "Datumwijziging verwijdert oude selectie; stale responses overschrijven geen nieuwe datum; fout/geen slots/opnieuw laden zijn bruikbaar."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
     },
     {
       "id": "I04",
@@ -499,12 +613,20 @@
         "Serveridempotentie en atomaire transactie; gewijzigde payload bij bestaande sleutel geeft conflict",
         "Eén aanvraag/afspraak/taak/delivery bij dezelfde poging; formulierinvoer blijft bewaard; geen schijnsucces bij onzekere response."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
     },
     {
       "id": "I05",
@@ -513,12 +635,20 @@
         "Bestaande lead koppelen op de afgesproken bedrijfs-/e-mailnormalisatie; iedere intake heeft eigen blijvende snapshot",
         "Een latere wijziging in het leaddossier overschrijft eerder ontvangen contact-/aanvraaggegevens niet."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
     },
     {
       "id": "I06",
@@ -527,12 +657,20 @@
         "Werkdagen, uren, buffer, voorlooptijd, horizon en blokkades uit CRM; UTC-opslag en `Europe/Amsterdam`-presentatie",
         "Concurrente/overlappende reserveringen, zomertijd en wintertijd controleren; één geldig slot kan niet dubbel worden verkocht."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
     },
     {
       "id": "I07",
@@ -541,12 +679,20 @@
         "Bestaande globale SendGrid-configuratie, centrale policy/transport/worker, expliciete primaire platformbeheerderregistratie",
         "Geen nieuw CRM-adresveld, geen providerkey in browser, geen willekeurige eerste Auth-user. Platformmelding zonder klanttenant correct door centrale deliveryketen."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
     },
     {
       "id": "I08",
@@ -555,12 +701,20 @@
         "Duurzame outbox/delivery; ontbrekende configuratie, blokkade, fout, queued/sending, accepted en onzekere uitkomst afzonderlijk behandelen",
         "Intake blijft bewaard bij mailfout. `accepted` is geen bezorgbewijs; retry is beleidsmatig veilig en dupliceert niet blind."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
     },
     {
       "id": "C01",
@@ -570,7 +724,7 @@
         "Exact deze volgorde en desktop/mobile grids. Geen terugkeer van de verwijderde groepskop, introductie, “Alle gegevens”-selector of losse refreshknop."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -584,7 +738,7 @@
         "Won/lost uitgesloten van actief. Fasebalken openen in de referentie pipeline zonder extra fasefilter; geen omzetlabel voor potentiële waarde."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -598,7 +752,7 @@
         "Rij opent Aanvragen met hetzelfde leaddossier; legacy lege snapshotvelden hebben correcte fallback."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -612,7 +766,7 @@
         "Rij opent Agenda met gekoppeld dossier; footer opent agenda. Gedeelde definitie van toekomstig gebruiken in kaart en CRM-teller."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -626,7 +780,7 @@
         "Taak naar Opvolging, leadmoment naar Pipeline, juiste dossierselectie; Amsterdam-kalenderdatum."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -640,7 +794,7 @@
         "Veilige datarefetch bij focus en circa 30 seconden/zichtbaarheid of gelijkwaardige bestaande infrastructuur; geen handmatige groepsrefresh toevoegen."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -654,7 +808,7 @@
         "Feiten uit echte status; support blijft expliciet gedeelde supportcontext, geen onbeperkte tenantinzage."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -668,7 +822,7 @@
         "Echte record-ID's en bevoegde navigatie; geen hardgecodeerde voorbeeldorganisatie."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -794,7 +948,7 @@
         "Filters en tellingen gebruiken echte data; fasewissel blijft bewaard na refresh. Drag/drop én alternatief via dossier. Overvolle borden scrollen binnen hun eigen container."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -808,7 +962,7 @@
         "Verplicht platformrecht; correcte lead-ID; wijzigingen, notities en nieuwe opvolgtaak werkelijk opslaan en opnieuw ophalen; aanvraaghistorie niet herschrijven."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -822,7 +976,7 @@
         "Servervalidatie en duurzame registratie. Directe A01-route en reguliere knop geven hetzelfde resultaat."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -836,7 +990,7 @@
         "Iedere intake afzonderlijk tonen, inclusief herhaalde aanvraag bij één lead; originele snapshots en juiste type behouden."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -850,7 +1004,7 @@
         "Werkelijke beschikbaarheid en afspraken; geen persoonsgegevens in publieke slotresponse. Juiste Amsterdamdatum en tijd."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -864,7 +1018,7 @@
         "Atomaire slotmutatie. Bij verplaatsconflict blijft oude afspraak staan; annuleren maakt slot vrij. ICS is export, geen bewijs van Google-/Microsoft-synchronisatie."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -878,7 +1032,7 @@
         "Mutaties server-side; dezelfde taak in overzicht en dossier. Bestaande deadlines en achterstalligheid consistent."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -892,7 +1046,7 @@
         "Opslaan heeft effect op de publieke website. Blokkade voorkomt nieuwe reserveringen; bestaande afspraken blijven totdat ze bewust worden verplaatst/geannuleerd."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -906,7 +1060,7 @@
         "Globale identiteit/configuratie lezen; geen nieuw ontvanger- of credentialformulier. Bevoegde wijziging van meldingsvoorkeur met audit."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -920,7 +1074,7 @@
         "Werkelijke centrale deliverystatus. Geaccepteerde historische ontvanger niet herschrijven bij latere accountwijziging. Onzekere uitkomst niet blind opnieuw verzenden."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -934,7 +1088,7 @@
         "Voorbeelden duidelijk afzonderlijk; voorbeeldbeheer mag geen echte aanvragen verwijderen of echte mails veroorzaken. Prototypefixtures niet als productieklanten importeren."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "adapted in runtime; complete source comparison and action acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
@@ -1045,12 +1199,14 @@
         "Beheerderrij met bestaande accountidentiteit; supportmedewerker toevoegen/bekijken",
         "Primaire beheerder expliciet bepalen; supportrechten apart. Uitnodiging/lifecycle koppelen aan echte accounts, geen lokale naamrij als geslaagde uitnodiging."
       ],
-      "route": null,
-      "implementation": "pending",
+      "route": "platform: /platform/team",
+      "implementation": "extended; primary identity database tested; complete source UI acceptance pending",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/primary-admin-6.log"
+      ]
     },
     {
       "id": "P09",
@@ -1171,12 +1327,17 @@
         "`P/src/Management.tsx` → `ControlCenter`; vandaag/week/achterstallig/mijn/zonder eigenaar/uitgesteld/afgerond, bronnen, toewijzing, uitstellen/afronden, nieuwe actie",
         "Eén gedeelde actie-/dossierregistratie met audit en revisiecontrole; bronwijziging en cockpit blijven consistent."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "tenant: /app/opvolging",
+      "implementation": "implemented; runtime commit pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "evidence/phase-1/followup-browser.json",
+        "evidence/phase-1/followup-comparison.json",
+        "evidence/phase-1/followup-database-7.log",
+        "evidence/phase-1/followup-concurrency-5.log"
+      ]
     },
     {
       "id": "T09",

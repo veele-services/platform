@@ -2,7 +2,7 @@
 import { HelpTip } from "../help-tip";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { answerWorkOrderChecklist } from "@/app/app/work-order-actions";
+import { answerWorkOrderChecklist } from "@/app/(workspace)/app/work-order-actions";
 import type { ChecklistInstance, ChecklistQuestion } from "@/lib/work-orders/model";
 import { checklistQuestionState } from "@/lib/work-orders/model";
 import "./work-orders.css";

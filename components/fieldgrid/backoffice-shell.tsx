@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen, Archive, ArrowDownAZ, Bell, BriefcaseBusiness, Building2, CalendarDays, ChevronRight, ClipboardCheck,
   Clock3, CreditCard, FileText, LayoutDashboard, Megaphone,
-  Menu, PackageCheck, Settings,
+  Menu, PackageCheck, Settings, ClipboardList,
   UsersRound, Wrench,X, Plus, Eye,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
@@ -38,16 +38,14 @@ import { TenantThemeProvider } from "@/components/fieldgrid/tenant-theme";
 import { BackofficeLive } from "@/components/fieldgrid/backoffice-live";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { formatPersonnelNumber, PERSONNEL_NUMBER_MAX } from "@/lib/personnel/numbering";
-import "./backoffice-portal.css";
-import "./shell-chrome.css";
 import { CustomersPage, InvoicesPage, ObjectsPage, PersonnelPage, ReportsPage } from "@/components/fieldgrid/resource-pages";
-import { switchTenant } from "@/app/app/actions";
+import { switchTenant } from "@/app/(workspace)/app/actions";
 import {
   createAnnouncement,
   dispatchWorkOrder,
   withdrawAnnouncement, updatePersonnelNumberSettings,
 
-} from "@/app/app/operations-actions";
+} from "@/app/(workspace)/app/operations-actions";
 
 export type BackofficeView = "overzicht" | "aanvragen" | "planning" | "werkbonnen" | "taken" | "klanten" | "objecten" | "personeel" | "controle" | "facturen" | "nieuws" | "instellingen" | "opvolging" | "meldingen" | "support" | "notificaties" | "gebruikers" | "updates" | "kennisbank";
 
@@ -63,7 +61,7 @@ const nav: Array<{ id: BackofficeView; label: string; icon: typeof LayoutDashboa
   { id: "controle", label: "Rapportcontrole", icon: ClipboardCheck, href: "/app/rapporten" },
   { id: "facturen", label: "Facturen", icon: CreditCard, href: "/app/facturen" },
   { id: "nieuws", label: "Nieuws", icon: Megaphone, href: "/app/nieuws" },
-  { id: "opvolging", label: "Opvolging", icon: ClipboardCheck, href: "/app/opvolging" },
+  { id: "opvolging", label: "Control Center", icon: ClipboardList, href: "/app/opvolging" },
   { id: "kennisbank", label: "Kennisbank", icon: BookOpen, href: "/app/kennisbank" },
   { id: "updates", label: "Roadmap & updates", icon: Megaphone, href: "/app/updates" },
   { id: "gebruikers", label: "Gebruikers en rollen", icon: UsersRound, href: "/app/gebruikers" },
@@ -79,7 +77,8 @@ const serviceByView: Partial<Record<BackofficeView, string>> = {
   controle: "rapportage", facturen: "finance",
 };
 
-const organisationViews: BackofficeView[] = ["kennisbank","nieuws", "opvolging", "instellingen", "gebruikers", "updates"];
+const managementViews: BackofficeView[] = ["opvolging"];
+const organisationViews: BackofficeView[] = ["kennisbank","nieuws", "instellingen", "gebruikers", "updates"];
 
 const statusLabel: Record<string, string> = {
   planned: "Gepland", released: "Vrijgegeven", seen: "Gezien", travelling: "Onderweg",
@@ -121,7 +120,7 @@ function PageIntro({ eyebrow, title, description, children }: { eyebrow: string;
 
 function Empty({ children }: { children: ReactNode }) { return <div className="workspace-empty"><PackageCheck size={28}/><p>{children}</p></div>; }
 
-export function BackofficeShell({ context, data, initialView = "overzicht", children }: { context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> }; data: WorkspaceData; initialView?: BackofficeView; children?: ReactNode }) {
+export function BackofficeShell({ context, data, initialView = "overzicht", children, presentation = "existing" }: { context: AuthContext & { tenant: NonNullable<AuthContext["tenant"]> }; data: WorkspaceData; initialView?: BackofficeView; children?: ReactNode; presentation?: "existing" | "sites-management" }) {
   const view = initialView;
   const [mobileNav, setMobileNav] = useState(false);
   const sidebar=useRef<HTMLElement>(null);
@@ -194,7 +193,7 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
     </>;
   })();
 
-  return <TenantThemeProvider primary={tenant.primaryColor} accent={tenant.accentColor}><div className="workspace-shell" style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
+  return <TenantThemeProvider primary={tenant.primaryColor} accent={tenant.accentColor}><div className="sites-cockpit"><div className="workspace-shell" style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
     <BackofficeLive tenantId={tenant.id}/>
     {mobileNav&&<button type="button" className="backoffice-nav-backdrop" aria-label="Menu sluiten" onClick={()=>setMobileNav(false)}/>}
     <aside ref={sidebar} role={mobileNav?"dialog":undefined} aria-modal={mobileNav||undefined} aria-label="Hoofdnavigatie" className={`workspace-sidebar ${mobileNav ? "open" : ""}`} onKeyDown={event=>{
@@ -207,7 +206,8 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
         <button className="backoffice-nav-close icon-button" type="button" aria-label="Menu sluiten" onClick={() => setMobileNav(false)}><X size={20}/></button>
       </div>
       <nav aria-label="Backoffice">
-        <div className="workspace-nav-group">{visibleNav.filter(item => !organisationViews.includes(item.id)).map(navLink)}</div>
+        <div className="workspace-nav-group">{visibleNav.filter(item => !organisationViews.includes(item.id)&&!managementViews.includes(item.id)).map(navLink)}</div>
+        {visibleNav.some(item=>managementViews.includes(item.id))&&<div className="workspace-nav-group"><span className="workspace-nav-label">Management</span>{visibleNav.filter(item=>managementViews.includes(item.id)).map(navLink)}</div>}
         <div className="workspace-nav-group">
           <span className="workspace-nav-label">Organisatie</span>
           {visibleNav.filter(item => organisationViews.includes(item.id)).map(navLink)}
@@ -221,8 +221,8 @@ export function BackofficeShell({ context, data, initialView = "overzicht", chil
         {!tenant.whiteLabelEnabled && <span className="workspace-powered">Powered by Fieldgrid</span>}
       </footer>
     </aside>
-    <div className="workspace-main" inert={mobileNav||undefined}><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu" aria-expanded={mobileNav}><Menu size={20}/></button><span className="breadcrumb"><span className="workspace-origin-dot" aria-hidden="true"/><span className="workspace-origin-label">Mijn omgeving</span><span aria-hidden="true">/</span><strong>{current.label}</strong></span></div><GlobalSearch key={`${tenant.id}:${context.user.id}`} actorKey={`${tenant.id}:${context.user.id}`}/><div className="shell-account-actions"><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><AccountMenu name={accountName} email={context.user.email} role={accountRole} settingsHref="/app/instellingen" preferencesHref="/app/notificaties/instellingen"/></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select aria-label="Tenant kiezen" name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}><OwnershipTransfer tenant={tenant}/><GuideBanner guideKey={`backoffice.${view}`}/>{content}</main></div><Toaster richColors position="top-right"/>
-  </div></TenantThemeProvider>;
+    <div className="workspace-main" inert={mobileNav||undefined}><header className="workspace-topbar"><div><button className="mobile-menu" onClick={() => setMobileNav((value) => !value)} aria-label="Menu" aria-expanded={mobileNav}><Menu size={20}/></button><span className="breadcrumb"><span className="workspace-origin-dot" aria-hidden="true"/><span className="workspace-origin-label">Mijn omgeving</span><span aria-hidden="true">/</span><strong>{current.label}</strong></span></div><GlobalSearch key={`${tenant.id}:${context.user.id}`} actorKey={`${tenant.id}:${context.user.id}`}/><div className="shell-account-actions"><NotificationBell workspace="backoffice" actorKey={`${tenant.id}:${context.user.id}`}/><AccountMenu name={accountName} email={context.user.email} role={accountRole} settingsHref="/app/instellingen" preferencesHref="/app/notificaties/instellingen"/></div></header>{context.memberships.length > 1 && <form action={switchTenant} className="tenant-switch"><select aria-label="Tenant kiezen" name="tenantId" defaultValue={tenant.id} onChange={(event) => event.currentTarget.form?.requestSubmit()}>{context.memberships.map((item) => <option key={item.tenantId} value={item.tenantId}>{item.tenantName}</option>)}</select></form>}<main className={`backoffice-content view-${view}`}><OwnershipTransfer tenant={tenant}/>{presentation!=="sites-management"&&<GuideBanner guideKey={`backoffice.${view}`}/>}{content}</main></div><Toaster richColors position="top-right"/>
+  </div></div></TenantThemeProvider>;
 }
 
 function NewsPage({tenant,data}:{tenant:NonNullable<AuthContext["tenant"]>;data:WorkspaceData}) {

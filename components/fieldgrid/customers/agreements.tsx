@@ -4,7 +4,7 @@ import { useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Plus, Pencil, FileText } from "lucide-react";
-import { customerCommand } from "@/app/app/klanten/actions";
+import { customerCommand } from "@/app/(workspace)/app/klanten/actions";
 import type { TenantContext } from "@/lib/auth/context";
 import type { Agreement } from "@/lib/dossiers/model";
 import type { CustomerData } from "@/lib/customers/model";

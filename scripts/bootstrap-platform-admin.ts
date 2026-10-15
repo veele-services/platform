@@ -41,6 +41,8 @@ async function main() {
 
   const { error } = await supabase.from("platform_admins").upsert({ user_id: userId });
   if (error) throw error;
+  const registration = await supabase.rpc("platform_register_primary_admin", { target_user: userId });
+  if (registration.error) throw registration.error;
   process.stdout.write("Platformbeheerder gereed.\n");
 }
 

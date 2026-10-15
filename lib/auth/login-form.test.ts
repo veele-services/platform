@@ -13,9 +13,9 @@ vi.mock("react", async importOriginal => ({
     return [mocks.state, mocks.action, mocks.pending];
   },
 }));
-vi.mock("@/app/login/actions", () => ({ loginOtp: mocks.loginOtp, staffOtp: mocks.staffOtp, signIn: mocks.signIn }));
+vi.mock("@/app/(workspace)/login/actions", () => ({ loginOtp: mocks.loginOtp, staffOtp: mocks.staffOtp, signIn: mocks.signIn }));
 
-import { LoginForm } from "@/app/login/login-form";
+import { LoginForm } from "@/app/(workspace)/login/login-form";
 
 describe("one compact OTP form for every workspace", () => {
   beforeEach(() => { vi.clearAllMocks(); mocks.state = { step: "email" }; mocks.pending = false; });

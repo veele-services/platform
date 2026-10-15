@@ -1,0 +1,16 @@
+{
+  "checks": [
+    "desktop disclosure exclusive, Escape and outside close",
+    "perspective keyboard arrows",
+    "onboarding checklist updates progress",
+    "FAQ toggles accessible state",
+    "public work-order demo and customer report remain interactive",
+    "demo deep link preselects telephone product demo",
+    "legacy redirect preserves query",
+    "mobile menu navigation and Escape",
+    "200 percent equivalent width and reduced-motion readability",
+    "skip link keyboard access"
+  ],
+  "errors": [],
+  "viewed": false
+}

@@ -14,3 +14,6 @@ export const supportSnapshotSchema = z.object({
 });
 export type SupportSnapshot = z.infer<typeof supportSnapshotSchema>;
 export type SupportMember = SupportSnapshot["members"][number];
+export const platformAccountSchema=z.object({revision:z.number().int().positive(),primaryAdminId:z.uuid().nullable(),administrators:z.array(z.object({id:z.uuid(),name:z.string(),email:z.email()}))});
+export type PlatformAccount=z.infer<typeof platformAccountSchema>;
+export const primaryAdminSchema=z.object({userId:z.uuid(),revision:z.number().int().positive(),requestId:z.uuid()}).strict();

@@ -12,7 +12,7 @@ import {Popover,PopoverTrigger,PopoverContent} from "@/components/ui/popover";
 import {toast} from "sonner";
 import type {TenantContext} from "@/lib/auth/context";
 import type {Row} from "@/lib/objects/model";
-import {commercialAction,readCommercialList,readCommercialDetail,readCommercialOptions} from "@/app/app/commercial-actions";
+import {commercialAction,readCommercialList,readCommercialDetail,readCommercialOptions} from "@/app/(workspace)/app/commercial-actions";
 import {filtersSchema,emptyOptions,requestLabels,quoteLabels,workKinds,sources,priorities,priceBases,money,commercialDate,type CommercialList,type CommercialOptions,type CommercialRow,type SourceKind,type CommercialDetail} from "@/lib/commercial/model";
 import {CommercialWizard} from "./wizard";
 import {CommercialDetailPanel} from "./detail";

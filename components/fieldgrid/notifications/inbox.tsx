@@ -8,7 +8,7 @@ import { Bell, Check, CheckCheck, Archive, ExternalLink, RefreshCw, X, Eye } fro
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { loadNotificationAccess, loadNotificationDetail, loadNotificationInbox } from "@/app/notifications/actions";
+import { loadNotificationAccess, loadNotificationDetail, loadNotificationInbox } from "@/app/(workspace)/notifications/actions";
 import { notificationPaths, notificationQuerySchema, type NotificationAccess, type NotificationInbox, type NotificationItem, type NotificationWorkspace } from "@/lib/notifications/model";
 import { ErrorMessage, notificationDate, useNotificationCommand } from "./shared";
 import { createNotificationRequestGate } from "@/lib/notifications/request-gate";

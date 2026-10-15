@@ -1,8 +1,8 @@
 import { Children, createElement, isValidElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import WorkOrdersError from "../../app/app/werkbonnen/error";
-import WorkOrdersLoading from "../../app/app/werkbonnen/loading";
+import WorkOrdersError from "../../app/(workspace)/app/werkbonnen/error";
+import WorkOrdersLoading from "../../app/(workspace)/app/werkbonnen/loading";
 import { orderDate, orderHours } from "../../components/fieldgrid/work-orders/presentation";
 import { workOrderQuery, workOrderReturn, workOrderTabs, workOrderViews } from "./model";
 

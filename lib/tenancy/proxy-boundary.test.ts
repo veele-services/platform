@@ -18,6 +18,25 @@ beforeEach(()=>{
  vi.stubEnv("APP_URL","https://staging.fieldgrid.nl");vi.stubEnv("DEPLOY_TARGET","staging");
  vi.stubGlobal("fetch",vi.fn(async()=>new Response(JSON.stringify([{id:"FICTITIOUS"}]),{status:200})));
 });
+it("dispatches www product routes before private platform login and strips spoofed identities",async()=>{
+ const response=await proxy(new NextRequest("https://www.staging.fieldgrid.nl/platform/planning?from=menu",{headers:{host:"www.staging.fieldgrid.nl",[TENANT_SLUG_HEADER]:"alpha",[BROWSER_SESSION_HEADER]:"spoofed","x-fieldgrid-protected-page":"1"}}));
+ expect(response.headers.get("x-middleware-rewrite")).toBe("https://www.staging.fieldgrid.nl/fieldgrid-site/platform/planning?from=menu");
+ expect(response.headers.get("x-middleware-request-x-fieldgrid-host-kind")).toBe("marketing");
+ expect(response.headers.get("x-middleware-request-x-fieldgrid-protected-page")).toBe("0");
+ expect(response.headers.get(`x-middleware-request-${TENANT_SLUG_HEADER}`)).toBeNull();
+ expect(response.headers.get(`x-middleware-request-${BROWSER_SESSION_HEADER}`)).toBeNull();
+ expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+ expect(mocks.user).not.toHaveBeenCalled();expect(fetch).not.toHaveBeenCalled();
+ const privatePage=await proxy(new NextRequest("https://staging.fieldgrid.nl/platform",{headers:{host:"staging.fieldgrid.nl"}}));
+ expect(new URL(privatePage.headers.get("location")!).pathname).toBe("/login");
+});
+it.each(["www.staging.fieldgrid.nl","staging.fieldgrid.nl","alpha.staging.fieldgrid.nl"])("rejects direct internal marketing requests on %s",async host=>{
+ expect((await proxy(new NextRequest(`https://${host}/fieldgrid-site/platform`,{headers:{host}}))).status).toBe(404);
+});
+it.each(["/api/crm","/api/crm/leads","/api/worker","/app","/staff","/klant","/login"])("rejects private routes on the marketing host: %s",async path=>{
+ expect((await proxy(new NextRequest(`https://www.staging.fieldgrid.nl${path}`,{headers:{host:"www.staging.fieldgrid.nl"}}))).status).toBe(404);
+ expect(mocks.user).not.toHaveBeenCalled();expect(fetch).not.toHaveBeenCalled();
+});
 it("replaces spoofed signals with one live verified identity and preserves refreshed cookies",async()=>{
  mocks.user.mockImplementation(async()=>{mocks.refresh();return {data:{user:{id:"fixture-user"}},error:null};});
  const response=await proxy(new NextRequest("https://alpha.staging.fieldgrid.nl/api/auth/session",{headers:{host:"alpha.staging.fieldgrid.nl",[BROWSER_SESSION_HEADER]:"b".repeat(64)}}));

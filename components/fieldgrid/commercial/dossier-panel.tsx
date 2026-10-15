@@ -4,7 +4,7 @@ import { ListPagination } from "../list-pagination";
 import {useEffect,useState} from "react";
 import Link from "next/link";
 import {Tabs,TabsList,TabsTrigger} from "@/components/ui/tabs";
-import {readCommercialList} from "@/app/app/commercial-actions";
+import {readCommercialList} from "@/app/(workspace)/app/commercial-actions";
 import {commercialDate,money,priceBases,requestLabels,quoteLabels,type CommercialList} from "@/lib/commercial/model";
 
 /** The dossier projects the same paged records as the commercial workspace. */

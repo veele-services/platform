@@ -1,0 +1,14 @@
+▶ Management cockpit: concurrent commits and rights revoked while waiting
+  ✔ simultaneous retries create one action, event and receipt (42.457802ms)
+  ✔ one revision cannot be overwritten by two simultaneous commands (44.523317ms)
+  ✔ permission revocation rejects a waiting idempotent receipt replay (63.548925ms)
+  ✔ session revocation rejects a command already waiting for the action row (30.518102ms)
+✔ Management cockpit: concurrent commits and rights revoked while waiting (1226.330683ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1295.871639

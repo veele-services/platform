@@ -15,7 +15,7 @@ vi.mock("@/lib/personnel/invitations", () => ({
   deliverPersonnelInvitation: mocks.deliver,
 }));
 
-import { invitePersonnel } from "@/app/app/operations-actions";
+import { invitePersonnel } from "@/app/(workspace)/app/operations-actions";
 
 beforeEach(() => {
   vi.clearAllMocks();

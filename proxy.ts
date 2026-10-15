@@ -10,6 +10,7 @@ import { createContentSecurityPolicy } from "@/lib/auth/content-security-policy"
 import { signedInLoginDestination } from "@/lib/auth/workspace-destination";
 import { publicMarketingPath, VEELE_WEBSITE_SLUG } from "@/lib/marketing/veele/routes";
 import { renderWebsite, websiteSitemap } from "@/lib/marketing/veele/render";
+import { FIELDGRID_MARKETING_INTERNAL, FIELDGRID_MARKETING_ASSETS, FIELDGRID_PUBLIC_CRM_PATHS, isInternalMarketingPath, isMarketingPrivatePath } from "@/lib/marketing/fieldgrid/routes";
 
 export async function proxy(request: NextRequest) {
   if (isAuthenticatedWorkerRequest({ method: request.method, pathname: request.nextUrl.pathname, search: request.nextUrl.search, host: request.headers.get("host"), authorization: request.headers.get("authorization") }, { DEPLOY_TARGET: process.env.DEPLOY_TARGET, PORT: process.env.PORT, ADMIN_API_SECRET: process.env.ADMIN_API_SECRET })) {
@@ -33,6 +34,33 @@ export async function proxy(request: NextRequest) {
   }
   if (hostContext.kind === "invalid") {
     return new NextResponse("Onbekende Fieldgrid-host", { status: 404, headers: { "cache-control": "no-store" } });
+  }
+
+  // Dispatch before tenant lookup, Auth calls and the private /platform guard.
+  // Never trust browser-supplied routing/presentation headers.
+  const fieldgridPath = request.nextUrl.pathname;
+  if (isInternalMarketingPath(fieldgridPath)) return new NextResponse("Pagina niet gevonden", { status: 404, headers: { "cache-control": "no-store" } });
+  if (hostContext.kind === "marketing") {
+    const isPublicApi = FIELDGRID_PUBLIC_CRM_PATHS.some(path => path === fieldgridPath);
+    const isAsset = fieldgridPath.startsWith(FIELDGRID_MARKETING_ASSETS) || fieldgridPath.startsWith("/_next/");
+    if ((!isPublicApi && isMarketingPrivatePath(fieldgridPath)) || (!isPublicApi && !["GET", "HEAD"].includes(request.method))) {
+      return new NextResponse("Pagina niet gevonden", { status: 404, headers: { "cache-control": "no-store" } });
+    }
+    const csp = createContentSecurityPolicy();
+    const marketingHeaders = new Headers(request.headers);
+    for (const name of [TENANT_SLUG_HEADER, BROWSER_SESSION_HEADER]) marketingHeaders.delete(name);
+    marketingHeaders.set(HOST_KIND_HEADER, "marketing");
+    marketingHeaders.set(REQUEST_PATH_HEADER, fieldgridPath);
+    marketingHeaders.set(PROTECTED_PAGE_HEADER, "0");
+    marketingHeaders.set("x-nonce", csp.nonce);
+    marketingHeaders.set("content-security-policy", csp.value);
+    const internalUrl = new URL(request.url);
+    internalUrl.pathname = FIELDGRID_MARKETING_INTERNAL + (fieldgridPath === "/" ? "" : fieldgridPath);
+    const result = isPublicApi || isAsset ? NextResponse.next({ request: { headers: marketingHeaders } }) : NextResponse.rewrite(internalUrl, { request: { headers: marketingHeaders } });
+    result.headers.set("content-security-policy", csp.value);
+    result.headers.set("cache-control", "no-store");
+    if (process.env.DEPLOY_TARGET !== "production") result.headers.set("x-robots-tag", "noindex, nofollow");
+    return result;
   }
 
   if (hostContext.kind === "tenant" && (process.env.DEPLOY_TARGET !== "local" || hostContext.slug === VEELE_WEBSITE_SLUG)) {

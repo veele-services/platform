@@ -1,0 +1,16 @@
+{
+  "marker": "2bc7d094-de86-4788-998b-ac9fa84bc8ce",
+  "tenant": "4cd25dd4-93b4-43ed-9151-f3bd196eff04",
+  "action": "1f69d553-703d-4c1c-8b4b-25a0f2a3efef",
+  "checks": [
+    "source-bound-create",
+    "persisted-completion",
+    "audit-history",
+    "responsive-1440-768-390",
+    "anonymous-denied",
+    "wrong-origin-denied",
+    "revoked-function-clears-ui"
+  ],
+  "browserErrors": [],
+  "viewed": false
+}

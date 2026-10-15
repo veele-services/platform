@@ -4,7 +4,7 @@ import { ActionIcon } from "../action-icon";
 import { Plus, UserRoundMinus } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { requestNotificationVerification, confirmNotificationVerification } from "@/app/notifications/actions";
+import { requestNotificationVerification, confirmNotificationVerification } from "@/app/(workspace)/notifications/actions";
 import { notificationScopeSchema, type Choice, type NotificationAccess, type NotificationGrant, type NotificationPermissions, type NotificationScope } from "@/lib/notifications/model";
 import { ErrorMessage, NotificationDialog, notificationDate, useNotificationCommand } from "./shared";
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Headset, MessageSquareText } from "lucide-react";
-import { loadTicketAccess } from "@/app/tickets/actions";
+import { loadTicketAccess } from "@/app/(workspace)/tickets/actions";
 import { ticketPaths, type TicketWorkspace } from "@/lib/tickets/model";
 import "./tickets.css";
 

@@ -5,7 +5,7 @@ const source = (path: string) => readFileSync(new URL(`../../${path}`, import.me
 
 describe("staff route boundaries", () => {
   it("shows profile recovery before loading profile-bound notification preferences", () => {
-    const page = source("app/staff/page.tsx");
+    const page = source("app/(workspace)/staff/page.tsx");
     expect(page.indexOf("if (!personnel) return <StaffProfileRecovery/>")).toBeGreaterThan(-1);
     expect(page.indexOf("if (!personnel) return <StaffProfileRecovery/>")).toBeLessThan(
       page.indexOf('getNotificationPreferences("staff")'),

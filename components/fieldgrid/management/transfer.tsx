@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
-import { runManagementCommand } from "@/app/app/gebruikers/actions";
+import { runManagementCommand } from "@/app/(workspace)/app/gebruikers/actions";
 import { WorkOrderDialog } from "../work-orders/dialog";
 import type { TenantContext } from "@/lib/auth/context";
 import "./management.css";

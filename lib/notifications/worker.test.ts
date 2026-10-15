@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mock = vi.hoisted(() => ({ rpc: vi.fn(), push: vi.fn(), permit: vi.fn(), vapid: vi.fn(), mail: vi.fn(), render: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ from: () => ({ select: () => ({ eq: () => ({ single: async () => ({ data: { white_label_enabled: false }, error: null }) }) }) }) }) }));
-vi.mock("@/lib/env/server", () => ({ getServerEnv: () => ({ VAPID_PUBLIC_KEY: "fixture-public", VAPID_PRIVATE_KEY: "fixture-private", VAPID_SUBJECT: "mailto:fixture@example.invalid", SENDGRID_API_KEY: "fixture-mail-key", SENDGRID_FROM_EMAIL: "sender@example.invalid" }) }));
+vi.mock("@/lib/env/server", () => ({ getServerEnv: () => ({ APP_URL:"https://staging.fieldgrid.nl", VAPID_PUBLIC_KEY: "fixture-public", VAPID_PRIVATE_KEY: "fixture-private", VAPID_SUBJECT: "mailto:fixture@example.invalid", SENDGRID_API_KEY: "fixture-mail-key", SENDGRID_FROM_EMAIL: "sender@example.invalid" }) }));
 vi.mock("@/lib/providers/sendgrid", () => ({ sendEmail: mock.mail, SendGridDeliveryError: class extends Error {} }));
 vi.mock("@/lib/communications/email", () => ({ renderTenantEmailHtml: mock.render }));
 vi.mock("@/lib/tenancy/hostname", () => ({ tenantAppUrl: (slug: string, path: string) => `https://${slug}.example.invalid${path}` }));
@@ -29,6 +29,22 @@ beforeEach(() => {
   mock.render.mockReturnValue("<p>Fictitious notification</p>");
   mock.permit.mockImplementation(async (_input: unknown, submit: () => Promise<unknown>) => submit());
   mock.rpc.mockImplementation(async (_db: unknown, name: string) => name === "notification_delivery_begin" ? delivery : true);
+});
+
+it("sends a tenantless CRM email through the existing frozen transport and provider policy", async () => {
+  mock.rpc.mockImplementation(async (_db: unknown, name: string, args: { input?: unknown }) =>
+    name === "notification_delivery_begin" ? { ...delivery, tenantId:null, type:"crm.intake", context:"platform", channel:"email", snapshot:{...snapshot,slug:"",path:"/platform/crm?tab=requests",brand:{company:"Fieldgrid",primary:"#222C35",accent:"#41AC42"}} }
+      : name === "notification_delivery_freeze" ? args.input : true);
+  expect((await processNotificationDeliveryClaims([{id,lease:id}])).sent).toBe(1);
+  expect(mock.render).toHaveBeenCalledWith(expect.objectContaining({targetUrl:"https://staging.fieldgrid.nl/platform/crm?tab=requests"}));
+  expect(mock.mail).toHaveBeenCalledWith(expect.objectContaining({deliveryKey:`notification-${id}`,policy:expect.objectContaining({kind:"notification",tenantId:null,type:"crm.intake",context:"platform",sourceKind:"delivery"})}));
+  expect(mock.push).not.toHaveBeenCalled();
+});
+
+it("refuses a tenantless staff delivery before any provider call", async () => {
+  mock.rpc.mockImplementation(async (_db:unknown,name:string)=>name==="notification_delivery_begin"?{...delivery,tenantId:null}:true);
+  expect((await processNotificationDeliveryClaims([{id,lease:id}])).failed).toBe(1);
+  expect(mock.mail).not.toHaveBeenCalled();expect(mock.push).not.toHaveBeenCalled();
 });
 
 it.each([null, id])("customer email uses a reachable destination for recipient %s", async recipientUserId => {

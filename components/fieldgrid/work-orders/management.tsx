@@ -3,7 +3,7 @@ import {useRef,useState,useTransition} from "react";
 import {toast} from "sonner";
 import type {TenantContext} from "@/lib/auth/context";
 import type {WorkOrderDossier} from "@/lib/work-orders/model";
-import {manageWorkOrder} from "@/app/app/work-order-actions";
+import {manageWorkOrder} from "@/app/(workspace)/app/work-order-actions";
 import {WorkOrderDialog} from "./dialog";
 
 export function WorkOrderManagementDialog({data,tenant,assignmentId,onClose,onSaved}:{data:WorkOrderDossier;tenant:TenantContext;assignmentId?:string;onClose:()=>void;onSaved:()=>void}){

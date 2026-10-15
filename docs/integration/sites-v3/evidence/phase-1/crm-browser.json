@@ -1,0 +1,25 @@
+{
+  "marker": "4d6587a4-5710-440f-8699-1fe4d38dc083",
+  "leadId": "379eaa85-d159-41f3-ae2a-11f843bf0d02",
+  "requests": [
+    "dd308e33-2c84-4152-bc74-a627b9f3193c",
+    "3927329c-0ce2-4db2-839f-42e3d4da1fa2",
+    "68c316d8-ce67-4d2a-8d60-a99ebdd3aa78"
+  ],
+  "checks": [
+    "trial",
+    "appointment",
+    "demo",
+    "same-lead-snapshots",
+    "automatic-tasks",
+    "dossier-note",
+    "dossier-stage",
+    "ics",
+    "anonymous-denied",
+    "wrong-origin-denied",
+    "revocation-denied"
+  ],
+  "browserErrors": [],
+  "consoleErrors": [],
+  "viewed": false
+}

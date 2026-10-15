@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { TenantContext } from "@/lib/auth/context";
 import { saveWorkOrderSchema, type SaveWorkOrderInput, type WorkOrderDossier, type WorkOrderOptions } from "@/lib/work-orders/model";
-import { loadWorkOrderOptions, saveWorkOrder } from "@/app/app/work-order-actions";
+import { loadWorkOrderOptions, saveWorkOrder } from "@/app/(workspace)/app/work-order-actions";
 import { localDateTime } from "@/lib/planning/time";
 import { customerTimeWindows, customerWindowChoice, twoHourCustomerWindow } from "@/lib/work-orders/customer-window";
 import { CustomerWizard } from "@/components/fieldgrid/customers/forms";

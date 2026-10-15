@@ -1,0 +1,15 @@
+▶ Primary platform administrator is a registered identity, never an arbitrary Auth user or support operator
+  ✔ current full administration can inspect but portal/support/anon cannot (15.882937ms)
+  ✔ designation requires a real recent OTP, not merely a session or password login (25.733337ms)
+  ✔ an operator or unusable registered account cannot become the mail destination (19.807654ms)
+  ✔ existing explicit bootstrap can register its verified configured administrator, not browser clients (13.283535ms)
+  ✔ account/session revocation also protects the existing registration (6.384117ms)
+✔ Primary platform administrator is a registered identity, never an arbitrary Auth user or support operator (1140.803039ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1212.759609

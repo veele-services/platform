@@ -7,7 +7,7 @@ import type { NotificationPreferences } from "@/lib/notifications/model";
 import type { StaffOnboardingDraft } from "@/lib/staff/model";
 import type { StaffPersonnel, StaffWorkspaceData } from "@/lib/staff/workspace";
 import { defaultOnboarding } from "@/lib/staff/onboarding";
-import { saveStaffOnboarding } from "@/app/staff/actions";
+import { saveStaffOnboarding } from "@/app/(workspace)/staff/actions";
 import { NotificationPushControl } from "@/components/fieldgrid/notifications/push";
 
 const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;

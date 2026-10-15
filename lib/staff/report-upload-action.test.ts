@@ -42,7 +42,7 @@ vi.mock("@/lib/files/scanned-storage", () => ({
   uploadScannedFile: vi.fn(),
 }));
 
-import { addReportEntry } from "@/app/staff/actions";
+import { addReportEntry } from "@/app/(workspace)/staff/actions";
 
 const tenantId = "bb000000-0000-4000-8000-000000000001";
 const userId = "aa000000-0000-4000-8000-000000000001";

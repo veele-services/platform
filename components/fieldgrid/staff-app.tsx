@@ -47,7 +47,7 @@ import {
   loadStaffSignaturePreview, reportStaffCustomerAbsent, requestStaffExtraWork, runStaffWorkOrderCostCommand,
   setTaskCompletion, toggleShiftInterest, transitionWorkOrder,
   updateReportEntry, deleteReportEntry,
-} from "@/app/staff/actions";
+} from "@/app/(workspace)/staff/actions";
 
 export type StaffOrder = StaffWorkOrder;
 type Order = StaffOrder;

@@ -6,7 +6,7 @@ vi.mock("./team", () => ({ getPlatformTeamActor: mocks.actor }));
 vi.mock("@/lib/tickets/rpc", () => ({ ticketRpc: mocks.rpc }));
 vi.mock("./team-invitation", () => ({ deliverSupportInvitation: mocks.deliver }));
 vi.mock("@/lib/management/invitations", () => ({ prepareManagementAccount: mocks.prepare, requireManagementMail: mocks.mail }));
-import { inviteSupportMember, changeSupportMember } from "@/app/platform/team/actions";
+import { inviteSupportMember, changeSupportMember } from "@/app/(workspace)/platform/team/actions";
 const input = { name: "Fictieve supportmedewerker", email: "support@example.test", allTenants: true, tenantIds: [], requestId: "11111111-1111-4111-8111-111111111111" };
 beforeEach(() => { vi.clearAllMocks(); mocks.actor.mockResolvedValue({ db: {} }); mocks.rpc.mockResolvedValue({ userId: "account" }); mocks.prepare.mockResolvedValue("account"); mocks.deliver.mockResolvedValue({}); });
 it("authorizes the fresh platform owner before Auth or provider operations", async () => {

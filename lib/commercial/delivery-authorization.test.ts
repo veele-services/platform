@@ -7,7 +7,7 @@ vi.mock("@/lib/env/server",()=>({getServerEnv:()=>({SENDGRID_API_KEY:"FICTITIOUS
 vi.mock("@/lib/files/scanned-storage",()=>({readScannedFile:state.read,uploadScannedFile:vi.fn()}));
 vi.mock("@/lib/providers/sendgrid",()=>({sendEmail:state.send}));
 vi.mock("@/lib/management/auth",()=>({requireBackofficePermission:state.permission}));
-import { sendCommercialQuote, uploadCommercialAttachment } from "@/app/app/commercial-delivery-actions";
+import { sendCommercialQuote, uploadCommercialAttachment } from "@/app/(workspace)/app/commercial-delivery-actions";
 
 beforeEach(()=>{
  vi.clearAllMocks();state.revoked=false;state.permissions=null;

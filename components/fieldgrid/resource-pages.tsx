@@ -38,10 +38,10 @@ import {
   assignPersonnelFunction, createCustomer, createCustomerContact, createCustomerNote, createObject,
   invitePersonnel, repeatPersonnelInvitation, suggestPersonnelNumber, updateCustomer, updateObject, updatePersonnel,
   uploadCustomerDocument, uploadPersonnelDocument,
-} from "@/app/app/operations-actions";
+} from "@/app/(workspace)/app/operations-actions";
 import {
   createInvoice, createPaymentBundle, registerManualPayment, sendInvoice,
-} from "@/app/app/finance-actions";
+} from "@/app/(workspace)/app/finance-actions";
 
 type Customer = WorkspaceData["customers"][number];
 type ObjectRow = WorkspaceData["objects"][number];

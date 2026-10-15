@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, ExternalLink, History, LockKeyhole, RefreshCw, Send, Share2 } from "lucide-react";
-import { loadTicketDetail, prepareTicketResponse, runTicketCommand } from "@/app/tickets/actions";
+import { loadTicketDetail, prepareTicketResponse, runTicketCommand } from "@/app/(workspace)/tickets/actions";
 import { ticketPaths, type TicketAccess, type TicketAudience, type TicketDetail, type TicketOptions, type TicketStatus } from "@/lib/tickets/model";
 import { TicketMessageBody } from "../knowledge/ticket-message";
 import { TicketKnowledgePicker } from "../knowledge/ticket-picker";

@@ -1,0 +1,4 @@
+/* Sites 3999c85 heading-help presentation, shared across workspace headings. */
+.help-tip-wrap{position:relative;display:inline-flex}
+.help-tip{display:grid;place-items:center;background:none;border:0;color:#85948d;padding:3px}
+.help-bubble{position:absolute;left:0;top:26px;width:270px;max-width:70vw;padding:13px;background:#fff;border:1px solid var(--brand-border);border-radius:10px;box-shadow:0 8px 30px #17312420;font-size:12px;line-height:1.6;z-index:55;font-family:Inter,sans-serif}

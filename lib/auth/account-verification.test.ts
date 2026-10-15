@@ -8,7 +8,7 @@ vi.mock("@/lib/tickets/rpc", () => ({ ticketRpc: mocks.rpc }));
 vi.mock("next/headers", () => ({ headers: mocks.headers }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`redirect:${path}`); } }));
 
-import { verifyAccountEmail } from "@/app/auth/verify/actions";
+import { verifyAccountEmail } from "@/app/(workspace)/auth/verify/actions";
 
 function form(type: string) {
   const result = new FormData();

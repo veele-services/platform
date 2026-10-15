@@ -1,0 +1,7 @@
+@font-face{font-family:Fieldgrid404Inter;font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/fieldgrid/inter-latin-400-normal.woff2') format('woff2')}
+@font-face{font-family:Fieldgrid404Poppins;font-style:normal;font-weight:600;font-display:swap;src:url('/fonts/fieldgrid/poppins-latin-600-normal.woff2') format('woff2')}
+.global-not-found{margin:0;font-family:Fieldgrid404Inter,Arial,sans-serif}
+.global-not-found *{box-sizing:border-box}
+.global-not-found h1{font-family:Fieldgrid404Poppins,Arial,sans-serif}
+.global-not-found .primary-button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 18px;border-radius:9px;background:#368341;color:#fff;font-weight:600;text-decoration:none}
+.global-not-found .primary-button:focus-visible{outline:2px solid #092848;outline-offset:4px}
