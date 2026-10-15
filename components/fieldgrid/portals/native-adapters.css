@@ -3,6 +3,12 @@
 .sites-portals .portal-demo .brand-logo-image{display:block;object-fit:contain;object-position:left;max-width:100%}
 .sites-portals .portal-demo .ps-sidebar-logo .brand-logo-image{width:160px;height:57px;background:white;border-radius:9px;padding:8px}
 .sites-portals .portal-demo .ps-mobile-brand .brand-logo-image{width:122px;height:32px}
+.sites-portals .customer-portal .sidebar .wordmark .brand-logo-image{width:160px;height:57px;border-radius:9px;padding:8px}
+.sites-portals .customer-portal .mobile-brand{flex:none;width:122px}
+.sites-portals .customer-portal .mobile-brand .fieldgrid-brand{width:122px;flex:none}
+.sites-portals .customer-portal .mobile-brand .brand-logo-image{width:122px;height:32px}
+.sites-portals .customer-portal .mobile-brand .brand-logo-image img{width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain}
+@media(min-width:601px) and (max-width:1100px){.sites-portals .customer-portal .sidebar .wordmark .brand-logo-image{width:60px;height:36px;padding:4px}}
 .sites-portals .portal-demo .sites-native-controls{margin-top:22px}
 .sites-portals .portal-demo .sites-native-controls>summary{cursor:pointer;color:var(--brand-muted);font-size:12px;margin-bottom:16px}
 .sites-portals .portal-demo .sites-native-controls .ps-hours-grid{grid-template-columns:minmax(0,1fr)}

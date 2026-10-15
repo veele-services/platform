@@ -6,7 +6,6 @@ import { ActionIcon } from "../action-icon";
 import { EmptyState } from "../empty-state";
 import { PageHeading } from "../page-heading";
 import { ContentTabs } from "../content-tabs";
-import "./portal-consistency.css";
 import { AddressInput } from "../address-input";
 import { addressSchema } from "@/lib/addresses/model";
 import { GuideBanner } from "@/components/fieldgrid/guides/guide";
@@ -22,7 +21,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Bell, BookOpen, Building2, CalendarCheck, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, Eye, FileText,
   List, LockKeyhole, LogOut, MoreHorizontal,
-  Info, MapPin, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Sparkles, TicketCheck, Umbrella, UserRound,
+  Info, MapPin, Navigation, Newspaper, Pencil, Phone, Plus, RotateCcw, Settings, Sparkles, Ticket, Umbrella, UserRound,
 } from "lucide-react";
 import {
   useEffect,
@@ -478,11 +477,12 @@ function MoreScreen({ view, setView, data, profile, timezone, email, tenantName,
   ];
   const shifts = data.openShifts.filter((shift) => shift.status === "open");
   return <div className="ps-more-screen">
-    <section className="ps-profile-summary" aria-label="Mijn profiel"><span>{initials(profile.preferred_name || profile.full_name)}</span><div><small>MIJN PROFIEL</small><h2>{profile.preferred_name || profile.full_name}</h2><p>{profile.employee_number}</p></div></section>
-    <div className="portal-demo-more" aria-label="Personeelszaken"><Link className="ps-panel portal-demo-help" href="/staff/kennisbank"><BookOpen aria-hidden="true"/><span><strong>Kennisbank</strong><small>Handleidingen en antwoorden</small></span></Link><Link className="ps-panel portal-demo-help" href="/staff/updates"><Sparkles aria-hidden="true"/><span><strong>Wat is er nieuw?</strong><small>Productupdates van Fieldgrid</small></span></Link>
-      {actions.map(([key, title, text, Icon]) => <button className="ps-panel portal-demo-help" key={key} onClick={() => setView(key)}><Icon aria-hidden="true"/><span><strong>{title}</strong><small>{text}</small></span></button>)}
-      <Link className="ps-panel portal-demo-help" href="/staff/notificaties"><Bell aria-hidden="true"/><span><strong>Notificaties</strong><small>Inbox en persoonlijke voorkeuren</small></span></Link>
-      <StaffTicketsEntry className="ps-panel portal-demo-help" enabled={ticketsEnabled}><TicketCheck aria-hidden="true"/><span><strong>Tickets</strong><small>Vragen en meldingen aan je organisatie</small></span></StaffTicketsEntry>
+    <div className="portal-demo-more" aria-label="Personeelszaken">
+      {actions.map(([key,title,,Icon])=><button className="ps-panel portal-demo-help" key={key} onClick={()=>setView(key)}><Icon aria-hidden="true"/><span><strong>{title}</strong><small>Bekijk je {title.toLowerCase()}</small></span><ChevronRight/></button>)}
+      <StaffTicketsEntry className="ps-panel portal-demo-help" enabled={ticketsEnabled}><Ticket aria-hidden="true"/><span><strong>Tickets</strong><small>Bekijk je tickets</small></span><ChevronRight/></StaffTicketsEntry>
+      <Link className="ps-panel portal-demo-help" href="/staff/kennisbank"><BookOpen aria-hidden="true"/><span><strong>Kennisbank</strong><small>Bekijk je kennisbank</small></span><ChevronRight/></Link>
+      <Link className="ps-panel portal-demo-help" href="/staff/updates"><Sparkles aria-hidden="true"/><span><strong>Wat is er nieuw?</strong><small>Bekijk je wat is er nieuw?</small></span><ChevronRight/></Link>
+      <Link className="ps-panel portal-demo-help" href="/staff/notificaties"><Bell aria-hidden="true"/><span><strong>Notificaties</strong><small>Inbox en persoonlijke voorkeuren</small></span><ChevronRight/></Link>
     </div>
     {shifts.length > 0 && <section className="ps-panel ps-open-shifts" aria-label="Open diensten"><div className="ps-panel-heading"><div><span>OPEN DIENSTEN</span><h2>Interesse doorgeven</h2></div><CalendarDays/></div>{shifts.map((shift) => {
       const interest = data.shiftInterests.find((item) => item.open_shift_id === shift.id && item.personnel_id === profile.id);

@@ -22,6 +22,15 @@ import "@/components/fieldgrid/heading-help-tip.css";
 import "./dashboard-system.css";
 import "@/components/fieldgrid/management-cockpit/presentation.css";
 import "@/components/fieldgrid/management-cockpit/presentation-adapters.css";
+// Portal presentation has one cascade: native integrations first, immutable
+// supplied declarations next, then the small native component bridges.
+import "./staff/staff.css";
+import "./staff/workspace-overlays.css";
+import "@/components/fieldgrid/staff/portal-consistency.css";
+import "@/components/fieldgrid/customer-portal/customer-portal.css";
+import "@/components/fieldgrid/customer-portal/consistency.css";
+import "@/components/fieldgrid/portals/source-presentation.css";
+import "@/components/fieldgrid/portals/native-adapters.css";
 
 export const metadata: Metadata = {
   title: { default: "Fieldgrid", template: "%s · Fieldgrid" },

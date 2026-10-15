@@ -11,8 +11,6 @@ import {TenantThemeProvider} from '../tenant-theme';
 import {FieldgridBrand} from '../brand';
 import {AccountMenu} from '../account-menu';
 import {SourcePortalFrame} from '../portals/source-frame';
-import './customer-portal.css';
-import './consistency.css';
 
 export const customerNavigation=[
  ['dashboard',CalendarDays,'Cockpit'],['objects',Building2,'Mijn objecten'],['appointments',Clock3,'Mijn afspraken'],['reports',FileText,'Rapporten'],
