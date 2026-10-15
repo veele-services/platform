@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Plus, Eye, RefreshCw, Columns3, List, Search, ArrowUpRight } from "lucide-react";
 import { PageHeading } from "../page-heading";
 import { ContentTabs } from "../content-tabs";
@@ -11,6 +11,7 @@ import { ProductEditor } from "./editors";
 import { ProductDetail, PublicationDialog, ProductPreview } from "./details";
 import {useDashboardPresentation} from '../presentation';
 import {Table,Badge,Empty} from '../crm/ui';
+import {PlatformProductOverview} from "./platform-overview";
 import {EntityFilter} from '../management-cockpit/entity-filter';
 import '../information/information.css';
 import {
@@ -57,6 +58,7 @@ type Modal =
       section: ProductSection;
       id: string;
     };
+function ProductManagementControls({platform,children}:{platform:boolean;children:ReactNode}){return platform?<details className="sites-platform-extra"><summary>Ideeën, roadmap en releases beheren</summary>{children}</details>:<>{children}</>}
 const empty: ProductList = { items: [], total: 0, page: 1, pageSize: 25 };
 async function request(url: string) {
   const r = await fetch(url, {
@@ -82,7 +84,7 @@ export function ProductHub({
 }) {
   const admin = snapshot.access.canManage,
     management = snapshot.workspace === "backoffice";
-  const presentation=useDashboardPresentation(),sites=management&&presentation==='sites';
+  const presentation=useDashboardPresentation(),sites=management&&presentation==='sites', platformSites=snapshot.workspace==='platform'&&presentation==='sites';
   const tabs = admin
     ? [
         ["ideas", "Ideeën"],
@@ -462,6 +464,8 @@ export function ProductHub({
   );
   return (
     <div className={sites?'sites-information':'product-hub'}>
+      {platformSites && <><PageHeading eyebrow="FIELDGRID PLATFORM" title="Productbeheer" help="Beheer modules, ideeën, roadmap en updates zonder publicatie met beschikbaarheid te verwarren."/><PlatformProductOverview roadmap={lists.roadmap.items} open={(section,id)=>{void openDetail(section,id);}}/></>}
+      <ProductManagementControls platform={platformSites}>
       <PageHeading
         eyebrow={sites?'ORGANISATIE':admin ? "PLATFORMBEHEER" : "FIELDGRID ONTWIKKELING"}
         title={
@@ -565,6 +569,7 @@ export function ProductHub({
           content: id === tab ? body : null,
         }))}
       />}
+      </ProductManagementControls>
       {modal?.type === "editor" && (
         <ProductEditor
           key={`${modal.request.kind}:${modal.request.item?.id ?? "new"}`}

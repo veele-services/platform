@@ -18,6 +18,7 @@ it("binds only the authorized account and preserves the form request key", async
   expect(await inviteSupportMember(input)).toEqual({ ok: true });
   expect(mocks.rpc).toHaveBeenNthCalledWith(2, {}, "platform_team_command", expect.objectContaining({ command: "invite", request_id: input.requestId, input: expect.objectContaining({ userId: "account", allTenants: true, version: 0 }) }));
   expect(mocks.deliver).toHaveBeenCalledWith({}, { userId: "account" });
+  expect(mocks.prepare).toHaveBeenCalledWith(input.email,input.name);
 });
 it("does not send when a live membership binding fails after account preparation", async () => {
   mocks.rpc.mockResolvedValueOnce(true).mockRejectedValueOnce(new Error("Ingetrokken."));
@@ -35,4 +36,12 @@ it("revokes through the authenticated boundary without mail or Auth resets", asy
 it("preserves uncertain invitation delivery as a warning", async () => {
   mocks.deliver.mockResolvedValue({ warning: "Providerontvangst onzeker." });
   expect(await inviteSupportMember(input)).toEqual({ ok: true, warning: "Providerontvangst onzeker." });
+});
+
+it("reports fresh OTP and revision requirements without disclosing native diagnostics",async()=>{
+ for(const [code,text]of[["42501","Controleer je platformtoegang"],["40001","Het supportteam is intussen gewijzigd"]]){
+  mocks.rpc.mockRejectedValueOnce({code,message:"PRIVATE DIAGNOSTIC FIXTURE"});
+  const result=await inviteSupportMember(input);expect(result.ok).toBe(false);if(!result.ok){expect(result.error).toContain(text);expect(result.error).not.toContain("PRIVATE DIAGNOSTIC");}
+ }
+ expect(mocks.prepare).not.toHaveBeenCalled();expect(mocks.deliver).not.toHaveBeenCalled();
 });
