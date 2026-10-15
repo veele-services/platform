@@ -5,11 +5,11 @@ import {Dialog,DialogContent,DialogTitle,DialogDescription} from "@/components/u
 import type {TenantContext} from "@/lib/auth/context";
 import {brandThemeStyle} from "@/lib/branding/palette";
 import {useDashboardPresentation} from '../presentation';
-import {Modal} from '../crm/ui';
+import {SourceNativeDialog} from '../source-native-dialog';
 
 export function CommercialDialog({title,description,tenant,onClose,children,dirty=false,busy=false}:{title:string;description:string;tenant:TenantContext;onClose:()=>void;children:ReactNode;dirty?:boolean;busy?:boolean}){
  const sites=useDashboardPresentation()==='sites';
  const close=()=>{if(!busy&&(!dirty||confirm("Je wijzigingen zijn nog niet opgeslagen. Wil je ze weggooien?")))onClose();};
- if(sites)return <Modal title={title} subtitle="COMMERCIEEL DOSSIER" onClose={close}><div className="sites-commercial-editor"><p className="mc-muted">{description}</p>{children}</div></Modal>;
+ if(sites)return <SourceNativeDialog title={title} description={description} eyebrow="COMMERCIEEL DOSSIER" onClose={onClose} dirty={dirty} busy={busy}>{children}</SourceNativeDialog>;
  return <Dialog open onOpenChange={open=>{if(!open)close();}}><DialogContent className="commercial-dialog" showCloseButton={false} style={brandThemeStyle(tenant.primaryColor,tenant.accentColor)}><header><div><span className="eyebrow">COMMERCIEEL DOSSIER</span><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></div><button type="button" className="icon-button" aria-label="Sluiten" disabled={busy} onClick={close}><X size={20}/></button></header>{children}</DialogContent></Dialog>;
 }

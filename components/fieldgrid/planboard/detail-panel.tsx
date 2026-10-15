@@ -22,7 +22,59 @@ import {
 } from "@/lib/planning/model";
 import { localDateTime, localToInstant } from "@/lib/planning/time";
 
+import {useDashboardPresentation} from "../presentation";
+import {SourceNativeDialog} from "../source-native-dialog";
 import {ObjectVisitSignals} from "../objects/visit-signals";
+function PlanningDetailFrame({sites,order,theme,dirty,busy,close,children}:{sites:boolean;order:PlanningOrder;theme:CSSProperties;dirty:boolean;busy:boolean;close:()=>void;children:ReactNode}){
+ if(sites)return <SourceNativeDialog title={order.number} eyebrow="UITVOERING" description={`${order.object} · ${order.customer} · ${executionStatuses[order.status]}`} onClose={close} busy={busy}>{children}</SourceNativeDialog>;
+ return (
+    <Sheet
+      open
+      onOpenChange={(open) => {
+        if (!open) close();
+      }}
+    >
+      <SheetContent
+        className="pb-detail"
+        style={theme}
+        showCloseButton={false}
+        onEscapeKeyDown={(event) => {
+          if (dirty || busy) {
+            event.preventDefault();
+            close();
+          }
+        }}
+        onInteractOutside={(event) => {
+          if (dirty || busy) {
+            event.preventDefault();
+            close();
+          }
+        }}
+      >
+        <SheetHeader>
+          <span className="eyebrow">{order.number}</span>
+          <SheetTitle>{order.object}</SheetTitle>
+          <SheetDescription>
+            {order.customer} · {executionStatuses[order.status]}
+          </SheetDescription>
+          <SheetClose asChild>
+            <button
+              className="pb-close"
+              aria-label="Details sluiten"
+              disabled={busy}
+              onClick={(event) => {
+                event.preventDefault();
+                close();
+              }}
+            >
+              <X size={19} />
+            </button>
+          </SheetClose>
+        </SheetHeader>
+{children}
+</SheetContent></Sheet>);
+}
+
 export function PlanningDetail({
   order,
   people,
@@ -50,6 +102,7 @@ export function PlanningDetail({
   travel?: ReactNode;
   onRelease?: () => void;
 }) {
+  const sites=useDashboardPresentation()==="sites";
   const [start, setStart] = useState(
     order.start ? localDateTime(order.start, timezone) : `${day}T08:00`,
   );
@@ -134,49 +187,7 @@ export function PlanningDetail({
     }
   };
   return (
-    <Sheet
-      open
-      onOpenChange={(open) => {
-        if (!open) close();
-      }}
-    >
-      <SheetContent
-        className="pb-detail"
-        style={theme}
-        showCloseButton={false}
-        onEscapeKeyDown={(event) => {
-          if (dirty || busy) {
-            event.preventDefault();
-            close();
-          }
-        }}
-        onInteractOutside={(event) => {
-          if (dirty || busy) {
-            event.preventDefault();
-            close();
-          }
-        }}
-      >
-        <SheetHeader>
-          <span className="eyebrow">{order.number}</span>
-          <SheetTitle>{order.object}</SheetTitle>
-          <SheetDescription>
-            {order.customer} · {executionStatuses[order.status]}
-          </SheetDescription>
-          <SheetClose asChild>
-            <button
-              className="pb-close"
-              aria-label="Details sluiten"
-              disabled={busy}
-              onClick={(event) => {
-                event.preventDefault();
-                close();
-              }}
-            >
-              <X size={19} />
-            </button>
-          </SheetClose>
-        </SheetHeader>
+    <PlanningDetailFrame sites={sites} order={order} theme={theme} dirty={dirty} busy={busy} close={close}>
         <div className="pb-detail-body">
           {onRelease && <button className="primary-button" disabled={busy || dirty} onClick={onRelease}>Werkbon vrijgeven</button>}
           <nav
@@ -521,7 +532,6 @@ export function PlanningDetail({
             </section>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+    </PlanningDetailFrame>
   );
 }

@@ -5,6 +5,7 @@ import { tenantToday, validDay } from "@/lib/planning/time";
 import { BackofficeShell } from "@/components/fieldgrid/backoffice-shell";
 import { DayPlanboard } from "@/components/fieldgrid/planboard/day-planboard";
 import { initialPlanningQuery } from "@/lib/planning/model";
+import {hasManagementPermission} from '@/lib/management/model';
 
 export default async function PlanningPage({
   searchParams,
@@ -20,6 +21,7 @@ export default async function PlanningPage({
     )
   )
     notFound();
+  if(!hasManagementPermission(context.tenant,'backoffice.planning.read')||!hasManagementPermission(context.tenant,'backoffice.functions.get_planboard'))notFound();
   const query = await searchParams;
   const today = tenantToday(context.tenant.timezone);
   const day = validDay(query.day) ? query.day : today;
@@ -32,6 +34,7 @@ export default async function PlanningPage({
       context={{ ...context, tenant: context.tenant }}
       data={shell}
       initialView="planning"
+      presentation="sites-management"
     >
       <DayPlanboard
         key={`${context.tenant.id}:${context.user.id}`}

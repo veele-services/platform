@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { getPlanboard } from "@/lib/planning/data";
+import {hasManagementPermission} from '@/lib/management/model';
 import type {
   PlanningQuery,
   PlanningResult,
@@ -38,6 +39,10 @@ const querySchema = z.object({
 });
 export async function loadPlanboard(input: PlanningQuery) {
   const tenant = await access();
+  // Distinguish a current capability withdrawal from a temporary network fault.
+  // The client must discard private snapshots on withdrawal, while ordinary
+  // connectivity failures retain the existing native retry behavior.
+  if(!hasManagementPermission(tenant,'backoffice.functions.get_planboard'))return {accessDenied:true} as const;
   return getPlanboard(tenant.id, querySchema.parse(input));
 }
 export async function loadPlanboardOrder(id: string): Promise<PlanningOrder> {
