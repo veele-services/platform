@@ -25,6 +25,8 @@ De bron bevat vereenvoudigde werkbonacties en een demonstratieherstart. Deze ver
 
 De taakcheckboxes en direct zichtbare rapportnotitie volgen de bron. Tijdverlenging, taakresultaatdetails, meerwerk en kosten staan onder de aanvullende uitvoeringsbediening. Incident, bijlagen, klantzichtbaarheid en de werkelijke rapportgeschiedenis blijven afzonderlijk bereikbaar. Onbewaarde notities blijven de bestaande sluit-/afrondcontrole blokkeren. De verpakte browserproef vond een dubbele CSS-centrering tussen Radix/Tailwind en het bronframe; de onafhankelijke `translate` wordt binnen dit frame expliciet uitgeschakeld, zodat alleen de broncentrering geldt.
 
+Een rapportversie kan via actuele gegevens zichtbaar worden voordat de oorspronkelijke indienactie geheel is afgerond. De afrondingsdialoog krijgt daarom de werkelijke pendingstatus van de rapportindiening. Sluiten blijft tijdens die actie geblokkeerd en de rapportweergave meldt `aria-busy`. De browserproef houdt één echte serverresponse tijdelijk vast, controleert de sluitblokkade en wacht op bevestigde verwerking voordat hij verdergaat. Rapportmutaties, versies, documenten en idempotentie blijven native.
+
 Personeelsdocumenten bevatten de oorspronkelijke afgeschermde bytes. Een niet ondersteund voorbeeldtype opent niet inline en kan via de bestaande download worden opgehaald. De personeelsbinding of zichtbaarheid wordt ook na het lezen van het bestand opnieuw gecontroleerd. Een browservoorbeeld is geen gegenereerd demodocument.
 
 De bron biedt rechtstreeks ‘Technische support’. Binnen het bestaande personeel → tenant → Fieldgrid-model ontvangt de tenant de melding. De interface licht deze grens toe. Er wordt geen technische medewerkerrol, verborgen scope of onbeoordeelde doorgifte toegevoegd.

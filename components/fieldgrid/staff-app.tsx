@@ -369,8 +369,10 @@ function WorkOrderCompletionDialog({ open, stage, order, objectName, customerNam
   onNavigate: (target: "taken" | "rapport") => void;
   onDeliveryDraftChange: (dirty: boolean) => void;
 }) {
+  const [deliveryPending, setDeliveryPending] = useState(false);
+  const requestClose = () => { if (!pending && !deliveryPending) onClose(); };
   const blockers = ownOutstandingTasks.length + (reportDraftOpen ? 1 : 0);
-  return <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}><StaffDialogContent className="form-dialog staff-order-dialog staff-completion-dialog" showCloseButton={false} onKeyDown={(event) => event.stopPropagation()}>
+  return <Dialog open={open} onOpenChange={(next) => { if (!next) requestClose(); }}><StaffDialogContent className="form-dialog staff-order-dialog staff-completion-dialog" showCloseButton={false} onKeyDown={(event) => event.stopPropagation()}>
     <DialogHeader><span className="eyebrow">{order.work_order_number}</span><DialogTitle>Werkbon gereedmelden</DialogTitle><DialogDescription>{objectName}{customerName ? ` · ${customerName}` : ""}</DialogDescription></DialogHeader>
     <div className="staff-dialog-scroll">
       {stage === "review" ? <>
@@ -382,10 +384,10 @@ function WorkOrderCompletionDialog({ open, stage, order, objectName, customerNam
       </> : <>
         <div className="completion-step"><span>2</span><div><strong>Rapport & ondertekening</strong><small>Je eigen tijdregistratie is gestopt.</small></div></div>
         <p className="staff-security-note"><CheckCircle2 size={18}/>Werkzaamheden afgerond{assignment?.actual_end_at ? ` om ${time(assignment.actual_end_at, timezone)}` : ""}. Controleer het rapport vóór gereedmelden.</p>
-        <StaffReportDelivery order={order} attachments={attachments} draftBlocked={false} onDraftChange={onDeliveryDraftChange}/>
+        <StaffReportDelivery order={order} attachments={attachments} draftBlocked={false} onDraftChange={onDeliveryDraftChange} onPendingChange={setDeliveryPending}/>
       </>}
     </div>
-    <DialogFooter>{stage === "review" ? <><button type="button" className="secondary-button" disabled={pending} onClick={onClose}>Nog iets wijzigen</button><button type="button" className="primary-button" disabled={pending || blockers > 0} onClick={onPrepare}><CheckCircle2 size={16}/>{pending ? (ownStopped ? "Rapport openen…" : "Inzet stoppen…") : (ownStopped ? "Rapport openen" : "Inzet stoppen en rapport openen")}</button></> : <button type="button" className="secondary-button" onClick={onClose}>Afronding sluiten</button>}</DialogFooter>
+    <DialogFooter>{stage === "review" ? <><button type="button" className="secondary-button" disabled={pending} onClick={requestClose}>Nog iets wijzigen</button><button type="button" className="primary-button" disabled={pending || blockers > 0} onClick={onPrepare}><CheckCircle2 size={16}/>{pending ? (ownStopped ? "Rapport openen…" : "Inzet stoppen…") : (ownStopped ? "Rapport openen" : "Inzet stoppen en rapport openen")}</button></> : <button type="button" className="secondary-button" disabled={deliveryPending} onClick={requestClose}>Afronding sluiten</button>}</DialogFooter>
   </StaffDialogContent></Dialog>;
 }
 
@@ -614,10 +616,12 @@ function ExtraWorkRequests({ order, tasks, editable, pending, run }: { order: Or
   </ContentSection>;
 }
 
-function StaffReportDelivery({ order, attachments, draftBlocked, onDraftChange }: { order: Order; attachments: Array<{ id: string; file_name: string; mime_type: string }>; draftBlocked: boolean; onDraftChange?: (dirty: boolean) => void }) {
+function StaffReportDelivery({ order, attachments, draftBlocked, onDraftChange, onPendingChange }: { order: Order; attachments: Array<{ id: string; file_name: string; mime_type: string }>; draftBlocked: boolean; onDraftChange?: (dirty: boolean) => void;onPendingChange?:(pending:boolean)=>void }) {
   const router = useRouter();
   const [data, setData] = useState<WorkOrderReport | null>(null), [error, setError] = useState(""), [summary, setSummary] = useState(""), [pending, startTransition] = useTransition();
   const key = useRef<string | null>(null);
+  useEffect(() => { onPendingChange?.(pending); }, [pending, onPendingChange]);
+  useEffect(() => () => onPendingChange?.(false), [onPendingChange]);
   const load = async () => { const result = await loadWorkOrderReport(order.id); if (result.ok) { setData(result.data); router.refresh(); } else setError(result.error); };
   useEffect(() => { let active = true; void loadWorkOrderReport(order.id).then(result => { if (!active) return; if (result.ok) setData(result.data); else setError(result.error); }); return () => { active = false; }; }, [order.id, order.version]);
   const summaryDirty = summary.trim().length > 0;
@@ -635,7 +639,7 @@ function StaffReportDelivery({ order, attachments, draftBlocked, onDraftChange }
       key.current = null; setError(""); setSummary(""); await load();
     });
   };
-  return <div className="delivery-report">
+  return <div className="delivery-report" aria-busy={pending}>
     {error && <p className="auth-message error" role="alert">{error}</p>}
     {!data && !error && <p role="status">Rapport laden…</p>}
     {draftBlocked && <p className="auth-message error" role="status">Sla je open rapportnotitie op of annuleer die vóór afronden.</p>}
