@@ -46,13 +46,13 @@ export type FollowupHistory=z.infer<typeof followupHistorySchema>;
 export type FollowupDetail={action:FollowupAction;history:FollowupHistory};
 
 export const followupSourceQuerySchema=z.object({sourceKind:z.enum(['tenant','customer','object','personnel','work_order','commercial_request','quote','agreement','ticket','invoice']),sourceId:id,page:z.coerce.number().int().min(1).max(100000).default(1)}).strict();
-export type FollowupSource={source:{id:string;kind:string;label:string;href:string};tenantName:string;today:string;actions:FollowupAction[];total:number;page:number};
+export type FollowupSource={source:{id:string;kind:string;label:string;href:string};tenantName:string;today:string;actions:FollowupAction[];total:number;page:number;canFollowup?:boolean;status?:string;owner?:string;workOrder?:{number:string;title:string;customerObject:string;status:string;owner:string;date:string|null;description:string;finance:boolean;financialRows:Array<{id:string;description:string;amountCents:number;category:'confirmed'|'review'|'unpaid'}>;financialTotal:number}};
 export function projectFollowupSource(value:unknown,focus:z.infer<typeof followupSourceQuerySchema>,tenantName:string):FollowupSource{
  const{raw,actions}=followupActions(value,tenantName),source=raw.sourceOptions.find(s=>s.id===focus.sourceId&&s.kind===focus.sourceKind);
  if(!source)throw Object.assign(new Error('Geen toegang tot dit brondossier.'),{code:'42501'});
  const rows=actions.filter(a=>a.contextSourceKind===source.kind&&a.contextSourceId===source.id).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||a.id.localeCompare(b.id));
  const page=Math.min(focus.page,Math.max(1,Math.ceil(rows.length/20)));
- return{source,tenantName,today:raw.today,actions:rows.slice((page-1)*20,page*20),total:rows.length,page};
+ return{source,tenantName,today:raw.today,actions:rows.slice((page-1)*20,page*20),total:rows.length,page,status:rows.some(a=>a.status!=='done')?'Opvolging open':'Actueel',owner:rows.find(a=>a.owner)?.owner||'Niet toegewezen'};
 }
 
 /** A native ticket DTO is authorized before reaching this adapter. Never look

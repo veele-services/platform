@@ -16,7 +16,7 @@ export type ReportCommand=z.infer<typeof reportCommandSchema>;
 export type ReportSnapshot=z.infer<typeof reportSnapshotSchema>;
 export type ReportsState=z.infer<typeof reportsStateSchema>;
 export const reportDate=(value:string)=>new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z'));
-export const reportMoney=(cents:number)=>new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(cents/100);
+export const reportMoney=(cents:number)=>new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',minimumFractionDigits:cents%100?2:0,maximumFractionDigits:2}).format(cents/100);
 export const slaLabel=(value:number|null)=>value===null?'—':value+'%';
 /** Frozen inclusion flags are part of the server-authorized immutable snapshot. */
 export function reportRows(r:ReportSnapshot):Array<[string,string,string]>{return[

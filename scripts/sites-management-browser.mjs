@@ -30,8 +30,8 @@ export async function captureManagementPair({page,reference,directory,key,select
 export async function captureManagementDialog(page,path){const dialog=page.getByRole('dialog');await expect(dialog).toBeVisible();await dialog.locator('.mc-dialog-body').evaluate(el=>{el.scrollTop=0});await page.evaluate(async()=>{await document.fonts.ready;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))});await captureManagementImage(page,path,'dialog[open]')}
 
 /** Direct CDP capture preserves the rendered page. Playwright's temporary
- * screenshot stylesheet invalidates the nonce-protected font cascade in the
- * authenticated app; CDP injects no styles and changes no text or geometry. */
+ * screenshot stylesheet could replace loaded Poppins with the fallback font
+ * during capture; CDP injects no styles and changes no text or geometry. */
 export async function captureManagementImage(page,path,selector){
  const clip=await page.evaluate(selector=>{if(selector){const r=document.querySelector(selector).getBoundingClientRect();return{x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height,scale:1}}return{x:0,y:0,width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,scale:1}},selector),session=await page.context().newCDPSession(page);
  try{const{data}=await session.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,fromSurface:true,clip});await writeFile(path,Buffer.from(data,'base64'))}finally{await session.detach()}

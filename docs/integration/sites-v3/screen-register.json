@@ -1229,12 +1229,17 @@
         "`P/src/Management.tsx` → `Overview`, `ExistingDashboards.tsx` → `OperationalOverview`; geïntegreerde operationele en managementmetrics, trend, acties en verdieping",
         "Eén bestaand `/app`-overzicht behouden; echte aggregaties en bronlinks. Geen tweede los dashboard dat gegevens anders telt."
       ],
-      "route": null,
-      "implementation": "pending",
-      "tested": false,
+      "route": "/app (canoniek); /app/overzicht → /app; /api/management-overview",
+      "implementation": "implemented; phase-7 native unique-visit overview and work-order source; final whole-scope acceptance pending",
+      "tested": true,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "phase-7.md",
+        "evidence/phase-7/native-regression.log",
+        "evidence/phase-7/real-browser-chain.log",
+        "evidence/phase-7/comparison.json"
+      ]
     },
     {
       "id": "T02",

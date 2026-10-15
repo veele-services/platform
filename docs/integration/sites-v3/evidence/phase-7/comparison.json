@@ -1,0 +1,614 @@
+[
+  {
+    "key": "operation",
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "height": 1590.859375,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 141.09375
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 462.09375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 650.171875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "height": 1590.859375,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 141.09375
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 462.09375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 650.171875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Zelfde broncompositie en responsive geometrie; actuele peildatum/cijfers, afwezige SLA als streep, feitelijke ouderdomsbalken, productversie en expliciete lege kwaliteitstoestanden. Zie phase-7.md."
+  },
+  {
+    "key": "operation",
+    "width": 768,
+    "target": {
+      "width": 684,
+      "height": 2137.609375,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 269
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 716.25
+        },
+        {
+          "cls": "content-tabs",
+          "height": 814.859375
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "height": 2137.609375,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 269
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 716.25
+        },
+        {
+          "cls": "content-tabs",
+          "height": 814.859375
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Zelfde broncompositie en responsive geometrie; actuele peildatum/cijfers, afwezige SLA als streep, feitelijke ouderdomsbalken, productversie en expliciete lege kwaliteitstoestanden. Zie phase-7.md."
+  },
+  {
+    "key": "operation",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 2437.828125,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 117.15625
+        },
+        {
+          "cls": "mc-context",
+          "height": 39
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 403.75
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 704.875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 930.046875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 2437.828125,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 117.15625
+        },
+        {
+          "cls": "mc-context",
+          "height": 39
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 403.75
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 704.875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 930.046875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Zelfde broncompositie en responsive geometrie; actuele peildatum/cijfers, afwezige SLA als streep, feitelijke ouderdomsbalken, productversie en expliciete lege kwaliteitstoestanden. Zie phase-7.md."
+  },
+  {
+    "key": "finance",
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "height": 1268.1875,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 141.09375
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 462.09375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 327.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "height": 1268.1875,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 141.09375
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 462.09375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 327.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Zelfde broncompositie en responsive geometrie; actuele peildatum/cijfers, afwezige SLA als streep, feitelijke ouderdomsbalken, productversie en expliciete lege kwaliteitstoestanden. Zie phase-7.md."
+  },
+  {
+    "key": "finance",
+    "width": 768,
+    "target": {
+      "width": 684,
+      "height": 1866.546875,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 269
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 716.25
+        },
+        {
+          "cls": "content-tabs",
+          "height": 543.796875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "height": 1866.546875,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 269
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 716.25
+        },
+        {
+          "cls": "content-tabs",
+          "height": 543.796875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Zelfde broncompositie en responsive geometrie; actuele peildatum/cijfers, afwezige SLA als streep, feitelijke ouderdomsbalken, productversie en expliciete lege kwaliteitstoestanden. Zie phase-7.md."
+  },
+  {
+    "key": "finance",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 2019.578125,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 117.15625
+        },
+        {
+          "cls": "mc-context",
+          "height": 39
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 403.75
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 704.875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 511.796875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 2019.578125,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 117.15625
+        },
+        {
+          "cls": "mc-context",
+          "height": 39
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 403.75
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 704.875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 511.796875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Zelfde broncompositie en responsive geometrie; actuele peildatum/cijfers, afwezige SLA als streep, feitelijke ouderdomsbalken, productversie en expliciete lege kwaliteitstoestanden. Zie phase-7.md."
+  },
+  {
+    "key": "quality",
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "height": 1293.375,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 141.09375
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 462.09375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 352.6875
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "height": 1122.1875,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 141.09375
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 462.09375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 181.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Zelfde broncompositie en responsive geometrie; actuele peildatum/cijfers, afwezige SLA als streep, feitelijke ouderdomsbalken, productversie en expliciete lege kwaliteitstoestanden. Zie phase-7.md."
+  },
+  {
+    "key": "quality",
+    "width": 768,
+    "target": {
+      "width": 684,
+      "height": 1950.125,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 269
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 716.25
+        },
+        {
+          "cls": "content-tabs",
+          "height": 627.375
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "height": 1607.75,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "mc-context",
+          "height": 15
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 269
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 716.25
+        },
+        {
+          "cls": "content-tabs",
+          "height": 285
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Zelfde broncompositie en responsive geometrie; actuele peildatum/cijfers, afwezige SLA als streep, feitelijke ouderdomsbalken, productversie en expliciete lege kwaliteitstoestanden. Zie phase-7.md."
+  },
+  {
+    "key": "quality",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 2165.53125,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 117.15625
+        },
+        {
+          "cls": "mc-context",
+          "height": 39
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 403.75
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 704.875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 657.75
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 1760.78125,
+      "heading": "600 23.68px / 31.968px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 117.15625
+        },
+        {
+          "cls": "mc-context",
+          "height": 39
+        },
+        {
+          "cls": "mc-kpis",
+          "height": 403.75
+        },
+        {
+          "cls": "mc-main-grid",
+          "height": 704.875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 253
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Zelfde broncompositie en responsive geometrie; actuele peildatum/cijfers, afwezige SLA als streep, feitelijke ouderdomsbalken, productversie en expliciete lege kwaliteitstoestanden. Zie phase-7.md."
+  }
+]

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasManagementPermission, managementInviteSchema, permissionForPath } from "./model";
+import { hasManagementPermission, managementInviteSchema, navigationPermissionForPath, permissionForPath } from "./model";
 import { managementPermissionLabel } from "./labels";
 
 describe("explicit management page and permission model", () => {
@@ -8,7 +8,8 @@ describe("explicit management page and permission model", () => {
   expect(hasManagementPermission({ permissions: [] }, "backoffice.finance.write")).toBe(false);
   expect(hasManagementPermission({ permissions: ["backoffice.finance.read"] }, "backoffice.finance.write")).toBe(false);
  });
- it.each([["/app", "backoffice.overview.read"], ["/app/klanten/id", "backoffice.customers.read"], ["/app/personeel/actie-nodig", "backoffice.personnel.read"], ["/app/gebruikers", "management.users.read"], ["/app/notificaties/templates", "backoffice.access"], ["/staff", null], ["/platform", null]])("resolves %s separately from staff/platform", (path, permission) => expect(permissionForPath(path)).toBe(permission));
+ it.each([["/app", "backoffice.overview.read"], ["/app/overzicht", "backoffice.overview.read"], ["/app/klanten/id", "backoffice.customers.read"], ["/app/personeel/actie-nodig", "backoffice.personnel.read"], ["/app/gebruikers", "management.users.read"], ["/app/notificaties/templates", "backoffice.access"], ["/staff", null], ["/platform", null]])("resolves %s separately from staff/platform", (path, permission) => expect(permissionForPath(path)).toBe(permission));
+ it("keeps page authorization distinct from adapter navigation",()=>{expect(permissionForPath('/app/weekrapport')).toBe('backoffice.reports.read');expect(navigationPermissionForPath('/app/weekrapport')).toBe('backoffice.functions.cockpit_reports_query');expect(navigationPermissionForPath('/app')).toBe('backoffice.functions.cockpit_overview_query');expect(navigationPermissionForPath('/app/klanten')).toBe('backoffice.customers.read')});
  it("rejects a supplied owner role or extra authority fields in invitation payload", () => {
   const input = { name: "Fictieve manager", email: "manager@example.test", roleId: "11111111-1111-4111-8111-111111111111", requestId: "22222222-2222-4222-8222-222222222222" };
   expect(managementInviteSchema.safeParse(input).success).toBe(true);

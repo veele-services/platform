@@ -1,0 +1,35 @@
+▶ Management cockpit preserves source authority, deadlines and tenant/HR boundaries
+  ✔ fresh management only, no portal/cross-tenant access or direct private-table grants (200.341814ms)
+  ✔ new action is committed once and points to an authorized real source (201.20538ms)
+  ✔ assign, snooze, complete and reopen preserve the original deadline and immutable events (576.112189ms)
+  ✔ source assignments update the actual dossier owner without faking execution or changing its deadline (396.406064ms)
+  ✔ HR action metadata stays protected independently of general follow-up access (457.962005ms)
+  ✔ source, function and session revocation remove the same existing action (123.076618ms)
+✔ Management cockpit preserves source authority, deadlines and tenant/HR boundaries (3126.619094ms)
+✔ Overview/source: actual report, invoice and payment stay authorized through the existing work-order dossier (2603.097477ms)
+▶ Overview: native source parity, unique split visits and current record authority
+  ✔ the overview remains INVOKER and does not call the invoker source chain under a definer (265.125801ms)
+  ✔ measurement details come from the actual authorized source and preserve query bounds (266.753352ms)
+  ✔ two real planned employees still contribute one additional visit (285.880027ms)
+  ✔ a native split retains one visit identity and one completion despite multiple work orders (500.061683ms)
+  ✔ month buckets, real aging, filtered modules and revoked rights remain distinct (528.471506ms)
+  ✔ anonymous, staff, foreign tenant and expired sessions fail closed (15.389098ms)
+✔ Overview: native source parity, unique split visits and current record authority (2985.845171ms)
+▶ Management report: immutable real-source snapshots and authorized scheduled delivery
+  ✔ current facts match native invoker action, SLA, finance and governance sources (318.428232ms)
+  ✔ saved versions are server-derived, idempotent and survive later source changes (1275.554872ms)
+  ✔ current source rights protect archive selection and anonymous/foreign/raw-table entry points (455.239396ms)
+  ✔ native non-empty ticket clocks, concrete confidentiality, compliance and decisions match their source registers (1485.995047ms)
+  ✔ explicit worker policy projections match native policy gates for multiple actual profiles and revoked capabilities (105.846795ms)
+  ✔ owner planning is revision-controlled with one bounded real-source report and central request per recipient/week (1229.355869ms)
+  ✔ mark-all-read preserves pre-existing inbox items without a typed source (218.197694ms)
+  ✔ timezone scheduling selects one future local week occurrence through DST changes (2.449897ms)
+✔ Management report: immutable real-source snapshots and authorized scheduled delivery (6236.210021ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15261.728134
