@@ -1,0 +1,23 @@
+2026-10-16T20:41:57.402Z pw:browser <launching> /home/codex/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/tmp/playwright_chromiumdev_profile-1nxC6I --remote-debugging-pipe --no-startup-window
+2026-10-16T20:41:57.407Z pw:browser <launched> pid=889419
+2026-10-16T20:41:57.462Z pw:browser [pid=889419][err] [1016/224157.460823:WARNING:sandbox/policy/linux/sandbox_linux.cc:405] InitializeSandbox() called with multiple threads in process gpu-process.
+2026-10-16T20:41:57.470Z pw:browser [pid=889419][err] [1016/224157.469989:ERROR:base/files/file_path_watcher_inotify.cc:338] inotify_init() failed: Too many open files (24)
+2026-10-16T20:41:59.402Z pw:browser [pid=889419][err] [1016/224159.401860:ERROR:mojo/public/cpp/bindings/lib/validation_errors.cc:136] Invalid message: VALIDATION_ERROR_DESERIALIZATION_FAILED
+2026-10-16T20:41:59.402Z pw:browser [pid=889419][err] [1016/224159.401937:ERROR:mojo/public/cpp/bindings/lib/interface_endpoint_client.cc:748] Message 1231106851 rejected by interface viz.mojom.CopyOutputResultSender
+2026-10-16T20:41:59.418Z pw:browser [pid=889419][err] [1016/224159.418313:ERROR:content/browser/gpu/gpu_process_host.cc:1054] GPU process exited unexpectedly: exit_code=9
+2026-10-16T20:41:59.418Z pw:browser [pid=889419][err] [1016/224159.418332:WARNING:content/browser/gpu/gpu_process_host.cc:1506] The GPU process has crashed 1 time(s)
+2026-10-16T20:41:59.432Z pw:browser [pid=889419][err] [1016/224159.432473:WARNING:sandbox/policy/linux/sandbox_linux.cc:405] InitializeSandbox() called with multiple threads in process gpu-process.
+2026-10-16T20:41:59.434Z pw:browser [pid=889419][err] [1016/224159.434098:WARNING:content/browser/gpu/gpu_process_host.cc:1076] Reinitialized the GPU process after a crash. The reported initialization time was 11 ms
+2026-10-16T20:41:59.753Z pw:browser [pid=889419][err] [1016/224159.753433:ERROR:mojo/public/cpp/bindings/lib/validation_errors.cc:136] Invalid message: VALIDATION_ERROR_DESERIALIZATION_FAILED
+2026-10-16T20:41:59.753Z pw:browser [pid=889419][err] [1016/224159.753478:ERROR:mojo/public/cpp/bindings/lib/interface_endpoint_client.cc:748] Message 1231106851 rejected by interface viz.mojom.CopyOutputResultSender
+2026-10-16T20:41:59.757Z pw:browser [pid=889419] <gracefully close start>
+2026-10-16T20:41:59.812Z pw:browser [pid=889419] <process did exit: exitCode=0, signal=null>
+2026-10-16T20:41:59.813Z pw:browser [pid=889419] starting temporary directories cleanup
+2026-10-16T20:41:59.815Z pw:browser [pid=889419] finished temporary directories cleanup
+2026-10-16T20:41:59.815Z pw:browser [pid=889419] <gracefully close end>
+page.screenshot: Protocol error (Page.captureScreenshot): Unable to capture screenshot
+Call log:
+[2m  - taking page screenshot[22m
+[2m  - waiting for fonts to load...[22m
+[2m  - fonts loaded[22m
+

@@ -1,0 +1,2045 @@
+{
+  "observedAt": "2026-10-16T20:43:01.310Z",
+  "expected": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "health": {
+    "status": "ok",
+    "environment": "production",
+    "release": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+    "database": "ready",
+    "scanner": "ready",
+    "checkedAt": "2026-10-16T20:43:01.227Z"
+  },
+  "readOnly": true,
+  "formSubmission": false,
+  "providerDeliveryClaim": false,
+  "privatePortalClaim": false,
+  "pages": [
+    {
+      "path": "/",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 275.5,
+        "width": 570.078125,
+        "height": 232.21875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "69.12px",
+        "weight": "600",
+        "lineHeight": "77.4144px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 272,
+        "width": 950,
+        "height": 252
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "70px",
+        "weight": "500",
+        "lineHeight": "84px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/schoonmaak",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 328.96875,
+        "width": 602.5,
+        "height": 212.34375
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "62.64px",
+        "weight": "550",
+        "lineHeight": "70.7832px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/glasbewassing",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 328.96875,
+        "width": 602.5,
+        "height": 212.34375
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "62.64px",
+        "weight": "550",
+        "lineHeight": "70.7832px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/facilitair",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 328.96875,
+        "width": 602.5,
+        "height": 212.34375
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "62.64px",
+        "weight": "550",
+        "lineHeight": "70.7832px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/groenonderhoud",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 293.578125,
+        "width": 602.5,
+        "height": 283.125
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "62.64px",
+        "weight": "550",
+        "lineHeight": "70.7832px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/vastgoedservice",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 280.28125,
+        "width": 602.5,
+        "height": 283.125
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "62.64px",
+        "weight": "550",
+        "lineHeight": "70.7832px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/beveiliging",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 274,
+        "width": 627.375,
+        "height": 283.125
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "62.64px",
+        "weight": "550",
+        "lineHeight": "70.7832px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/evenementen",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 274,
+        "width": 602.5,
+        "height": 283.125
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "62.64px",
+        "weight": "550",
+        "lineHeight": "70.7832px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 456.671875,
+        "width": 610,
+        "height": 153.59375
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "64px",
+        "weight": "550",
+        "lineHeight": "76.8px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/planning",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/planning",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 418.28125,
+        "width": 610,
+        "height": 230.390625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "64px",
+        "weight": "550",
+        "lineHeight": "76.8px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/werkbonnen",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 322.65625,
+        "width": 610,
+        "height": 230.390625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "64px",
+        "weight": "550",
+        "lineHeight": "76.8px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/objecten",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 421.875,
+        "width": 610,
+        "height": 153.59375
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "64px",
+        "weight": "550",
+        "lineHeight": "76.8px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/personeelsapp",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 354.75,
+        "width": 610,
+        "height": 230.390625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "64px",
+        "weight": "550",
+        "lineHeight": "76.8px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/klantportaal",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 383.46875,
+        "width": 610,
+        "height": 230.390625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "64px",
+        "weight": "550",
+        "lineHeight": "76.8px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/onboarding",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 418.28125,
+        "width": 610,
+        "height": 230.390625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "64px",
+        "weight": "550",
+        "lineHeight": "76.8px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/offertes-facturatie",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 418.28125,
+        "width": 610,
+        "height": 230.390625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "64px",
+        "weight": "550",
+        "lineHeight": "76.8px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/werkwijze",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/werkwijze",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 364.359375,
+        "width": 602.5,
+        "height": 141.5625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "62.64px",
+        "weight": "550",
+        "lineHeight": "70.7832px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/over",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/over",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 272,
+        "width": 950,
+        "height": 168
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "70px",
+        "weight": "500",
+        "lineHeight": "84px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/demo",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/demo",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 302.03125,
+        "width": 623.671875,
+        "height": 155.5
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "64.8px",
+        "weight": "500",
+        "lineHeight": "77.76px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/proberen",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/proberen",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 258,
+        "width": 580.765625,
+        "height": 136.78125
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "60px",
+        "weight": "500",
+        "lineHeight": "68.4px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/afspraak",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/afspraak",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 258,
+        "width": 580.765625,
+        "height": 136.78125
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "60px",
+        "weight": "500",
+        "lineHeight": "68.4px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/privacy",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/privacy",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 320,
+        "y": 301,
+        "width": 800,
+        "height": 58.796875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "49px",
+        "weight": "500",
+        "lineHeight": "58.8px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 201,
+        "width": 640,
+        "height": 221.71875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "66px",
+        "weight": "600",
+        "lineHeight": "73.92px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 260,
+        "width": 704,
+        "height": 103.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "43px",
+        "weight": "500",
+        "lineHeight": "51.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/schoonmaak",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 262,
+        "width": 332,
+        "height": 189.8125
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "42px",
+        "weight": "550",
+        "lineHeight": "47.46px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/glasbewassing",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 262,
+        "width": 332,
+        "height": 189.8125
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "42px",
+        "weight": "550",
+        "lineHeight": "47.46px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/facilitair",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 262,
+        "width": 332,
+        "height": 189.8125
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "42px",
+        "weight": "550",
+        "lineHeight": "47.46px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/groenonderhoud",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 269.5,
+        "width": 332,
+        "height": 237.265625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "42px",
+        "weight": "550",
+        "lineHeight": "47.46px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/vastgoedservice",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 269.5,
+        "width": 332,
+        "height": 237.265625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "42px",
+        "weight": "550",
+        "lineHeight": "47.46px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/beveiliging",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 262,
+        "width": 414.71875,
+        "height": 189.8125
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "42px",
+        "weight": "550",
+        "lineHeight": "47.46px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/evenementen",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 262,
+        "width": 332,
+        "height": 237.265625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "42px",
+        "weight": "550",
+        "lineHeight": "47.46px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 259,
+        "width": 704,
+        "height": 103.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "43px",
+        "weight": "550",
+        "lineHeight": "51.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/planning",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/planning",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 259,
+        "width": 704,
+        "height": 103.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "43px",
+        "weight": "550",
+        "lineHeight": "51.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/werkbonnen",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 259,
+        "width": 704,
+        "height": 103.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "43px",
+        "weight": "550",
+        "lineHeight": "51.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/objecten",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 259,
+        "width": 704,
+        "height": 103.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "43px",
+        "weight": "550",
+        "lineHeight": "51.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/personeelsapp",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 259,
+        "width": 704,
+        "height": 103.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "43px",
+        "weight": "550",
+        "lineHeight": "51.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/klantportaal",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 259,
+        "width": 704,
+        "height": 103.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "43px",
+        "weight": "550",
+        "lineHeight": "51.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/onboarding",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 259,
+        "width": 704,
+        "height": 103.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "43px",
+        "weight": "550",
+        "lineHeight": "51.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/offertes-facturatie",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 259,
+        "width": 704,
+        "height": 103.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "43px",
+        "weight": "550",
+        "lineHeight": "51.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/werkwijze",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/werkwijze",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 282.640625,
+        "width": 332,
+        "height": 142.359375
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "42px",
+        "weight": "550",
+        "lineHeight": "47.46px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/over",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/over",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 260,
+        "width": 704,
+        "height": 103.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "43px",
+        "weight": "500",
+        "lineHeight": "51.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/demo",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/demo",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 269,
+        "width": 700,
+        "height": 100.78125
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "42px",
+        "weight": "500",
+        "lineHeight": "50.4px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/proberen",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/proberen",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 44,
+        "y": 195,
+        "width": 680,
+        "height": 123.09375
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "54px",
+        "weight": "500",
+        "lineHeight": "61.56px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/afspraak",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/afspraak",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 44,
+        "y": 195,
+        "width": 680,
+        "height": 123.09375
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "54px",
+        "weight": "500",
+        "lineHeight": "61.56px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/privacy",
+      "width": 768,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/privacy",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 32,
+        "y": 289,
+        "width": 704,
+        "height": 58.796875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "49px",
+        "weight": "500",
+        "lineHeight": "58.8px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 173.796875,
+        "width": 350,
+        "height": 218.875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "48px",
+        "weight": "600",
+        "lineHeight": "54.72px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 241.34375,
+        "width": 350,
+        "height": 196.75
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "41px",
+        "weight": "500",
+        "lineHeight": "49.2px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/schoonmaak",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 135.5625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "45.2px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/glasbewassing",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 135.5625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "45.2px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/facilitair",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 180.75
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "45.2px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/groenonderhoud",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 232.84375,
+        "width": 350,
+        "height": 180.75
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "45.2px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/vastgoedservice",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 232.84375,
+        "width": 350,
+        "height": 180.75
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "45.2px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/beveiliging",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 225.9375
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "45.2px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/branches/evenementen",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 180.75
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "45.2px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 96
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "48px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/planning",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/planning",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 192
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "48px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/werkbonnen",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 192
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "48px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/objecten",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 144
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "48px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/personeelsapp",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 192
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "48px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/klantportaal",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 144
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "48px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/onboarding",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 144
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "48px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/platform/offertes-facturatie",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 144
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "48px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/werkwijze",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/werkwijze",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 225.34375,
+        "width": 350,
+        "height": 135.5625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "550",
+        "lineHeight": "45.2px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/over",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/over",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 241.34375,
+        "width": 350,
+        "height": 196.75
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "41px",
+        "weight": "500",
+        "lineHeight": "49.2px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/demo",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/demo",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 230.34375,
+        "width": 350,
+        "height": 151.171875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "42px",
+        "weight": "500",
+        "lineHeight": "50.4px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/proberen",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/proberen",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 169.796875,
+        "width": 350,
+        "height": 91.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "500",
+        "lineHeight": "45.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/afspraak",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/afspraak",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 169.796875,
+        "width": 350,
+        "height": 91.1875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "40px",
+        "weight": "500",
+        "lineHeight": "45.6px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    },
+    {
+      "path": "/privacy",
+      "width": 390,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl/privacy",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 20,
+        "y": 240.34375,
+        "width": 350,
+        "height": 44.390625
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "37px",
+        "weight": "500",
+        "lineHeight": "44.4px"
+      },
+      "assets": {
+        "fonts": [
+          "Inter",
+          "Poppins"
+        ],
+        "brokenImages": []
+      }
+    }
+  ],
+  "boundaries": [
+    {
+      "origin": "https://fieldgrid.nl",
+      "path": "/fieldgrid-site/platform",
+      "status": 404
+    },
+    {
+      "origin": "https://www.fieldgrid.nl",
+      "path": "/fieldgrid-site/platform",
+      "status": 404
+    },
+    {
+      "origin": "https://fieldgrid.nl",
+      "path": "/platform",
+      "status": 307,
+      "redirectsToLogin": true
+    },
+    {
+      "origin": "https://proof-0627d18f.fieldgrid.nl",
+      "status": 404,
+      "failClosed": true
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "home-1440.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "platform-1440.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "proberen-1440.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "afspraak-1440.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      }
+    },
+    {
+      "file": "home-768.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      }
+    },
+    {
+      "file": "platform-768.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      }
+    },
+    {
+      "file": "proberen-768.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      }
+    },
+    {
+      "file": "afspraak-768.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      }
+    },
+    {
+      "file": "home-390.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      }
+    },
+    {
+      "file": "platform-390.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      }
+    },
+    {
+      "file": "proberen-390.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      }
+    },
+    {
+      "file": "afspraak-390.png",
+      "generated": true,
+      "viewed": false,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      }
+    }
+  ],
+  "availability": {
+    "date": "2026-10-20",
+    "status": 200,
+    "slotCount": 11,
+    "containsPersonalData": false
+  },
+  "success": true
+}

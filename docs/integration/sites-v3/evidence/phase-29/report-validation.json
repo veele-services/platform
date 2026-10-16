@@ -1,0 +1,19 @@
+{
+  "verifiedAt": "2026-10-16T20:51:08.268105+00:00",
+  "success": true,
+  "scopeRows": 105,
+  "evidenceReferences": 865,
+  "localMarkdownLinks": 517,
+  "evidenceChecksumsBeforeThisRecord": 672,
+  "actuallyViewedViewportScreenshots": 12,
+  "productionPublicViews": 69,
+  "wwwBlockerResolved": true,
+  "currentStagingReachable": false,
+  "stagingInactiveConfirmedByOwner": true,
+  "stagingStopReasonKnown": false,
+  "stagingRecoveryVerified": false,
+  "fullPrivateAcceptance": false,
+  "apexRedirectApplied": false,
+  "applicationSHA": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "runtimeChanged": false
+}

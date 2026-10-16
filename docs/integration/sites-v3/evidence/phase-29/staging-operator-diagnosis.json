@@ -1,0 +1,18 @@
+{
+  "source": "Owner-provided VPS command output in this conversation",
+  "receivedOn": "2026-10-16",
+  "commands": [
+    {
+      "command": "sudo systemctl is-active fieldgrid@staging.service",
+      "output": "inactive"
+    },
+    {
+      "command": "curl -i -H 'Host: staging.fieldgrid.nl' http://127.0.0.1:3301/api/healthz",
+      "output": "curl: (7) Failed to connect to 127.0.0.1 port 3301 after 0 ms: Could not connect to server"
+    }
+  ],
+  "finding": "Staging application service is inactive and local upstream port is unreachable. Why the service stopped is not established.",
+  "operatorStartSuggested": true,
+  "startExecutedByAgent": false,
+  "recoveryVerified": false
+}

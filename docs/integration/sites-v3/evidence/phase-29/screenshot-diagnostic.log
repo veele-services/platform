@@ -1,0 +1,5 @@
+Selected local diagnostic results; no application/host configuration changed.
+2026-10-16T20:41:22.550Z pw:browser [pid=880818][err] [1016/224122.550589:ERROR:base/files/file_path_watcher_inotify.cc:338] inotify_init() failed: Too many open files (24)
+{"fullPage":false,"success":true}
+{"fullPage":true,"success":true}
+{"documentHeight":9871,"bodyBox":{"x":0,"y":0,"width":1440,"height":9871.0625,"top":0,"right":1440,"bottom":9871.0625,"left":0},"fontFaces":[{"family":"Inter","status":"loaded"},{"family":"Poppins","status":"loaded"}]}

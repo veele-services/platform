@@ -1,5 +1,9 @@
 # Productiepromotie van de geaccepteerde Sites v3-release
 
+Dit verslag bewaart de situatie direct na promotie. De latere operatorcontrole
+heeft de www-blokkade opgelost; de actuele publieke productieacceptatie staat
+in [fase 29](phase-29.md).
+
 Op 16 oktober 2026 heeft de eigenaar expliciet gevraagd de stagingrelease ook
 naar productie te promoveren. De applicatie draait daar nu als
 `5480df58a052fa795c76d1beb7172291f7e9ef1f`, dezelfde applicatiecommit die op
