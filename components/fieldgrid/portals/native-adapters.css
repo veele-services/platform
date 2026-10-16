@@ -42,3 +42,7 @@
 @media(max-width:600px){body:has(.sites-portals [data-slot=dialog-content][data-state=open]) .sites-portals .ps-bottom-nav{visibility:hidden}}
 
 @media(min-width:601px){.sites-portals .portal-demo .sites-staff-native-dialog .mc-dialog-frame>footer .order-action{width:100%;justify-content:flex-end}.sites-portals .portal-demo .sites-staff-native-dialog .mc-dialog-frame>footer .order-action>button{flex:none}}
+
+/* The source staff logo keeps its 57px on-dark frame in the compact sidebar.
+ * Customer compact navigation intentionally has its own 36px frame. */
+@media(min-width:701px) and (max-width:1000px){.sites-portals .portal-demo.personnel-app .ps-sidebar-brand .ps-sidebar-logo .brand-logo-image{height:57px;padding:8px}}
