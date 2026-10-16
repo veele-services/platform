@@ -7,6 +7,13 @@
 .sites-cockpit .sites-native-editor input:is([type=checkbox],[type=radio]){accent-color:var(--brand-accent);box-shadow:none}
 .sites-cockpit .sites-native-editor .commercial-action-form{background:var(--brand-surface);border-color:var(--brand-border)}
 .sites-cockpit .sites-native-editor .wide{grid-column:1/-1}
+/* Native dossier tabs keep Radix keyboard/state behavior and use the supplied
+   source's attached-card presentation inside its modal frame. */
+.sites-cockpit .sites-native-editor [data-slot=tabs-list]{display:flex;align-items:stretch;justify-content:flex-start;gap:4px;width:100%;height:auto;margin:0 0 -1px;padding:6px 0 0;overflow-x:auto;overflow-y:hidden;border:0;border-radius:0;background:transparent}
+.sites-cockpit .sites-native-editor [data-slot=tabs-trigger]{flex:0 0 auto;min-height:44px;height:auto;margin:0;padding:12px 18px;border:1px solid var(--brand-border,#dce4e8);border-radius:11px 11px 0 0;background:var(--brand-surface,#eff3f5);color:var(--brand-muted,#657887);font-family:FieldgridSitesInter,Arial,sans-serif;font-size:calc(.875rem * var(--dashboard-font-scale,1));font-weight:500;line-height:1.4;box-shadow:none}
+.sites-cockpit .sites-native-editor [data-slot=tabs-trigger][data-state=active]{z-index:2;border-bottom-color:var(--brand-card,#fff);background:var(--brand-card,#fff);color:var(--brand-accent-text,#327b80);font-weight:600;box-shadow:0 -2px 0 var(--brand-action,#43898d)}
+.sites-cockpit .sites-native-editor [data-slot=tabs-trigger]:focus-visible{outline:2px solid var(--brand-focus,#43898d);outline-offset:-4px}
+@media(max-width:620px){.sites-cockpit .sites-native-editor [data-slot=tabs-trigger]{min-height:48px;padding:12px 14px}}
 .sites-cockpit .sites-native-editor .wizard-footer{position:sticky;bottom:-26px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 0 0;background:var(--brand-panel,#fff);border-top:1px solid var(--brand-border,#d4dce2);z-index:2}
 .sites-cockpit .sites-native-editor>.wo-dialog-body,.sites-cockpit .sites-native-editor>.pb-detail-body{padding:0;overflow:visible}
 @media(max-width:620px){.sites-cockpit .sites-native-editor :is(input:not([type=checkbox]):not([type=radio]),select,textarea){font-size:16px}.sites-cockpit .sites-native-editor .wizard-footer{bottom:-20px;flex-wrap:wrap}.sites-cockpit .sites-native-editor .wizard-footer>button{flex:1}.sites-cockpit .sites-native-editor .commercial-action-form,.sites-cockpit .sites-native-editor .commercial-wizard fieldset:not([hidden]){grid-template-columns:1fr}}
