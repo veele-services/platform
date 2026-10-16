@@ -84,3 +84,29 @@ pull en afgewezen overrides. Beide echte Linux-rechten-/isolatierunners slagen;
 zichtbaar. De volledige unitset telt nu 1.998 controles in 208 bestanden. De
 operationele fingerprints zijn inhoudelijk opnieuw beoordeeld; de inventaris
 telt 1.418 oppervlakken. Een volledige groene exacte-commit-CI blijft vereist.
+
+## Standaardbundler: dubbele native dialoogverplaatsing
+
+De volgende volledige [CI](https://github.com/veele-services/platform/actions/runs/38859392619)
+voerde alle 134 gevallen uit: 128 geslaagd en zes mislukt, geen overgeslagen.
+Die oorspronkelijke uitslag en foutdetails blijven [bewaard](evidence/phase-26/standard-bundler/result.json).
+De eerdere lokale releasebuilds gebruikten webpack; zij waren geen bewijs voor de
+standaard-Turbopackbundel. In die standaardbundel verdween `translate:none` uit
+de CSS-adapter, terwijl de native Tailwind-verplaatsing in een andere chunk bleef.
+Daardoor schoof het Source-venster dubbel en werden echte knoppen onbereikbaar.
+
+De minimale adaptercorrectie vervangt uitsluitend die native verplaatsingsklassen
+door nulklassen via de bestaande class merger. De Source-transform blijft de
+positie bepalen. Er is geen nieuwe positie, kleur, maat, tekst of bedrijfsactie
+ontworpen. Gemeten vóór: mobiel x=-195/y=-422; na: x=0/y=0 binnen 390×844.
+Op desktop staat de oorspronkelijke 860px-kaart weer gecentreerd. Beide definitieve
+beelden zijn daadwerkelijk bekeken; de foutopname is expliciet afgekeurd.
+
+De [standaardbuild](evidence/phase-26/standard-bundler/build.log) en linkvrije
+[verpakking](evidence/phase-26/standard-bundler/package.log) slagen voor
+`891185891f4872e51b54921cf67988d14b816502`. Alle zes oorspronkelijke fouten
+[slagen daarna](evidence/phase-26/standard-bundler/recovery-6.log), zonder nieuwe
+snapshots: responsieve PWA, alle werkbonvensters, meerwerk, afgeronde werkbon,
+private dossierbevestiging en de gescande ticket-/escalatieketen. Exacte lokale
+[health en geweigerde preview](evidence/phase-26/standard-bundler/artifact-health.json)
+zijn apart gecontroleerd. Een volledige groene CI blijft de promotiegate.

@@ -1,0 +1,23 @@
+[WebServer] (node:699685) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:699871) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/fieldgrid.spec.ts:408:5 › personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, uren en personeelszaken (5.5s)
+passed:  > chromium > fieldgrid.spec.ts > personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, uren en personeelszaken
+  ✓  2 [chromium] › tests/e2e/staff-popups.spec.ts:54:5 › werkbonvensters blijven binnen het scherm en bewaren terugkeer naar de bon (9.7s)
+passed:  > chromium > staff-popups.spec.ts > werkbonvensters blijven binnen het scherm en bewaren terugkeer naar de bon
+  ✓  3 [chromium] › tests/e2e/staff-popups.spec.ts:186:5 › actieve uitvoering toont meerwerk en afrondingscontrole zonder rapport of meerwerk te versturen (1.6s)
+passed:  > chromium > staff-popups.spec.ts > actieve uitvoering toont meerwerk en afrondingscontrole zonder rapport of meerwerk te versturen
+  ✓  4 [chromium] › tests/e2e/staff-popups.spec.ts:221:5 › gereedgemelde werkbon toont geen hervatten of uitvoeringsacties (1.2s)
+passed:  > chromium > staff-popups.spec.ts > gereedgemelde werkbon toont geen hervatten of uitvoeringsacties
+  ✓  5 [chromium] › tests/e2e/tickets.spec.ts:140:5 › personeelsmelding met echte scan, private notitie, bewuste escalatie en onafhankelijk platformgesprek (30.7s)
+passed:  > chromium > tickets.spec.ts > personeelsmelding met echte scan, private notitie, bewuste escalatie en onafhankelijk platformgesprek
+(node:726856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  6 [chromium] › tests/e2e/staff-dossier-access.spec.ts:8:5 › dossier opens inline only after email confirmation and locks on loss of focus (3.3s)
+passed:  > chromium > staff-dossier-access.spec.ts > dossier opens inline only after email confirmation and locks on loss of focus
+
+  6 passed (57.4s)

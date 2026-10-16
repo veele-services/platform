@@ -27,5 +27,6 @@
     "runtime": "6505f47e5b61566af57e197b862f6ee47d6798d4",
     "proof": "private-preview-effective-http.json",
     "meaning": "Query-level SAMEORIGIN is not approval. A denied response contains fixed 404 text and an effective CSP frame-ancestors none."
-  }
+  },
+  "latestStandardBundlerRecovery": "standard-bundler/result.json"
 }

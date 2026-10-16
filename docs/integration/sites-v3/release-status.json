@@ -4,7 +4,7 @@
   "locallyTested": true,
   "scopeRows": 105,
   "baseline": "71df59ab0390ffeae482c7edbaf27efe3fa6546d",
-  "localArtifact": "6505f47e5b61566af57e197b862f6ee47d6798d4",
+  "localArtifact": "891185891f4872e51b54921cf67988d14b816502",
   "deployed": {
     "staging": false,
     "production": false
@@ -23,6 +23,7 @@
     "Definitive public business/privacy contact details",
     "Explicit production acceptance and www DNS/TLS/operator conditions"
   ],
-  "fullRegressionGate": "Local full run: 127 passed, 5 failed, 2 not run. All affected cases then passed in an 8-case rerun; 134-case coverage is complete. Exact-commit full GitHub CI remains pending and is required before promotion.",
-  "nativeBrowserRegression": "evidence/phase-26/native-browser-regression.json"
+  "fullRegressionGate": "CI 38859392619: 128 passed, 6 failed, none skipped/not-run. All six failures then passed against the corrected default-Turbopack artifact. Exact-commit full GitHub CI remains required before promotion.",
+  "nativeBrowserRegression": "evidence/phase-26/native-browser-regression.json",
+  "standardBundlerRecovery": "evidence/phase-26/standard-bundler/result.json"
 }

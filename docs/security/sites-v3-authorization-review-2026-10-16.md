@@ -118,3 +118,5 @@ registries geven een foutstatus; beide oorspronkelijke runners blijven verplicht
 De helper is expliciet toegevoegd aan de operationele inventaris. Zes gerichte
 herstel-/weigertests, beide werkelijke Linux-runners, de 1.998-unitset en de
 1.418-surface-controle slagen; fase 26 bewaart het concrete bewijs.
+
+De standaard-Turbopackcontrole in fase 26 vond een dubbele native CSS-verplaatsing bij personeelvensters. De adapter vervangt uitsluitend de positioneringsutilities door nul; focus, formulierassociatie, sessie-, scan-, dossier-, mail- en ticketgrenzen wijzigen niet. Alle zes betrokken echte browsergevallen slagen op standaardartifact `891185891f4872e51b54921cf67988d14b816502`, inclusief dossier-step-up en ticketescalatie. De eerdere CI-fout is bewaard en niet vervangen door gewijzigde referenties.

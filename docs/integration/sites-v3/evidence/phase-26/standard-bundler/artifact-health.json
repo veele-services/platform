@@ -1,0 +1,18 @@
+{
+  "runtime": "891185891f4872e51b54921cf67988d14b816502",
+  "health": {
+    "status": "ok",
+    "environment": "local",
+    "release": "891185891f4872e51b54921cf67988d14b816502",
+    "database": "ready",
+    "scanner": "ready",
+    "checkedAt": "2026-10-16T07:04:57.641Z"
+  },
+  "deniedPreview": {
+    "status": 404,
+    "xFrameOptions": "SAMEORIGIN",
+    "csp": "default-src 'none'; sandbox; frame-ancestors 'none'",
+    "cacheControl": "private, no-store",
+    "body": "Document niet gevonden"
+  }
+}
