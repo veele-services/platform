@@ -7,6 +7,8 @@ import { ticketRpc } from "./rpc";
 import { readTicketBody, ticketFileName, ticketHash, TICKET_FILE_MIMES } from "./files-validation";
 import { TICKET_FILE_LIMIT } from "./scan";
 import { processTicketScans } from "./scan-worker";
+import { ticketUploadOrigin } from "./files-origin";
+export { ticketUploadOrigin } from "./files-origin";
 
 export const ticketFileHeaders = { "cache-control": "private, no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer", "content-security-policy": "default-src 'none'; sandbox" };
 const fileSchema = z.object({ id: z.uuid(), name: z.string(), mime: z.string(), size: z.number(), status: z.string(), scanState: z.string(), createdAt: z.string() });
@@ -14,12 +16,6 @@ const assetSchema = fileSchema.extend({ tenantId: z.uuid(), path: z.string(), sh
 const uploadStatus = (file: z.infer<typeof fileSchema>) => ({ ...file, status: file.scanState });
 const initSchema = z.object({ workspace: ticketWorkspaceSchema, tenantId: z.uuid().optional(), categoryId: z.uuid(), ticketId: z.uuid().optional(), audience: z.enum(["reporter", "tenant", "platform"]), draftId: z.uuid(), requestId: z.uuid(), name: z.string().min(1).max(500), mime: z.enum(TICKET_FILE_MIMES), size: z.number().int().min(1).max(TICKET_FILE_LIMIT) }).strict();
 
-export function ticketUploadOrigin(request: Request) {
-  const origin = request.headers.get("origin"), host = request.headers.get("host");
-  if (!origin || !host) throw new Error("Ongeldige uploadomgeving");
-  const parsed = new URL(origin);
-  if (parsed.host !== host || (!['localhost', '127.0.0.1'].includes(parsed.hostname) && parsed.protocol !== 'https:')) throw new Error("Ongeldige uploadomgeving");
-}
 export async function initializeTicketFile(request: Request) {
   ticketUploadOrigin(request);
   const reader = request.body?.getReader();
