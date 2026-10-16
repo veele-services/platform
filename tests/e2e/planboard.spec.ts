@@ -521,6 +521,14 @@ test.describe("status per medewerker", () => {
     await page.keyboard.press("Escape");
     await expect(legend).not.toBeVisible();
     await expect(trigger).toBeFocused();
+    // Pointer entry opens the hint; clicking that same trigger must pin it,
+    // rather than immediately toggling Radix's already-open state closed.
+    await trigger.hover();
+    await expect(legend).toBeVisible();
+    await trigger.click();
+    await expect(legend).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(legend).not.toBeVisible();
     for (const width of [320, 390, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await trigger.click();

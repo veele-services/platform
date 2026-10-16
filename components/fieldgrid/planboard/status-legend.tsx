@@ -7,14 +7,15 @@ import { assignmentStatuses, assignmentStatusStyle } from "@/lib/planning/assign
 
 export function StatusLegend() {
   const [open, setOpen] = useState(false);
+  const pinned = useRef(false);
   const closing = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keepOpen = () => { if (closing.current) clearTimeout(closing.current); };
-  const closeLater = () => { keepOpen(); closing.current = setTimeout(() => setOpen(false), 160); };
+  const closeLater = () => { keepOpen(); if (!pinned.current) closing.current = setTimeout(() => setOpen(false), 160); };
   useEffect(() => () => { if (closing.current) clearTimeout(closing.current); }, []);
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={value => { keepOpen(); if (!value) pinned.current = false; setOpen(value); }}>
       <PopoverTrigger asChild>
-        <button type="button" className="pb-legend-trigger" aria-label="Legenda statuskleuren" onPointerEnter={event => { if (event.pointerType === "mouse") { keepOpen(); setOpen(true); } }} onPointerLeave={event => { if (event.pointerType === "mouse") closeLater(); }}>
+        <button type="button" className="pb-legend-trigger" aria-label="Legenda statuskleuren" onClick={event => { event.preventDefault(); keepOpen(); pinned.current = !pinned.current; setOpen(pinned.current); }} onPointerEnter={event => { if (event.pointerType === "mouse") { keepOpen(); setOpen(true); } }} onPointerLeave={event => { if (event.pointerType === "mouse") closeLater(); }}>
           <Info size={16} aria-hidden="true" />
         </button>
       </PopoverTrigger>
