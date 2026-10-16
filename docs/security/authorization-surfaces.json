@@ -8530,7 +8530,7 @@
     {
       "id": "operation:.github/workflows/_verify.yml",
       "classification": "operation",
-      "source_sha256": "ed3ce1533ad2e8b2b4fa82a9b20434e5f593f324185f894217a05645947241f9"
+      "source_sha256": "d72696f60d3b6007a08032e3a4bc22df03f3ef664f2bbce653053f3fd5a483e6"
     },
     {
       "id": "operation:.github/workflows/bootstrap-production-admin.yml",

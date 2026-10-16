@@ -7094,7 +7094,7 @@
     },
     {
       "id": "operation:.github/workflows/_verify.yml",
-      "surfaceFingerprint": "258f0e74812948e3ddfaf2e2b8c0f26fa9a94480046f822ab010183e09c41625",
+      "surfaceFingerprint": "163cae1381d7255e0bdba25209d9a764f586fb3fee90cf7958e00246da36327f",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",

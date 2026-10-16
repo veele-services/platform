@@ -45,5 +45,18 @@ try{
  await page.getByRole('button',{name:'Volgende dag',exact:true}).click();await ready();await expect(page.getByLabel('Planningsdag',{exact:true})).toHaveValue('2033-10-06');await page.getByRole('combobox',{name:'Bonnenweergave',exact:true}).selectOption('unassigned');await ready();await expect(page.getByText('Nog geen werkbonnen',{exact:true})).toBeVisible();const scroll=await page.locator('.pb-list-scroll').evaluate(el=>({height:el.clientHeight,scroll:el.scrollHeight,overflow:getComputedStyle(el).overflowY}));assert.ok(scroll.scroll<=scroll.height||scroll.overflow==='hidden');await captureManagementImage(page,directory+'/empty-backlog-1440.png','main.backoffice-content');
  await page.getByLabel('Planningsdag',{exact:true}).fill(day);await ready();await expect(row()).toBeVisible();await row().focus();await page.keyboard.press('Enter');await expect(page.getByRole('dialog')).toBeVisible();
  await db.query("delete from private.management_role_permissions where role_id=$1 and capability='backoffice.functions.get_planboard'",[f.ownerRole]);await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect.poll(async()=>await page.locator('[data-assignment-id]').count()===0&&(await page.locator('.pb-alert').count()>0||await page.getByRole('heading',{name:'Deze pagina bestaat niet.',exact:true}).count()>0)).toBe(true);await expect(page.getByRole('dialog')).toHaveCount(0);assert.deepEqual(h.errors,[]);console.log('PASS: date changes, empty backlog without unnecessary vertical scroll, live native function revocation removes private assignments');
- await writeFile(directory+'/comparison.json',JSON.stringify(comparisons,null,2));await writeFile(directory+'/result.json',JSON.stringify({checks:['actual-auth-source-geometry','responsive-320-390-768-1440','source-dialogs','pointer-drag-native-commit','pointer-resize-native-commit','multi-crew-whole-and-single-scope','native-undo','manual-travel-signature','coupled-travel-height','actual-release-dispatch','date-empty-backlog','live-function-revocation'],browserErrors:h.errors},null,2));
+ await writeFile(directory+'/comparison.json',JSON.stringify(comparisons,null,2));await writeFile(directory+'/result.json',JSON.stringify({checks:[
+  'actual-auth-source-geometry',
+  'responsive-320-390-768-1440',
+  'source-dialogs',
+  'pointer-drag-native-commit',
+  'pointer-resize-native-commit',
+  'multi-crew-whole-and-single-scope',
+  'native-undo',
+  'manual-travel-signature',
+  'coupled-travel-height',
+  'actual-release-dispatch',
+  'date-empty-backlog',
+  'live-function-revocation',
+ ],browserErrors:h.errors},null,2));
 }catch(error){await captureManagementImage(page,directory+'/failure.png').catch(()=>{});throw error}finally{if(reference)await reference.close();if(seeded)await retireSlaFixture(db,f);await h.close()}

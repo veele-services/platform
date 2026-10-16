@@ -1,0 +1,16 @@
+{
+  "run": 38840751404,
+  "head": "aef7a359b36e18afb8b414fe49d0934749827537",
+  "result": "failed before tests",
+  "cause": "Branding guard missing one explicitly local source-logo fixture exclusion",
+  "correction": "Only scripts/test-sites-v3-shell-chain.mjs added to existing fixture exclusions; operational fingerprint reviewed",
+  "gitguardian": {
+    "check": 116780017609,
+    "incident": 38269956,
+    "category": "Generic High Entropy Secret",
+    "historicalCommit": "0bf81bab90601845ab09df15945ffea88da5ae12",
+    "path": "scripts/test-sites-v3-planning-chain.mjs",
+    "line": 48,
+    "review": "Entire line contains only static test names and result serialization. No credential. Outcome strings preserved on separate lines; no scanner disabled. External status not claimed green."
+  }
+}
