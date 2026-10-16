@@ -4,9 +4,15 @@
   "locallyTested": true,
   "scopeRows": 105,
   "baseline": "71df59ab0390ffeae482c7edbaf27efe3fa6546d",
-  "localArtifact": "58363c2e89d376454aefd6db167a6413e187d3b0",
-  "deployed": {"staging": false, "production": false},
-  "liveFunctionallyVerified": {"staging": false, "production": false},
+  "localArtifact": "590f76c605778dc205e0bb298960fa1623ef08c3",
+  "deployed": {
+    "staging": false,
+    "production": false
+  },
+  "liveFunctionallyVerified": {
+    "staging": false,
+    "production": false
+  },
   "desiredProductionMarketingOrigin": "https://www.fieldgrid.nl",
   "report": "final-acceptance.md",
   "pendingExternalEvidence": [
@@ -16,5 +22,6 @@
     "Configured payment provider acceptance where applicable",
     "Definitive public business/privacy contact details",
     "Explicit production acceptance and www DNS/TLS/operator conditions"
-  ]
+  ],
+  "fullRegressionGate": "In progress: all 134 cases are being executed against a fresh isolated 178-migration replay. Focused source/native chains pass; no staging or live acceptance is claimed."
 }

@@ -1,0 +1,213 @@
+{
+  "meaning": "These exact 33 source-aligned baseline files were actually viewed. Source comparisons remain in phases 1\u201325; native extra business fields remain documented adaptations. Generating a snapshot is not acceptance.",
+  "review": "Codex visual inspection of the exact stored files",
+  "files": [
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/backoffice-1440-chromium-linux.png",
+      "sha256": "df531d470e71a5a79568e024c090ce5af09737e73e9e818c5c3ec42c851ba213",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/backoffice-768-chromium-linux.png",
+      "sha256": "29359e350ed061d65ed4c24111264957410a348268ed61306fda88df23ae1ffe",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/customer-wizard-1440-chromium-linux.png",
+      "sha256": "d35e851396f86a194b9f17519ccfdeaac35e6f5bb4a4e609f4a170baa6e51462",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/customers-list-1440-chromium-linux.png",
+      "sha256": "6645cdeb0ff0572be411119bff2f7a7ce6f395ecf1a9a683b7866244d2cffcf2",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/object-wizard-review-1440-chromium-linux.png",
+      "sha256": "89962984e690c1d4660f1e2a45133e334399bf21d50624b6e16a181c73e5a49f",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/planboard-full-1440-chromium-linux.png",
+      "sha256": "99e779b06c385ea610debf49d751c01d3877177c74dfa794b24f48eecf1ef02c",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/platform-branding-1440-chromium-linux.png",
+      "sha256": "1e24483770f1422955cca6c80c8c98c8b2910d7025e90bd3d6ee883fa8ce4514",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/platform-overview-1440-chromium-linux.png",
+      "sha256": "eb5b984ef45d5910a295849008f3ded1175c261da6ed386663029141faa5c933",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/platform-overview-390-chromium-linux.png",
+      "sha256": "5d5101e2eb7af36b2a67c5246aa5e7ee3dcca9510db94f0be9b193b024896b0a",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/platform-palette-preview-1440-chromium-linux.png",
+      "sha256": "49f266b5317372365b074ceaea17bc1b333b50a76e4aa315c541e246743f4f8e",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/platform-palette-preview-390-chromium-linux.png",
+      "sha256": "3c890a9b672904651f7ac9ab51863cca28978257aba7410d0d3e4b4cf8c3a159",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/platform-templates-1440-chromium-linux.png",
+      "sha256": "f3d4929ed361de1b8f5b95ee4dc2fd96b594a3a3364af4c2952888c467609616",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/platform-templates-390-chromium-linux.png",
+      "sha256": "afab5e93b95d3c7b89f74615feffeaa67eedba05340e4b5730600c6737b5a38e",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/staff-planning-1440-chromium-linux.png",
+      "sha256": "4a96c2d8fae875be9fd3078bb41508bbd65fd1020434e668d786bbfc489df529",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/staff-planning-390-chromium-linux.png",
+      "sha256": "8bbfd3689341f44da2be6f6f39f4adc24bd73b79f79e338dd712f73be1473180",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/staff-planning-768-chromium-linux.png",
+      "sha256": "fbc27d9097370c1d7d994e11a423dbfab7bba59c7e33463df58515d11672c07c",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/staff-work-order-overview-390-chromium-linux.png",
+      "sha256": "495a2076020343bfdd19fdf6c5a615d4416cf57a7235c01fa2ed29669a3c0449",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/fieldgrid.spec.ts-snapshots/tenant-themed-request-page-1440-chromium-linux.png",
+      "sha256": "d83b5b5eb6cc1cf488bd109ef12177977211ffca4add9e3e13b1e29c7f2fb909",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/object360.spec.ts-snapshots/object360-overview-1440-chromium-linux.png",
+      "sha256": "ca0c693d49917cd5773f9263ed75b192e2a076b07eadc8e9c3afa812079eb558",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/object360.spec.ts-snapshots/object360-overview-320-chromium-linux.png",
+      "sha256": "2baa9b6eeae45987402f9c5ca310947ab846e869862d4128eee533843f5305fd",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/object360.spec.ts-snapshots/object360-overview-390-chromium-linux.png",
+      "sha256": "de82c856872a87d3462b387e2ea24944b157e3d35b844eae90d1985283ab3b91",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/object360.spec.ts-snapshots/object360-overview-768-chromium-linux.png",
+      "sha256": "2037fddeb99a2da7eb4a4ea6776dfcd7669cb940adeb5ec1e83660262b525c0b",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/personnel-dossier.spec.ts-snapshots/dossier-empty-1440-chromium-linux.png",
+      "sha256": "c0d19ed12fc07ac716620330c3160ae68e3c01a4ed5f35628d9043979a788be5",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/personnel-dossier.spec.ts-snapshots/dossier-overview-390-chromium-linux.png",
+      "sha256": "99bf27e0ca1cbbc86e8f2be88e40f88c0359d12d4c7880c2a33056a26ff9ec35",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/personnel-invitation.spec.ts-snapshots/personnel-invitation-email-390-chromium-linux.png",
+      "sha256": "12dc4677e03f5bc8066be583ee5b01f53ecf635290a29a6b1f1b6a0911ae82b9",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/personnel-invitation.spec.ts-snapshots/personnel-invitation-email-800-chromium-linux.png",
+      "sha256": "40eab58b531dbf11ad95c1f7654de356d3089a0c5dec06aecc8b58a70e764c5f",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/personnel-numbering.spec.ts-snapshots/personnel-number-settings-1440-chromium-linux.png",
+      "sha256": "7b9ee5485731e8d5f004d9ad9b3371bfc46c54392a901f29246eee7fad89b890",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/personnel-numbering.spec.ts-snapshots/personnel-number-settings-390-chromium-linux.png",
+      "sha256": "4c4fded94a28f76cfdfaffc84002f300ae4f0b699d94b057f4a3b3ef06b0f61f",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/planboard.spec.ts-snapshots/day-planboard-1280-chromium-linux.png",
+      "sha256": "75b31e4a20b29ee4e9042900c55f211af6e0779bab6d4867e7f618aacc579c78",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/planboard.spec.ts-snapshots/day-planboard-1920-chromium-linux.png",
+      "sha256": "14c45e5ad54c757c473bb0eb838a2d20e0c57d6e855d51cd7fec87c33c41f7dc",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/planboard.spec.ts-snapshots/day-planboard-320-chromium-linux.png",
+      "sha256": "0073952bb3720b75a3a11ae2f7f39da3a7b561531ad12b28d2c2b2b950528503",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/planboard.spec.ts-snapshots/day-planboard-375-chromium-linux.png",
+      "sha256": "93b93e682b95b737925685f068033ad0e0c17c0472234b7c3ec45485cab94814",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "tests/e2e/planboard.spec.ts-snapshots/day-planboard-768-chromium-linux.png",
+      "sha256": "e89824df181fc209748ce0ee7a0b0c285dc2efc20a9c89c39da4ed58d0fa5260",
+      "viewed": true,
+      "accepted": true
+    }
+  ],
+  "rejected": [
+    "Earlier blank PDF iframe did not prove visible PDF rendering; see phase-23/private-preview.",
+    "Earlier personnel element crops painted the sticky shell over the title; captures were corrected and viewed.",
+    "Earlier 320px native wizard had an implicit 291px track inside 280px; it is not the final narrow-wizard acceptance."
+  ],
+  "limits": [
+    "Magenta masks cover declared volatile synthetic data only; unmasked source/target comparisons are separate evidence.",
+    "The complete 134-case browser regression is still running; these viewing decisions do not imply deployment or a passing full regression gate."
+  ]
+}

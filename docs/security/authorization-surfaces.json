@@ -2799,7 +2799,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "b192699217fad367a4fbea26dbdbc517ea4c84cfc00c3dfff2394256770aa89f"
+      "source_sha256": "f55941a2e8cdd124a233b1c47a852a99dcb1b460b7cc96fc706856b937614c1e"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
@@ -3329,7 +3329,7 @@
         "from:personnel_dossier_access",
         "rpc:personnel_document_file"
       ],
-      "source_sha256": "4c57ba4928548b90a316dfc8fe7c2dbe2ae6c7515ed1e1cf3f1d8a95516f9cfb"
+      "source_sha256": "3932aa1cd2154d79d94158ddf811ea4aef4c43ff720976e0075bb22bddd379e8"
     },
     {
       "id": "code:lib/email-centre/auth-message.ts",
@@ -3366,6 +3366,7 @@
         "authorizedFileResponse",
         "bufferPrivateFile",
         "privateFileHeaders",
+        "privateFilePreviewHeaders",
         "samePrivateFile"
       ],
       "classification": "data-access-module",
@@ -3373,7 +3374,7 @@
         "readScannedFile"
       ],
       "resources": [],
-      "source_sha256": "a8f0d769b42c8598398f50c688a863de4662e5479ef3802f2b5731f2537b9dc2"
+      "source_sha256": "2de574dc08d764cea69ae78e086f6ee3729ab0c9b979b245d0f896dd7f489631"
     },
     {
       "id": "code:lib/files/scanned-storage.ts",
@@ -4080,6 +4081,16 @@
       "source_sha256": "7a7ee62c313f916d8c42b49b5f0c25233ed2cb2b6fd202ef29b1dd2f47efa168"
     },
     {
+      "id": "code:lib/tickets/files-origin.ts",
+      "exports": [
+        "ticketUploadOrigin"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "377341f0277294aedc5832bb2283f2993bcc759b56cd0a1797d2d5ffdd700c63"
+    },
+    {
       "id": "code:lib/tickets/files-validation.ts",
       "exports": [
         "TICKET_FILE_MIMES",
@@ -4112,7 +4123,7 @@
       "resources": [
         "from:ticket-files"
       ],
-      "source_sha256": "af2e6648492455aeefd33bd28c9cc43d39c5c5f1c318bc732a2f1132c08eaa62"
+      "source_sha256": "beadb1507f96e182aff708621ca06a94ded4fe9baf7f78c17e040052cdc7024f"
     },
     {
       "id": "code:lib/tickets/scan-worker.ts",
@@ -4270,7 +4281,7 @@
         "resolveHostContext"
       ],
       "resources": [],
-      "source_sha256": "08548eee0b079ffa9fa42288516b9f0e218b58570af0759fd6f7e5fd3f898a35"
+      "source_sha256": "77c843fb970e0af94a1909acf804e185c7e390ae78e511dd1844b3f0751cfe55"
     },
     {
       "id": "db:private.cockpit_action_overlays",
@@ -8530,7 +8541,7 @@
     {
       "id": "operation:.github/workflows/_verify.yml",
       "classification": "operation",
-      "source_sha256": "d72696f60d3b6007a08032e3a4bc22df03f3ef664f2bbce653053f3fd5a483e6"
+      "source_sha256": "0c97070388256f8a68351504edb20a160f0c0d57eb4699f04f71cf3da5783a12"
     },
     {
       "id": "operation:.github/workflows/bootstrap-production-admin.yml",
@@ -8740,7 +8751,7 @@
     {
       "id": "operation:next.config.ts",
       "classification": "operation",
-      "source_sha256": "75764af8df4818248b9a3296b58335f4f314a26242df936784db8441af50bd75"
+      "source_sha256": "e33b1b319f4266408f46a42d246221a17298b66a316a4e437cdb7de25c5d68b4"
     },
     {
       "id": "operation:package.json",
@@ -8845,7 +8856,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "a04a27aa7431680afdad2e7b75e0707fd041fcd6e4897fdd88c433925020a846"
+      "source_sha256": "fd0c6c83d6c9ba15c30f05c7a0e10669eef943ab7c4af96f4a5089debbb89594"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",

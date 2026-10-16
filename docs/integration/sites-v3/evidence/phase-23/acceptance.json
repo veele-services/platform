@@ -35,5 +35,7 @@
     "external-provider-delivery",
     "physical-Android-iOS-installation"
   ],
-  "meaning": "Only listed comparison sheets were viewed in final review. Full browser captures and measured comparisons are separate evidence; no screenshot is marked viewed merely because it was generated."
+  "meaning": "Only listed comparison sheets were viewed in final review. Full browser captures and measured comparisons are separate evidence; no screenshot is marked viewed merely because it was generated.",
+  "supplementaryPrivatePreview": "private-preview/acceptance.json",
+  "priorDocumentPreviewLimit": "Original 768px comparison covered the source frame only; actual full Chromium PDF rendering is separately proven in the supplementary private-preview acceptance."
 }

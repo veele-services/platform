@@ -1,0 +1,21 @@
+{
+  "runtime": "10a8b3a0131a515401f807c82861a4691cbc21e3",
+  "environment": "isolated-local",
+  "actualFullChromiumViewer": true,
+  "viewed": [
+    "after/document-viewer-1440.png",
+    "after/document-viewer-768.png",
+    "after/document-viewer-390.png"
+  ],
+  "checks": [
+    "real-local-SMTP-OTP",
+    "scanned-original-bytes",
+    "built-in-PDF-viewer-embed-visible",
+    "closed-self-only-preview-CSP",
+    "preview-only-SAMEORIGIN",
+    "ordinary-attachment-DENY",
+    "real-download-link-visible-at-all-widths",
+    "current-visibility-revoked-404"
+  ],
+  "meaning": "The earlier headless-shell iframe capture proved the surrounding frame and bytes, but did not prove a visible browser PDF. Full Chromium exposed a blocked preview; the exact preview-only policy was corrected, then the actual PDF and all three final captures were viewed."
+}

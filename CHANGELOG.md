@@ -23,6 +23,10 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
   beoordeelde ticketoverdracht van medewerker/klant via tenant naar Fieldgrid.
 - Herstel van verloren/onzekere responses, de CRM-filterrace, optionele lege
   KvK-opslag, mobiele dialoogbediening en de expliciet geautoriseerde CRM-mailretry.
+- Tenantgebonden inlogredirects en PWA-branding, werkende private PDF-voorbeelden,
+  vaste formulieracties en aangesloten dossiertabbladen in de bronvensters.
+  Ticketuploads behouden hun exacte origincontrole; de lokale tenant-testhost
+  wordt afzonderlijk van HTTPS op staging en productie behandeld.
 
 Dit is een releasekandidaat. Lokale implementatie en tests betekenen geen
 productiepublicatie, externe bezorging of liveacceptatie. De volledige

@@ -208,7 +208,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -392,7 +394,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -1137,7 +1141,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -1860,7 +1866,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -1994,7 +2002,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -2008,7 +2018,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -2096,7 +2108,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -2110,7 +2124,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -2493,7 +2509,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -2715,7 +2733,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -2788,7 +2808,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -2802,12 +2824,14 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "a5c48d38db60a256357c9bf91fb57a713276f54eb32224f246e8ebae3c97d886",
+      "surfaceFingerprint": "dc417410685acaf7bb5f9d1bcfeb227817c887d3b92ee3c686c196914e1f1c38",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#portals",
@@ -2816,7 +2840,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -2830,7 +2856,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -2844,7 +2872,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -3179,7 +3209,7 @@
     },
     {
       "id": "code:lib/dossiers/download.ts",
-      "surfaceFingerprint": "b2111421f4708fae5a93a5fa6e4afecb4704106e896248a244b887b32cff9f4e",
+      "surfaceFingerprint": "17e91290383b081c0dbaa2c0fb3f738131007d835d6f0002fa08f4a981ac06c7",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#portals",
@@ -3188,7 +3218,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -3217,15 +3249,18 @@
     },
     {
       "id": "code:lib/files/private-download.ts",
-      "surfaceFingerprint": "e90e86a577aacf1334de61400a62c39576e310dd060cf0f7ba3ee7be75b19e48",
-      "status": "controlled",
+      "surfaceFingerprint": "b1dbd63b66232f760d0908b8eb4246cebe6878eae0a378b389ca44d29a6f274d",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/product-management-review-2026-10-09.md",
-        "docs/architecture/product-management.md",
-        "scripts/test-product-management.mjs",
-        "lib/product/data.test.ts",
-        "lib/product/actions.test.ts",
-        "tests/e2e/product-management.spec.ts"
+        "docs/security/sites-v3-authorization-review-2026-10-16.md#portals",
+        "docs/integration/sites-v3/phase-23.md",
+        "docs/integration/sites-v3/phase-24.md",
+        "scripts/test-sites-v3-staff-portal.mjs",
+        "scripts/test-sites-v3-customer-portal.mjs",
+        "scripts/test-customer-portal.mjs",
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -3805,6 +3840,22 @@
       ]
     },
     {
+      "id": "code:lib/tickets/files-origin.ts",
+      "surfaceFingerprint": "c5f53bbdeaa2327a6756777d817629149c6aa36fe564bc2b21813166950c8815",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/sites-v3-authorization-review-2026-10-16.md#portals",
+        "docs/integration/sites-v3/phase-23.md",
+        "docs/integration/sites-v3/phase-24.md",
+        "scripts/test-sites-v3-staff-portal.mjs",
+        "scripts/test-sites-v3-customer-portal.mjs",
+        "scripts/test-customer-portal.mjs",
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
+      ]
+    },
+    {
       "id": "code:lib/tickets/files-validation.ts",
       "surfaceFingerprint": "37c3a2d62c1d6d482930296d0b0b91e3026208578e8147df28d36908bd7be215",
       "status": "controlled",
@@ -3817,13 +3868,18 @@
     },
     {
       "id": "code:lib/tickets/files.ts",
-      "surfaceFingerprint": "1610dd7e946aeb0e61439c0d8010403e81f08eb0c3d6aeadd03d849e91711e12",
-      "status": "controlled",
+      "surfaceFingerprint": "d8e599d4ed23dd36567ec1ba6a76ce1cf9faa37a235acab1b6d8bd2b46c2ccdf",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/security/sites-v3-authorization-review-2026-10-16.md#portals",
+        "docs/integration/sites-v3/phase-23.md",
+        "docs/integration/sites-v3/phase-24.md",
+        "scripts/test-sites-v3-staff-portal.mjs",
+        "scripts/test-sites-v3-customer-portal.mjs",
+        "scripts/test-customer-portal.mjs",
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
@@ -3940,7 +3996,7 @@
     },
     {
       "id": "code:proxy.ts",
-      "surfaceFingerprint": "7ded7cefd018811e81fde21c2e6abb8ac9f6a0fe6012d0be2f3b05cd3fe3bf9e",
+      "surfaceFingerprint": "43c922ea9ceb82f6ecd44689474d022b48f84b3eb0ae8457383b458410bea3eb",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#marketing",
@@ -7094,7 +7150,7 @@
     },
     {
       "id": "operation:.github/workflows/_verify.yml",
-      "surfaceFingerprint": "163cae1381d7255e0bdba25209d9a764f586fb3fee90cf7958e00246da36327f",
+      "surfaceFingerprint": "4777f5be54b19608b319aebf3089a4202c637ab6eb006d18912650206c41f1fc",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
@@ -7565,7 +7621,7 @@
     },
     {
       "id": "operation:next.config.ts",
-      "surfaceFingerprint": "ea19bf2988f127e251cf0129978c0fe6177c557e9a90456deb9966a1c3a21228",
+      "surfaceFingerprint": "b54d2ac5ef43d24af80fa81261319f48f5eba6600fd402355e5f4dfabe0bca94",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
@@ -7813,7 +7869,7 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "da6bdf74842ad873b86d0183ebc8ee67d89d0e30411f25bc4100699f3ac96d32",
+      "surfaceFingerprint": "be359bd9a16fed5ba381624f95a2efbcc6f9afabed3c77da49d450a768fc29ef",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
@@ -15247,7 +15303,9 @@
         "scripts/test-sites-v3-staff-portal.mjs",
         "scripts/test-sites-v3-customer-portal.mjs",
         "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs"
+        "scripts/test-personnel-privacy.mjs",
+        "lib/tickets/files-origin.test.ts",
+        "tests/e2e/tickets.spec.ts"
       ]
     },
     {
