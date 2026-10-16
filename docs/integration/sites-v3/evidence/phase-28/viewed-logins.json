@@ -1,0 +1,48 @@
+{
+  "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "viewedAt": "2026-10-16T09:58:49.982Z",
+  "images": [
+    {
+      "file": "production-login-app-1440.png",
+      "sha256": "fbc61e57c611c3d429d9f02944e69ddd9f655af631e3d79623123a6c4d124112",
+      "viewed": true,
+      "accepted": true,
+      "scope": "Public login entry point only, actually viewed full image; no private portal session or OTP submission."
+    },
+    {
+      "file": "production-login-staff-1440.png",
+      "sha256": "185289771bcc8a5b6d3c86a1d87be5eb4e02ced49d9c180f1226b7119183ab8a",
+      "viewed": true,
+      "accepted": true,
+      "scope": "Public login entry point only, actually viewed full image; no private portal session or OTP submission."
+    },
+    {
+      "file": "production-login-klant-1440.png",
+      "sha256": "fbc61e57c611c3d429d9f02944e69ddd9f655af631e3d79623123a6c4d124112",
+      "viewed": true,
+      "accepted": true,
+      "scope": "Public login entry point only, actually viewed full image; no private portal session or OTP submission."
+    },
+    {
+      "file": "production-login-app-390.png",
+      "sha256": "3abce09538f56ad1bc01c45d77ddc55ea242e47aba3904877e4847a5eb650e2a",
+      "viewed": true,
+      "accepted": true,
+      "scope": "Public login entry point only, actually viewed full image; no private portal session or OTP submission."
+    },
+    {
+      "file": "production-login-staff-390.png",
+      "sha256": "479ab44e5c94879b9f83baed70e9f8396b809d0e7d3595712497ccc92cf491be",
+      "viewed": true,
+      "accepted": true,
+      "scope": "Public login entry point only, actually viewed full image; no private portal session or OTP submission."
+    },
+    {
+      "file": "production-login-klant-390.png",
+      "sha256": "3abce09538f56ad1bc01c45d77ddc55ea242e47aba3904877e4847a5eb650e2a",
+      "viewed": true,
+      "accepted": true,
+      "scope": "Public login entry point only, actually viewed full image; no private portal session or OTP submission."
+    }
+  ]
+}

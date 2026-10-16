@@ -1,0 +1,27 @@
+{
+  "authorizedBy": "User explicitly requested production promotion on 2026-10-16",
+  "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "productionBefore": "71df59ab0390ffeae482c7edbaf27efe3fa6546d",
+  "promotionWorkflow": "https://github.com/veele-services/platform/actions/runs/38879615718",
+  "acceptedReleaseVariableSetToExactKnownSHA": true,
+  "mainCISuccess": 38869033340,
+  "stagingSuccess": 38872995106,
+  "fastForwardPromotion": true,
+  "dnsMutation": false,
+  "caddyMutation": false,
+  "before": {
+    "baseHealth": 200,
+    "wwwViaCloudflare": 502,
+    "wwwDirectVPS": {
+      "status": 502,
+      "address": "46.224.117.239",
+      "tlsVerification": 0
+    }
+  },
+  "primaryRegistryScope": "Migration preserves the single unambiguous existing registered administrator. Multiple eligible administrators require explicit native account selection. Production bootstrap differs from staging and does not register the new primary identity; it is not being presented as proof.",
+  "databaseConnectorReadOnlyAttempt": {
+    "permitted": false,
+    "error": "MCP error -32600: You do not have permission to perform this action",
+    "productionSQLExecuted": false
+  }
+}

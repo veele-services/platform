@@ -1,0 +1,18 @@
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+
+  assert.ok((await page.getByRole('heading',{name:'Welkom terug',exact:true}).count())===1)
+
+    at /tmp/fieldgrid-sites-production-acceptance.cjs:10:284 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.18.0

@@ -1,0 +1,9 @@
+Selected verification result lines only; no environment or credential blocks.
+2026-10-16T09:21:47.3031023Z  Test Files  208 passed (208)
+2026-10-16T09:21:47.3042439Z       Tests  1998 passed (1998)
+2026-10-16T09:27:28.6250633Z Files=12, Tests=398,  3 wallclock secs ( 0.09 usr  0.01 sys +  0.12 cusr  0.05 csys =  0.27 CPU)
+2026-10-16T09:31:43.6546907Z ℹ tests 723
+2026-10-16T09:31:43.6547454Z ℹ pass 723
+2026-10-16T09:31:49.0038156Z 1418 entrypoint/resource classifications unchanged. Full review status remains in docs/security/release-security-inventory.md.
+2026-10-16T09:31:49.4926818Z 1418 authorization surfaces have an explicit completed review status and evidence reference.
+2026-10-16T09:51:12.4045818Z   134 passed (17.1m)

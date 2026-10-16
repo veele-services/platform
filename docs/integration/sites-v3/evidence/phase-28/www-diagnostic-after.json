@@ -1,0 +1,34 @@
+{
+  "observedAt": "2026-10-16T09:56:51.921Z",
+  "readOnly": true,
+  "www": {
+    "status": 502,
+    "server": "cloudflare",
+    "resolved": [
+      {
+        "address": "2606:4700:3033::ac43:bd36",
+        "family": 6
+      },
+      {
+        "address": "2606:4700:3032::6815:962",
+        "family": 6
+      },
+      {
+        "address": "172.67.189.54",
+        "family": 4
+      },
+      {
+        "address": "104.21.9.98",
+        "family": 4
+      }
+    ]
+  },
+  "directOrigin": {
+    "status": 502,
+    "remoteIp": "46.224.117.239",
+    "tlsVerification": 0
+  },
+  "applicationRelease": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "operatorResponse": "User will perform the proxy check",
+  "dnsOrProxyChangedByAgent": false
+}
