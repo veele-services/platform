@@ -1,0 +1,45 @@
+{
+  "meaning": "Only line endings/trailing whitespace normalized. Failures and not-run cases remain explicit; no outcome was changed.",
+  "files": [
+    {
+      "file": "full-browser-134.log",
+      "rawSha256": "344efee2770ae79dc8f30da8bfbf850fc64b02e553cb07af5aa6b51691fe365a",
+      "storedSha256": "950392ed12a23fc431154b480bd951d53d7ab828a6b734770f19384b310428f8"
+    },
+    {
+      "file": "focused-browser-8.log",
+      "rawSha256": "edde3a9861834c474bfd58452062a80b4cffa0abba7b202f06beb72a2aa32695",
+      "storedSha256": "edde3a9861834c474bfd58452062a80b4cffa0abba7b202f06beb72a2aa32695"
+    },
+    {
+      "file": "unit-1992.log",
+      "rawSha256": "96654a0fc0886148e231a370181d2103ef17c63d2a50adec6260f83bdff9422f",
+      "storedSha256": "14eb89c5a5e84bebeb9c43d63b6fecbcf074dfe245ebfe065b23c4cbda90492c"
+    },
+    {
+      "file": "build.log",
+      "rawSha256": "70fcf6ca88b4050ef95fc2c4303acaeef65566a2cbcacb161100d7327d4f00ba",
+      "storedSha256": "e2bb4c2479528020a357c57dc5b11e434220911120ed2fc4d4eb268f40956f8d"
+    },
+    {
+      "file": "package.log",
+      "rawSha256": "b2d6c9d6a1b98839d3614c96ae3f3724b73b82f8834a1be0a05abc174ab765e3",
+      "storedSha256": "b2d6c9d6a1b98839d3614c96ae3f3724b73b82f8834a1be0a05abc174ab765e3"
+    },
+    {
+      "file": "private-preview-unit-54.log",
+      "rawSha256": "6bd92b533f22752d6261edd86ffd031bf4cf6c5ebda1cb6ac71b5b6f363954e0",
+      "storedSha256": "e3268dfe3069feeaaeed87d33cd3d656049bf1cfb27f63c62e0cdc76d63e8fac"
+    },
+    {
+      "file": "security-surface.log",
+      "rawSha256": "db33efae221193c6ebcfdda942a742f60e19f1691b337b6d81a7bb1cd254a822",
+      "storedSha256": "db33efae221193c6ebcfdda942a742f60e19f1691b337b6d81a7bb1cd254a822"
+    },
+    {
+      "file": "security-review.log",
+      "rawSha256": "a92738f4d769ae5ffe255a9bcec63d7c1211e992eb6c4a71dfc32d0f64a48cf4",
+      "storedSha256": "a92738f4d769ae5ffe255a9bcec63d7c1211e992eb6c4a71dfc32d0f64a48cf4"
+    }
+  ]
+}

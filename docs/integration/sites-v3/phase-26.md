@@ -18,7 +18,7 @@ inactief gemaakt; geschiedenis en guards worden niet gewist of uitgeschakeld.
   geen onbetrouwbare forwarded authority.
 - Een oorspronkelijke private PDF wordt werkelijk in de browser getoond.
   Alleen geautoriseerde, gescande PDF-/rastervoorbeelden krijgen SAMEORIGIN;
-  geweigerde voorbeelden blijven expliciet DENY. Zie fase 23 en de securityreview.
+  geweigerde voorbeelden verbieden framing expliciet via CSP. Zie fase 23 en de securityreview.
 - Native formulieracties staan in de vaste bronfooter, met behoud van echte
   formulier-associatie en submitopdrachten. Directe conditional fragments verliezen
   geen acties. Lange mobiele labels mogen volgens de bronregels ombreken.
@@ -47,8 +47,18 @@ benoemde variabele testgegevens; de ongemaskeerde bronvergelijkingen uit eerdere
 fasen blijven de presentatieacceptatie. De [meerwerkfooter](evidence/phase-26/extra-work-320.png)
 en [afrondingscontrole](evidence/phase-26/completion-320.png) zijn aanvullend bekeken.
 
-De volledige 134-case regressie draait nog. Deze tussenstand claimt geen groene
-integrale gate, stagingpromotie, externe providerbezorging of liveacceptatie.
+De [brede 134-case run](evidence/phase-26/native-browser-regression.json) bewaart
+127 geslaagde, vijf mislukte en twee niet uitgevoerde gevallen. Alle betrokken
+gevallen slagen vervolgens in acht gerichte herhalingen. De oorspronkelijke
+fouten blijven zichtbaar: ontbrekende lokale testserver-assets, schijfruimtegebrek,
+een verborgen coördinaatveld en het dubbel toggelen van de statuslegenda bij
+aanwijzen plus klikken. Geen trigger- of auditbypass was nodig voor opruimen van
+de achtergebleven lege synthetische tenant. Lokale trace-opname werd uitgezet;
+alle functionele assertions bleven behouden.
+
+Dit is volledige gevaldekking, geen groene enkele 134-case run. De exacte-commit-CI
+blijft een verplichte promotiegate. Er is nog geen stagingpromotie, externe
+providerbezorging of liveacceptatie geclaimd.
 De CI stopt bij tien fouten om volledig foutbewijs vóór de jobtimeout te bewaren;
 een geslaagde run moet nog steeds alle vereiste controles uitvoeren. Alleen
 screenshots van synthetische fouten worden kort bewaard, geen traces of cookies.

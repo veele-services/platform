@@ -3,7 +3,7 @@
     "marketing": 6,
     "relocated": 128,
     "crm": 39,
-    "portals": 17,
+    "portals": 20,
     "native": 38,
     "cockpit": 38,
     "finance": 21,
@@ -1757,6 +1757,12 @@
       "previous": "code:lib/dossiers/download.ts"
     },
     {
+      "id": "code:lib/files/private-download.ts",
+      "kind": "reviewed-change",
+      "group": "portals",
+      "previous": "code:lib/files/private-download.ts"
+    },
+    {
       "id": "code:lib/files/scanned-storage.ts",
       "kind": "reviewed-change",
       "group": "native",
@@ -1839,6 +1845,18 @@
       "kind": "reviewed-change",
       "group": "native",
       "previous": null
+    },
+    {
+      "id": "code:lib/tickets/files-origin.ts",
+      "kind": "reviewed-change",
+      "group": "portals",
+      "previous": null
+    },
+    {
+      "id": "code:lib/tickets/files.ts",
+      "kind": "reviewed-change",
+      "group": "portals",
+      "previous": "code:lib/tickets/files.ts"
     },
     {
       "id": "code:lib/work-orders/data.ts",

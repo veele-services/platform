@@ -3209,7 +3209,7 @@
     },
     {
       "id": "code:lib/dossiers/download.ts",
-      "surfaceFingerprint": "17e91290383b081c0dbaa2c0fb3f738131007d835d6f0002fa08f4a981ac06c7",
+      "surfaceFingerprint": "b297b72bc2e1576c8741c008e47da9d33701cfddfa69dd0f2d3e06cb779d4917",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#portals",

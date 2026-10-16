@@ -4,7 +4,7 @@
   "locallyTested": true,
   "scopeRows": 105,
   "baseline": "71df59ab0390ffeae482c7edbaf27efe3fa6546d",
-  "localArtifact": "590f76c605778dc205e0bb298960fa1623ef08c3",
+  "localArtifact": "6505f47e5b61566af57e197b862f6ee47d6798d4",
   "deployed": {
     "staging": false,
     "production": false
@@ -23,5 +23,6 @@
     "Definitive public business/privacy contact details",
     "Explicit production acceptance and www DNS/TLS/operator conditions"
   ],
-  "fullRegressionGate": "In progress: all 134 cases are being executed against a fresh isolated 178-migration replay. Focused source/native chains pass; no staging or live acceptance is claimed."
+  "fullRegressionGate": "Local full run: 127 passed, 5 failed, 2 not run. All affected cases then passed in an 8-case rerun; 134-case coverage is complete. Exact-commit full GitHub CI remains pending and is required before promotion.",
+  "nativeBrowserRegression": "evidence/phase-26/native-browser-regression.json"
 }

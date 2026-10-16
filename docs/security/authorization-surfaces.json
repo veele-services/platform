@@ -3329,7 +3329,7 @@
         "from:personnel_dossier_access",
         "rpc:personnel_document_file"
       ],
-      "source_sha256": "3932aa1cd2154d79d94158ddf811ea4aef4c43ff720976e0075bb22bddd379e8"
+      "source_sha256": "47fbcfc8da045ef93082fb28bdf1f8bea55d2e7d886de5e33b9d80d860dc21ba"
     },
     {
       "id": "code:lib/email-centre/auth-message.ts",
