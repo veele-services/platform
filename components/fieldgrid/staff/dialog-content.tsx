@@ -1,6 +1,6 @@
 "use client";
 
-import {Children,cloneElement,isValidElement,useId,type ComponentProps,type ReactElement,type ReactNode} from "react";
+import {Children,Fragment,cloneElement,isValidElement,useId,type ComponentProps,type ReactElement,type ReactNode} from "react";
 import {DialogClose,DialogContent,DialogHeader,DialogFooter} from "@/components/ui/dialog";
 import {X} from "lucide-react";
 import {useSourcePortal} from "../portals/context";
@@ -11,7 +11,13 @@ export function StaffDialogContent({sourceFrame=true,nativeFrame=false,...props}
   const source=useSourcePortal();
   const formPrefix=useId();
   if(source&&!nativeFrame){
-    const children=Children.toArray(props.children),header=children.filter(child=>isValidElement(child)&&child.type===DialogHeader),footer:ReactNode[]=children.filter(child=>isValidElement(child)&&child.type===DialogFooter);
+    const children:ReactNode[]=[];
+    const collect=(node:ReactNode)=>{
+      if(isValidElement<{children?:ReactNode}>(node)&&node.type===Fragment)Children.forEach(node.props.children,collect);
+      else children.push(node);
+    };
+    Children.forEach(props.children,collect);
+    const header=children.filter(child=>isValidElement(child)&&child.type===DialogHeader),footer:ReactNode[]=children.filter(child=>isValidElement(child)&&child.type===DialogFooter);
     const body=children.filter(child=>!isValidElement(child)||![DialogHeader,DialogFooter].includes(child.type as typeof DialogHeader)).map((child,index)=>{
       if(!isValidElement<{id?:string;children?:ReactNode}>(child)||child.type!=='form')return child;
       const fields=Children.toArray(child.props.children),actions=fields.filter(field=>isValidElement(field)&&field.type===DialogFooter);
