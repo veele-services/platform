@@ -1,0 +1,64 @@
+{
+  "observedAt": "2026-10-16T20:47:38.083Z",
+  "readOnly": true,
+  "apexRootRedirectAppliedByAgent": false,
+  "stagingReachable": false,
+  "observations": [
+    {
+      "url": "https://fieldgrid.nl/",
+      "status": 200,
+      "location": null,
+      "bodyBytes": 20339,
+      "title": "Fieldgrid",
+      "heading": "Werk georganiseerd."
+    },
+    {
+      "url": "https://www.fieldgrid.nl/",
+      "status": 200,
+      "location": null,
+      "bodyBytes": 101356,
+      "title": "Fieldgrid | Planning, werkbonnen en klantcontact in één platform",
+      "heading": "Je mensen. Je locaties.  Alles verbonden. "
+    },
+    {
+      "url": "https://www.fieldgrid.nl/platform",
+      "status": 200,
+      "location": null,
+      "bodyBytes": 84933,
+      "title": "Planning, personeelsapp en klantportaal | Fieldgrid",
+      "heading": "Je hele werkdag. Goed verbonden."
+    },
+    {
+      "url": "https://fieldgrid.nl/platform",
+      "status": 307,
+      "location": "https://fieldgrid.nl/login?next=%2Fplatform",
+      "bodyBytes": 43
+    },
+    {
+      "url": "https://fieldgrid.nl/api/healthz",
+      "status": 200,
+      "location": null,
+      "bodyBytes": 171,
+      "health": {
+        "status": "ok",
+        "environment": "production",
+        "release": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+        "database": "ready",
+        "scanner": "ready",
+        "checkedAt": "2026-10-16T20:47:37.898Z"
+      }
+    },
+    {
+      "url": "https://staging.fieldgrid.nl/api/healthz",
+      "status": 502,
+      "location": null,
+      "bodyBytes": 0
+    },
+    {
+      "url": "https://veele-services.staging.fieldgrid.nl/api/healthz",
+      "status": 502,
+      "location": null,
+      "bodyBytes": 0
+    }
+  ]
+}

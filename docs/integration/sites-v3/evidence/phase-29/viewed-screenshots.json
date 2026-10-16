@@ -1,0 +1,163 @@
+{
+  "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "viewedAt": "2026-10-16T20:45:21.391Z",
+  "scope": "Twelve actually viewed 900px top-viewport screenshots; not claimed as complete full-page captures. Earlier Source/full-page acceptance remains in phases 1-28.",
+  "screenshots": [
+    {
+      "file": "home-1440.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "030fe3cd95e522b225437ce26f97ec944c6f9dc152b28a842db279148579afc5"
+    },
+    {
+      "file": "platform-1440.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "b0ba724746644f551a91e7458b416441bf4a9ed11bf1c9e9352d06ad82b5d8e0"
+    },
+    {
+      "file": "proberen-1440.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "78c7b148032cb84429131ed1bf032f2f0d668f99c445a80239e2ba4ec6c72cd0"
+    },
+    {
+      "file": "afspraak-1440.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "996de6969d3623a20fc98d0ae6314d6ba4aec6c422842b4a6bf0d4e4f8ee41a3"
+    },
+    {
+      "file": "home-768.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "540b7aeb5438119bf5415a4e24f0d715999ac1eacfa541e477251a5f1357edc0"
+    },
+    {
+      "file": "platform-768.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "3f3b530213c23f939af227134d5675ae782791bc8746c68ffb0fba05bbb8a713"
+    },
+    {
+      "file": "proberen-768.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "fda5a7c1d55c261ea8801120d7bd09176e4fdbdf5efb87a9b656260846007abe"
+    },
+    {
+      "file": "afspraak-768.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "4f2ca8c92bda4761523f37a41c56b69f7d827da1a5d6d7acc777f5cc98578326"
+    },
+    {
+      "file": "home-390.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "755fa894cb1b28cbf8228d1a739253ba8d6508d0e4c23177de530252b5b16517"
+    },
+    {
+      "file": "platform-390.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "491f74b2120dc099d074d73460247fe8e2744859de372930c3136b6197a4d696"
+    },
+    {
+      "file": "proberen-390.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "267f7b39060b4216d65730c4b701ef307813845d8071c08294293df3864bb4f0"
+    },
+    {
+      "file": "afspraak-390.png",
+      "generated": true,
+      "viewed": true,
+      "fullPage": false,
+      "capture": "Top viewport after lazy-content scroll and two animation frames",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "accepted": true,
+      "sha256": "7ecc1d2f09d214dccce8f8d3fef8771dfebd430425a16adc78fbe439e5296a3f"
+    }
+  ]
+}

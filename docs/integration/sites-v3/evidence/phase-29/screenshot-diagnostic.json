@@ -1,0 +1,123 @@
+{
+  "innerWidth": 1440,
+  "innerHeight": 900,
+  "documentHeight": 9871,
+  "bodyHeight": 9871,
+  "fontFaces": [
+    {
+      "family": "Inter",
+      "status": "loaded"
+    },
+    {
+      "family": "Poppins",
+      "status": "loaded"
+    }
+  ],
+  "images": [
+    {
+      "src": "/fieldgrid-site-assets/branding/logo.svg",
+      "loaded": true,
+      "naturalWidth": 300
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/glasbewassing.webp",
+      "loaded": true,
+      "naturalWidth": 1672
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/horizon.webp",
+      "loaded": true,
+      "naturalWidth": 1672
+    },
+    {
+      "src": "/fieldgrid-site-assets/branding/logo.svg",
+      "loaded": true,
+      "naturalWidth": 300
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/schoonmaak.webp",
+      "loaded": true,
+      "naturalWidth": 1672
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/glasbewassing.webp",
+      "loaded": true,
+      "naturalWidth": 1672
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/facilitair.webp",
+      "loaded": true,
+      "naturalWidth": 1672
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/groenonderhoud.webp",
+      "loaded": true,
+      "naturalWidth": 1672
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/vastgoedservice.webp",
+      "loaded": true,
+      "naturalWidth": 1672
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/glasbewassing.webp",
+      "loaded": true,
+      "naturalWidth": 1672
+    },
+    {
+      "src": "/fieldgrid-site-assets/branding/logo.svg",
+      "loaded": true,
+      "naturalWidth": 300
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/schoonmaak.webp",
+      "loaded": true,
+      "naturalWidth": 1672
+    },
+    {
+      "src": "/fieldgrid-site-assets/branding/icon.svg",
+      "loaded": true,
+      "naturalWidth": 150
+    },
+    {
+      "src": "/fieldgrid-site-assets/branding/logo.svg",
+      "loaded": true,
+      "naturalWidth": 300
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/onboarding.webp",
+      "loaded": false,
+      "naturalWidth": 0
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/beveiliging.webp",
+      "loaded": false,
+      "naturalWidth": 0
+    },
+    {
+      "src": "/fieldgrid-site-assets/images/evenementen.webp",
+      "loaded": false,
+      "naturalWidth": 0
+    },
+    {
+      "src": "/fieldgrid-site-assets/branding/icon.svg",
+      "loaded": true,
+      "naturalWidth": 150
+    },
+    {
+      "src": "/fieldgrid-site-assets/branding/logo.svg",
+      "loaded": true,
+      "naturalWidth": 300
+    }
+  ],
+  "bodyBox": {
+    "x": 0,
+    "y": 0,
+    "width": 1440,
+    "height": 9871.0625,
+    "top": 0,
+    "right": 1440,
+    "bottom": 9871.0625,
+    "left": 0
+  }
+}

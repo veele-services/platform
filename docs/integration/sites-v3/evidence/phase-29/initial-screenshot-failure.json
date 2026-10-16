@@ -1,0 +1,42 @@
+{
+  "observedAt": "2026-10-16T20:40:09.885Z",
+  "expected": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "health": {
+    "status": "ok",
+    "environment": "production",
+    "release": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+    "database": "ready",
+    "scanner": "ready",
+    "checkedAt": "2026-10-16T20:40:09.805Z"
+  },
+  "readOnly": true,
+  "formSubmission": false,
+  "providerDeliveryClaim": false,
+  "privatePortalClaim": false,
+  "pages": [
+    {
+      "path": "/",
+      "width": 1440,
+      "status": 200,
+      "canonical": "https://www.fieldgrid.nl",
+      "robots": "index, follow",
+      "overflow": false,
+      "headingBox": {
+        "x": 80,
+        "y": 275.5,
+        "width": 570.078125,
+        "height": 232.21875
+      },
+      "headingFont": {
+        "family": "Poppins, Inter, sans-serif",
+        "size": "69.12px",
+        "weight": "600",
+        "lineHeight": "77.4144px"
+      }
+    }
+  ],
+  "boundaries": [],
+  "screenshots": [],
+  "success": false,
+  "error": "page.screenshot: Protocol error (Page.captureScreenshot): Unable to capture screenshot\nCall log:\n\u001b[2m  - taking page screenshot\u001b[22m\n\u001b[2m  - waiting for fonts to load...\u001b[22m\n\u001b[2m  - fonts loaded\u001b[22m\n"
+}

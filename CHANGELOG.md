@@ -40,7 +40,11 @@ Dezelfde kandidaat is op 16 oktober 2026 na expliciete acceptatie ook op
 productie geactiveerd. De volledige productieworkflow, exacte health en verse
 worker slagen. De bestaande 28 tenantwebsiteroutes en de drie portaalinlogpunten
 zijn gecontroleerd; zes aanvullende inlogbeelden zijn bekeken. De publieke
-`www.fieldgrid.nl`-host wacht nog op herstel van de proxyroute (HTTP 502).
+`www.fieldgrid.nl`-host is na de operatorcontrole bereikbaar. Alle 23 publieke
+routes zijn op drie breedtes read-only gecontroleerd: 69 weergaven met juiste
+canonical/indexering, geladen fonts en afbeeldingen en beschermde hostgrenzen.
+Twaalf productiebeelden zijn werkelijk bekeken.
+[Publieke productieacceptatie](docs/integration/sites-v3/phase-29.md).
 [Productiepromotie en resterende liveacceptatie](docs/integration/sites-v3/phase-28.md).
 
 De versie blijft `1.2.0-rc.1`. Externe bezorging en volledige private

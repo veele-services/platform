@@ -20,8 +20,8 @@
     "Physical Android/iOS installation",
     "Configured payment provider acceptance where applicable",
     "Definitive public business/privacy contact details",
-    "Public www.fieldgrid.nl origin routing/edge acceptance; application is deployed but public marketing is not live-accepted.",
-    "Production primary-administrator registration and actual provider delivery are not independently verified; staging bootstrap is not production proof."
+    "Production primary-administrator registration and actual provider delivery are not independently verified; staging bootstrap is not production proof.",
+    "Staging service inactive and local upstream port 3301 unreachable; operator start and exact-SHA health recovery pending."
   ],
   "fullRegressionGate": "PASSED: PR 38865034609, main 38869033340 and staging verify 38872995106 each executed all 134 required browser cases successfully, without retries or skipped cases. Main and staging use the exact application commit 5480df58a052fa795c76d1beb7172291f7e9ef1f. Production run 38879615718 also completed the full required verification before activation.",
   "nativeBrowserRegression": "evidence/phase-26/native-browser-regression.json",
@@ -31,10 +31,10 @@
   "stagingDeployment": "https://github.com/veele-services/platform/actions/runs/38872995106",
   "hostedReadOnlyVerified": {
     "staging": true,
-    "production": false,
+    "production": true,
     "evidence": "evidence/phase-27/public-readonly-result.json",
     "scope": "23 public marketing routes on desktop/tablet/mobile; metadata, availability and host isolation only; no form submission or private portal claim.",
-    "productionEvidence": "evidence/phase-28/public-acceptance.json"
+    "productionEvidence": "evidence/phase-29/result.json"
   },
   "hostedContractAcceptance": {
     "staging": true,
@@ -61,13 +61,40 @@
     "scope": "Public exact-SHA health, portal login pages and host isolation only; no full private functional acceptance",
     "evidence": "evidence/phase-28/public-acceptance.json"
   },
-  "productionMarketingBlockers": [
-    {
-      "scope": "public-marketing-host",
-      "origin": "https://www.fieldgrid.nl",
-      "status": 502,
-      "detail": "Public www host does not reach the promoted marketing application. No DNS/Caddy mutation performed; origin routing requires operator verification."
-    }
-  ],
-  "productionAcceptanceReport": "phase-28.md"
+  "productionMarketingBlockers": [],
+  "productionAcceptanceReport": "phase-28.md",
+  "productionMarketingAcceptanceReport": "phase-29.md",
+  "productionPublicMarketing": {
+    "passed": true,
+    "origin": "https://www.fieldgrid.nl",
+    "routes": 23,
+    "widths": [
+      1440,
+      768,
+      390
+    ],
+    "pageViews": 69,
+    "actuallyViewedScreenshots": 12,
+    "formSubmission": false,
+    "privatePortalClaim": false,
+    "providerDeliveryClaim": false,
+    "evidence": "evidence/phase-29/result.json"
+  },
+  "currentReachability": {
+    "observedAt": "2026-10-16T20:47:38.083Z",
+    "production": {
+      "reachable": true,
+      "exactApplicationSHA": true
+    },
+    "staging": {
+      "reachable": false,
+      "baseHealthStatus": 502,
+      "tenantHealthStatus": 502,
+      "currentRuntimeSHA": null,
+      "cause": "Owner confirms service inactive and no connection on local upstream port 3301; reason for service stopping unknown; recovery not verified.",
+      "operatorEvidence": "evidence/phase-29/staging-operator-diagnosis.json"
+    },
+    "evidence": "evidence/phase-29/host-observations.json",
+    "historicalDeploymentAcceptancePreserved": true
+  }
 }
