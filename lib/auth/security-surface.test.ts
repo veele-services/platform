@@ -21,6 +21,12 @@ describe("authorization surface change detector", () => {
     expect(codeSurfaces("lib/view.ts", "export const label='Hello';")).toEqual([]);
     expect(codeSurfaces("lib/writer.ts", 'db.from("records").update({});')[0].exports).toEqual(["module"]);
   });
+  it("fingerprints the pure ticket upload origin boundary even without database calls", () => {
+    const source="export function ticketUploadOrigin(request){if(!request.headers.get('origin'))throw Error('denied');}";
+    const first=codeSurfaces("lib/tickets/files-origin.ts",source)[0];
+    expect(first).toMatchObject({id:"code:lib/tickets/files-origin.ts",exports:["ticketUploadOrigin"],observedControls:[],resources:[]});
+    expect(codeSurfaces("lib/tickets/files-origin.ts",source.replace("!request","request"))[0].source_sha256).not.toBe(first.source_sha256);
+  });
   it("retains indirect authorization helpers and server components", () => {
     expect(codeSurfaces("lib/guard.ts", "export async function guard(){return getAuthContext();}")[0]).toMatchObject({
       classification: "data-access-module",
