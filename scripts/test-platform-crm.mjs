@@ -117,6 +117,33 @@ test('Platform CRM: real transactions, snapshots, calendar, rights, policy and c
    const inbox=(await db.query("select private.notification_policy(null,'crm.intake','platform','in_app',$1) p",[users.admin])).rows[0].p;assert.equal(inbox.allowed,true);
    const historic=n.snapshot.recipient;await db.query('update auth.users set email=$1 where id=$2',[`new-${users.admin}@crm-fixture.invalid`,users.admin]);assert.equal((await db.query('select snapshot from private.notification_deliveries where id=$1',[n.id])).rows[0].snapshot.recipient,historic);
   });
+  await t.test('CRM retry resolves its payload parameter, requires explicit retry rights and preserves frozen delivery identity',async()=>{
+   const d=(await db.query("select d.* from private.notification_deliveries d join private.notification_requests r on r.id=d.request_id where r.source_kind='crm' and r.source_id=$1 and d.channel='email'",[receipt.requestId])).rows[0];
+   const frozen=d.snapshot;
+   await db.query('update auth.users set email=$1 where id=$2',[`${users.admin}@crm-fixture.invalid`,users.admin]);
+   await db.query("update private.crm_settings set email_enabled=true");
+   await db.query("update private.notification_deliveries set available_at=now()-interval '1 second' where id=$1",[d.id]);
+   const claims=await call('select public.notification_delivery_claim(100) data',[],'admin','service_role'),claim=claims.find(c=>c.id===d.id);assert.ok(claim);
+   await call('select public.notification_delivery_begin($1,$2) data',[d.id,claim.lease],'admin','service_role');
+   await call("select public.notification_delivery_finish($1,$2,'failed',null) data",[d.id,claim.lease],'admin','service_role');
+   let revision=(await db.query('select revision from private.notification_deliveries where id=$1',[d.id])).rows[0].revision;
+   assert.equal((await query('state',{tab:'settings'})).notificationContext.canRetry,false);
+   await denied(command('notification.retry',{id:receipt.requestId,revision}));
+   await db.query("insert into public.permission_grants(user_id,capability,scope,source) values($1,'platform.notifications.delivery.retry','{\"all\":true}','manual')",[users.admin]);
+   assert.equal((await query('state',{tab:'settings'})).notificationContext.canRetry,true);
+   await db.query('update auth.users set email=$1 where id=$2',[`changed-${users.admin}@crm-fixture.invalid`,users.admin]);
+   await assert.rejects(command('notification.retry',{id:receipt.requestId,revision}),e=>e.code==='23514');
+   await db.query('update auth.users set email=$1 where id=$2',[`${users.admin}@crm-fixture.invalid`,users.admin]);
+   const key=randomUUID(),result=await command('notification.retry',{id:receipt.requestId,revision},'admin',key);assert.equal(result.ok,true);
+   assert.deepEqual(await command('notification.retry',{id:receipt.requestId,revision},'admin',key),result);
+   const current=(await db.query('select * from private.notification_deliveries where id=$1',[d.id])).rows[0];assert.equal(current.state,'queued');assert.equal(Number(current.revision),Number(revision)+1);assert.deepEqual(current.snapshot,frozen);
+   await assert.rejects(command('notification.retry',{id:receipt.requestId,revision:current.revision}),e=>e.code==='23514');
+   await db.query("update private.notification_deliveries set available_at=now()-interval '1 second' where id=$1",[d.id]);
+   const next=(await call('select public.notification_delivery_claim(100) data',[],'admin','service_role')).find(c=>c.id===d.id);assert.ok(next);
+   await call('select public.notification_delivery_begin($1,$2) data',[d.id,next.lease],'admin','service_role');await call("select public.notification_delivery_finish($1,$2,'uncertain',null) data",[d.id,next.lease],'admin','service_role');
+   revision=(await db.query('select revision from private.notification_deliveries where id=$1',[d.id])).rows[0].revision;
+   await assert.rejects(command('notification.retry',{id:receipt.requestId,revision}),e=>e.code==='23514');
+  });
   await t.test('CRM notification body and mutations disappear after registry revocation even when general inbox rights remain',async()=>{
    const notice=(await db.query("select d.id from private.notification_deliveries d join private.notification_requests r on r.id=d.request_id where r.source_kind='crm' and r.source_id=$1 and d.channel='in_app'",[receipt.requestId])).rows[0];
    await db.query("update private.notification_deliveries set available_at=now()-interval '1 second' where id=$1",[notice.id]);
