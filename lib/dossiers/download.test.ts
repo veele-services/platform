@@ -22,11 +22,11 @@ describe('private personnel file preview uses the original download authorizatio
  it('returns the same scanned PDF bytes inline and repeats live registry and source authorization',async()=>{
   const response=await downloadDossierDocument(document,'personnel',true);
   expect(response.status).toBe(200);expect(Buffer.from(await response.arrayBuffer())).toEqual(bytes);
-  expect(response.headers.get('content-disposition')).toMatch(/^inline;/);expect(response.headers.get('cache-control')).toBe('private, no-store');expect(response.headers.get('content-security-policy')).toBe("default-src 'none'; sandbox");
+  expect(response.headers.get('content-disposition')).toMatch(/^inline;/);expect(response.headers.get('cache-control')).toBe('private, no-store');expect(response.headers.get('content-security-policy')).toBe("default-src 'none'; frame-ancestors 'self'");expect(response.headers.get('x-frame-options')).toBe('SAMEORIGIN');
   expect(mocks.registry).toHaveBeenCalledTimes(2);expect(mocks.source).toHaveBeenCalledTimes(2);expect(mocks.eq).toHaveBeenCalledWith('tenant_id',tenant);expect(mocks.eq).toHaveBeenCalledWith('source_id',document);expect(mocks.audit).toHaveBeenCalledExactlyOnceWith({tenant_id:tenant,personnel_id:person,actor_user_id:actor,action:'download'});
  });
  it('retains attachment behavior by default',async()=>{
-  const response=await downloadDossierDocument(document,'personnel');expect(response.status).toBe(200);expect(response.headers.get('content-disposition')).toMatch(/^attachment;/);
+  const response=await downloadDossierDocument(document,'personnel');expect(response.status).toBe(200);expect(response.headers.get('content-disposition')).toMatch(/^attachment;/);expect(response.headers.get('content-security-policy')).toBe("default-src 'none'; sandbox");
  });
  it.each(['text/html','image/svg+xml','application/octet-stream'])('refuses active or unsupported inline content (%s) before file I/O',async mime=>{
   mocks.source.mockResolvedValue({data:{...source,mime_type:mime},error:null});expect((await downloadDossierDocument(document,'personnel',true)).status).toBe(404);expect(mocks.read).not.toHaveBeenCalled();

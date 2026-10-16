@@ -6,6 +6,14 @@ export const privateFileHeaders = {
   "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer",
   "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox",
 };
+/** Opt in only after live authorization and a PDF/raster MIME allowlist.
+ * A browser PDF viewer cannot run in a sandboxed document. Keep every
+ * application page and unapproved download unembeddable. */
+export const privateFilePreviewHeaders = {
+  ...privateFileHeaders,
+  "X-Frame-Options": "SAMEORIGIN",
+  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'self'",
+};
 export type PrivateFile = {
   bucket: string; path: string; scope: string[]; name: string; mime: string;
   sha256?: string | null;

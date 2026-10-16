@@ -37,6 +37,13 @@ it.each(["/api/crm","/api/crm/leads","/api/worker","/app","/staff","/klant","/lo
  expect((await proxy(new NextRequest(`https://www.staging.fieldgrid.nl${path}`,{headers:{host:"www.staging.fieldgrid.nl"}}))).status).toBe(404);
  expect(mocks.user).not.toHaveBeenCalled();expect(fetch).not.toHaveBeenCalled();
 });
+it("defers only a concrete personnel preview to the authorized file handler's closed same-origin policy",async()=>{
+ const path='/api/files/personnel-document/10000000-0000-4000-8000-000000000001';
+ const request=(suffix:string)=>new NextRequest('https://alpha.staging.fieldgrid.nl'+path+suffix,{headers:{host:'alpha.staging.fieldgrid.nl'}});
+ expect((await proxy(request('?preview=1'))).headers.get('content-security-policy')).toBeNull();
+ for(const suffix of['','?preview=0','/extra?preview=1'])expect((await proxy(request(suffix))).headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
+ expect((await proxy(new NextRequest('https://www.staging.fieldgrid.nl'+path+'?preview=1',{headers:{host:'www.staging.fieldgrid.nl'}}))).status).toBe(404);
+});
 it("replaces spoofed signals with one live verified identity and preserves refreshed cookies",async()=>{
  mocks.user.mockImplementation(async()=>{mocks.refresh();return {data:{user:{id:"fixture-user"}},error:null};});
  const response=await proxy(new NextRequest("https://alpha.staging.fieldgrid.nl/api/auth/session",{headers:{host:"alpha.staging.fieldgrid.nl",[BROWSER_SESSION_HEADER]:"b".repeat(64)}}));
