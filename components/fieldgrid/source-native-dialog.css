@@ -7,6 +7,8 @@
 .sites-cockpit .sites-native-editor input:is([type=checkbox],[type=radio]){accent-color:var(--brand-accent);box-shadow:none}
 .sites-cockpit .sites-native-editor .commercial-action-form{background:var(--brand-surface);border-color:var(--brand-border)}
 .sites-cockpit .sites-native-editor .wide{grid-column:1/-1}
+.sites-cockpit .sites-native-editor>form{min-width:0;max-width:100%}
+.sites-cockpit .sites-native-editor fieldset{min-inline-size:0}
 /* Native dossier tabs keep Radix keyboard/state behavior and use the supplied
    source's attached-card presentation inside its modal frame. */
 .sites-cockpit .sites-native-editor [data-slot=tabs-list]{display:flex;align-items:stretch;justify-content:flex-start;gap:4px;width:100%;height:auto;margin:0 0 -1px;padding:6px 0 0;overflow-x:auto;overflow-y:hidden;border:0;border-radius:0;background:transparent}
