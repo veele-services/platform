@@ -14,5 +14,5 @@ it.each(['staging','production'])('requires HTTPS in %s even when forwarded head
 });
 it('rejects cross-tenant origins, different ports, credentials and URL suffixes',()=>{
  vi.stubEnv('DEPLOY_TARGET','local');
- for(const [origin,host] of[['http://alpha.localhost:3000','beta.localhost:3000'],['http://alpha.localhost:3001','alpha.localhost:3000'],['https://user:password@alpha.fieldgrid.nl','alpha.fieldgrid.nl'],['https://alpha.fieldgrid.nl/path','alpha.fieldgrid.nl']])expect(()=>ticketUploadOrigin(upload(origin,host))).toThrow();
+ for(const [origin,host] of[['http://alpha.localhost:3000','beta.localhost:3000'],['http://alpha.localhost:3001','alpha.localhost:3000'],['https://user:password@alpha.fieldgrid.nl','alpha.fieldgrid.nl'],['https://alpha.fieldgrid.nl/path','alpha.fieldgrid.nl'],['ftp://alpha.localhost','alpha.localhost']])expect(()=>ticketUploadOrigin(upload(origin,host))).toThrow();
 });

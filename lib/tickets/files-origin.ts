@@ -7,5 +7,5 @@ export function ticketUploadOrigin(request: Request) {
   const loopback=(process.env.DEPLOY_TARGET??'local')==='local'&&(
     ['localhost','127.0.0.1'].includes(parsed.hostname)||/^[a-z0-9]+(?:-[a-z0-9]+)*\.localhost$/.test(parsed.hostname)
   );
-  if(parsed.host!==host||parsed.username||parsed.password||parsed.origin!==origin||(!loopback&&parsed.protocol!=='https:'))throw new Error('Ongeldige uploadomgeving');
+  if(parsed.host!==host||parsed.username||parsed.password||parsed.origin!==origin||(parsed.protocol!=='https:'&&!(loopback&&parsed.protocol==='http:')))throw new Error('Ongeldige uploadomgeving');
 }
