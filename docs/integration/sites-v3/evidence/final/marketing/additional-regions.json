@@ -1,0 +1,158 @@
+[
+  {
+    "path": "/",
+    "width": 1440,
+    "region": "bottom",
+    "side": "native",
+    "file": "home-1440-integrated.jpg",
+    "rect": [
+      0,
+      8171,
+      1440,
+      1700
+    ]
+  },
+  {
+    "path": "/",
+    "width": 1440,
+    "region": "bottom",
+    "side": "source",
+    "file": "home-1440-source.jpg",
+    "rect": [
+      0,
+      8171,
+      1440,
+      1700
+    ]
+  },
+  {
+    "path": "/",
+    "width": 390,
+    "region": "bottom",
+    "side": "native",
+    "file": "home-390-integrated.jpg",
+    "rect": [
+      0,
+      12782,
+      390,
+      1700
+    ]
+  },
+  {
+    "path": "/",
+    "width": 390,
+    "region": "bottom",
+    "side": "source",
+    "file": "home-390-source.jpg",
+    "rect": [
+      0,
+      12782,
+      390,
+      1700
+    ]
+  },
+  {
+    "path": "/branches/beveiliging",
+    "width": 390,
+    "region": "top",
+    "side": "native",
+    "file": "branches-beveiliging-390-integrated.jpg",
+    "rect": [
+      0,
+      0,
+      390,
+      1700
+    ]
+  },
+  {
+    "path": "/branches/beveiliging",
+    "width": 390,
+    "region": "top",
+    "side": "source",
+    "file": "branches-beveiliging-390-source.jpg",
+    "rect": [
+      0,
+      0,
+      390,
+      1700
+    ]
+  },
+  {
+    "path": "/branches/beveiliging",
+    "width": 320,
+    "region": "top",
+    "side": "native",
+    "file": "branches-beveiliging-320-integrated.jpg",
+    "rect": [
+      0,
+      0,
+      320,
+      1700
+    ]
+  },
+  {
+    "path": "/branches/beveiliging",
+    "width": 320,
+    "region": "top",
+    "side": "source",
+    "file": "branches-beveiliging-320-source.jpg",
+    "rect": [
+      0,
+      0,
+      320,
+      1700
+    ]
+  },
+  {
+    "path": "/afspraak",
+    "width": 768,
+    "region": "bottom",
+    "side": "native",
+    "file": "afspraak-768-integrated.jpg",
+    "rect": [
+      0,
+      3557,
+      768,
+      1700
+    ]
+  },
+  {
+    "path": "/afspraak",
+    "width": 768,
+    "region": "bottom",
+    "side": "source",
+    "file": "afspraak-768-source.jpg",
+    "rect": [
+      0,
+      3557,
+      768,
+      1700
+    ]
+  },
+  {
+    "path": "/platform",
+    "width": 1440,
+    "region": "middle",
+    "side": "native",
+    "file": "platform-1440-integrated.jpg",
+    "rect": [
+      0,
+      1810,
+      1440,
+      1700
+    ]
+  },
+  {
+    "path": "/platform",
+    "width": 1440,
+    "region": "middle",
+    "side": "source",
+    "file": "platform-1440-source.jpg",
+    "rect": [
+      0,
+      1810,
+      1440,
+      1700
+    ]
+  }
+]

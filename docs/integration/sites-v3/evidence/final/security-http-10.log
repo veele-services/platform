@@ -1,0 +1,21 @@
+$ node --conditions=react-server --import tsx --test scripts/test-release-storage-http.mjs scripts/test-release-platform-http.mjs
+Local revoked-session Auth probe: getUser accepts JWT = false
+✔ platform identity rejects a revoked session through the real Auth and Data APIs (2620.349685ms)
+▶ real local Auth, Data API and Storage enforce report ownership and revocation
+  ✔ raw upload and direct metadata are denied; each employee atomically finalizes scanner-attested bytes (394.703805ms)
+  ✔ actual ClamAV rejects the harmless EICAR marker and unavailable scanner never publishes (197.831577ms)
+  ✔ legacy bytes have no raw read until scanned; receipt forgery, changed bytes and ownership bypass fail (147.792813ms)
+  ✔ Data API and RPC cannot read colleague private reports or raw customer billing (38.958985ms)
+  ✔ Storage list/download/sign/update/upsert/copy/move/delete cannot cross ownership (185.57829ms)
+  ✔ authenticated Realtime delivers only coarse revision invalidations, never raw staff payloads (3189.894536ms)
+  ✔ private files cannot mint bearer URLs that bypass later revocation (42.230677ms)
+  ✔ existing access token loses Data API and Storage access after revocation (48.110418ms)
+✔ real local Auth, Data API and Storage enforce report ownership and revocation (7547.062296ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17793.856307

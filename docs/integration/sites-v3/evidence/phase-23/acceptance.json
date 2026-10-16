@@ -1,0 +1,39 @@
+{
+  "runtime": "60561a0d2a7dafbf9b57912b1a42ce9ebd0fd103",
+  "codeUnchangedThrough": "58363c2e",
+  "environment": "isolated-local",
+  "viewedPairs": [
+    "planning-1440",
+    "leave-390",
+    "availability-768",
+    "documents-390",
+    "settings-1440",
+    "more-768",
+    "knowledge-390",
+    "updates-1440",
+    "news-768",
+    "tickets-390",
+    "hours-1440",
+    "profile-768",
+    "work-order-summary-1440",
+    "work-order-tasks-390",
+    "work-order-report-768",
+    "ticket-create-390",
+    "document-preview-768",
+    "time-correction-1440",
+    "ticket-conversation-768",
+    "pwa-install-390",
+    "header-notifications-1440"
+  ],
+  "widths": [
+    1440,
+    768,
+    390
+  ],
+  "remainingExternal": [
+    "hosted-acceptance",
+    "external-provider-delivery",
+    "physical-Android-iOS-installation"
+  ],
+  "meaning": "Only listed comparison sheets were viewed in final review. Full browser captures and measured comparisons are separate evidence; no screenshot is marked viewed merely because it was generated."
+}

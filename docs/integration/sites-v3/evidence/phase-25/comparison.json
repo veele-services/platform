@@ -1,0 +1,1562 @@
+[
+  {
+    "key": "pipeline-board",
+    "width": 1440,
+    "target": {
+      "width": 1089.84375,
+      "height": 1138.671875,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "crm-feedback",
+          "height": 47.1875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 675.6875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1089.84375,
+      "height": 995.484375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 675.6875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "pipeline-board",
+    "width": 768,
+    "target": {
+      "width": 718.875,
+      "height": 1348.28125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "crm-feedback",
+          "height": 47.1875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 721.6875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 718.875,
+      "height": 1205.09375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 721.6875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "pipeline-board",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1483.828125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "crm-feedback",
+          "height": 47.1875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 760.296875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 129.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1354.453125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "content-tabs",
+          "height": 843.296875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "pipeline-list",
+    "width": 1440,
+    "target": {
+      "width": 1089.84375,
+      "height": 863.40625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "crm-feedback",
+          "height": 47.1875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 400.421875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1089.84375,
+      "height": 720.21875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 400.421875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "pipeline-list",
+    "width": 768,
+    "target": {
+      "width": 718.875,
+      "height": 1073.015625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "crm-feedback",
+          "height": 47.1875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 446.421875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 718.875,
+      "height": 929.828125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 446.421875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "pipeline-list",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1208.5625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "crm-feedback",
+          "height": 47.1875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 485.03125
+        },
+        {
+          "cls": "list-pagination",
+          "height": 129.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1079.1875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "content-tabs",
+          "height": 568.03125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "website-requests",
+    "width": 1440,
+    "target": {
+      "width": 1089.84375,
+      "height": 1155.765625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 761.96875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1089.84375,
+      "height": 1081.765625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 761.96875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "website-requests",
+    "width": 768,
+    "target": {
+      "width": 718.875,
+      "height": 1365.375,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 807.96875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 718.875,
+      "height": 1291.375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 807.96875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "website-requests",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1619.90625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "content-tabs",
+          "height": 961.5625
+        },
+        {
+          "cls": "list-pagination",
+          "height": 129.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1472.71875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "content-tabs",
+          "height": 961.5625
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "agenda-week",
+    "width": 1440,
+    "target": {
+      "width": 1089.84375,
+      "height": 1082.984375,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 689.1875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1089.84375,
+      "height": 1008.984375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 689.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "agenda-week",
+    "width": 768,
+    "target": {
+      "width": 718.875,
+      "height": 1267.59375,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 710.1875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 718.875,
+      "height": 1193.59375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 710.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "agenda-week",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1531.140625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "content-tabs",
+          "height": 872.796875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 129.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1383.953125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "content-tabs",
+          "height": 872.796875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "agenda-list",
+    "width": 1440,
+    "target": {
+      "width": 1089.84375,
+      "height": 932.984375,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 539.1875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1089.84375,
+      "height": 858.984375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 539.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "agenda-list",
+    "width": 768,
+    "target": {
+      "width": 718.875,
+      "height": 1117.59375,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 560.1875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 718.875,
+      "height": 1043.59375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 560.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "agenda-list",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1381.140625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "content-tabs",
+          "height": 722.796875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 129.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1233.953125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "content-tabs",
+          "height": 722.796875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "tasks",
+    "width": 1440,
+    "target": {
+      "width": 1089.84375,
+      "height": 1052.671875,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "crm-feedback",
+          "height": 47.1875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 589.6875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1089.84375,
+      "height": 909.484375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 589.6875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "tasks",
+    "width": 768,
+    "target": {
+      "width": 718.875,
+      "height": 1210.28125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "crm-feedback",
+          "height": 47.1875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 583.6875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 718.875,
+      "height": 1067.09375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 583.6875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "tasks",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 1497.109375,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "crm-feedback",
+          "height": 47.1875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 773.578125
+        },
+        {
+          "cls": "list-pagination",
+          "height": 129.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 1284.734375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "content-tabs",
+          "height": 773.578125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "settings",
+    "width": 1440,
+    "target": {
+      "width": 1089.84375,
+      "height": 5483.640625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 5089.84375
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1089.84375,
+      "height": 6356.5,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 97.109375
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 130.6875
+        },
+        {
+          "cls": "content-tabs",
+          "height": 6036.703125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "settings",
+    "width": 768,
+    "target": {
+      "width": 718.875,
+      "height": 6321.046875,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 5763.640625
+        },
+        {
+          "cls": "list-pagination",
+          "height": 52
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 718.875,
+      "height": 7138.90625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 115.03125
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 276.375
+        },
+        {
+          "cls": "content-tabs",
+          "height": 6655.5
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "settings",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "height": 6762.3125,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "content-tabs",
+          "height": 6103.96875
+        },
+        {
+          "cls": "list-pagination",
+          "height": 129.1875
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "height": 8018.6875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 162.15625
+        },
+        {
+          "cls": "crm-metrics",
+          "height": 265
+        },
+        {
+          "cls": "content-tabs",
+          "height": 7507.53125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "platform-overview",
+    "width": 1440,
+    "target": {
+      "width": 1182,
+      "height": 2122.21875,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 62.1875
+        },
+        {
+          "cls": "fg-metrics",
+          "height": 110
+        },
+        {
+          "cls": "crm-overview",
+          "height": 920.8125
+        },
+        {
+          "cls": "fg-cockpit-grid",
+          "height": 361.703125
+        },
+        {
+          "cls": "fg-overview-grid co-platform-bottom",
+          "height": 451.515625
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 1182,
+      "height": 2102.21875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 62.1875
+        },
+        {
+          "cls": "fg-metrics",
+          "height": 110
+        },
+        {
+          "cls": "crm-overview",
+          "height": 920.8125
+        },
+        {
+          "cls": "fg-cockpit-grid",
+          "height": 361.703125
+        },
+        {
+          "cls": "fg-overview-grid co-platform-bottom",
+          "height": 451.515625
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "platform-overview",
+    "width": 768,
+    "target": {
+      "width": 768,
+      "height": 3785.625,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 62.1875
+        },
+        {
+          "cls": "fg-metrics",
+          "height": 236
+        },
+        {
+          "cls": "crm-overview",
+          "height": 1804.234375
+        },
+        {
+          "cls": "fg-cockpit-grid",
+          "height": 571.171875
+        },
+        {
+          "cls": "fg-overview-grid co-platform-bottom",
+          "height": 896.03125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 768,
+      "height": 3969.859375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 62.1875
+        },
+        {
+          "cls": "fg-metrics",
+          "height": 236
+        },
+        {
+          "cls": "crm-overview",
+          "height": 1836.234375
+        },
+        {
+          "cls": "fg-cockpit-grid",
+          "height": 743.40625
+        },
+        {
+          "cls": "fg-overview-grid co-platform-bottom",
+          "height": 896.03125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "key": "platform-overview",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 4145.375,
+      "heading": "700 22.4px / 29.12px FieldgridSitesPoppins, FieldgridSitesInter, sans-serif",
+      "children": [
+        {
+          "cls": "",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 116.3125
+        },
+        {
+          "cls": "fg-metrics",
+          "height": 220
+        },
+        {
+          "cls": "crm-overview",
+          "height": 1831.90625
+        },
+        {
+          "cls": "fg-cockpit-grid",
+          "height": 598.125
+        },
+        {
+          "cls": "fg-overview-grid co-platform-bottom",
+          "height": 1196.03125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 4266.65625,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "ed-platform-demo",
+          "height": 0
+        },
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 116.3125
+        },
+        {
+          "cls": "fg-metrics",
+          "height": 220
+        },
+        {
+          "cls": "crm-overview",
+          "height": 1815.90625
+        },
+        {
+          "cls": "fg-cockpit-grid",
+          "height": 755.40625
+        },
+        {
+          "cls": "fg-overview-grid co-platform-bottom",
+          "height": 1196.03125
+        }
+      ],
+      "renderedHeadingFonts": [
+        {
+          "familyName": "Poppins SemiBold",
+          "postScriptName": "Poppins-SemiBold",
+          "isCustomFont": true
+        }
+      ]
+    },
+    "viewed": false
+  }
+]

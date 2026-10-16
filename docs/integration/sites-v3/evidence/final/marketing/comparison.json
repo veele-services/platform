@@ -1,0 +1,5780 @@
+{
+  "results": [
+    {
+      "path": "/",
+      "width": 1440,
+      "actual": {
+        "h1": "Je mensen.Je locaties.Alles verbonden.",
+        "box": {
+          "x": 80,
+          "y": 275.5,
+          "width": 570.078125,
+          "height": 232.21875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "69.12px",
+          "600",
+          "77.4144px",
+          "-3.8px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je mensen.Je locaties.Alles verbonden.",
+        "box": {
+          "x": 80,
+          "y": 275.5,
+          "width": 570.078125,
+          "height": 232.21875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "69.12px",
+          "600",
+          "77.4144px",
+          "-3.8px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl",
+      "files": [
+        "home-1440-integrated.jpg",
+        "home-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches",
+      "width": 1440,
+      "actual": {
+        "h1": "Verschillende vakken.Dezelfde behoefte aan overzicht.",
+        "box": {
+          "x": 80,
+          "y": 272,
+          "width": 950,
+          "height": 252
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "70px",
+          "500",
+          "84px",
+          "-2.8px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Verschillende vakken.Dezelfde behoefte aan overzicht.",
+        "box": {
+          "x": 80,
+          "y": 272,
+          "width": 950,
+          "height": 252
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "70px",
+          "500",
+          "84px",
+          "-2.8px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches",
+      "files": [
+        "branches-1440-integrated.jpg",
+        "branches-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 1440,
+      "actual": {
+        "h1": "Goed werk begint met een heldere werkdag.",
+        "box": {
+          "x": 80,
+          "y": 328.96875,
+          "width": 602.5,
+          "height": 212.34375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Goed werk begint met een heldere werkdag.",
+        "box": {
+          "x": 80,
+          "y": 328.96875,
+          "width": 602.5,
+          "height": 212.34375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/schoonmaak",
+      "files": [
+        "branches-schoonmaak-1440-integrated.jpg",
+        "branches-schoonmaak-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 1440,
+      "actual": {
+        "h1": "Elke beurt helder. Elke afspraak terug te vinden.",
+        "box": {
+          "x": 80,
+          "y": 328.96875,
+          "width": 602.5,
+          "height": 212.34375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Elke beurt helder. Elke afspraak terug te vinden.",
+        "box": {
+          "x": 80,
+          "y": 328.96875,
+          "width": 602.5,
+          "height": 212.34375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/glasbewassing",
+      "files": [
+        "branches-glasbewassing-1440-integrated.jpg",
+        "branches-glasbewassing-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 1440,
+      "actual": {
+        "h1": "Meerdere diensten. Eén helder locatieverhaal.",
+        "box": {
+          "x": 80,
+          "y": 328.96875,
+          "width": 602.5,
+          "height": 212.34375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Meerdere diensten. Eén helder locatieverhaal.",
+        "box": {
+          "x": 80,
+          "y": 328.96875,
+          "width": 602.5,
+          "height": 212.34375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/facilitair",
+      "files": [
+        "branches-facilitair-1440-integrated.jpg",
+        "branches-facilitair-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 1440,
+      "actual": {
+        "h1": "Goed buitenwerk. Van afspraak tot vastgelegd resultaat.",
+        "box": {
+          "x": 80,
+          "y": 293.578125,
+          "width": 602.5,
+          "height": 283.125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Goed buitenwerk. Van afspraak tot vastgelegd resultaat.",
+        "box": {
+          "x": 80,
+          "y": 293.578125,
+          "width": 602.5,
+          "height": 283.125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/groenonderhoud",
+      "files": [
+        "branches-groenonderhoud-1440-integrated.jpg",
+        "branches-groenonderhoud-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 1440,
+      "actual": {
+        "h1": "Van melding naar een duidelijk afgehandelde opdracht.",
+        "box": {
+          "x": 80,
+          "y": 280.28125,
+          "width": 602.5,
+          "height": 283.125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Van melding naar een duidelijk afgehandelde opdracht.",
+        "box": {
+          "x": 80,
+          "y": 280.28125,
+          "width": 602.5,
+          "height": 283.125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/vastgoedservice",
+      "files": [
+        "branches-vastgoedservice-1440-integrated.jpg",
+        "branches-vastgoedservice-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 1440,
+      "actual": {
+        "h1": "Een sterke operationele basis voor beveiligingsdiensten.",
+        "box": {
+          "x": 80,
+          "y": 274,
+          "width": 627.375,
+          "height": 283.125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een sterke operationele basis voor beveiligingsdiensten.",
+        "box": {
+          "x": 80,
+          "y": 274,
+          "width": 627.375,
+          "height": 283.125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/beveiliging",
+      "files": [
+        "branches-beveiliging-1440-integrated.jpg",
+        "branches-beveiliging-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 1440,
+      "actual": {
+        "h1": "De mensen achter het evenement, helder georganiseerd.",
+        "box": {
+          "x": 80,
+          "y": 274,
+          "width": 602.5,
+          "height": 283.125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "De mensen achter het evenement, helder georganiseerd.",
+        "box": {
+          "x": 80,
+          "y": 274,
+          "width": 602.5,
+          "height": 283.125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/evenementen",
+      "files": [
+        "branches-evenementen-1440-integrated.jpg",
+        "branches-evenementen-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform",
+      "width": 1440,
+      "actual": {
+        "h1": "Je hele werkdag.Goed verbonden.",
+        "box": {
+          "x": 80,
+          "y": 456.671875,
+          "width": 610,
+          "height": 153.59375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je hele werkdag.Goed verbonden.",
+        "box": {
+          "x": 80,
+          "y": 456.671875,
+          "width": 610,
+          "height": 153.59375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform",
+      "files": [
+        "platform-1440-integrated.jpg",
+        "platform-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/planning",
+      "width": 1440,
+      "actual": {
+        "h1": "Maak een werkdag waar je team op kan bouwen.",
+        "box": {
+          "x": 80,
+          "y": 418.28125,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Maak een werkdag waar je team op kan bouwen.",
+        "box": {
+          "x": 80,
+          "y": 418.28125,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/planning",
+      "files": [
+        "platform-planning-1440-integrated.jpg",
+        "platform-planning-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 1440,
+      "actual": {
+        "h1": "Van afspraak naar aantoonbaar uitgevoerd werk.",
+        "box": {
+          "x": 80,
+          "y": 322.65625,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Van afspraak naar aantoonbaar uitgevoerd werk.",
+        "box": {
+          "x": 80,
+          "y": 322.65625,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/werkbonnen",
+      "files": [
+        "platform-werkbonnen-1440-integrated.jpg",
+        "platform-werkbonnen-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 1440,
+      "actual": {
+        "h1": "Alle locatiekennis bij het werk dat je doet.",
+        "box": {
+          "x": 80,
+          "y": 421.875,
+          "width": 610,
+          "height": 153.59375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Alle locatiekennis bij het werk dat je doet.",
+        "box": {
+          "x": 80,
+          "y": 421.875,
+          "width": 610,
+          "height": 153.59375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/objecten",
+      "files": [
+        "platform-objecten-1440-integrated.jpg",
+        "platform-objecten-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 1440,
+      "actual": {
+        "h1": "Je team op locatie. De informatie bij de hand.",
+        "box": {
+          "x": 80,
+          "y": 354.75,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je team op locatie. De informatie bij de hand.",
+        "box": {
+          "x": 80,
+          "y": 354.75,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/personeelsapp",
+      "files": [
+        "platform-personeelsapp-1440-integrated.jpg",
+        "platform-personeelsapp-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 1440,
+      "actual": {
+        "h1": "Houd je klant betrokken bij het werk.",
+        "box": {
+          "x": 80,
+          "y": 383.46875,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Houd je klant betrokken bij het werk.",
+        "box": {
+          "x": 80,
+          "y": 383.46875,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/klantportaal",
+      "files": [
+        "platform-klantportaal-1440-integrated.jpg",
+        "platform-klantportaal-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 1440,
+      "actual": {
+        "h1": "Nieuwe collega’s. Een duidelijke eerste werkdag.",
+        "box": {
+          "x": 80,
+          "y": 418.28125,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Nieuwe collega’s. Een duidelijke eerste werkdag.",
+        "box": {
+          "x": 80,
+          "y": 418.28125,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/onboarding",
+      "files": [
+        "platform-onboarding-1440-integrated.jpg",
+        "platform-onboarding-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 1440,
+      "actual": {
+        "h1": "Wat je afspreekt, werkt door tot de factuur.",
+        "box": {
+          "x": 80,
+          "y": 418.28125,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Wat je afspreekt, werkt door tot de factuur.",
+        "box": {
+          "x": 80,
+          "y": 418.28125,
+          "width": 610,
+          "height": 230.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64px",
+          "550",
+          "76.8px",
+          "-2.56px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/offertes-facturatie",
+      "files": [
+        "platform-offertes-facturatie-1440-integrated.jpg",
+        "platform-offertes-facturatie-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/werkwijze",
+      "width": 1440,
+      "actual": {
+        "h1": "Een goede inrichting begint bij jouw werk.",
+        "box": {
+          "x": 80,
+          "y": 364.359375,
+          "width": 602.5,
+          "height": 141.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een goede inrichting begint bij jouw werk.",
+        "box": {
+          "x": 80,
+          "y": 364.359375,
+          "width": 602.5,
+          "height": 141.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "62.64px",
+          "550",
+          "70.7832px",
+          "-2.5056px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/werkwijze",
+      "files": [
+        "werkwijze-1440-integrated.jpg",
+        "werkwijze-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/over",
+      "width": 1440,
+      "actual": {
+        "h1": "Achter ieder goed resultaat staat een verbonden team.",
+        "box": {
+          "x": 80,
+          "y": 272,
+          "width": 950,
+          "height": 168
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "70px",
+          "500",
+          "84px",
+          "-2.8px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Achter ieder goed resultaat staat een verbonden team.",
+        "box": {
+          "x": 80,
+          "y": 272,
+          "width": 950,
+          "height": 168
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "70px",
+          "500",
+          "84px",
+          "-2.8px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/over",
+      "files": [
+        "over-1440-integrated.jpg",
+        "over-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/demo",
+      "width": 1440,
+      "actual": {
+        "h1": "Een werkdag.Drie perspectieven.",
+        "box": {
+          "x": 80,
+          "y": 302.03125,
+          "width": 623.671875,
+          "height": 155.5
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64.8px",
+          "500",
+          "77.76px",
+          "-2.592px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een werkdag.Drie perspectieven.",
+        "box": {
+          "x": 80,
+          "y": 302.03125,
+          "width": 623.671875,
+          "height": 155.5
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "64.8px",
+          "500",
+          "77.76px",
+          "-2.592px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/demo",
+      "files": [
+        "demo-1440-integrated.jpg",
+        "demo-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/proberen",
+      "width": 1440,
+      "actual": {
+        "h1": "Probeer Fieldgrid30 dagen gratis.",
+        "box": {
+          "x": 80,
+          "y": 258,
+          "width": 580.765625,
+          "height": 136.78125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "60px",
+          "500",
+          "68.4px",
+          "-3.3px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Probeer Fieldgrid30 dagen gratis.",
+        "box": {
+          "x": 80,
+          "y": 258,
+          "width": 580.765625,
+          "height": 136.78125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "60px",
+          "500",
+          "68.4px",
+          "-3.3px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/proberen",
+      "files": [
+        "proberen-1440-integrated.jpg",
+        "proberen-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/afspraak",
+      "width": 1440,
+      "actual": {
+        "h1": "Jouw werkdag.Ons vertrekpunt.",
+        "box": {
+          "x": 80,
+          "y": 258,
+          "width": 580.765625,
+          "height": 136.78125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "60px",
+          "500",
+          "68.4px",
+          "-3.3px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Jouw werkdag.Ons vertrekpunt.",
+        "box": {
+          "x": 80,
+          "y": 258,
+          "width": 580.765625,
+          "height": 136.78125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "60px",
+          "500",
+          "68.4px",
+          "-3.3px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/afspraak",
+      "files": [
+        "afspraak-1440-integrated.jpg",
+        "afspraak-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/privacy",
+      "width": 1440,
+      "actual": {
+        "h1": "Privacy bij Fieldgrid",
+        "box": {
+          "x": 320,
+          "y": 301,
+          "width": 800,
+          "height": 58.796875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "49px",
+          "500",
+          "58.8px",
+          "-1.96px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Privacy & dit prototype",
+        "box": {
+          "x": 320,
+          "y": 301,
+          "width": 800,
+          "height": 58.796875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "49px",
+          "500",
+          "58.8px",
+          "-1.96px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/privacy",
+      "files": [
+        "privacy-1440-integrated.jpg",
+        "privacy-1440-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/",
+      "width": 1024,
+      "actual": {
+        "h1": "Je mensen.Je locaties.Alles verbonden.",
+        "box": {
+          "x": 32,
+          "y": 281.71875,
+          "width": 434.390625,
+          "height": 184.78125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "55px",
+          "600",
+          "61.6px",
+          "-2.8px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je mensen.Je locaties.Alles verbonden.",
+        "box": {
+          "x": 32,
+          "y": 281.71875,
+          "width": 434.390625,
+          "height": 184.78125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "55px",
+          "600",
+          "61.6px",
+          "-2.8px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl",
+      "files": [
+        "home-1024-integrated.jpg",
+        "home-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches",
+      "width": 1024,
+      "actual": {
+        "h1": "Verschillende vakken.Dezelfde behoefte aan overzicht.",
+        "box": {
+          "x": 32,
+          "y": 272,
+          "width": 950,
+          "height": 120.40625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "50.176px",
+          "500",
+          "60.2112px",
+          "-2.00704px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Verschillende vakken.Dezelfde behoefte aan overzicht.",
+        "box": {
+          "x": 32,
+          "y": 272,
+          "width": 950,
+          "height": 120.40625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "50.176px",
+          "500",
+          "60.2112px",
+          "-2.00704px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches",
+      "files": [
+        "branches-1024-integrated.jpg",
+        "branches-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 1024,
+      "actual": {
+        "h1": "Goed werk begint met een heldere werkdag.",
+        "box": {
+          "x": 32,
+          "y": 288.625,
+          "width": 457.5,
+          "height": 150.984375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Goed werk begint met een heldere werkdag.",
+        "box": {
+          "x": 32,
+          "y": 288.625,
+          "width": 457.5,
+          "height": 150.984375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/schoonmaak",
+      "files": [
+        "branches-schoonmaak-1024-integrated.jpg",
+        "branches-schoonmaak-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 1024,
+      "actual": {
+        "h1": "Elke beurt helder. Elke afspraak terug te vinden.",
+        "box": {
+          "x": 32,
+          "y": 288.625,
+          "width": 457.5,
+          "height": 150.984375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Elke beurt helder. Elke afspraak terug te vinden.",
+        "box": {
+          "x": 32,
+          "y": 288.625,
+          "width": 457.5,
+          "height": 150.984375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/glasbewassing",
+      "files": [
+        "branches-glasbewassing-1024-integrated.jpg",
+        "branches-glasbewassing-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 1024,
+      "actual": {
+        "h1": "Meerdere diensten. Eén helder locatieverhaal.",
+        "box": {
+          "x": 32,
+          "y": 288.625,
+          "width": 457.5,
+          "height": 150.984375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Meerdere diensten. Eén helder locatieverhaal.",
+        "box": {
+          "x": 32,
+          "y": 288.625,
+          "width": 457.5,
+          "height": 150.984375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/facilitair",
+      "files": [
+        "branches-facilitair-1024-integrated.jpg",
+        "branches-facilitair-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 1024,
+      "actual": {
+        "h1": "Goed buitenwerk. Van afspraak tot vastgelegd resultaat.",
+        "box": {
+          "x": 32,
+          "y": 288.625,
+          "width": 457.5,
+          "height": 150.984375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Goed buitenwerk. Van afspraak tot vastgelegd resultaat.",
+        "box": {
+          "x": 32,
+          "y": 288.625,
+          "width": 457.5,
+          "height": 150.984375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/groenonderhoud",
+      "files": [
+        "branches-groenonderhoud-1024-integrated.jpg",
+        "branches-groenonderhoud-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 1024,
+      "actual": {
+        "h1": "Van melding naar een duidelijk afgehandelde opdracht.",
+        "box": {
+          "x": 32,
+          "y": 274,
+          "width": 457.5,
+          "height": 201.3125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Van melding naar een duidelijk afgehandelde opdracht.",
+        "box": {
+          "x": 32,
+          "y": 274,
+          "width": 457.5,
+          "height": 201.3125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/vastgoedservice",
+      "files": [
+        "branches-vastgoedservice-1024-integrated.jpg",
+        "branches-vastgoedservice-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 1024,
+      "actual": {
+        "h1": "Een sterke operationele basis voor beveiligingsdiensten.",
+        "box": {
+          "x": 32,
+          "y": 274,
+          "width": 457.5,
+          "height": 201.3125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een sterke operationele basis voor beveiligingsdiensten.",
+        "box": {
+          "x": 32,
+          "y": 274,
+          "width": 457.5,
+          "height": 201.3125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/beveiliging",
+      "files": [
+        "branches-beveiliging-1024-integrated.jpg",
+        "branches-beveiliging-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 1024,
+      "actual": {
+        "h1": "De mensen achter het evenement, helder georganiseerd.",
+        "box": {
+          "x": 32,
+          "y": 274,
+          "width": 457.5,
+          "height": 201.3125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "De mensen achter het evenement, helder georganiseerd.",
+        "box": {
+          "x": 32,
+          "y": 274,
+          "width": 457.5,
+          "height": 201.3125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/evenementen",
+      "files": [
+        "branches-evenementen-1024-integrated.jpg",
+        "branches-evenementen-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform",
+      "width": 1024,
+      "actual": {
+        "h1": "Je hele werkdag.Goed verbonden.",
+        "box": {
+          "x": 32,
+          "y": 432.171875,
+          "width": 462.5,
+          "height": 110.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je hele werkdag.Goed verbonden.",
+        "box": {
+          "x": 32,
+          "y": 432.171875,
+          "width": 462.5,
+          "height": 110.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform",
+      "files": [
+        "platform-1024-integrated.jpg",
+        "platform-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/planning",
+      "width": 1024,
+      "actual": {
+        "h1": "Maak een werkdag waar je team op kan bouwen.",
+        "box": {
+          "x": 32,
+          "y": 417.828125,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Maak een werkdag waar je team op kan bouwen.",
+        "box": {
+          "x": 32,
+          "y": 417.828125,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/planning",
+      "files": [
+        "platform-planning-1024-integrated.jpg",
+        "platform-planning-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 1024,
+      "actual": {
+        "h1": "Van afspraak naar aantoonbaar uitgevoerd werk.",
+        "box": {
+          "x": 32,
+          "y": 328.671875,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Van afspraak naar aantoonbaar uitgevoerd werk.",
+        "box": {
+          "x": 32,
+          "y": 328.671875,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/werkbonnen",
+      "files": [
+        "platform-werkbonnen-1024-integrated.jpg",
+        "platform-werkbonnen-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 1024,
+      "actual": {
+        "h1": "Alle locatiekennis bij het werk dat je doet.",
+        "box": {
+          "x": 32,
+          "y": 397.375,
+          "width": 462.5,
+          "height": 110.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Alle locatiekennis bij het werk dat je doet.",
+        "box": {
+          "x": 32,
+          "y": 397.375,
+          "width": 462.5,
+          "height": 110.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/objecten",
+      "files": [
+        "platform-objecten-1024-integrated.jpg",
+        "platform-objecten-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 1024,
+      "actual": {
+        "h1": "Je team op locatie. De informatie bij de hand.",
+        "box": {
+          "x": 32,
+          "y": 341.015625,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je team op locatie. De informatie bij de hand.",
+        "box": {
+          "x": 32,
+          "y": 341.015625,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/personeelsapp",
+      "files": [
+        "platform-personeelsapp-1024-integrated.jpg",
+        "platform-personeelsapp-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 1024,
+      "actual": {
+        "h1": "Houd je klant betrokken bij het werk.",
+        "box": {
+          "x": 32,
+          "y": 369.734375,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Houd je klant betrokken bij het werk.",
+        "box": {
+          "x": 32,
+          "y": 369.734375,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/klantportaal",
+      "files": [
+        "platform-klantportaal-1024-integrated.jpg",
+        "platform-klantportaal-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 1024,
+      "actual": {
+        "h1": "Nieuwe collega’s. Een duidelijke eerste werkdag.",
+        "box": {
+          "x": 32,
+          "y": 404.53125,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Nieuwe collega’s. Een duidelijke eerste werkdag.",
+        "box": {
+          "x": 32,
+          "y": 404.53125,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/onboarding",
+      "files": [
+        "platform-onboarding-1024-integrated.jpg",
+        "platform-onboarding-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 1024,
+      "actual": {
+        "h1": "Wat je afspreekt, werkt door tot de factuur.",
+        "box": {
+          "x": 32,
+          "y": 404.53125,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Wat je afspreekt, werkt door tot de factuur.",
+        "box": {
+          "x": 32,
+          "y": 404.53125,
+          "width": 462.5,
+          "height": 165.84375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "550",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/offertes-facturatie",
+      "files": [
+        "platform-offertes-facturatie-1024-integrated.jpg",
+        "platform-offertes-facturatie-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/werkwijze",
+      "width": 1024,
+      "actual": {
+        "h1": "Een goede inrichting begint bij jouw werk.",
+        "box": {
+          "x": 32,
+          "y": 313.796875,
+          "width": 457.5,
+          "height": 100.65625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een goede inrichting begint bij jouw werk.",
+        "box": {
+          "x": 32,
+          "y": 313.796875,
+          "width": 457.5,
+          "height": 100.65625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44.544px",
+          "550",
+          "50.3347px",
+          "-1.78176px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/werkwijze",
+      "files": [
+        "werkwijze-1024-integrated.jpg",
+        "werkwijze-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/over",
+      "width": 1024,
+      "actual": {
+        "h1": "Achter ieder goed resultaat staat een verbonden team.",
+        "box": {
+          "x": 32,
+          "y": 272,
+          "width": 950,
+          "height": 120.40625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "50.176px",
+          "500",
+          "60.2112px",
+          "-2.00704px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Achter ieder goed resultaat staat een verbonden team.",
+        "box": {
+          "x": 32,
+          "y": 272,
+          "width": 950,
+          "height": 120.40625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "50.176px",
+          "500",
+          "60.2112px",
+          "-2.00704px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/over",
+      "files": [
+        "over-1024-integrated.jpg",
+        "over-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/demo",
+      "width": 1024,
+      "actual": {
+        "h1": "Een werkdag.Drie perspectieven.",
+        "box": {
+          "x": 32,
+          "y": 323.0625,
+          "width": 478.9375,
+          "height": 110.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "500",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een werkdag.Drie perspectieven.",
+        "box": {
+          "x": 32,
+          "y": 323.0625,
+          "width": 478.9375,
+          "height": 110.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "46.08px",
+          "500",
+          "55.296px",
+          "-1.8432px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/demo",
+      "files": [
+        "demo-1024-integrated.jpg",
+        "demo-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/proberen",
+      "width": 1024,
+      "actual": {
+        "h1": "Probeer Fieldgrid30 dagen gratis.",
+        "box": {
+          "x": 32,
+          "y": 231,
+          "width": 442.296875,
+          "height": 100.3125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44px",
+          "500",
+          "50.16px",
+          "-2.42px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Probeer Fieldgrid30 dagen gratis.",
+        "box": {
+          "x": 32,
+          "y": 231,
+          "width": 442.296875,
+          "height": 100.3125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44px",
+          "500",
+          "50.16px",
+          "-2.42px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/proberen",
+      "files": [
+        "proberen-1024-integrated.jpg",
+        "proberen-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/afspraak",
+      "width": 1024,
+      "actual": {
+        "h1": "Jouw werkdag.Ons vertrekpunt.",
+        "box": {
+          "x": 32,
+          "y": 231,
+          "width": 442.296875,
+          "height": 100.3125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44px",
+          "500",
+          "50.16px",
+          "-2.42px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Jouw werkdag.Ons vertrekpunt.",
+        "box": {
+          "x": 32,
+          "y": 231,
+          "width": 442.296875,
+          "height": 100.3125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44px",
+          "500",
+          "50.16px",
+          "-2.42px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/afspraak",
+      "files": [
+        "afspraak-1024-integrated.jpg",
+        "afspraak-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/privacy",
+      "width": 1024,
+      "actual": {
+        "h1": "Privacy bij Fieldgrid",
+        "box": {
+          "x": 112,
+          "y": 301,
+          "width": 800,
+          "height": 58.796875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "49px",
+          "500",
+          "58.8px",
+          "-1.96px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Privacy & dit prototype",
+        "box": {
+          "x": 112,
+          "y": 301,
+          "width": 800,
+          "height": 58.796875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "49px",
+          "500",
+          "58.8px",
+          "-1.96px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/privacy",
+      "files": [
+        "privacy-1024-integrated.jpg",
+        "privacy-1024-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/",
+      "width": 768,
+      "actual": {
+        "h1": "Je mensen.Je locaties.Alles verbonden.",
+        "box": {
+          "x": 32,
+          "y": 201,
+          "width": 640,
+          "height": 221.71875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "66px",
+          "600",
+          "73.92px",
+          "-3.4px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je mensen.Je locaties.Alles verbonden.",
+        "box": {
+          "x": 32,
+          "y": 201,
+          "width": 640,
+          "height": 221.71875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "66px",
+          "600",
+          "73.92px",
+          "-3.4px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl",
+      "files": [
+        "home-768-integrated.jpg",
+        "home-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches",
+      "width": 768,
+      "actual": {
+        "h1": "Verschillende vakken.Dezelfde behoefte aan overzicht.",
+        "box": {
+          "x": 32,
+          "y": 260,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "500",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Verschillende vakken.Dezelfde behoefte aan overzicht.",
+        "box": {
+          "x": 32,
+          "y": 260,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "500",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches",
+      "files": [
+        "branches-768-integrated.jpg",
+        "branches-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 768,
+      "actual": {
+        "h1": "Goed werk begint met een heldere werkdag.",
+        "box": {
+          "x": 32,
+          "y": 262,
+          "width": 332,
+          "height": 189.8125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Goed werk begint met een heldere werkdag.",
+        "box": {
+          "x": 32,
+          "y": 262,
+          "width": 332,
+          "height": 189.8125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/schoonmaak",
+      "files": [
+        "branches-schoonmaak-768-integrated.jpg",
+        "branches-schoonmaak-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 768,
+      "actual": {
+        "h1": "Elke beurt helder. Elke afspraak terug te vinden.",
+        "box": {
+          "x": 32,
+          "y": 262,
+          "width": 332,
+          "height": 189.8125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Elke beurt helder. Elke afspraak terug te vinden.",
+        "box": {
+          "x": 32,
+          "y": 262,
+          "width": 332,
+          "height": 189.8125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/glasbewassing",
+      "files": [
+        "branches-glasbewassing-768-integrated.jpg",
+        "branches-glasbewassing-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 768,
+      "actual": {
+        "h1": "Meerdere diensten. Eén helder locatieverhaal.",
+        "box": {
+          "x": 32,
+          "y": 262,
+          "width": 332,
+          "height": 189.8125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Meerdere diensten. Eén helder locatieverhaal.",
+        "box": {
+          "x": 32,
+          "y": 262,
+          "width": 332,
+          "height": 189.8125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/facilitair",
+      "files": [
+        "branches-facilitair-768-integrated.jpg",
+        "branches-facilitair-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 768,
+      "actual": {
+        "h1": "Goed buitenwerk. Van afspraak tot vastgelegd resultaat.",
+        "box": {
+          "x": 32,
+          "y": 269.5,
+          "width": 332,
+          "height": 237.265625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Goed buitenwerk. Van afspraak tot vastgelegd resultaat.",
+        "box": {
+          "x": 32,
+          "y": 269.5,
+          "width": 332,
+          "height": 237.265625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/groenonderhoud",
+      "files": [
+        "branches-groenonderhoud-768-integrated.jpg",
+        "branches-groenonderhoud-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 768,
+      "actual": {
+        "h1": "Van melding naar een duidelijk afgehandelde opdracht.",
+        "box": {
+          "x": 32,
+          "y": 269.5,
+          "width": 332,
+          "height": 237.265625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Van melding naar een duidelijk afgehandelde opdracht.",
+        "box": {
+          "x": 32,
+          "y": 269.5,
+          "width": 332,
+          "height": 237.265625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/vastgoedservice",
+      "files": [
+        "branches-vastgoedservice-768-integrated.jpg",
+        "branches-vastgoedservice-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 768,
+      "actual": {
+        "h1": "Een sterke operationele basis voor beveiligingsdiensten.",
+        "box": {
+          "x": 32,
+          "y": 262,
+          "width": 414.71875,
+          "height": 189.8125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een sterke operationele basis voor beveiligingsdiensten.",
+        "box": {
+          "x": 32,
+          "y": 262,
+          "width": 414.71875,
+          "height": 189.8125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/beveiliging",
+      "files": [
+        "branches-beveiliging-768-integrated.jpg",
+        "branches-beveiliging-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 768,
+      "actual": {
+        "h1": "De mensen achter het evenement, helder georganiseerd.",
+        "box": {
+          "x": 32,
+          "y": 262,
+          "width": 332,
+          "height": 237.265625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "De mensen achter het evenement, helder georganiseerd.",
+        "box": {
+          "x": 32,
+          "y": 262,
+          "width": 332,
+          "height": 237.265625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/evenementen",
+      "files": [
+        "branches-evenementen-768-integrated.jpg",
+        "branches-evenementen-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform",
+      "width": 768,
+      "actual": {
+        "h1": "Je hele werkdag.Goed verbonden.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je hele werkdag.Goed verbonden.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform",
+      "files": [
+        "platform-768-integrated.jpg",
+        "platform-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/planning",
+      "width": 768,
+      "actual": {
+        "h1": "Maak een werkdag waar je team op kan bouwen.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Maak een werkdag waar je team op kan bouwen.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/planning",
+      "files": [
+        "platform-planning-768-integrated.jpg",
+        "platform-planning-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 768,
+      "actual": {
+        "h1": "Van afspraak naar aantoonbaar uitgevoerd werk.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Van afspraak naar aantoonbaar uitgevoerd werk.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/werkbonnen",
+      "files": [
+        "platform-werkbonnen-768-integrated.jpg",
+        "platform-werkbonnen-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 768,
+      "actual": {
+        "h1": "Alle locatiekennis bij het werk dat je doet.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Alle locatiekennis bij het werk dat je doet.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/objecten",
+      "files": [
+        "platform-objecten-768-integrated.jpg",
+        "platform-objecten-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 768,
+      "actual": {
+        "h1": "Je team op locatie. De informatie bij de hand.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je team op locatie. De informatie bij de hand.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/personeelsapp",
+      "files": [
+        "platform-personeelsapp-768-integrated.jpg",
+        "platform-personeelsapp-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 768,
+      "actual": {
+        "h1": "Houd je klant betrokken bij het werk.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Houd je klant betrokken bij het werk.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/klantportaal",
+      "files": [
+        "platform-klantportaal-768-integrated.jpg",
+        "platform-klantportaal-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 768,
+      "actual": {
+        "h1": "Nieuwe collega’s. Een duidelijke eerste werkdag.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Nieuwe collega’s. Een duidelijke eerste werkdag.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/onboarding",
+      "files": [
+        "platform-onboarding-768-integrated.jpg",
+        "platform-onboarding-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 768,
+      "actual": {
+        "h1": "Wat je afspreekt, werkt door tot de factuur.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Wat je afspreekt, werkt door tot de factuur.",
+        "box": {
+          "x": 32,
+          "y": 259,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "550",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/offertes-facturatie",
+      "files": [
+        "platform-offertes-facturatie-768-integrated.jpg",
+        "platform-offertes-facturatie-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/werkwijze",
+      "width": 768,
+      "actual": {
+        "h1": "Een goede inrichting begint bij jouw werk.",
+        "box": {
+          "x": 32,
+          "y": 282.640625,
+          "width": 332,
+          "height": 142.359375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een goede inrichting begint bij jouw werk.",
+        "box": {
+          "x": 32,
+          "y": 282.640625,
+          "width": 332,
+          "height": 142.359375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "550",
+          "47.46px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/werkwijze",
+      "files": [
+        "werkwijze-768-integrated.jpg",
+        "werkwijze-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/over",
+      "width": 768,
+      "actual": {
+        "h1": "Achter ieder goed resultaat staat een verbonden team.",
+        "box": {
+          "x": 32,
+          "y": 260,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "500",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Achter ieder goed resultaat staat een verbonden team.",
+        "box": {
+          "x": 32,
+          "y": 260,
+          "width": 704,
+          "height": 103.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "43px",
+          "500",
+          "51.6px",
+          "-1.72px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/over",
+      "files": [
+        "over-768-integrated.jpg",
+        "over-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/demo",
+      "width": 768,
+      "actual": {
+        "h1": "Een werkdag.Drie perspectieven.",
+        "box": {
+          "x": 32,
+          "y": 269,
+          "width": 700,
+          "height": 100.78125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "500",
+          "50.4px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een werkdag.Drie perspectieven.",
+        "box": {
+          "x": 32,
+          "y": 269,
+          "width": 700,
+          "height": 100.78125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "500",
+          "50.4px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/demo",
+      "files": [
+        "demo-768-integrated.jpg",
+        "demo-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/proberen",
+      "width": 768,
+      "actual": {
+        "h1": "Probeer Fieldgrid30 dagen gratis.",
+        "box": {
+          "x": 44,
+          "y": 195,
+          "width": 680,
+          "height": 123.09375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "54px",
+          "500",
+          "61.56px",
+          "-2.97px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Probeer Fieldgrid30 dagen gratis.",
+        "box": {
+          "x": 44,
+          "y": 195,
+          "width": 680,
+          "height": 123.09375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "54px",
+          "500",
+          "61.56px",
+          "-2.97px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/proberen",
+      "files": [
+        "proberen-768-integrated.jpg",
+        "proberen-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/afspraak",
+      "width": 768,
+      "actual": {
+        "h1": "Jouw werkdag.Ons vertrekpunt.",
+        "box": {
+          "x": 44,
+          "y": 195,
+          "width": 680,
+          "height": 123.09375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "54px",
+          "500",
+          "61.56px",
+          "-2.97px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Jouw werkdag.Ons vertrekpunt.",
+        "box": {
+          "x": 44,
+          "y": 195,
+          "width": 680,
+          "height": 123.09375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "54px",
+          "500",
+          "61.56px",
+          "-2.97px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/afspraak",
+      "files": [
+        "afspraak-768-integrated.jpg",
+        "afspraak-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/privacy",
+      "width": 768,
+      "actual": {
+        "h1": "Privacy bij Fieldgrid",
+        "box": {
+          "x": 32,
+          "y": 289,
+          "width": 704,
+          "height": 58.796875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "49px",
+          "500",
+          "58.8px",
+          "-1.96px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Privacy & dit prototype",
+        "box": {
+          "x": 32,
+          "y": 289,
+          "width": 704,
+          "height": 58.796875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "49px",
+          "500",
+          "58.8px",
+          "-1.96px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/privacy",
+      "files": [
+        "privacy-768-integrated.jpg",
+        "privacy-768-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/",
+      "width": 390,
+      "actual": {
+        "h1": "Je mensen.Je locaties.Alles verbonden.",
+        "box": {
+          "x": 20,
+          "y": 173.796875,
+          "width": 350,
+          "height": 218.875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "48px",
+          "600",
+          "54.72px",
+          "-2.45px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je mensen.Je locaties.Alles verbonden.",
+        "box": {
+          "x": 20,
+          "y": 173.796875,
+          "width": 350,
+          "height": 218.875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "48px",
+          "600",
+          "54.72px",
+          "-2.45px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl",
+      "files": [
+        "home-390-integrated.jpg",
+        "home-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches",
+      "width": 390,
+      "actual": {
+        "h1": "Verschillende vakken.Dezelfde behoefte aan overzicht.",
+        "box": {
+          "x": 20,
+          "y": 241.34375,
+          "width": 350,
+          "height": 196.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "41px",
+          "500",
+          "49.2px",
+          "-1.64px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Verschillende vakken.Dezelfde behoefte aan overzicht.",
+        "box": {
+          "x": 20,
+          "y": 241.34375,
+          "width": 350,
+          "height": 196.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "41px",
+          "500",
+          "49.2px",
+          "-1.64px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches",
+      "files": [
+        "branches-390-integrated.jpg",
+        "branches-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 390,
+      "actual": {
+        "h1": "Goed werk begint met een heldere werkdag.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 135.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Goed werk begint met een heldere werkdag.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 135.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/schoonmaak",
+      "files": [
+        "branches-schoonmaak-390-integrated.jpg",
+        "branches-schoonmaak-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 390,
+      "actual": {
+        "h1": "Elke beurt helder. Elke afspraak terug te vinden.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 135.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Elke beurt helder. Elke afspraak terug te vinden.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 135.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/glasbewassing",
+      "files": [
+        "branches-glasbewassing-390-integrated.jpg",
+        "branches-glasbewassing-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 390,
+      "actual": {
+        "h1": "Meerdere diensten. Eén helder locatieverhaal.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Meerdere diensten. Eén helder locatieverhaal.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/facilitair",
+      "files": [
+        "branches-facilitair-390-integrated.jpg",
+        "branches-facilitair-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 390,
+      "actual": {
+        "h1": "Goed buitenwerk. Van afspraak tot vastgelegd resultaat.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 350,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Goed buitenwerk. Van afspraak tot vastgelegd resultaat.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 350,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/groenonderhoud",
+      "files": [
+        "branches-groenonderhoud-390-integrated.jpg",
+        "branches-groenonderhoud-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 390,
+      "actual": {
+        "h1": "Van melding naar een duidelijk afgehandelde opdracht.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 350,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Van melding naar een duidelijk afgehandelde opdracht.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 350,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/vastgoedservice",
+      "files": [
+        "branches-vastgoedservice-390-integrated.jpg",
+        "branches-vastgoedservice-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 390,
+      "actual": {
+        "h1": "Een sterke operationele basis voor beveiligingsdiensten.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 225.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een sterke operationele basis voor beveiligingsdiensten.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 400.390625,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 50.390625,
+        "height": 45.1875
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/beveiliging",
+      "files": [
+        "branches-beveiliging-390-integrated.jpg",
+        "branches-beveiliging-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 390,
+      "actual": {
+        "h1": "De mensen achter het evenement, helder georganiseerd.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "De mensen achter het evenement, helder georganiseerd.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/evenementen",
+      "files": [
+        "branches-evenementen-390-integrated.jpg",
+        "branches-evenementen-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform",
+      "width": 390,
+      "actual": {
+        "h1": "Je hele werkdag.Goed verbonden.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 96
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je hele werkdag.Goed verbonden.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 96
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform",
+      "files": [
+        "platform-390-integrated.jpg",
+        "platform-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/planning",
+      "width": 390,
+      "actual": {
+        "h1": "Maak een werkdag waar je team op kan bouwen.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Maak een werkdag waar je team op kan bouwen.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/planning",
+      "files": [
+        "platform-planning-390-integrated.jpg",
+        "platform-planning-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 390,
+      "actual": {
+        "h1": "Van afspraak naar aantoonbaar uitgevoerd werk.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Van afspraak naar aantoonbaar uitgevoerd werk.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/werkbonnen",
+      "files": [
+        "platform-werkbonnen-390-integrated.jpg",
+        "platform-werkbonnen-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 390,
+      "actual": {
+        "h1": "Alle locatiekennis bij het werk dat je doet.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 144
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Alle locatiekennis bij het werk dat je doet.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 144
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/objecten",
+      "files": [
+        "platform-objecten-390-integrated.jpg",
+        "platform-objecten-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 390,
+      "actual": {
+        "h1": "Je team op locatie. De informatie bij de hand.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je team op locatie. De informatie bij de hand.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/personeelsapp",
+      "files": [
+        "platform-personeelsapp-390-integrated.jpg",
+        "platform-personeelsapp-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 390,
+      "actual": {
+        "h1": "Houd je klant betrokken bij het werk.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 144
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Houd je klant betrokken bij het werk.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 144
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/klantportaal",
+      "files": [
+        "platform-klantportaal-390-integrated.jpg",
+        "platform-klantportaal-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 390,
+      "actual": {
+        "h1": "Nieuwe collega’s. Een duidelijke eerste werkdag.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 144
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Nieuwe collega’s. Een duidelijke eerste werkdag.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 144
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/onboarding",
+      "files": [
+        "platform-onboarding-390-integrated.jpg",
+        "platform-onboarding-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 390,
+      "actual": {
+        "h1": "Wat je afspreekt, werkt door tot de factuur.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 144
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Wat je afspreekt, werkt door tot de factuur.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 144
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/offertes-facturatie",
+      "files": [
+        "platform-offertes-facturatie-390-integrated.jpg",
+        "platform-offertes-facturatie-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/werkwijze",
+      "width": 390,
+      "actual": {
+        "h1": "Een goede inrichting begint bij jouw werk.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 135.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een goede inrichting begint bij jouw werk.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 350,
+          "height": 135.5625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/werkwijze",
+      "files": [
+        "werkwijze-390-integrated.jpg",
+        "werkwijze-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/over",
+      "width": 390,
+      "actual": {
+        "h1": "Achter ieder goed resultaat staat een verbonden team.",
+        "box": {
+          "x": 20,
+          "y": 241.34375,
+          "width": 350,
+          "height": 196.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "41px",
+          "500",
+          "49.2px",
+          "-1.64px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Achter ieder goed resultaat staat een verbonden team.",
+        "box": {
+          "x": 20,
+          "y": 241.34375,
+          "width": 350,
+          "height": 196.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "41px",
+          "500",
+          "49.2px",
+          "-1.64px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/over",
+      "files": [
+        "over-390-integrated.jpg",
+        "over-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/demo",
+      "width": 390,
+      "actual": {
+        "h1": "Een werkdag.Drie perspectieven.",
+        "box": {
+          "x": 20,
+          "y": 230.34375,
+          "width": 350,
+          "height": 151.171875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "500",
+          "50.4px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een werkdag.Drie perspectieven.",
+        "box": {
+          "x": 20,
+          "y": 230.34375,
+          "width": 350,
+          "height": 151.171875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "500",
+          "50.4px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/demo",
+      "files": [
+        "demo-390-integrated.jpg",
+        "demo-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/proberen",
+      "width": 390,
+      "actual": {
+        "h1": "Probeer Fieldgrid30 dagen gratis.",
+        "box": {
+          "x": 20,
+          "y": 169.796875,
+          "width": 350,
+          "height": 91.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "500",
+          "45.6px",
+          "-2.2px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Probeer Fieldgrid30 dagen gratis.",
+        "box": {
+          "x": 20,
+          "y": 169.796875,
+          "width": 350,
+          "height": 91.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "500",
+          "45.6px",
+          "-2.2px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/proberen",
+      "files": [
+        "proberen-390-integrated.jpg",
+        "proberen-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/afspraak",
+      "width": 390,
+      "actual": {
+        "h1": "Jouw werkdag.Ons vertrekpunt.",
+        "box": {
+          "x": 20,
+          "y": 169.796875,
+          "width": 350,
+          "height": 91.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "500",
+          "45.6px",
+          "-2.2px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Jouw werkdag.Ons vertrekpunt.",
+        "box": {
+          "x": 20,
+          "y": 169.796875,
+          "width": 350,
+          "height": 91.1875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "500",
+          "45.6px",
+          "-2.2px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/afspraak",
+      "files": [
+        "afspraak-390-integrated.jpg",
+        "afspraak-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/privacy",
+      "width": 390,
+      "actual": {
+        "h1": "Privacy bij Fieldgrid",
+        "box": {
+          "x": 20,
+          "y": 240.34375,
+          "width": 350,
+          "height": 44.390625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "37px",
+          "500",
+          "44.4px",
+          "-1.48px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Privacy & dit prototype",
+        "box": {
+          "x": 20,
+          "y": 240.34375,
+          "width": 350,
+          "height": 88.78125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "37px",
+          "500",
+          "44.4px",
+          "-1.48px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 44.390625
+      },
+      "canonical": "https://www.fieldgrid.nl/privacy",
+      "files": [
+        "privacy-390-integrated.jpg",
+        "privacy-390-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/",
+      "width": 320,
+      "actual": {
+        "h1": "Je mensen.Je locaties.Alles verbonden.",
+        "box": {
+          "x": 20,
+          "y": 173.796875,
+          "width": 280,
+          "height": 200.625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44px",
+          "600",
+          "50.16px",
+          "-2.2px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je mensen.Je locaties.Alles verbonden.",
+        "box": {
+          "x": 20,
+          "y": 173.796875,
+          "width": 280,
+          "height": 200.625
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "44px",
+          "600",
+          "50.16px",
+          "-2.2px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl",
+      "files": [
+        "home-320-integrated.jpg",
+        "home-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches",
+      "width": 320,
+      "actual": {
+        "h1": "Verschillende vakken.Dezelfde behoefte aan overzicht.",
+        "box": {
+          "x": 20,
+          "y": 241.34375,
+          "width": 280,
+          "height": 245.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "41px",
+          "500",
+          "49.2px",
+          "-1.64px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Verschillende vakken.Dezelfde behoefte aan overzicht.",
+        "box": {
+          "x": 20,
+          "y": 241.34375,
+          "width": 280,
+          "height": 245.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "41px",
+          "500",
+          "49.2px",
+          "-1.64px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches",
+      "files": [
+        "branches-320-integrated.jpg",
+        "branches-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 320,
+      "actual": {
+        "h1": "Goed werk begint met een heldere werkdag.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Goed werk begint met een heldere werkdag.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/schoonmaak",
+      "files": [
+        "branches-schoonmaak-320-integrated.jpg",
+        "branches-schoonmaak-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 320,
+      "actual": {
+        "h1": "Elke beurt helder. Elke afspraak terug te vinden.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 225.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Elke beurt helder. Elke afspraak terug te vinden.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 225.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/glasbewassing",
+      "files": [
+        "branches-glasbewassing-320-integrated.jpg",
+        "branches-glasbewassing-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 320,
+      "actual": {
+        "h1": "Meerdere diensten. Eén helder locatieverhaal.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 225.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Meerdere diensten. Eén helder locatieverhaal.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 281,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 1,
+        "height": 45.1875
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/facilitair",
+      "files": [
+        "branches-facilitair-320-integrated.jpg",
+        "branches-facilitair-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 320,
+      "actual": {
+        "h1": "Goed buitenwerk. Van afspraak tot vastgelegd resultaat.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 225.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Goed buitenwerk. Van afspraak tot vastgelegd resultaat.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 225.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/groenonderhoud",
+      "files": [
+        "branches-groenonderhoud-320-integrated.jpg",
+        "branches-groenonderhoud-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 320,
+      "actual": {
+        "h1": "Van melding naar een duidelijk afgehandelde opdracht.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 225.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Van melding naar een duidelijk afgehandelde opdracht.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 225.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/vastgoedservice",
+      "files": [
+        "branches-vastgoedservice-320-integrated.jpg",
+        "branches-vastgoedservice-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 320,
+      "actual": {
+        "h1": "Een sterke operationele basis voor beveiligingsdiensten.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 225.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een sterke operationele basis voor beveiligingsdiensten.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 400.390625,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 120.390625,
+        "height": 45.1875
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/beveiliging",
+      "files": [
+        "branches-beveiliging-320-integrated.jpg",
+        "branches-beveiliging-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 320,
+      "actual": {
+        "h1": "De mensen achter het evenement, helder georganiseerd.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 271.125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "De mensen achter het evenement, helder georganiseerd.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 287.59375,
+          "height": 225.9375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 7.59375,
+        "height": 45.1875
+      },
+      "canonical": "https://www.fieldgrid.nl/branches/evenementen",
+      "files": [
+        "branches-evenementen-320-integrated.jpg",
+        "branches-evenementen-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform",
+      "width": 320,
+      "actual": {
+        "h1": "Je hele werkdag.Goed verbonden.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je hele werkdag.Goed verbonden.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform",
+      "files": [
+        "platform-320-integrated.jpg",
+        "platform-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/planning",
+      "width": 320,
+      "actual": {
+        "h1": "Maak een werkdag waar je team op kan bouwen.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Maak een werkdag waar je team op kan bouwen.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/planning",
+      "files": [
+        "platform-planning-320-integrated.jpg",
+        "platform-planning-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 320,
+      "actual": {
+        "h1": "Van afspraak naar aantoonbaar uitgevoerd werk.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 240
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Van afspraak naar aantoonbaar uitgevoerd werk.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 240
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/werkbonnen",
+      "files": [
+        "platform-werkbonnen-320-integrated.jpg",
+        "platform-werkbonnen-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 320,
+      "actual": {
+        "h1": "Alle locatiekennis bij het werk dat je doet.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Alle locatiekennis bij het werk dat je doet.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/objecten",
+      "files": [
+        "platform-objecten-320-integrated.jpg",
+        "platform-objecten-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 320,
+      "actual": {
+        "h1": "Je team op locatie. De informatie bij de hand.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Je team op locatie. De informatie bij de hand.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/personeelsapp",
+      "files": [
+        "platform-personeelsapp-320-integrated.jpg",
+        "platform-personeelsapp-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 320,
+      "actual": {
+        "h1": "Houd je klant betrokken bij het werk.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 144
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Houd je klant betrokken bij het werk.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 144
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/klantportaal",
+      "files": [
+        "platform-klantportaal-320-integrated.jpg",
+        "platform-klantportaal-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 320,
+      "actual": {
+        "h1": "Nieuwe collega’s. Een duidelijke eerste werkdag.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 240
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Nieuwe collega’s. Een duidelijke eerste werkdag.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 240
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/onboarding",
+      "files": [
+        "platform-onboarding-320-integrated.jpg",
+        "platform-onboarding-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 320,
+      "actual": {
+        "h1": "Wat je afspreekt, werkt door tot de factuur.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Wat je afspreekt, werkt door tot de factuur.",
+        "box": {
+          "x": 20,
+          "y": 232.84375,
+          "width": 280,
+          "height": 192
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "48px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/platform/offertes-facturatie",
+      "files": [
+        "platform-offertes-facturatie-320-integrated.jpg",
+        "platform-offertes-facturatie-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/werkwijze",
+      "width": 320,
+      "actual": {
+        "h1": "Een goede inrichting begint bij jouw werk.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een goede inrichting begint bij jouw werk.",
+        "box": {
+          "x": 20,
+          "y": 225.34375,
+          "width": 280,
+          "height": 180.75
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "550",
+          "45.2px",
+          "-1.6px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/werkwijze",
+      "files": [
+        "werkwijze-320-integrated.jpg",
+        "werkwijze-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/over",
+      "width": 320,
+      "actual": {
+        "h1": "Achter ieder goed resultaat staat een verbonden team.",
+        "box": {
+          "x": 20,
+          "y": 241.34375,
+          "width": 280,
+          "height": 295.125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "41px",
+          "500",
+          "49.2px",
+          "-1.64px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Achter ieder goed resultaat staat een verbonden team.",
+        "box": {
+          "x": 20,
+          "y": 241.34375,
+          "width": 280,
+          "height": 295.125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "41px",
+          "500",
+          "49.2px",
+          "-1.64px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/over",
+      "files": [
+        "over-320-integrated.jpg",
+        "over-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/demo",
+      "width": 320,
+      "actual": {
+        "h1": "Een werkdag.Drie perspectieven.",
+        "box": {
+          "x": 20,
+          "y": 230.34375,
+          "width": 288.484375,
+          "height": 151.171875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "500",
+          "50.4px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Een werkdag.Drie perspectieven.",
+        "box": {
+          "x": 20,
+          "y": 230.34375,
+          "width": 288.484375,
+          "height": 151.171875
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "42px",
+          "500",
+          "50.4px",
+          "-1.68px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/demo",
+      "files": [
+        "demo-320-integrated.jpg",
+        "demo-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/proberen",
+      "width": 320,
+      "actual": {
+        "h1": "Probeer Fieldgrid30 dagen gratis.",
+        "box": {
+          "x": 20,
+          "y": 169.796875,
+          "width": 280,
+          "height": 182.375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "500",
+          "45.6px",
+          "-2.2px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Probeer Fieldgrid30 dagen gratis.",
+        "box": {
+          "x": 20,
+          "y": 169.796875,
+          "width": 280,
+          "height": 182.375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "500",
+          "45.6px",
+          "-2.2px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/proberen",
+      "files": [
+        "proberen-320-integrated.jpg",
+        "proberen-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/afspraak",
+      "width": 320,
+      "actual": {
+        "h1": "Jouw werkdag.Ons vertrekpunt.",
+        "box": {
+          "x": 20,
+          "y": 169.796875,
+          "width": 280,
+          "height": 182.375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "500",
+          "45.6px",
+          "-2.2px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Jouw werkdag.Ons vertrekpunt.",
+        "box": {
+          "x": 20,
+          "y": 169.796875,
+          "width": 280,
+          "height": 182.375
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "40px",
+          "500",
+          "45.6px",
+          "-2.2px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/afspraak",
+      "files": [
+        "afspraak-320-integrated.jpg",
+        "afspraak-320-source.jpg"
+      ],
+      "viewed": false
+    },
+    {
+      "path": "/privacy",
+      "width": 320,
+      "actual": {
+        "h1": "Privacy bij Fieldgrid",
+        "box": {
+          "x": 20,
+          "y": 240.34375,
+          "width": 280,
+          "height": 88.78125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "37px",
+          "500",
+          "44.4px",
+          "-1.48px"
+        ],
+        "overflow": false
+      },
+      "source": {
+        "h1": "Privacy & dit prototype",
+        "box": {
+          "x": 20,
+          "y": 240.34375,
+          "width": 280,
+          "height": 88.78125
+        },
+        "font": [
+          "Poppins, Inter, sans-serif",
+          "37px",
+          "500",
+          "44.4px",
+          "-1.48px"
+        ],
+        "overflow": false
+      },
+      "deltas": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      },
+      "canonical": "https://www.fieldgrid.nl/privacy",
+      "files": [
+        "privacy-320-integrated.jpg",
+        "privacy-320-source.jpg"
+      ],
+      "viewed": false
+    }
+  ],
+  "errors": [],
+  "links": [
+    "/proberen",
+    "/",
+    "/platform",
+    "/platform/planning",
+    "/platform/werkbonnen",
+    "/platform/objecten",
+    "/platform/personeelsapp",
+    "/platform/klantportaal",
+    "/platform/onboarding",
+    "/platform/offertes-facturatie",
+    "/branches",
+    "/branches/schoonmaak",
+    "/branches/glasbewassing",
+    "/branches/facilitair",
+    "/branches/groenonderhoud",
+    "/branches/vastgoedservice",
+    "/branches/beveiliging",
+    "/branches/evenementen",
+    "/werkwijze",
+    "/over",
+    "/afspraak",
+    "/demo",
+    "/privacy"
+  ]
+}

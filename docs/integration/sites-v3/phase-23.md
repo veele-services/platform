@@ -1,6 +1,6 @@
 # Personeelsportaal: bronpresentatie en native processen
 
-Deze fase behandelt S01 t/m S06. Implementatie is in uitvoering; browseracceptatie, deployment en livecontrole zijn afzonderlijke stappen.
+Deze fase behandelt S01 t/m S06. Implementatie en lokale browseracceptatie zijn voltooid; deployment en livecontrole worden afzonderlijk bijgehouden.
 
 | Onderdeel | Keuze | Implementatie |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ Uitlegbanners blijven aan de bestaande accountregistratie gekoppeld en gebruiken
 
 De eerste echte SMTP/OTP-proef vond een bestaande overgangsfout: Next kon de eerste beveiligde serverrender na een Server Action-redirect tegen de interne platformorigin uitvoeren. Daardoor verschilde de presentatie-sessiesleutel van de daaropvolgende tenantaanvraag en werd de eenmalige PWA-herinnering te vroeg verbruikt. Het nieuwe formulier navigeert na geslaagde OTP-verificatie en actuele serverautorisatie op de browserorigin naar de gecontroleerde lokale bestemming. Bestaande open formulieren behouden hun redirectprotocol. APP_URL, hostroutering, sessierechten en de installatiecyclus zijn niet verruimd. Voor vier werkruimten en geweigerde bestemmingen zijn gerichte regressies toegevoegd; de echte browsercyclus wordt opnieuw gecontroleerd op het verpakte artifact.
 
-Lint en TypeScript zijn tijdens implementatie gecontroleerd. De echte browserketens, bekeken bronvergelijkingen, private-filecontroles, native regressies en releasegates zijn nog niet afgerond. Er is nog geen deployment of liveacceptatie voor deze fase.
+De uiteindelijke lokale browserrun bevat zestien geslaagde ketens met nul browserfouten. Het [resultaat](evidence/phase-23/result.json), de [uitvoering](evidence/phase-23/browser-chain.log), alle oorspronkelijke vergelijkingscaptures en de afzonderlijk [bekeken paren](evidence/phase-23/acceptance.json) zijn vastgelegd. Getest op verpakt artifact `60561a0d2a7dafbf9b57912b1a42ce9ebd0fd103`; personeelspresentatie en processen wijzigen niet in de latere CRM-/platformcorrecties. Er is nog geen hosted deploymentacceptatie voor deze fase.
 
 De aanvullende visuele browsercontrole vond horizontale overflow bij nieuws: de bestaande paginatie was als derde kind in het tweekoloms nieuwsgrid geplaatst. De paginatie staat nu onder het grid. Het informatiepaneel gebruikt de originele brontekst en bronstructuur. De nieuws-, leesregistratie- en paginatiefuncties blijven native. De volledige vergelijking wordt na deze correctie opnieuw uitgevoerd.
 
@@ -52,3 +52,11 @@ De aanvullende native titeltooltips en de terugknop bij Documenten zijn in het b
 De primaire tijdkaarten volgen de oorspronkelijke uur/minuutnotatie, met dezelfde bestaande afronding; de native registratie-/beoordelingsweergave blijft intact. Bij updates veroorzaakte de algemene productgrid een extra lege ruimte. De portaalweergave gebruikt nu de oorspronkelijke blokvolgorde en vermeldt de echte publicatiedatum. De releaseversie blijft in het detail beschikbaar. Aanvullende leesbare productinformatie heet voor een niet-beheerder niet langer beheren; rechten en bediening blijven ongewijzigd.
 
 De bekeken personeelticketdialoog had de verzendknoppen onderaan het scrollende formulier. In de bronpresentatie staan dezelfde echte formulierknoppen nu in de oorspronkelijke vaste dialoogfooter, verbonden met het formulier via een stabiele ID. De oorspronkelijke categorie-/vertrouwelijkheidskeuze, urgentie, concrete context, bestanden, validatie en herhaalsleutel blijven aanwezig. Het bronportaal gebruikt Nieuw ticket/CONTACT en normale bronveldgewichten. De PWA-installatie blijft het werkelijke apparaatgebonden installatievenster in plaats van de algemene prototype-uitleg; daarin blijven Fieldgrid-/whitelabelbranding en de echte herinneringscyclus leidend.
+
+## Afgeronde lokale acceptatie
+
+S01: daadwerkelijke SMTP/OTP, eigen personeelsbinding, managementweigering, dagnavigatie/weekstrip/lijst/agenda en een toegewezen bon starten, pauzeren, hervatten, taken afronden, notitie opslaan en een geversioneerd rapport indienen. Een vastgehouden echte serverresponse bewijst de pending-/sluitblokkade. S02: echte tijdprojectie en correctieverzoek, met oorspronkelijke registratie ongewijzigd tot managerbeoordeling. S03: verlofaanvraag/intrekking en beschikbaarheid met actuele versie en bewerktoestemming. S04: gedeelde originele gescande privé-PDF, met controle op eigen, vreemde en ingetrokken zichtbaarheid. S05: werkelijk nieuws/lezen, doelgroepgebonden kennisartikelen/releases, stabiele links, uitlegbannerregistratie en eigen ticket/reactie. S06: profiel/voorkeuren, accountmenu, notificatie-overlay en manifestbranding.
+
+De drie echte lokale SMTP-logins bewijzen achtereenvolgens: eerste installatieaanbod, geen nieuw verbruik door reload, één herinnering bij volgende login en geen derde herinnering. Dit is geen installatieproef op een fysiek Android-/iOS-apparaat. SMTP loopt via lokale Mailpit; de centrale providergrens gebruikt uitsluitend fictieve `.invalid`-ontvangers. Geen externe bezorging of ongeteste liveacceptatie wordt geclaimd.
+
+Alle twaalf hoofdpagina’s zijn op 1440/768/390 px vastgelegd en op overflow gecontroleerd. De definitieve beoordeling bekijkt één bron-/doelpaar per hoofdpagina, verdeeld over deze drie breedtes, plus negen concrete dialogen/overlays. [acceptance.json](evidence/phase-23/acceptance.json) noemt uitsluitend werkelijk bekeken bladen; overige captures zijn meet-/reproductiebewijs. De bronfonts, kleuren en paneelcompositie zijn behouden. Extra native controlevelden, definitieve rapportversies, paginatie, actuele gegevens en echte toestemmingen verklaren de afzonderlijk beschreven verschillen; er is geen vrijbrief voor vervangende dashboardopmaak.

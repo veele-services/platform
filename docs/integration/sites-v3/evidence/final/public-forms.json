@@ -1,0 +1,46 @@
+{
+  "marker": "a87185c6-45d6-49a2-af97-11ee5b09b78a",
+  "leadId": "42819687-1638-4d6f-8c3f-5228ec527021",
+  "requests": [
+    "08dab6fd-da2b-4763-bbfe-888ad785a8a8",
+    "09b320f6-0e82-416d-b768-fa1a249c3914",
+    "dc8b7549-5e27-40d7-9e50-6631e57d4ef0"
+  ],
+  "checks": [
+    "trial",
+    "appointment",
+    "demo",
+    "same-lead-snapshots",
+    "automatic-tasks",
+    "dossier-note",
+    "dossier-stage",
+    "ics",
+    "anonymous-denied",
+    "wrong-origin-denied",
+    "revocation-denied"
+  ],
+  "browserErrors": [],
+  "consoleErrors": [
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "url": "http://127.0.0.1:3000/api/branding/b76d040c-f439-4161-8551-19b82566a89a/email-logo?v=6e18dde3e124428e06d7111db4a68d76f64dbed1051973cf2e08a8f939edd806"
+    },
+    {
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "url": "http://127.0.0.1:3000/api/branding/260b3ad5-930d-4e63-9b4d-3061e2c2581f/email-logo?v=1e9e4cddb1b8ce0fb53ea575788906aa6fc29b266116c57d3e18de2d7262d739"
+    }
+  ],
+  "expectedUnavailableBranding": [
+    {
+      "tenantId": "b76d040c-f439-4161-8551-19b82566a89a",
+      "status": 404,
+      "reason": "Existing inactive local fixture; public branding correctly fails closed and the UI retains its name fallback."
+    },
+    {
+      "tenantId": "260b3ad5-930d-4e63-9b4d-3061e2c2581f",
+      "status": 404,
+      "reason": "Existing inactive local fixture; public branding correctly fails closed and the UI retains its name fallback."
+    }
+  ],
+  "viewed": false
+}

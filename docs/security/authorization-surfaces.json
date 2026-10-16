@@ -3,7 +3,61 @@
   "meaning": "Observed entrypoints, data dependencies, operational release paths, policy/function fingerprints and grants; review status is enforced separately by authorization-review.json.",
   "surfaces": [
     {
-      "id": "code:app/aanvraag/actions.ts",
+      "id": "code:app/(marketing)/fieldgrid-site/[[...path]]/page.tsx",
+      "exports": [
+        "default",
+        "generateMetadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "b089cd39bdd95e07d86c04253174dee8db1439da23168e8fafda062b4cc47e99"
+    },
+    {
+      "id": "code:app/(marketing)/fieldgrid-site/layout.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "6accd594f5bda49d36b32415efc10734fe24ae05a1110b9190bba267d192a32f"
+    },
+    {
+      "id": "code:app/(marketing)/fieldgrid-site/robots.txt/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "6cac946c71f61f573f2367d2cb332f09d9b323b2b9199ed3ffeb8e9b8810217d"
+    },
+    {
+      "id": "code:app/(marketing)/fieldgrid-site/sitemap.xml/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "d3a934d64e0b806e24fc18dc37ec673e718424c13f4b668b065eac0dbe24da82"
+    },
+    {
+      "id": "code:app/(marketing)/layout.tsx",
+      "exports": [
+        "default",
+        "metadata",
+        "viewport"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "77b5bce7ccf89cf8b87f50572041cdfafbb6f4ae65b7eb04bfcdf09d52ed6919"
+    },
+    {
+      "id": "code:app/(workspace)/aanvraag/actions.ts",
       "exports": [
         "submitPublicRequest"
       ],
@@ -18,7 +72,7 @@
       "source_sha256": "b9f20845afa84d8fcfd3a40b94f3113b1fc43fd67438970a173b540c3f409fa2"
     },
     {
-      "id": "code:app/aanvraag/page.tsx",
+      "id": "code:app/(workspace)/aanvraag/page.tsx",
       "exports": [
         "default"
       ],
@@ -33,7 +87,7 @@
       "source_sha256": "e69f3fce6146ddb3ee0f81210133ed47e5682ddf99de0bf846a0db532117eae4"
     },
     {
-      "id": "code:app/api/addresses/route.ts",
+      "id": "code:app/(workspace)/api/addresses/route.ts",
       "exports": [
         "POST"
       ],
@@ -49,7 +103,7 @@
       "source_sha256": "e2c803d39e18b33f1ce89ecd0595158a68c91466afdcbe08ecff6c164ffb986b"
     },
     {
-      "id": "code:app/api/auth/session/route.ts",
+      "id": "code:app/(workspace)/api/auth/session/route.ts",
       "exports": [
         "GET"
       ],
@@ -59,7 +113,7 @@
       "source_sha256": "19e8d1182dfb3fef224077e368519fbe9eb8e79825af89ec673a875d94d0c720"
     },
     {
-      "id": "code:app/api/branding/[tenantId]/email-logo/route.ts",
+      "id": "code:app/(workspace)/api/branding/[tenantId]/email-logo/route.ts",
       "exports": [
         "GET"
       ],
@@ -75,7 +129,53 @@
       "source_sha256": "0f12833c36f0403ab6985c2958b1982ce3c5cd6556fae31b3c03ded2c4ab42d7"
     },
     {
-      "id": "code:app/api/customer-files/[kind]/[id]/route.ts",
+      "id": "code:app/(workspace)/api/crm/[...path]/route.ts",
+      "exports": [
+        "GET",
+        "PATCH",
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "3357ab94dacc8483290ca452743b2b6e2c9a80c839b7b76ab6679a905669d479"
+    },
+    {
+      "id": "code:app/(workspace)/api/crm/availability/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createAdminClient"
+      ],
+      "resources": [],
+      "source_sha256": "4ad5491f67d3737acb48b80c1d460c5552d63bc07ce1820c201dd1919489b2e9"
+    },
+    {
+      "id": "code:app/(workspace)/api/crm/intake/route.ts",
+      "exports": [
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createAdminClient"
+      ],
+      "resources": [],
+      "source_sha256": "9f0dafa394bcfa85e18b55b39b6732e48ef55098ec8a4ce87af8d9cb547a9c69"
+    },
+    {
+      "id": "code:app/(workspace)/api/crm/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "7ebf2699be176603506e74b6b2b32c4d89b4189c3447f3b9aabb7373885aa389"
+    },
+    {
+      "id": "code:app/(workspace)/api/customer-files/[kind]/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -87,7 +187,7 @@
       "source_sha256": "b950c51cf04793967e72e8973d01629c07dcc05f6cb2534bd65e65db1b3fed27"
     },
     {
-      "id": "code:app/api/customer-portal/files/[kind]/[id]/route.ts",
+      "id": "code:app/(workspace)/api/customer-portal/files/[kind]/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -96,10 +196,10 @@
       "resources": [
         "rpc:customer_portal_file_authorize"
       ],
-      "source_sha256": "6d75b9d147967662b66f78df2ec74a32b3a71274125f816b70c631a215d0e37b"
+      "source_sha256": "65f1ad9d8f877a6a64bec898dcd565c6be53c5f7a7ec35e9a33c67d28cebb8cf"
     },
     {
-      "id": "code:app/api/customer-portal/request/route.ts",
+      "id": "code:app/(workspace)/api/customer-portal/request/route.ts",
       "exports": [
         "GET"
       ],
@@ -111,7 +211,7 @@
       "source_sha256": "bd193dd270b26d61a301f703359b31506e1029bb93991854e6864ba10c909479"
     },
     {
-      "id": "code:app/api/customer-portal/snapshot/route.ts",
+      "id": "code:app/(workspace)/api/customer-portal/snapshot/route.ts",
       "exports": [
         "GET"
       ],
@@ -121,7 +221,7 @@
       "source_sha256": "497bc0000d263b9d6507b4dc7d69858e08c262d5ef633b07ec0f60eaf552671b"
     },
     {
-      "id": "code:app/api/customer-portal/state/route.ts",
+      "id": "code:app/(workspace)/api/customer-portal/state/route.ts",
       "exports": [
         "GET"
       ],
@@ -131,7 +231,7 @@
       "source_sha256": "afc4a63278d94b42fffadc64a3c59b1ab24a62c9fc431e4283cfcea339c0fcb4"
     },
     {
-      "id": "code:app/api/customer-portal/tickets/route.ts",
+      "id": "code:app/(workspace)/api/customer-portal/tickets/route.ts",
       "exports": [
         "GET"
       ],
@@ -143,7 +243,7 @@
       "source_sha256": "0d2f9c4a31dd936719ef87df729550f60bbf0f2fd6badc27c94cb43765ba8be4"
     },
     {
-      "id": "code:app/api/customer-portal/visit-files/[id]/route.ts",
+      "id": "code:app/(workspace)/api/customer-portal/visit-files/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -156,7 +256,7 @@
       "source_sha256": "7fa647981c2416bd202f040b58fed1a62cf7307311bac598c6ee3df550b93f8a"
     },
     {
-      "id": "code:app/api/customer-portal/visit/route.ts",
+      "id": "code:app/(workspace)/api/customer-portal/visit/route.ts",
       "exports": [
         "GET"
       ],
@@ -166,7 +266,7 @@
       "source_sha256": "2216cef04ea8fe638bf4f3b5ca696fedc5155524d4ae4bbe21dc47068694b711"
     },
     {
-      "id": "code:app/api/email/auth/route.ts",
+      "id": "code:app/(workspace)/api/email/auth/route.ts",
       "exports": [
         "POST"
       ],
@@ -179,7 +279,7 @@
       "source_sha256": "4bb498df537bcc03e62558524c587a69f0f7a44b9e60e8fa3383a049f81f315d"
     },
     {
-      "id": "code:app/api/email/events/route.ts",
+      "id": "code:app/(workspace)/api/email/events/route.ts",
       "exports": [
         "POST"
       ],
@@ -192,7 +292,7 @@
       "source_sha256": "5a956b2df486e6e8f1940cc614995bf136461436e3c95b9f2a577635564062ba"
     },
     {
-      "id": "code:app/api/files/attachment/[id]/route.ts",
+      "id": "code:app/(workspace)/api/files/attachment/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -206,7 +306,7 @@
       "source_sha256": "6598853355bd556844502344f36a66d9ad4b060f969efec3f95cf40d3844ae84"
     },
     {
-      "id": "code:app/api/files/commercial/[id]/route.ts",
+      "id": "code:app/(workspace)/api/files/commercial/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -223,7 +323,7 @@
       "source_sha256": "4e398c08f6a7d0ba7b28419ea93168f54fcefa4ff6de1386c36e15d32a9f23f4"
     },
     {
-      "id": "code:app/api/files/customer-document/[id]/route.ts",
+      "id": "code:app/(workspace)/api/files/customer-document/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -233,7 +333,7 @@
       "source_sha256": "3a2deeb2b747f0cba7f67758c6e473e94a79f97bd21a1e66b6b3e62cb900f2c1"
     },
     {
-      "id": "code:app/api/files/dossier-document/[id]/route.ts",
+      "id": "code:app/(workspace)/api/files/dossier-document/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -243,7 +343,7 @@
       "source_sha256": "4aef3f4c41fb3711ac3b835b639edac3085cdb62df3da8db357b7690a4a7e2e1"
     },
     {
-      "id": "code:app/api/files/invoice-concept/[id]/route.ts",
+      "id": "code:app/(workspace)/api/files/invoice-concept/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -258,7 +358,7 @@
       "source_sha256": "14d01ed8fc70faae1f5c06b144f408cbe44146c89a5f618efdaf36861652b5b7"
     },
     {
-      "id": "code:app/api/files/invoice/[id]/route.ts",
+      "id": "code:app/(workspace)/api/files/invoice/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -275,7 +375,7 @@
       "source_sha256": "f517b2c6b7e661bb58ec5b08a2bddb21a0eb9f46bb1132b560199a0900acae88"
     },
     {
-      "id": "code:app/api/files/object-document/[id]/route.ts",
+      "id": "code:app/(workspace)/api/files/object-document/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -287,17 +387,17 @@
       "source_sha256": "1a866f607f2fa7da09ff7ed21428c05cea0f01ab22601c3bf297bf9ec88cc19e"
     },
     {
-      "id": "code:app/api/files/personnel-document/[id]/route.ts",
+      "id": "code:app/(workspace)/api/files/personnel-document/[id]/route.ts",
       "exports": [
         "GET"
       ],
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "4e7fc97f019dcf7c2d58f7ab793a97ef8d9bfff0a935d086f08d91cd809ff217"
+      "source_sha256": "03beebe15ab7e2e301a399cef1306f1f5ac1a17ceaf4e21d57e9070b810773fd"
     },
     {
-      "id": "code:app/api/files/work-order-report/[id]/route.ts",
+      "id": "code:app/(workspace)/api/files/work-order-report/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -309,7 +409,7 @@
       "source_sha256": "86aa09466c4e3502f34da4646b8aaad1537767c63519e5a5ebcacacfbc00470d"
     },
     {
-      "id": "code:app/api/healthz/route.ts",
+      "id": "code:app/(workspace)/api/healthz/route.ts",
       "exports": [
         "GET",
         "dynamic"
@@ -324,7 +424,17 @@
       "source_sha256": "62a527e936e8c769cb12f4a94a61791e2f5bf61ec023a493f35758520ddf4588"
     },
     {
-      "id": "code:app/api/knowledge/route.ts",
+      "id": "code:app/(workspace)/api/invoices/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "68201b8ad0c4aaf99e7897974690b4fea615eca1da1b8eb19c20e9bcf61a234e"
+    },
+    {
+      "id": "code:app/(workspace)/api/knowledge/route.ts",
       "exports": [
         "GET"
       ],
@@ -334,7 +444,135 @@
       "source_sha256": "c0d3a72406538327c5d8a9ccb54e33998f5ce44952d3c7735e65edf4cb3c9f11"
     },
     {
-      "id": "code:app/api/mollie/webhook/route.ts",
+      "id": "code:app/(workspace)/api/management-cockpit/route.ts",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "f54cd8f5e3510cce69fa4e122de60226fcb9b1fd0cf331e1303f90ba2ad431b7"
+    },
+    {
+      "id": "code:app/(workspace)/api/management-entities/customers/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "41d5d07a879b08c8234992515c59224cffa38c7e230ec5176d2e39fee809be17"
+    },
+    {
+      "id": "code:app/(workspace)/api/management-entities/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "895f3bf6e543a0044bb4af5fc49930bb8595522182f68f3f38d027cbcd8b00b9"
+    },
+    {
+      "id": "code:app/(workspace)/api/management-finance/route.ts",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "748f9371a8261762b0c4e014de76404f47ad632431e39a6b039035b3a8cc97cc"
+    },
+    {
+      "id": "code:app/(workspace)/api/management-governance/files/route.ts",
+      "exports": [
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [
+        "from:dossier_documents"
+      ],
+      "source_sha256": "519c3b17e915ca610804b7b95f0f86ef3b029342cb313bc49eb6358898066ee3"
+    },
+    {
+      "id": "code:app/(workspace)/api/management-governance/route.ts",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "aae71033054fd106fab980d9dcf80ae311d881c776d0a867da0ec5b5c51600ca"
+    },
+    {
+      "id": "code:app/(workspace)/api/management-indexation/route.ts",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "2d514c49c0f0f71b6697dcdfd59f98bb26df53a1467c3e1fc41cc55feec56c48"
+    },
+    {
+      "id": "code:app/(workspace)/api/management-overview/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "d96e649b2783822b62a8c40d39ca6df98b5e260f36b319ad03a6ead155049af5"
+    },
+    {
+      "id": "code:app/(workspace)/api/management-reports/pdf/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "9d83bdf54436d0870d6a4c5261867d536503a93252cf846d463582c9c113b480"
+    },
+    {
+      "id": "code:app/(workspace)/api/management-reports/route.ts",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "5950e6927bdafbb4cf75b1afa7caa58c778035596c5ebc9522eeee7cc8500a03"
+    },
+    {
+      "id": "code:app/(workspace)/api/management-sla/route.ts",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "75233303e0497a4672ddfff02f7859157004fad3aeb10644c2b73121f4590482"
+    },
+    {
+      "id": "code:app/(workspace)/api/management-users/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "b28519a5a1a7a4f523660ef144e9d3c79eeec516d0d6e1e92141975ad9ac1955"
+    },
+    {
+      "id": "code:app/(workspace)/api/mollie/webhook/route.ts",
       "exports": [
         "POST"
       ],
@@ -349,7 +587,17 @@
       "source_sha256": "cadc6cda2bd90a32d674888d14750a80c8af0f4660d4a362d33eb63be6bfca44"
     },
     {
-      "id": "code:app/api/notifications/push/route.ts",
+      "id": "code:app/(workspace)/api/news/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "25929c16a739b406dd6050f8718a6279a5542ecbba3ee094ced7d2965620c03e"
+    },
+    {
+      "id": "code:app/(workspace)/api/notifications/push/route.ts",
       "exports": [
         "POST"
       ],
@@ -359,7 +607,7 @@
       "source_sha256": "b5a1ee62930c7ad570d9088a1ca61c32d2272d03fe44b99a96bc3a8ef55c2cf4"
     },
     {
-      "id": "code:app/api/objects/vault/route.ts",
+      "id": "code:app/(workspace)/api/objects/vault/route.ts",
       "exports": [
         "POST"
       ],
@@ -372,7 +620,7 @@
       "source_sha256": "d1917f2a28bb5f897069d73f2f9250ea90d6893497eb4ef100a82e4f3ce58741"
     },
     {
-      "id": "code:app/api/payments/create/route.ts",
+      "id": "code:app/(workspace)/api/payments/create/route.ts",
       "exports": [
         "POST"
       ],
@@ -390,7 +638,7 @@
       "source_sha256": "9799ab781e5d582013317750d52eaf5af6dfc8004e11e7c4304e08f5aabea932"
     },
     {
-      "id": "code:app/api/product/files/[id]/route.ts",
+      "id": "code:app/(workspace)/api/product/files/[id]/route.ts",
       "exports": [
         "GET"
       ],
@@ -400,7 +648,7 @@
       "source_sha256": "46c5a076377684a85986e590cb649ab59d6c815e79874219bc8df6db04f67de4"
     },
     {
-      "id": "code:app/api/product/route.ts",
+      "id": "code:app/(workspace)/api/product/route.ts",
       "exports": [
         "GET"
       ],
@@ -410,7 +658,7 @@
       "source_sha256": "575a5593d2635c85ee9305054f044c44ed161fb7339c77bc6192d76ac6306f22"
     },
     {
-      "id": "code:app/api/push/subscribe/route.ts",
+      "id": "code:app/(workspace)/api/push/subscribe/route.ts",
       "exports": [
         "DELETE",
         "POST"
@@ -421,7 +669,17 @@
       "source_sha256": "f7a49ee439a3ab84f5b552ca5c66f3c3458c218ee875de9ffc71db2fe9d32b4d"
     },
     {
-      "id": "code:app/api/routes/estimate/route.ts",
+      "id": "code:app/(workspace)/api/report-review/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "437f0af045887951b53610b77a434b22b5d07c1497d086749590e9ef43d24a85"
+    },
+    {
+      "id": "code:app/(workspace)/api/routes/estimate/route.ts",
       "exports": [
         "POST"
       ],
@@ -431,7 +689,7 @@
       "source_sha256": "f0ef22c5eef57f7232806cd86be3ea2448479313316f640e618c1ab354f56cf4"
     },
     {
-      "id": "code:app/api/search/route.ts",
+      "id": "code:app/(workspace)/api/search/route.ts",
       "exports": [
         "POST"
       ],
@@ -447,7 +705,7 @@
       "source_sha256": "98bd813eec30ce164d050db029a8f654ccf253778b6010e6e08b58c372549868"
     },
     {
-      "id": "code:app/api/tickets/files/[id]/route.ts",
+      "id": "code:app/(workspace)/api/tickets/files/[id]/route.ts",
       "exports": [
         "DELETE",
         "GET",
@@ -459,7 +717,7 @@
       "source_sha256": "edb613f76cd0e33eaa48a81947892348343903c8151a8c435f3f10f08654846b"
     },
     {
-      "id": "code:app/api/tickets/files/route.ts",
+      "id": "code:app/(workspace)/api/tickets/files/route.ts",
       "exports": [
         "POST"
       ],
@@ -469,7 +727,7 @@
       "source_sha256": "07a3079d0f9c7f46c7af7c6ee02c4e7c6dc9158359d2382d04f40f96611f7b97"
     },
     {
-      "id": "code:app/api/tickets/push/route.ts",
+      "id": "code:app/(workspace)/api/tickets/push/route.ts",
       "exports": [
         "POST"
       ],
@@ -479,7 +737,7 @@
       "source_sha256": "9cc6e45fc4c66aba8e3ef7ee1ced7c3d7e807f4d95e327ce90e1a8e4533d8eb5"
     },
     {
-      "id": "code:app/api/veele-website/requests/route.ts",
+      "id": "code:app/(workspace)/api/veele-website/requests/route.ts",
       "exports": [
         "POST"
       ],
@@ -495,7 +753,7 @@
       "source_sha256": "86e0a0abc04c7c7afcaefc95eb5a5867cacaeed40b02575090e5e2496c1a089f"
     },
     {
-      "id": "code:app/api/worker/route.ts",
+      "id": "code:app/(workspace)/api/worker/route.ts",
       "exports": [
         "POST"
       ],
@@ -510,10 +768,10 @@
         "rpc:process_live_planning",
         "rpc:process_object_reminders"
       ],
-      "source_sha256": "cc7a5103154f068255f1e1a4f334552ae89ae7c0389fe245111a78826ee09aa5"
+      "source_sha256": "823d3fa9f35ed8cb118db34fbc11ed69dc650bc623695a38941ac03cd402bb0b"
     },
     {
-      "id": "code:app/app/[view]/page.tsx",
+      "id": "code:app/(workspace)/app/[view]/page.tsx",
       "exports": [
         "default"
       ],
@@ -528,7 +786,7 @@
       "source_sha256": "8c08d59248847c307ea42917da000526cf18c70c98d91dfa4f5eccd7751aca03"
     },
     {
-      "id": "code:app/app/aanvragen/page.tsx",
+      "id": "code:app/(workspace)/app/aanvragen/page.tsx",
       "exports": [
         "default"
       ],
@@ -541,10 +799,10 @@
         "rpc:commercial_list",
         "rpc:commercial_options"
       ],
-      "source_sha256": "1a4137db02fa6d2ffcb923021861332263279d23e816f6027585ced9c0760867"
+      "source_sha256": "ab8a71679e830934739d09dc1e1e3d20c659413658813416cd1bcbc37ccaed92"
     },
     {
-      "id": "code:app/app/actions.ts",
+      "id": "code:app/(workspace)/app/actions.ts",
       "exports": [
         "switchTenant"
       ],
@@ -556,7 +814,18 @@
       "source_sha256": "5d86d90f65e9f92999128a4e64137c089b6ec8beccfbedb9b0acd8d7b46c9a69"
     },
     {
-      "id": "code:app/app/commercial-actions.ts",
+      "id": "code:app/(workspace)/app/besluiten/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "a4530a4958e9816c921083cf70010987c55bb1b4d8843fe99ece1f2ef8cab194"
+    },
+    {
+      "id": "code:app/(workspace)/app/commercial-actions.ts",
       "exports": [
         "cancelCommercialBooking",
         "commercialAction",
@@ -583,7 +852,7 @@
       "source_sha256": "53ccd267d91c5244b7f10b0213b8ec3be67ddb560154b81f723d80d5a3516b37"
     },
     {
-      "id": "code:app/app/commercial-delivery-actions.ts",
+      "id": "code:app/(workspace)/app/commercial-delivery-actions.ts",
       "exports": [
         "createCommercialBooking",
         "sendCommercialQuote",
@@ -611,7 +880,18 @@
       "source_sha256": "4b8b7758d16d143882b4aa47bb031cc62bfbc39b678eb6c56ff8c9dbdb8a046b"
     },
     {
-      "id": "code:app/app/dossier-actions.ts",
+      "id": "code:app/(workspace)/app/compliance/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "5e243edc371d140c2f9d3d5f4f827fa9cccf40279b41d7ba8743b6d30f815646"
+    },
+    {
+      "id": "code:app/(workspace)/app/dossier-actions.ts",
       "exports": [
         "assignWorkOrderTask",
         "getDossierChain",
@@ -633,7 +913,19 @@
       "source_sha256": "29e710fabc6a6cb609a2e6626b32cf7d3609c77b16f4f1a830fd41dda1434f6b"
     },
     {
-      "id": "code:app/app/finance-actions.ts",
+      "id": "code:app/(workspace)/app/facturen/page.tsx",
+      "exports": [
+        "default"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "f458b8b60f2b7c2ca5089d918ac0e532d0cfd37b7ba887b9304270f6f4ba8e4e"
+    },
+    {
+      "id": "code:app/(workspace)/app/finance-actions.ts",
       "exports": [
         "createInvoice",
         "createPaymentBundle",
@@ -667,10 +959,10 @@
         "rpc:execution_invoice_concepts",
         "rpc:register_manual_payment"
       ],
-      "source_sha256": "6380e4ad932e39b5d95f0b5ccc2b6c0987d36c0971973f4e6ed97a6801a1c298"
+      "source_sha256": "c3876c353d21762bb8fa707b27e4e3c7b1b46825fa652e7bb13550f331e4bb41"
     },
     {
-      "id": "code:app/app/gebruikers/actions.ts",
+      "id": "code:app/(workspace)/app/gebruikers/actions.ts",
       "exports": [
         "inviteManagementUser",
         "runManagementCommand"
@@ -683,17 +975,46 @@
       "source_sha256": "2f5d32efcf461028cad8b76eb62a7e32787b044705fccbe8acb01e177781d2ed"
     },
     {
-      "id": "code:app/app/gebruikers/page.tsx",
+      "id": "code:app/(workspace)/app/gebruikers/page.tsx",
       "exports": [
         "default"
       ],
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "a6958f7582a010ae66236d161c2a9857bca318a966ac308ced0aa2a3e374aea0"
+      "source_sha256": "4a5d852d3b2c8a6383d32928295c5ab615d758ed5222d2d979e49850083be4eb"
     },
     {
-      "id": "code:app/app/kennisbank/[slug]/page.tsx",
+      "id": "code:app/(workspace)/app/indexatie/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "5c7711e417f49ab688d21941c81d5db1ae7fcf5c5eda8ebd09e7336693f88b7c"
+    },
+    {
+      "id": "code:app/(workspace)/app/instellingen/page.tsx",
+      "exports": [
+        "default"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [
+        "from:tenant_settings"
+      ],
+      "source_sha256": "e6555c08415fd0725b1981297876474416016a8c4a234b90e9f4f31929bfd168"
+    },
+    {
+      "id": "code:app/(workspace)/app/kennisbank/[slug]/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -704,7 +1025,7 @@
       "source_sha256": "de5ec8b152f6b8604824c0db3f8ed8e67d6a72feaa64b008fb893a92e79a412b"
     },
     {
-      "id": "code:app/app/kennisbank/page.tsx",
+      "id": "code:app/(workspace)/app/kennisbank/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -715,7 +1036,7 @@
       "source_sha256": "ab0aafe875c0bc4fc0ecc2f0016e871520ad9cad0c32056deae03960314546b9"
     },
     {
-      "id": "code:app/app/klanten/[customerId]/page.tsx",
+      "id": "code:app/(workspace)/app/klanten/[customerId]/page.tsx",
       "exports": [
         "default"
       ],
@@ -727,7 +1048,7 @@
       "source_sha256": "fe2dc25658b75979c9147e14d641b2586e873d9c8beeeea4c34268efaec86d09"
     },
     {
-      "id": "code:app/app/klanten/actions.ts",
+      "id": "code:app/(workspace)/app/klanten/actions.ts",
       "exports": [
         "customerCommand",
         "readCustomers",
@@ -747,7 +1068,7 @@
       "source_sha256": "e6123f8ff2db8a4dbcbafc8f2b097e3366997779043ad54b081395c17a427a36"
     },
     {
-      "id": "code:app/app/klanten/page.tsx",
+      "id": "code:app/(workspace)/app/klanten/page.tsx",
       "exports": [
         "default"
       ],
@@ -758,13 +1079,12 @@
       ],
       "resources": [
         "from:tenant_settings",
-        "rpc:customer_list",
         "rpc:customer_owners"
       ],
-      "source_sha256": "c80d7f0b4ce730d56bc22b72b6a60e469890070494ae8f39d5a215273ccdb539"
+      "source_sha256": "1a9c39be795da91f0c38be31ad8a9ae1747bd02633bc1dbf816bdb5a4de059e6"
     },
     {
-      "id": "code:app/app/layout.tsx",
+      "id": "code:app/(workspace)/app/layout.tsx",
       "exports": [
         "default"
       ],
@@ -776,7 +1096,7 @@
       "source_sha256": "7e815fe41985488928ff22b1ab8418d18c4aec382642f5a4d91a728b65f694b7"
     },
     {
-      "id": "code:app/app/meldingen/[id]/page.tsx",
+      "id": "code:app/(workspace)/app/meldingen/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -786,7 +1106,7 @@
       "source_sha256": "a02a27e91d408f5364c5a1d92fa8308cd5872bd442b42532120ee734797e1912"
     },
     {
-      "id": "code:app/app/meldingen/instellingen/page.tsx",
+      "id": "code:app/(workspace)/app/meldingen/instellingen/page.tsx",
       "exports": [
         "default"
       ],
@@ -796,7 +1116,7 @@
       "source_sha256": "16fc85e5d9105124c5ecdfd554e823853b008c29e0b960ddd4f100c792daff4d"
     },
     {
-      "id": "code:app/app/meldingen/layout.tsx",
+      "id": "code:app/(workspace)/app/meldingen/layout.tsx",
       "exports": [
         "default"
       ],
@@ -806,7 +1126,7 @@
       "source_sha256": "f4a8709872dce9782fd919c8f7204772d2f645b22ba680a465524a42ad31083c"
     },
     {
-      "id": "code:app/app/meldingen/page.tsx",
+      "id": "code:app/(workspace)/app/meldingen/page.tsx",
       "exports": [
         "default"
       ],
@@ -816,7 +1136,19 @@
       "source_sha256": "de701047859b262c6028ec1d1dcfad9f74b0ba8e55f7b64d6cf15121f7c49a8f"
     },
     {
-      "id": "code:app/app/notificaties/[id]/page.tsx",
+      "id": "code:app/(workspace)/app/nieuws/page.tsx",
+      "exports": [
+        "default"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "19b947036c32d66cc92908e076053d7215bdbbfb5e9d18536aa2c78bbd0c88c6"
+    },
+    {
+      "id": "code:app/(workspace)/app/notificaties/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -826,7 +1158,7 @@
       "source_sha256": "b61dcef7f3df753638825a1705c937e6c0678c9a4ba08233400976b93ae92216"
     },
     {
-      "id": "code:app/app/notificaties/campagnes/[id]/page.tsx",
+      "id": "code:app/(workspace)/app/notificaties/campagnes/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -836,7 +1168,7 @@
       "source_sha256": "f3dca5df4f0e76add92fe41e2f5c9641b20a6db0516d0279bac53d8027cd53e6"
     },
     {
-      "id": "code:app/app/notificaties/instellingen/page.tsx",
+      "id": "code:app/(workspace)/app/notificaties/instellingen/page.tsx",
       "exports": [
         "default"
       ],
@@ -846,7 +1178,7 @@
       "source_sha256": "475453702fac5655f43e974891797496fa0ec7cf121b4a9f4a2f17294436d1b0"
     },
     {
-      "id": "code:app/app/notificaties/layout.tsx",
+      "id": "code:app/(workspace)/app/notificaties/layout.tsx",
       "exports": [
         "default"
       ],
@@ -856,7 +1188,7 @@
       "source_sha256": "40c56967f10e5fc785f007c6feff1d9f08ae396c830e9128e2e6840faeffd386"
     },
     {
-      "id": "code:app/app/notificaties/page.tsx",
+      "id": "code:app/(workspace)/app/notificaties/page.tsx",
       "exports": [
         "default"
       ],
@@ -866,7 +1198,7 @@
       "source_sha256": "4b6f1bb59ffd10b043ec6a52bdcbed0f481f02a75a8c2a191f5027a9d64911d6"
     },
     {
-      "id": "code:app/app/objecten/[objectId]/page.tsx",
+      "id": "code:app/(workspace)/app/objecten/[objectId]/page.tsx",
       "exports": [
         "default"
       ],
@@ -878,7 +1210,7 @@
       "source_sha256": "8e37ac3f68f5cb559d8f61dda28178f341c5bb783295764a3be5c88da7e76a48"
     },
     {
-      "id": "code:app/app/objecten/actions.ts",
+      "id": "code:app/(workspace)/app/objecten/actions.ts",
       "exports": [
         "archiveObjectDossier",
         "extendObjectAccess",
@@ -913,10 +1245,10 @@
         "rpc:review_object_visit_request",
         "rpc:save_object_dossier"
       ],
-      "source_sha256": "2c1646fae39e88bb0de681a42878f711f4874c67b982a26737f3e12a74c1fe35"
+      "source_sha256": "854cf70f6c2c334b7f4b2c66879f8cc9b11d6c999f769dadfe90d02ddf6c24ed"
     },
     {
-      "id": "code:app/app/objecten/page.tsx",
+      "id": "code:app/(workspace)/app/objecten/page.tsx",
       "exports": [
         "default"
       ],
@@ -931,10 +1263,24 @@
         "from:object_visit_requests",
         "from:objects"
       ],
-      "source_sha256": "ef164f622c09e4dd8f07a4325275c8af00094963b443eee0d75bb3038b9049cd"
+      "source_sha256": "801776ec39d86ec493e47a93a4776ccefc3887a6854f613a884a4ad9af750dce"
     },
     {
-      "id": "code:app/app/operations-actions.ts",
+      "id": "code:app/(workspace)/app/omzet/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "c240e851a64fd2fccc6fd4cc9b1f1eaa97795ae19b4fb9f1f220e1147703f30c"
+    },
+    {
+      "id": "code:app/(workspace)/app/operations-actions.ts",
       "exports": [
         "addAvailability",
         "addQualification",
@@ -1018,22 +1364,10 @@
         "rpc:review_work_order",
         "rpc:suggest_personnel_number"
       ],
-      "source_sha256": "c602df3ca89b254a4775284c1b87500fac741e90a53203189261f5e200635e38"
+      "source_sha256": "bd4e7d0d9cd749adad73c0465503d4f394cd3aaac95356b5b534521cba3e62ff"
     },
     {
-      "id": "code:app/app/opvolging/page.tsx",
-      "exports": [
-        "default"
-      ],
-      "classification": "route-or-rsc",
-      "observedControls": [
-        "getAuthContext"
-      ],
-      "resources": [],
-      "source_sha256": "034b1734125d3efde9437d0c887ee7a0676765c2de696caf6cdfadc8e98423a5"
-    },
-    {
-      "id": "code:app/app/page.tsx",
+      "id": "code:app/(workspace)/app/opvolging/page.tsx",
       "exports": [
         "default"
       ],
@@ -1043,10 +1377,33 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "a79fd8265ed9f57e6048126a773086aa8ae62b791ae86bfc16fdbe65883b3b53"
+      "source_sha256": "01849bced57ef64720aac4e9835ff5ad75ee8f42bc29011886a3410f44c5690e"
     },
     {
-      "id": "code:app/app/personeel/[personnelId]/page.tsx",
+      "id": "code:app/(workspace)/app/overzicht/page.tsx",
+      "exports": [
+        "default"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "21c9c6fe3283cd2659b7637eba5c4db2ce341330a045780de987207b59b49898"
+    },
+    {
+      "id": "code:app/(workspace)/app/page.tsx",
+      "exports": [
+        "default"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "380787fb12690bd3242a725e1ea39573e4d7dd3c7d028f10bb1995952d3f47f9"
+    },
+    {
+      "id": "code:app/(workspace)/app/personeel/[personnelId]/page.tsx",
       "exports": [
         "default"
       ],
@@ -1063,7 +1420,7 @@
       "source_sha256": "5b30db7082e9342dce47afbbf6a4ad3ea0a1808673ac1a37d1cb7a02b9bd69ad"
     },
     {
-      "id": "code:app/app/personeel/acties/page.tsx",
+      "id": "code:app/(workspace)/app/personeel/acties/page.tsx",
       "exports": [
         "default"
       ],
@@ -1081,7 +1438,7 @@
       "source_sha256": "da738fd41b0918445444c1a7dadf79c61fcd6cc85b9f00144bf46b7efb45750f"
     },
     {
-      "id": "code:app/app/personeel/dossier-actions.ts",
+      "id": "code:app/(workspace)/app/personeel/dossier-actions.ts",
       "exports": [
         "dossierRecordHistory",
         "prepareDossierChecklist",
@@ -1116,10 +1473,22 @@
         "from:tenant_memberships",
         "rpc:prepare_personnel_checklist"
       ],
-      "source_sha256": "3d1bea16c2ab5c8f26137fe10dc41fda345432711ccd2a2574b2db54a7595812"
+      "source_sha256": "d0b18dc579d8406a7b50ba12e0b2c0be1161daca06016b0562dc0b6409e85973"
     },
     {
-      "id": "code:app/app/planning/actions.ts",
+      "id": "code:app/(workspace)/app/personeel/page.tsx",
+      "exports": [
+        "default"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "d3d5c752f598ee724a71cc4eb0330aa1dca0b75ecebb40efacb522fa97cfb910"
+    },
+    {
+      "id": "code:app/(workspace)/app/planning/actions.ts",
       "exports": [
         "loadPlanboard",
         "loadPlanboardOrder",
@@ -1134,10 +1503,10 @@
         "rpc:change_work_order_planning",
         "rpc:get_planboard_order"
       ],
-      "source_sha256": "7aac225a943e61255d2609722ee22edbdc6a73af3f5597b8127add19c923fbea"
+      "source_sha256": "ee2c5c49fb455a3a6de746a12b32aa990f91f533dd342ae7a330ee9b1d28efd2"
     },
     {
-      "id": "code:app/app/planning/page.tsx",
+      "id": "code:app/(workspace)/app/planning/page.tsx",
       "exports": [
         "default"
       ],
@@ -1146,10 +1515,36 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "5ba32e315a149cabcae20f5db589a7883c3d6c64f7eb15f930d58eee974b73df"
+      "source_sha256": "33816e9e69e2e32ee52592a19ad5bff2a8dc325264e36ccf4bddc28f7330b325"
     },
     {
-      "id": "code:app/app/support/[id]/page.tsx",
+      "id": "code:app/(workspace)/app/rapporten/page.tsx",
+      "exports": [
+        "default"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "2fdba9b1cdfd11036f6c1336762c0b5ee24b9a2beab0f130ac959a5e8fb00931"
+    },
+    {
+      "id": "code:app/(workspace)/app/sla/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "d0505bbf3c4e7c669c6d3085c139c1632d040a69ac37f950e76a49d1c3c6ded1"
+    },
+    {
+      "id": "code:app/(workspace)/app/support/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -1159,7 +1554,7 @@
       "source_sha256": "cd429963b50cd834882d0af8e5d4dbcbb8c57a287519e7c25d234c409c2d5549"
     },
     {
-      "id": "code:app/app/support/instellingen/page.tsx",
+      "id": "code:app/(workspace)/app/support/instellingen/page.tsx",
       "exports": [
         "default"
       ],
@@ -1169,7 +1564,7 @@
       "source_sha256": "d58f11ad7cbe50ad7e0ecc428d393e753913337e603d0f8a07ead13a7c63b7ff"
     },
     {
-      "id": "code:app/app/support/layout.tsx",
+      "id": "code:app/(workspace)/app/support/layout.tsx",
       "exports": [
         "default"
       ],
@@ -1179,7 +1574,7 @@
       "source_sha256": "90502bd541998d0e621a352ca453180ac315ad3cb535f85f5ea00a72eb774d62"
     },
     {
-      "id": "code:app/app/support/page.tsx",
+      "id": "code:app/(workspace)/app/support/page.tsx",
       "exports": [
         "default"
       ],
@@ -1189,7 +1584,7 @@
       "source_sha256": "0060adb0d2f143a45a4b4091f00d42f39b29c8cb4247ed75f59398c01110f546"
     },
     {
-      "id": "code:app/app/taken/templates/page.tsx",
+      "id": "code:app/(workspace)/app/taken/beheer/page.tsx",
       "exports": [
         "default"
       ],
@@ -1198,10 +1593,35 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "050d0aed67e1b549336cbe6d3a1a68a637ef367fead8595a009526bcdc0c142e"
+      "source_sha256": "671f02dbda3f22a9cbd8e9a9e9ba18421940bb8c70147e040f2ff2a5b57c9982"
     },
     {
-      "id": "code:app/app/travel-actions.ts",
+      "id": "code:app/(workspace)/app/taken/page.tsx",
+      "exports": [
+        "default"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "0f08c0c2716f6749e2d1b92e78066690d794442de9d09a0136a76fbd83a62bc1"
+    },
+    {
+      "id": "code:app/(workspace)/app/taken/templates/page.tsx",
+      "exports": [
+        "default"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "d76749a6daab3cce1bd931dcd5078553c1d61471b9fb426bde429d3abf04996d"
+    },
+    {
+      "id": "code:app/(workspace)/app/travel-actions.ts",
       "exports": [
         "loadMobility",
         "loadTravelDaySettings",
@@ -1230,7 +1650,7 @@
       "source_sha256": "189f9ab493e64b7739b0f1c946b894863c9eebbcab8b3f3f78d33f7c3eaf9e77"
     },
     {
-      "id": "code:app/app/updates/page.tsx",
+      "id": "code:app/(workspace)/app/updates/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1241,7 +1661,21 @@
       "source_sha256": "bac0214608b94d9dc662a7a996cce4686f8b0e2d5d53ada3e467b1d8408521a3"
     },
     {
-      "id": "code:app/app/werkbonnen/[workOrderId]/page.tsx",
+      "id": "code:app/(workspace)/app/weekrapport/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "348605f7f6ccaca049602c05e109d0795f94c4bd55426de760e05a14efa48b0c"
+    },
+    {
+      "id": "code:app/(workspace)/app/werkbonnen/[workOrderId]/page.tsx",
       "exports": [
         "default"
       ],
@@ -1253,7 +1687,7 @@
       "source_sha256": "23b51b5ea60a8c302b73712d54c4617b3e231d08b32225c90ebadd2bd59682be"
     },
     {
-      "id": "code:app/app/werkbonnen/layout.tsx",
+      "id": "code:app/(workspace)/app/werkbonnen/layout.tsx",
       "exports": [
         "default"
       ],
@@ -1262,10 +1696,10 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "3311e653c50b4019d09a11ef42322632b3876ffc640e4384073f4e36a461252a"
+      "source_sha256": "484a69a6dfd0f3846be075c749a929e70c665ccb074af680da2fdf238f886b1d"
     },
     {
-      "id": "code:app/app/werkbonnen/page.tsx",
+      "id": "code:app/(workspace)/app/werkbonnen/page.tsx",
       "exports": [
         "default"
       ],
@@ -1274,10 +1708,10 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "db1dac398c913d2809750d12e4400fc8c0a16823d2c5cdf9b51d4101075fb953"
+      "source_sha256": "205118273404658cdcbf94c463b1673f0773cb140cd3da969ce96afa211b5f13"
     },
     {
-      "id": "code:app/app/work-order-actions.ts",
+      "id": "code:app/(workspace)/app/work-order-actions.ts",
       "exports": [
         "answerWorkOrderChecklist",
         "loadWorkOrderOptions",
@@ -1287,6 +1721,8 @@
         "mutateWorkTemplate",
         "readWorkOrderExceptions",
         "readWorkOrderSignatureSettings",
+        "readWorkOrderSource",
+        "readWorkOrderSourceList",
         "saveWorkOrder",
         "saveWorkOrderException",
         "saveWorkOrderSignatureSettings"
@@ -1301,15 +1737,16 @@
         "rpc:manage_work_order",
         "rpc:mutate_work_order",
         "rpc:save_work_order",
+        "rpc:work_order_dossier",
         "rpc:work_order_exception_command",
         "rpc:work_order_exceptions",
         "rpc:work_order_signature_settings",
         "rpc:work_order_template_command"
       ],
-      "source_sha256": "6db6d3f64520cb5019223785a3b8d13608bf1ed95ad6e1fcf038bcc925faeee8"
+      "source_sha256": "6c1bfd849e89663f73a7509b7a9f03fd8aa247a747bb496f50a777136a9aaf5f"
     },
     {
-      "id": "code:app/app/work-order-file-actions.ts",
+      "id": "code:app/(workspace)/app/work-order-file-actions.ts",
       "exports": [
         "addWorkOrderCommunication"
       ],
@@ -1326,7 +1763,7 @@
       "source_sha256": "1c1fa36fa3b4894a7cf927f9c94e3b4fb5eaa2644a9997e51853c12aad0ee314"
     },
     {
-      "id": "code:app/app/work-order-related-actions.ts",
+      "id": "code:app/(workspace)/app/work-order-related-actions.ts",
       "exports": [
         "changeWorkOrderSeries",
         "createRelatedWorkOrder",
@@ -1343,7 +1780,7 @@
       "source_sha256": "70961486cb40642babbc71cb19343326e146fee4491cd8d3fc0784eae963f6b2"
     },
     {
-      "id": "code:app/auth/confirm/route.ts",
+      "id": "code:app/(workspace)/auth/confirm/route.ts",
       "exports": [
         "GET"
       ],
@@ -1353,7 +1790,7 @@
       "source_sha256": "792bb506028b8e4a1743d5167a4a816c5180fc2a137cc915fc5214c43eaac2cc"
     },
     {
-      "id": "code:app/auth/forgot/page.tsx",
+      "id": "code:app/(workspace)/auth/forgot/page.tsx",
       "exports": [
         "default"
       ],
@@ -1363,7 +1800,7 @@
       "source_sha256": "74a884626e45ad53127b98bc27f3c839a2440dfdaefc631d2fdb499bb6af197f"
     },
     {
-      "id": "code:app/auth/invite/actions.ts",
+      "id": "code:app/(workspace)/auth/invite/actions.ts",
       "exports": [
         "acceptPersonnelInvitation"
       ],
@@ -1375,10 +1812,10 @@
         "from:personnel",
         "from:tenant_memberships"
       ],
-      "source_sha256": "84602648cefbe00fdb46e069653aded5c751e02a5cf69002db17298c9ddb1616"
+      "source_sha256": "5d14dc800a84e4fc77f366c693f67e6f5b700ee8e3d464fec54ee794888c4afc"
     },
     {
-      "id": "code:app/auth/invite/page.tsx",
+      "id": "code:app/(workspace)/auth/invite/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1393,7 +1830,7 @@
       "source_sha256": "1fe7a4bbbbbf83b6691c2bcdfcf0636e49c62b23e5f666200c70c2b6454bf6d2"
     },
     {
-      "id": "code:app/auth/reset/page.tsx",
+      "id": "code:app/(workspace)/auth/reset/page.tsx",
       "exports": [
         "default"
       ],
@@ -1403,7 +1840,7 @@
       "source_sha256": "9aab224226136b1eead434df5f3ecc2034d4656a8d0b196ed7d1bcda0530cad1"
     },
     {
-      "id": "code:app/auth/signout/route.ts",
+      "id": "code:app/(workspace)/auth/signout/route.ts",
       "exports": [
         "POST"
       ],
@@ -1418,7 +1855,7 @@
       "source_sha256": "c1932baf825c05d5c80eb5aa0eabd6350dcc296cecdc74fae24ca8ddab7d5f92"
     },
     {
-      "id": "code:app/auth/verify/actions.ts",
+      "id": "code:app/(workspace)/auth/verify/actions.ts",
       "exports": [
         "verifyAccountEmail"
       ],
@@ -1431,7 +1868,7 @@
       "source_sha256": "ac9a0b92d6c6f0e29a631695da1293f2bfd68bb8205bffe0b995b277d26a41ac"
     },
     {
-      "id": "code:app/auth/verify/page.tsx",
+      "id": "code:app/(workspace)/auth/verify/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1442,7 +1879,7 @@
       "source_sha256": "69563d1b4621cb94804f48e59d8efdf258b176a4011f61ca8e511c27b232ef47"
     },
     {
-      "id": "code:app/booking/[token]/actions.ts",
+      "id": "code:app/(workspace)/booking/[token]/actions.ts",
       "exports": [
         "bookAppointment"
       ],
@@ -1459,7 +1896,7 @@
       "source_sha256": "b39e6675a2df79fce181502c4242a1e330a4dd64fb879f860dfc82dd970c34f3"
     },
     {
-      "id": "code:app/booking/[token]/page.tsx",
+      "id": "code:app/(workspace)/booking/[token]/page.tsx",
       "exports": [
         "default"
       ],
@@ -1477,7 +1914,7 @@
       "source_sha256": "ca9ab50e73b6ee06a103780b75c7051c06698a275ec7de99e0dcfcfe527a3b4f"
     },
     {
-      "id": "code:app/klant/aanvragen/actions.ts",
+      "id": "code:app/(workspace)/klant/aanvragen/actions.ts",
       "exports": [
         "customerCommercialAction"
       ],
@@ -1489,7 +1926,7 @@
       "source_sha256": "a7c9b98a03f2b421d5fc4813ba8713a0b85630cc6621967ac9edc4153ab4221c"
     },
     {
-      "id": "code:app/klant/aanvragen/page.tsx",
+      "id": "code:app/(workspace)/klant/aanvragen/page.tsx",
       "exports": [
         "default"
       ],
@@ -1499,7 +1936,7 @@
       "source_sha256": "62ba5436853c43224770394c14b3799d5fb339d494d9efb85d0881b174348c6d"
     },
     {
-      "id": "code:app/klant/actions.ts",
+      "id": "code:app/(workspace)/klant/actions.ts",
       "exports": [
         "acceptVisitProposal",
         "acknowledgeVisitInstruction",
@@ -1529,7 +1966,7 @@
       "source_sha256": "b278f931dd9f58522002f7cebd69dc0af4910263c778e816c42dbf2c349295a5"
     },
     {
-      "id": "code:app/klant/documenten/page.tsx",
+      "id": "code:app/(workspace)/klant/documenten/page.tsx",
       "exports": [
         "default"
       ],
@@ -1539,7 +1976,7 @@
       "source_sha256": "def036d999aff1c6e5f8a04d16cc11278015bc91fb73ed1667a48ccfef9660bc"
     },
     {
-      "id": "code:app/klant/kennisbank/[slug]/page.tsx",
+      "id": "code:app/(workspace)/klant/kennisbank/[slug]/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1547,10 +1984,10 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "cc83a7ca803dfe8eef6c9474f7951189930d956833a2a5b3371ce38df855130a"
+      "source_sha256": "6fcdd0ef0d2f4e78ee8fe9eca8108fa44c4ca12c71d0eee8851513b8d25ff6ae"
     },
     {
-      "id": "code:app/klant/kennisbank/page.tsx",
+      "id": "code:app/(workspace)/klant/kennisbank/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1558,10 +1995,10 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "276a8763f2cefe722a1b6dcf35b977770e6db671b9d3b1bdd49bc30732255b7e"
+      "source_sha256": "730f3297a8b3765b777f5e90f39bd46c3fd680b2a04533f105c749bf4fa593fc"
     },
     {
-      "id": "code:app/klant/notificaties/[id]/page.tsx",
+      "id": "code:app/(workspace)/klant/notificaties/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -1571,7 +2008,7 @@
       "source_sha256": "c1e29b6a93fcf6c0a2f48e3f7d3cd011ec14309d5ba78a2686d0aede84145bf2"
     },
     {
-      "id": "code:app/klant/notificaties/campagnes/[id]/page.tsx",
+      "id": "code:app/(workspace)/klant/notificaties/campagnes/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -1581,7 +2018,7 @@
       "source_sha256": "e37d3eddbd3da92f9f59c0f992ad29a1e1908fef83e22b3bccbdf8d4e09933fe"
     },
     {
-      "id": "code:app/klant/notificaties/instellingen/page.tsx",
+      "id": "code:app/(workspace)/klant/notificaties/instellingen/page.tsx",
       "exports": [
         "default"
       ],
@@ -1591,7 +2028,7 @@
       "source_sha256": "c2f6c69e95ec69ef3e1f13457dd84e9fad8a0da51ac441a8484662c660a1ccae"
     },
     {
-      "id": "code:app/klant/notificaties/layout.tsx",
+      "id": "code:app/(workspace)/klant/notificaties/layout.tsx",
       "exports": [
         "default"
       ],
@@ -1601,7 +2038,7 @@
       "source_sha256": "5be4fb64e2e8b234a33c3435da71b639b2cf6a758e98dba82344f554f6def0db"
     },
     {
-      "id": "code:app/klant/notificaties/page.tsx",
+      "id": "code:app/(workspace)/klant/notificaties/page.tsx",
       "exports": [
         "default"
       ],
@@ -1611,7 +2048,7 @@
       "source_sha256": "ecff628d3396d0e14fcde73d953bad80cb171bef6b6e173a9794381577955fb9"
     },
     {
-      "id": "code:app/klant/page.tsx",
+      "id": "code:app/(workspace)/klant/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1622,7 +2059,7 @@
       "source_sha256": "9d921acb1a54d039bde4c38ee04a70745df8c979def3ff498b27c019ad0bc74b"
     },
     {
-      "id": "code:app/klant/updates/page.tsx",
+      "id": "code:app/(workspace)/klant/updates/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1633,7 +2070,7 @@
       "source_sha256": "16cbb9bf6e99b62e4ef9f8f1e34ad2d0b5dd6eb3a9b883a01452821d7e2500a7"
     },
     {
-      "id": "code:app/layout.tsx",
+      "id": "code:app/(workspace)/layout.tsx",
       "exports": [
         "default",
         "metadata",
@@ -1642,10 +2079,10 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "090d51d4a69fd9e2f6b512dd5c2c76005a11a1c4db99c441ca1d126295e3b9cf"
+      "source_sha256": "34ff59b78dfce4edb9b9e6a6c7713b00df82c2c37f2293c09617c98ae59ec5f1"
     },
     {
-      "id": "code:app/login/actions.ts",
+      "id": "code:app/(workspace)/login/actions.ts",
       "exports": [
         "loginOtp",
         "requestPasswordReset",
@@ -1659,10 +2096,10 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "e9102909a7e9b6247e862985f59858d88c8f433c3c1288b3b270d5233a18965b"
+      "source_sha256": "b0b1afdab42c0ae976829cef4e759a309ee74cc5116595ccb717780698ef504a"
     },
     {
-      "id": "code:app/login/page.tsx",
+      "id": "code:app/(workspace)/login/page.tsx",
       "exports": [
         "default",
         "generateMetadata",
@@ -1674,7 +2111,7 @@
       "source_sha256": "a237e7d631c7f4e15aaa6c1b809126090abf44586804284df0345aef6071d532"
     },
     {
-      "id": "code:app/notifications/actions.ts",
+      "id": "code:app/(workspace)/notifications/actions.ts",
       "exports": [
         "confirmNotificationVerification",
         "explainNotification",
@@ -1695,7 +2132,7 @@
       "source_sha256": "104ed1b65fe205993921fdb660c4db89d61fc98186e9bf3845b54431908edb55"
     },
     {
-      "id": "code:app/page.tsx",
+      "id": "code:app/(workspace)/page.tsx",
       "exports": [
         "default"
       ],
@@ -1710,7 +2147,7 @@
       "source_sha256": "70af22633c60ea5c16cbc8c0d1c437ddc565bdd632843f5907c4ea9ffb36112c"
     },
     {
-      "id": "code:app/pay/[token]/page.tsx",
+      "id": "code:app/(workspace)/pay/[token]/page.tsx",
       "exports": [
         "default"
       ],
@@ -1724,7 +2161,7 @@
       "source_sha256": "a5a524be6790f4c7ad1af746affcada229028e9b7fc2b9e9729f598670b52835"
     },
     {
-      "id": "code:app/platform/actions.ts",
+      "id": "code:app/(workspace)/platform/actions.ts",
       "exports": [
         "createPlatformTenant",
         "retryTenantAdminInvitation",
@@ -1737,6 +2174,7 @@
       ],
       "classification": "server-action",
       "observedControls": [
+        "auth.getClaims",
         "createAdminClient",
         "createClient",
         "requirePlatformAdmin",
@@ -1750,14 +2188,25 @@
         "from:tenant_settings",
         "from:tenants",
         "from:work_orders",
-        "rpc:complete_platform_admin_invitation",
-        "rpc:provision_platform_tenant",
-        "rpc:save_tenant_message_template"
+        "rpc:complete_platform_admin_invitation"
       ],
-      "source_sha256": "3a88ef209f5964e6f03a7e1074b2df1696b63ae60c86be3e1e009b99eae9d3a4"
+      "source_sha256": "918e6649a9e6e1aaf018324e20cd077d324050e60b2df1653904991c4a23377c"
     },
     {
-      "id": "code:app/platform/domain-actions.ts",
+      "id": "code:app/(workspace)/platform/crm/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "a25b1892b3682af0d8e197735c4374f7d08aa7ecc75e669791c17ac5bc059d7d"
+    },
+    {
+      "id": "code:app/(workspace)/platform/domain-actions.ts",
       "exports": [
         "managePlatformWorkspaceDomain"
       ],
@@ -1776,7 +2225,7 @@
       "source_sha256": "8753bbb58cb78313fa8527eb8cf28612c2f679282c01851f85e748a7254f0616"
     },
     {
-      "id": "code:app/platform/kennisbank/[slug]/page.tsx",
+      "id": "code:app/(workspace)/platform/kennisbank/[slug]/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1787,7 +2236,7 @@
       "source_sha256": "bbcd920e6b2b1a8d295b1698ecb3897b2c38c88daa06e22b401bdb608c5a6e86"
     },
     {
-      "id": "code:app/platform/kennisbank/page.tsx",
+      "id": "code:app/(workspace)/platform/kennisbank/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1798,7 +2247,7 @@
       "source_sha256": "a97cd6f2bb4eac5e2dcf1b91ae0ce740e1f30e6818d1058ed0cc689a48a4bb0d"
     },
     {
-      "id": "code:app/platform/layout.tsx",
+      "id": "code:app/(workspace)/platform/layout.tsx",
       "exports": [
         "default"
       ],
@@ -1811,7 +2260,17 @@
       "source_sha256": "2d12f4fe90d4a69ed1843fc4e0979658587d97ea17bf2e42ac6375bd9409343f"
     },
     {
-      "id": "code:app/platform/notificaties/[id]/page.tsx",
+      "id": "code:app/(workspace)/platform/lifecycle-actions.ts",
+      "exports": [
+        "changePlatformTenantStatus"
+      ],
+      "classification": "server-action",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "57cb711eb16d4ba1c38867394d8589c731384353c6f3a3529b3f8c2323442795"
+    },
+    {
+      "id": "code:app/(workspace)/platform/notificaties/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -1821,7 +2280,7 @@
       "source_sha256": "787b4d3f1a203a14e0f8b598351c03adf86d5b9c25bfce840cdba453235ab128"
     },
     {
-      "id": "code:app/platform/notificaties/campagnes/[id]/page.tsx",
+      "id": "code:app/(workspace)/platform/notificaties/campagnes/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -1831,7 +2290,7 @@
       "source_sha256": "f7eea520089bacdaf5d9b57ebd6c8aec4627499c2e140c7ab0e1a1f8d0c28701"
     },
     {
-      "id": "code:app/platform/notificaties/instellingen/page.tsx",
+      "id": "code:app/(workspace)/platform/notificaties/instellingen/page.tsx",
       "exports": [
         "default"
       ],
@@ -1841,7 +2300,7 @@
       "source_sha256": "85ba8522cc1d4c6ea7be43dc41045116acb48c98017de21353036877ce100c46"
     },
     {
-      "id": "code:app/platform/notificaties/layout.tsx",
+      "id": "code:app/(workspace)/platform/notificaties/layout.tsx",
       "exports": [
         "default"
       ],
@@ -1851,7 +2310,7 @@
       "source_sha256": "1dd11a41085776e24de049186fddf9d3e47f5dd9a48a2a234a7e1548cf714bb7"
     },
     {
-      "id": "code:app/platform/notificaties/page.tsx",
+      "id": "code:app/(workspace)/platform/notificaties/page.tsx",
       "exports": [
         "default"
       ],
@@ -1861,7 +2320,7 @@
       "source_sha256": "d98e671bfdc728f0a3f2ee10c7efaf5310ab61aca079237309e1e5562a8a39a1"
     },
     {
-      "id": "code:app/platform/page.tsx",
+      "id": "code:app/(workspace)/platform/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1874,7 +2333,7 @@
       "source_sha256": "a5bf1c7eef80a12af2088b1f5ee5aa620eaa187c812f1464ea11a7f74ec5dd55"
     },
     {
-      "id": "code:app/platform/productbeheer/page.tsx",
+      "id": "code:app/(workspace)/platform/productbeheer/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1885,7 +2344,7 @@
       "source_sha256": "ea500ae9e1dd07c9344a3d014bb3893e807beadb724804d6d20a403d817b7d02"
     },
     {
-      "id": "code:app/platform/support/[id]/page.tsx",
+      "id": "code:app/(workspace)/platform/support/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -1895,7 +2354,7 @@
       "source_sha256": "226f6acfd2dfd273708310ba106695ade92ae41aace19207d55dcb632afa2bf2"
     },
     {
-      "id": "code:app/platform/support/instellingen/page.tsx",
+      "id": "code:app/(workspace)/platform/support/instellingen/page.tsx",
       "exports": [
         "default"
       ],
@@ -1905,7 +2364,7 @@
       "source_sha256": "583824994ae5e3ccadc495ebd5083fa81d7db5f8d657bc500f8b79b06695bf22"
     },
     {
-      "id": "code:app/platform/support/layout.tsx",
+      "id": "code:app/(workspace)/platform/support/layout.tsx",
       "exports": [
         "default"
       ],
@@ -1915,7 +2374,7 @@
       "source_sha256": "4fa91a7197c64edb38d6bf62978e16d9c798cadad1a9cd2badda0b8162409e26"
     },
     {
-      "id": "code:app/platform/support/page.tsx",
+      "id": "code:app/(workspace)/platform/support/page.tsx",
       "exports": [
         "default"
       ],
@@ -1925,20 +2384,21 @@
       "source_sha256": "6e544959d81fba38f5432c443aee57e3f43c6aa5eefcf4cf644dbaf3b8a5a156"
     },
     {
-      "id": "code:app/platform/team/actions.ts",
+      "id": "code:app/(workspace)/platform/team/actions.ts",
       "exports": [
         "changeSupportMember",
-        "inviteSupportMember"
+        "inviteSupportMember",
+        "registerPrimaryAdministrator"
       ],
       "classification": "server-action",
       "observedControls": [
         "requireManagementMail"
       ],
       "resources": [],
-      "source_sha256": "946ca1bc325513a174d55fa56283b2dbc4cf8cbd050a1b79b67f66922a01ee9f"
+      "source_sha256": "09424569a750b1c578754fa4830b097a3aa68fcf2ce0e1f5b96c4f9eac64439e"
     },
     {
-      "id": "code:app/platform/team/page.tsx",
+      "id": "code:app/(workspace)/platform/team/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -1948,10 +2408,10 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "a55dc34597efec72af0245f8057f521882b862cd346f2a30b4dfbc0e5fb57288"
+      "source_sha256": "e52bb9a8587776192f86b710cc20fdbc31b5f9afb05539b7ca7917129792f3c2"
     },
     {
-      "id": "code:app/quote/[token]/actions.ts",
+      "id": "code:app/(workspace)/quote/[token]/actions.ts",
       "exports": [
         "acceptQuote"
       ],
@@ -1963,7 +2423,7 @@
       "source_sha256": "53e05c42745352f2ff9a0a5cc0b06626a12efe5672a159fbe5cd0e4c14a5433d"
     },
     {
-      "id": "code:app/quote/[token]/page.tsx",
+      "id": "code:app/(workspace)/quote/[token]/page.tsx",
       "exports": [
         "default"
       ],
@@ -1973,7 +2433,7 @@
       "source_sha256": "d68a6251b635467d7491a9ea404bc00a57ea05ce04f4d84216920156e474bc2d"
     },
     {
-      "id": "code:app/staff/actions.ts",
+      "id": "code:app/(workspace)/staff/actions.ts",
       "exports": [
         "addExtraWork",
         "addReportEntry",
@@ -2021,7 +2481,7 @@
       "source_sha256": "c6b374155f9486d1379638c05d3b2468d94d8650a66b170fdd8cbe88630f0160"
     },
     {
-      "id": "code:app/staff/kennisbank/[slug]/page.tsx",
+      "id": "code:app/(workspace)/staff/kennisbank/[slug]/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -2032,7 +2492,7 @@
       "source_sha256": "7faa6bcd8870ed6bd56ee9de2c4d6b257a9bdcc3ead08095737c04f431d9b26d"
     },
     {
-      "id": "code:app/staff/kennisbank/page.tsx",
+      "id": "code:app/(workspace)/staff/kennisbank/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -2043,7 +2503,7 @@
       "source_sha256": "267095b17207232814802a92d874044457579169276f1fce5cef47654307b849"
     },
     {
-      "id": "code:app/staff/layout.tsx",
+      "id": "code:app/(workspace)/staff/layout.tsx",
       "exports": [
         "default",
         "generateMetadata",
@@ -2052,10 +2512,10 @@
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "6b21ab00d432efd5c5901fcd657c9a980635be54c762dc0efe5090109ae2cf2c"
+      "source_sha256": "9ae537b926cc142ad3a79adb5160cbcaeaf935603a6c6103a6150746e20746ef"
     },
     {
-      "id": "code:app/staff/manifest.webmanifest/route.ts",
+      "id": "code:app/(workspace)/staff/manifest.webmanifest/route.ts",
       "exports": [
         "GET",
         "dynamic"
@@ -2066,7 +2526,7 @@
       "source_sha256": "ce2980cf82d59656e6a42f8aebc64125ee75dda7042dd0f782673d71273e54b5"
     },
     {
-      "id": "code:app/staff/meldingen/[id]/page.tsx",
+      "id": "code:app/(workspace)/staff/meldingen/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -2076,7 +2536,7 @@
       "source_sha256": "efb26fc33dab8f405bb0073b2343c41f2482633ccf278a208774dd78f3c4d744"
     },
     {
-      "id": "code:app/staff/meldingen/instellingen/page.tsx",
+      "id": "code:app/(workspace)/staff/meldingen/instellingen/page.tsx",
       "exports": [
         "default"
       ],
@@ -2086,7 +2546,7 @@
       "source_sha256": "6a5566d1187eced9ee8914e9d8173c499d45dd3eceb89d1e9febb28e4135e2b8"
     },
     {
-      "id": "code:app/staff/meldingen/layout.tsx",
+      "id": "code:app/(workspace)/staff/meldingen/layout.tsx",
       "exports": [
         "default"
       ],
@@ -2096,7 +2556,7 @@
       "source_sha256": "a620f93ddd2f3dd8fa307acda53efddd2072f904ec53891736c03b24d0647444"
     },
     {
-      "id": "code:app/staff/meldingen/page.tsx",
+      "id": "code:app/(workspace)/staff/meldingen/page.tsx",
       "exports": [
         "default"
       ],
@@ -2106,7 +2566,7 @@
       "source_sha256": "26d75ced8a6334a7ac466832178d84232628720d88fc87dcd47a37738f165235"
     },
     {
-      "id": "code:app/staff/notificaties/[id]/page.tsx",
+      "id": "code:app/(workspace)/staff/notificaties/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -2116,7 +2576,7 @@
       "source_sha256": "234ef198dfcd60abbe9bdae3f6504ef080763338f59744fb1082401a8c8e7aa6"
     },
     {
-      "id": "code:app/staff/notificaties/campagnes/[id]/page.tsx",
+      "id": "code:app/(workspace)/staff/notificaties/campagnes/[id]/page.tsx",
       "exports": [
         "default"
       ],
@@ -2126,7 +2586,7 @@
       "source_sha256": "d1fb49b6e74589857239b2dc49a8cfeea9d1bc614ebfd37d286f2a04ffcca837"
     },
     {
-      "id": "code:app/staff/notificaties/instellingen/page.tsx",
+      "id": "code:app/(workspace)/staff/notificaties/instellingen/page.tsx",
       "exports": [
         "default"
       ],
@@ -2136,7 +2596,7 @@
       "source_sha256": "d970fdaf625c1b44f499af55c519aa7b1ab7c3c238b1f92c3825da79e7a82fd9"
     },
     {
-      "id": "code:app/staff/notificaties/layout.tsx",
+      "id": "code:app/(workspace)/staff/notificaties/layout.tsx",
       "exports": [
         "default"
       ],
@@ -2146,7 +2606,7 @@
       "source_sha256": "9bbbd3cb6791ff6a133ce92e3c4de659ab67dd1fe20194599a79587d58b10807"
     },
     {
-      "id": "code:app/staff/notificaties/page.tsx",
+      "id": "code:app/(workspace)/staff/notificaties/page.tsx",
       "exports": [
         "default"
       ],
@@ -2156,7 +2616,7 @@
       "source_sha256": "8a2f48f478200159c61efcfc39c7767206418364b0eff3d660790cf783a1a013"
     },
     {
-      "id": "code:app/staff/objecten/[objectId]/page.tsx",
+      "id": "code:app/(workspace)/staff/objecten/[objectId]/page.tsx",
       "exports": [
         "default"
       ],
@@ -2168,7 +2628,7 @@
       "source_sha256": "5679b44c214e44ad10f22bc51689a63194788a1f0b49cd4582ed9cc6a02ecd46"
     },
     {
-      "id": "code:app/staff/page.tsx",
+      "id": "code:app/(workspace)/staff/page.tsx",
       "exports": [
         "default"
       ],
@@ -2180,7 +2640,7 @@
       "source_sha256": "f1881a36a9afa3bed9e2a93f8cbf6c3769b10d44d105c67c822827a9b9fc0c56"
     },
     {
-      "id": "code:app/staff/pwa/[asset]/route.ts",
+      "id": "code:app/(workspace)/staff/pwa/[asset]/route.ts",
       "exports": [
         "GET",
         "dynamic",
@@ -2192,7 +2652,7 @@
       "source_sha256": "0aba0ae257b1670ce430c3d3e06c23ced07bb8fabbf85008273d27cb3d85de67"
     },
     {
-      "id": "code:app/staff/updates/page.tsx",
+      "id": "code:app/(workspace)/staff/updates/page.tsx",
       "exports": [
         "default",
         "metadata"
@@ -2203,7 +2663,7 @@
       "source_sha256": "df0115916724db4f48fb2e93abdf6fa1e510021fb486c6f6578379690291e7db"
     },
     {
-      "id": "code:app/tickets/actions.ts",
+      "id": "code:app/(workspace)/tickets/actions.ts",
       "exports": [
         "confirmTicketVerification",
         "loadTicketAccess",
@@ -2258,7 +2718,20 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "3636b2904160e057a74221af03f437bd1ebc10f862c5902f472253eda2fd3272"
+      "source_sha256": "490d608c2cc8e05b553c87f94f57083b2cd5aafaf421c20ab538d0b3f91afbaf"
+    },
+    {
+      "id": "code:components/fieldgrid/management-cockpit/governance-page.tsx",
+      "exports": [
+        "GovernancePage"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [],
+      "source_sha256": "10b80c8d9d4692da6a713468ace77f60a6677a008c4003de5885017d0b9e18aa"
     },
     {
       "id": "code:components/fieldgrid/notifications/routes.tsx",
@@ -2274,7 +2747,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "97a70a0a6a3ac16dbf00c0a15d683540d26ffc00fcf04930b763ba2212a30b7b"
+      "source_sha256": "76e7f0a759d1fa9f34531f300c839c8b604d559586ea570b91ac6c7093255fb2"
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
@@ -2286,7 +2759,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "bbff6c06495cf0d2cf0e76caaeba786b5d35948aebc6c55fd4a81ac23ce5798e"
+      "source_sha256": "f3ddc8ad9e7faa1820e8dc91b0ac740636be098f1ad3564660d2009ab24421eb"
     },
     {
       "id": "code:components/fieldgrid/product/routes.tsx",
@@ -2301,7 +2774,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "4d1553b512b1298db4e50c566f9f0b3900151c6d4470ca48c2414683bcd4630d"
+      "source_sha256": "7002bcd989bcfd0bef8070575a7dd3ea52c492b7eafbc10408ba898f09d9e358"
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
@@ -2314,7 +2787,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "6ab473c2630631d026d5efcc190840149d962a9fb961645719b6e9b9e8d0f4fc"
+      "source_sha256": "3ef34dcd2100d83464e0a8a6693b98d944848074b6f49208ce7622022c91d64c"
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
@@ -2326,7 +2799,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "b7dc9973c06d9efae806da6380287cc988ff023d33ea2abaca6b81f52c754baa"
+      "source_sha256": "b192699217fad367a4fbea26dbdbc517ea4c84cfc00c3dfff2394256770aa89f"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell-client.tsx",
@@ -2338,7 +2811,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "d669c0884d017b468990de5a99a7adef6f17674b500fd5fa18b8e3a3f45fd510"
+      "source_sha256": "04c81c1b47da2225741a325c4fe25d539a53ed4c5c57bfaf809b7e64e8547153"
     },
     {
       "id": "code:components/fieldgrid/staff/route-shell.tsx",
@@ -2351,7 +2824,7 @@
         "getAuthContext"
       ],
       "resources": [],
-      "source_sha256": "8e143a7c4fbcf992278e67e6ce1f1dae1890d39c49c99e6cab65361c859c557f"
+      "source_sha256": "63b5c95df79d23c48a4d187860fab013daa9a8ecf85bce4b3bf70a925424f953"
     },
     {
       "id": "code:components/fieldgrid/tickets/routes.tsx",
@@ -2824,7 +3297,7 @@
         "rpc:personnel_availability",
         "rpc:personnel_dossier_summary"
       ],
-      "source_sha256": "17d3521e88c9efa1a6189b5c00d9bed0cb0631ab0fd0f1b0b538008f688a8521"
+      "source_sha256": "f83af17879f557740844ff3db4f8119c84a90e183d00dd355221a73596f4cd1a"
     },
     {
       "id": "code:lib/dossiers/data.ts",
@@ -2856,7 +3329,7 @@
         "from:personnel_dossier_access",
         "rpc:personnel_document_file"
       ],
-      "source_sha256": "3ebc53b5c9401489012494e6344182adc11dfe1f653f510dab69d0260fd202fa"
+      "source_sha256": "4c57ba4928548b90a316dfc8fe7c2dbe2ae6c7515ed1e1cf3f1d8a95516f9cfb"
     },
     {
       "id": "code:lib/email-centre/auth-message.ts",
@@ -2908,6 +3381,7 @@
         "publishScannedFile",
         "readScannedFile",
         "scanFileBytes",
+        "scannedUploadMatches",
         "uploadScannedFile"
       ],
       "classification": "data-access-module",
@@ -2921,7 +3395,24 @@
         "rpc:file_scan_state",
         "rpc:file_upload_allowed"
       ],
-      "source_sha256": "4cfcbc3e85a3f0c399a660f04eff8fede9c1aaa102b7fa175e9a54b57c5750bc"
+      "source_sha256": "dcaa45b7f9ac397f18faafe473c87a3bc158dae18621c5dbfa5c2e14d13b3a92"
+    },
+    {
+      "id": "code:lib/finance/source-invoice-data.ts",
+      "exports": [
+        "getInvoiceResources",
+        "getSourceInvoices",
+        "invoiceResourceQuery"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [],
+      "resources": [
+        "from:invoice_lines",
+        "from:invoices",
+        "from:payment_allocations",
+        "rpc:execution_invoice_concepts"
+      ],
+      "source_sha256": "59882e08102d9ca0979138bc39f43110d9912f28f77f558bdd24aecdc35006f1"
     },
     {
       "id": "code:lib/guides/actions.ts",
@@ -2969,6 +3460,52 @@
       "source_sha256": "e4b4982eebf6203fccde3fde86664542f5115f4400c66f5a339cfce5f7e18385"
     },
     {
+      "id": "code:lib/management-cockpit/data.ts",
+      "exports": [
+        "cockpitActor",
+        "getFollowup",
+        "getFollowupDetail",
+        "getFollowupSource",
+        "loadFollowup"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "auth.getUser",
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [
+        "from:customer_agreements",
+        "from:invoices"
+      ],
+      "source_sha256": "baaec0329178fdd7b3e4347af87423262e37c01b3a84f68907934facfa615acd"
+    },
+    {
+      "id": "code:lib/management-cockpit/entities-data.ts",
+      "exports": [
+        "getCustomerCards",
+        "getEntityDetail"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [],
+      "resources": [
+        "from:personnel_dossier_access"
+      ],
+      "source_sha256": "cad412b5c21bad8065a7540ec8ba51a64c53122ca46b90c847993ec6a9516061"
+    },
+    {
+      "id": "code:lib/management-cockpit/worker.ts",
+      "exports": [
+        "processManagementSignals"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createAdminClient"
+      ],
+      "resources": [],
+      "source_sha256": "418e9dd02eaecc469f97db9ab2790f1048917ca402d18356759a7d9ca59fb9e2"
+    },
+    {
       "id": "code:lib/management/auth.ts",
       "exports": [
         "getManagementActor",
@@ -2998,7 +3535,20 @@
         "from:mail_deliveries",
         "from:tenant_memberships"
       ],
-      "source_sha256": "dc1545692c509d84f541f5c10353975295e22a80aaa4f20984c076a8d7c957f5"
+      "source_sha256": "90856cb9f654517553801fb1ae69976cb3ab7ab7ec4d004122a7d02ee41b8d9a"
+    },
+    {
+      "id": "code:lib/news/data.ts",
+      "exports": [
+        "sourceNews"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [],
+      "resources": [
+        "from:announcement_reads",
+        "from:announcements"
+      ],
+      "source_sha256": "189bc979250593a08735e43494e2f9cfafba490d52864992ac6fe134783f25b6"
     },
     {
       "id": "code:lib/notifications/auth.ts",
@@ -3089,6 +3639,7 @@
     {
       "id": "code:lib/notifications/worker.ts",
       "exports": [
+        "prepareCrmNotifications",
         "prepareDossierNotifications",
         "prepareNotificationEvent",
         "processNotificationDeliveries",
@@ -3099,7 +3650,7 @@
         "createAdminClient"
       ],
       "resources": [],
-      "source_sha256": "80b2388dd183a8984959a6ea9e3e186e9b0f6dad7c6ad4be2e445bbd44662730"
+      "source_sha256": "e125e8689d05a3c5c425b076e9fbd70911ee1c8a5726d8d66ae8e38b0f6c4ade"
     },
     {
       "id": "code:lib/objects/auth.ts",
@@ -3200,6 +3751,25 @@
       "source_sha256": "54cf8c651547475f671e5e31323e28a17018a209d37903596b20933be276bab3"
     },
     {
+      "id": "code:lib/personnel/directory-data.ts",
+      "exports": [
+        "getPersonnelDirectoryData"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [
+        "from:function_catalog",
+        "from:personnel",
+        "from:personnel_functions",
+        "from:qualifications",
+        "rpc:personnel_dossier_summary"
+      ],
+      "source_sha256": "17d793af6b13e860cbe6398a8e15d46753a7b9795a35669cd2d5fa32b3ef004f"
+    },
+    {
       "id": "code:lib/personnel/dossier-data.ts",
       "exports": [
         "dossierTables",
@@ -3293,6 +3863,22 @@
       "source_sha256": "10ffaea52ac5306ba2fd2998b667148abfd9abe96a3597203b18e7dff511346b"
     },
     {
+      "id": "code:lib/platform-crm/data.ts",
+      "exports": [
+        "crmActor",
+        "crmHost",
+        "crmState"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "auth.getUser",
+        "createClient",
+        "resolveHostContext"
+      ],
+      "resources": [],
+      "source_sha256": "ce106cd63838eca4173c149b6239a80ef0a67f913fa4515dd700f7b71a234ccf"
+    },
+    {
       "id": "code:lib/platform/data.ts",
       "exports": [
         "getPlatformData",
@@ -3315,11 +3901,12 @@
         "from:tenant_workspace_domains",
         "from:tenants"
       ],
-      "source_sha256": "04f129ba63fe2ed56caa861716b28c6292345d5edcc733f19c5601baf035f98a"
+      "source_sha256": "883179a3b63ec004bf68a36bee20a7646cb0e54afbd6b11cb715a35de57b58fb"
     },
     {
       "id": "code:lib/platform/team.ts",
       "exports": [
+        "getPlatformAccount",
         "getPlatformTeam",
         "getPlatformTeamActor"
       ],
@@ -3329,7 +3916,7 @@
         "requirePlatformAdmin"
       ],
       "resources": [],
-      "source_sha256": "8850e80f171cf5acb244f237b9d1421656995da83f20d161677e195e6844528d"
+      "source_sha256": "57a12ad3f057f9da8708dee1561ee8950d349d39bfc6c7c444c309b1e7c14f14"
     },
     {
       "id": "code:lib/product/actions.ts",
@@ -3430,7 +4017,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "73a05893ac25afc1014070f0b50cfe2cdd9996dfc5fddcdf63e6300244a846b4"
+      "source_sha256": "deded94744f19370eee252efc782211d908254d5b8293c861fec6b475d42acf9"
     },
     {
       "id": "code:lib/tasks/actions.ts",
@@ -3447,6 +4034,22 @@
         "rpc:task_catalogue_command"
       ],
       "source_sha256": "bf9d61c60293a35a1f19c22e5fdc81f9f96c8894c3edecf81d9853eeb42df64c"
+    },
+    {
+      "id": "code:lib/tasks/data.ts",
+      "exports": [
+        "getTaskCatalogueWorkspace"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createClient",
+        "getAuthContext"
+      ],
+      "resources": [
+        "from:extra_work_rules",
+        "from:task_catalog"
+      ],
+      "source_sha256": "70266a8c7b9910669cafa232b2f25cdc4ad6ea9536e401e01efdee76624578db"
     },
     {
       "id": "code:lib/tenancy/workspace-url.ts",
@@ -3619,7 +4222,7 @@
         "rpc:work_order_list",
         "rpc:work_order_options"
       ],
-      "source_sha256": "63ac666bfc9b246ca66c990ccbf6f7fd265ae5e2c220f203983a934e15e95a80"
+      "source_sha256": "313ad6d53f6b1b4ba1a0a378ed90542f9c2fc361e823b3c944a8135ac6af674e"
     },
     {
       "id": "code:lib/work-orders/report-actions.ts",
@@ -3667,7 +4270,381 @@
         "resolveHostContext"
       ],
       "resources": [],
-      "source_sha256": "ba44a03cdc307156595e54aa197006f41be36fd3465fc3075a93838ce5da790b"
+      "source_sha256": "08548eee0b079ffa9fa42288516b9f0e218b58570af0759fd6f7e5fd3f898a35"
+    },
+    {
+      "id": "db:private.cockpit_action_overlays",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_actions",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "bc4b1f1c2c3b8149b6dcbf8176fa9568be46c2a899f52598f4b38bd39f46162f"
+    },
+    {
+      "id": "db:private.cockpit_decision_versions",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_decisions",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_events",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "1d06d6a8c080bbd29ce78d49e80fc9756e2c9621b1f81ae0de7a5a51397f494e"
+    },
+    {
+      "id": "db:private.cockpit_finance_checks",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_finance_queue",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_finance_reviews",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "71af9a1c4988052b74ac67526745abfe3020a58c7bfbbdb6596dc679d3b11fd9"
+    },
+    {
+      "id": "db:private.cockpit_indexation_lines",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "c0821bb3f3531125bd6688eb7fd7f8fd0bbda3916853522e9c576b820ccb09fe"
+    },
+    {
+      "id": "db:private.cockpit_indexation_versions",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "cc6efcfd9ab1421f6bc720b4f583c4fc6328d529a380366bad64e6b130d8fd85"
+    },
+    {
+      "id": "db:private.cockpit_indexations",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_receipts",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_report_jobs",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_report_runs",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_report_schedules",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_reports",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "d5ff7932be2a00c7960a46bbb003c046652dfcfab26d9e599e3b6b27889c11d3"
+    },
+    {
+      "id": "db:private.cockpit_requirement_versions",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_requirements",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_service_versions",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "c1c3dee8f0bba23dfe4be3ef6ca2969204787f58380fbfbf5c587e52723b11fa"
+    },
+    {
+      "id": "db:private.cockpit_services",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_sla_ticket_checks",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.cockpit_ticket_service_bindings",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
     },
     {
       "id": "db:private.commercial_commands",
@@ -3688,6 +4665,159 @@
     },
     {
       "id": "db:private.commercial_intake_limits",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.crm_activities",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.crm_appointments",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.crm_audit",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.crm_leads",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.crm_rate_windows",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.crm_receipts",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.crm_requests",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.crm_settings",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.crm_tasks",
       "classification": "table",
       "rls": true,
       "force_rls": true,
@@ -4637,6 +5767,23 @@
       "authenticated_update": true,
       "authenticated_delete": false,
       "authorization_sha256": "951bd982a4563be1c9af014a54a96e45e7ad3b0d07bf3c0822eeac30924b0434"
+    },
+    {
+      "id": "db:private.platform_administrator_registration",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
     },
     {
       "id": "db:private.platform_support_audit",
@@ -5758,7 +6905,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "257cbec0a5c18d138f0ef81404bb770dea0bdeb706122a78eee5a483eb0b7862"
+      "authorization_sha256": "e365c5294916ff2d95f8a738fad392a3036e46389a2be19237c3ddc909b5fbb3"
     },
     {
       "id": "db:public.invoice_sequences",
@@ -5843,7 +6990,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "d2067daa1f570ff8236ee17ba4d83dda659b548d21839f3baf2496fc77f8dce0"
+      "authorization_sha256": "08e1fb8ab3449e19c908c6a25d8a3d2fd6cc4e5c1a6b5880e7ebef03d74445a7"
     },
     {
       "id": "db:public.object_customer_bindings",
@@ -6999,7 +8146,7 @@
       "authenticated_insert": false,
       "authenticated_update": false,
       "authenticated_delete": false,
-      "authorization_sha256": "794d551c11bbfe7f915df02641ed8f6093b838fdee3540f529a3da8d3f974816"
+      "authorization_sha256": "028fc4b77219c6566ef66e759c71792c91a3077c4a466420d0bbc4ab39b7bfd1"
     },
     {
       "id": "db:public.time_entries",
@@ -7322,7 +8469,7 @@
       "authenticated_insert": true,
       "authenticated_update": true,
       "authenticated_delete": true,
-      "authorization_sha256": "caaec58abe60e6d6d5dbcabcae8682da6b5b0b7c1eb8dd2ef84d48c3b288a981"
+      "authorization_sha256": "dd75282c43115cedb54b90c87396849bf4dc75cce0ab342adcc6872acebfb587"
     },
     {
       "id": "db:public.work_order_template_versions",
@@ -7373,7 +8520,7 @@
       "authenticated_insert": true,
       "authenticated_update": false,
       "authenticated_delete": true,
-      "authorization_sha256": "ec3aed8ffbf20c4bcf9591a317c6a159e4ed469a9edd5edd7a536f535a4e12ea"
+      "authorization_sha256": "ddac5083576428ddbc577d6a5205d2eba7ed8ca579d1487b190cd2e5a06a1bf2"
     },
     {
       "id": "operation:.env.example",
@@ -7383,7 +8530,7 @@
     {
       "id": "operation:.github/workflows/_verify.yml",
       "classification": "operation",
-      "source_sha256": "b716ef47cc9cf8ef05a9a658d3246495498b80cd578be189c8308d152eacfbca"
+      "source_sha256": "ed3ce1533ad2e8b2b4fa82a9b20434e5f593f324185f894217a05645947241f9"
     },
     {
       "id": "operation:.github/workflows/bootstrap-production-admin.yml",
@@ -7593,12 +8740,12 @@
     {
       "id": "operation:next.config.ts",
       "classification": "operation",
-      "source_sha256": "5fa397aaf33c0dcf8038bc9f22a33aa496a7aa2492a4fc328af3ba09dbd52b48"
+      "source_sha256": "75764af8df4818248b9a3296b58335f4f314a26242df936784db8441af50bd75"
     },
     {
       "id": "operation:package.json",
       "classification": "operation",
-      "source_sha256": "1ba84dabec051c804f73f689de8c3fa9a233794e718face28c2cdb67feb86e8b"
+      "source_sha256": "de6e5f2ef6776623017347d7c99c2f5cfbcb0d5061a92102bc07fd9245902bad"
     },
     {
       "id": "operation:patches/braces@3.0.3.patch",
@@ -7613,7 +8760,7 @@
     {
       "id": "operation:pnpm-lock.yaml",
       "classification": "operation",
-      "source_sha256": "918ae12a3309515443f76371518be3d213782e304a656cdbbb6ea6cc65602791"
+      "source_sha256": "3f209be39fa6ac75dc2fac6c4cb8c15871b79352f0487f44eb4aee319e77d00c"
     },
     {
       "id": "operation:pnpm-workspace.yaml",
@@ -7643,7 +8790,7 @@
     {
       "id": "operation:scripts/bootstrap-platform-admin.ts",
       "classification": "operation",
-      "source_sha256": "1ee97a08c267d0e9bbffaba86cd7db41df10fa66300937adf0d9ec2406be8426"
+      "source_sha256": "549f4b7424188f2582cffd94a2e1c9943991ab52f6734d0025899111112b012b"
     },
     {
       "id": "operation:scripts/bootstrap-production-admin.ts",
@@ -7698,7 +8845,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "31e1025c905c61dfbb4bc73ca0b06c6853c1442729d5e24e60c0629d1181bf60"
+      "source_sha256": "a04a27aa7431680afdad2e7b75e0707fd041fcd6e4897fdd88c433925020a846"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -7756,6 +8903,11 @@
       "source_sha256": "1ea14f21251b4c89a100c27c993660796cb396d9bc7882809527353e26b898b8"
     },
     {
+      "id": "operation:scripts/materialize-standalone.mjs",
+      "classification": "operation",
+      "source_sha256": "5b7f5b1441f990947458d73da2f111fd30455d9679236798391b565b4da502e8"
+    },
+    {
       "id": "operation:scripts/migrate-production.ts",
       "classification": "operation",
       "source_sha256": "b74ac52de3157c71a9ff961060d74519e0388a82cbd0721cb51d1e9452383585"
@@ -7768,7 +8920,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "40d250d8402187e6e6170455f708467ec9880ae1d0c3fd09260bd5abdd383e01"
+      "source_sha256": "b0dad66a715d2ac86f1cd4058a90d3b3369e99075d607c94b0df9d2fdb6f2df8"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -7778,7 +8930,7 @@
     {
       "id": "operation:scripts/package-release.sh",
       "classification": "operation",
-      "source_sha256": "b9e0d1152062e3fbf2be1eac9d8face8a5d97bf2bb0b772352292fe03241950c"
+      "source_sha256": "ecc490580a7540476dce547ef197abccde6a81a0a238b7d0fe157ddb092b4624"
     },
     {
       "id": "operation:scripts/preflight-production.ts",
@@ -7939,7 +9091,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "527ce1d7fd622468140f7822e54dfb74874dc763679715200279b61a1a9138de"
+      "definition_sha256": "e345b6de0d1979e79684293e16e0d1443b7e4d5938fa8b504d9b10a187df0fa0"
     },
     {
       "id": "rpc:private.announcement_read_allowed(t uuid, announcement uuid)",
@@ -8131,6 +9283,492 @@
       "definition_sha256": "29944ea82d5aa883939fd059e8f151f6c5755595a7dbe19e646db1ffe893662f"
     },
     {
+      "id": "rpc:private.cockpit_access(t uuid, cap text)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "9c08e575716285d995f2a4fb2b6156954322a3a529a18d9c28297f075dbe3ff5"
+    },
+    {
+      "id": "rpc:private.cockpit_action_can_write(a private.cockpit_actions)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "b55d944f2acf949f72789638a25ca277ef67d0def145a303d3857a7de111f767"
+    },
+    {
+      "id": "rpc:private.cockpit_action_visible(a private.cockpit_actions)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "b285e118586ecf39e175c9ecac53288b0f16ad1a7a3ae4ffd06c89923b3f55b4"
+    },
+    {
+      "id": "rpc:private.cockpit_assert(t uuid, cap text)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "7b0a784e4660ee5b25157c7db17b3b4aac149db744d1245a71a0779323bc3a15"
+    },
+    {
+      "id": "rpc:private.cockpit_can_upload(t uuid, kind text, source uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "35de7c1e2093dca627253a7db745cc13a62d41329547f92ad0f1a2451c030d9a"
+    },
+    {
+      "id": "rpc:private.cockpit_decision_dto(d private.cockpit_decisions, detail boolean, history_page integer)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "a743591857f0146626a0981c82453acf59ff6392b95254f7927a8e76baeee651"
+    },
+    {
+      "id": "rpc:private.cockpit_decision_visible(d private.cockpit_decisions)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "a4d1368b38a52b4581303e030b93fb721c9b6653d794fb8fc358606016aadb15"
+    },
+    {
+      "id": "rpc:private.cockpit_entity_access(t uuid, kind text)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "9c5902a2295003b33d4fc7a8246e585c256a19080d6f635e9e5996bd8c899cce"
+    },
+    {
+      "id": "rpc:private.cockpit_event_context()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ed1046193ff17b916742d3aa9edb61a71a726e4b41a4374e0c21f5dc5dddd07b"
+    },
+    {
+      "id": "rpc:private.cockpit_evidence_identity(t uuid, kind text, parent uuid, evidence uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ad7f379ea2ee5e1ce63374c783cc11379665fa46e2378477575314a0701be148"
+    },
+    {
+      "id": "rpc:private.cockpit_evidence(t uuid, kind text, parent uuid, evidence uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "b3401d24389609887a58787aee09d12e335c4e767bb913fe8a71bd7be5329466"
+    },
+    {
+      "id": "rpc:private.cockpit_finance_assert(t uuid, writing boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ae83704543e74caf51f60736084c02a987ebaef7185ad00fb99c4bfd0095a1bf"
+    },
+    {
+      "id": "rpc:private.cockpit_finance_enqueue()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "d0a143e1b6b7a2acfc3036605f66ad5088f19f17dedddc913af7021317aa142f"
+    },
+    {
+      "id": "rpc:private.cockpit_finance_excluded_rows(t uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "9f64ec42775898e5bd0e063015fe443ad994979d95ea8ab1e3415d36dc8f8d83"
+    },
+    {
+      "id": "rpc:private.cockpit_finance_invoice_rows(t uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "8b14e80e845f36b0f7eae4192f48ca19ea5cb96f483c089b019a6454ae23fc84"
+    },
+    {
+      "id": "rpc:private.cockpit_finance_review_immutable()",
+      "classification": "trigger-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "3d6d73c1b3f68295bca927aa0e1a909ca031e27d8b4296490bb64b9f473a8230"
+    },
+    {
+      "id": "rpc:private.cockpit_finance_sync(t uuid, order_id uuid, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "d131c4ba10100ccd5d3784c5295cc0ec1f7f401db72963ebd486e122fd1b85f0"
+    },
+    {
+      "id": "rpc:private.cockpit_finance_task_rows(t uuid, target_order uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "a4e82ee773a4d0a6b95f72ea9d2e4cffbc32fd5370d842dc93b8f094f2ac4ce5"
+    },
+    {
+      "id": "rpc:private.cockpit_followup_data(t uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "e0907794c4fa0e422228e025e64b49fbc9f0c4add81c12d0a3dfa6e0acba9fce"
+    },
+    {
+      "id": "rpc:private.cockpit_governance_assert(t uuid, module text, writing boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "02f991265df06acbba6eca72fec5505c80dc55a9d3bc51088c2b3a770b70024b"
+    },
+    {
+      "id": "rpc:private.cockpit_history_scope(t uuid, scope text, kind text, record uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "d01b53f8eb1e993dcc845abbea3252920f7915b65af82e0397683c83c01bad08"
+    },
+    {
+      "id": "rpc:private.cockpit_indexation_assert(t uuid, writing boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "8eab0d76e729bca1298389d9f7357cdcf72d898142a8eaa2a5f485cd913addb7"
+    },
+    {
+      "id": "rpc:private.cockpit_indexation_line(t uuid, original uuid, business_day date)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "7d9fa52b8c3f6e9518adb64802e0505f8ca56357721bf4a20598e05e083765b9"
+    },
+    {
+      "id": "rpc:private.cockpit_indexation_owner(t uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "9d19e111e1a36d7f7ac42eb71da8d2b8cd66ba4a8ba2b3e61591bac05487a7ec"
+    },
+    {
+      "id": "rpc:private.cockpit_indexation_row(r private.cockpit_indexations)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "34c88143f59ce535dd5e7b0ffc9e71f74cd89828f409a77fe4c8ce0fb20cd0e1"
+    },
+    {
+      "id": "rpc:private.cockpit_indexation_source(t uuid, source uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "fd41cf284f052a25f8b76b4d5b05200a26313abbcd74644dcd0ab2cf40e71e5b"
+    },
+    {
+      "id": "rpc:private.cockpit_invoice_list(t uuid, filters jsonb)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "53e49fce660eed95b5a181d18435aed64809a6dd95aee7cac37950c3f881eafe"
+    },
+    {
+      "id": "rpc:private.cockpit_overview_operational(t uuid, payload jsonb)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "65e55dc5bfe5a3059a6117aead80038a4efee73dc91433335821bf234f6804b0"
+    },
+    {
+      "id": "rpc:private.cockpit_owner(t uuid, person uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "73c6fa1e6b8dcb51831588a8fe1325c9b9fe573e8549d8dad9ad80de7785c7ac"
+    },
+    {
+      "id": "rpc:private.cockpit_report_immutable()",
+      "classification": "trigger-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ca69e4049fa00a5040dc29f56baeda82ebc9858fe76d71eb5d5ff8aa839996a7"
+    },
+    {
+      "id": "rpc:private.cockpit_report_review_list(t uuid, filters jsonb)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "964a20e1c1b34fbdebbc43028ccb337c01da4f100714abfb8c2d332438c5c461"
+    },
+    {
+      "id": "rpc:private.cockpit_requirement_action_guard()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "0f9b0291f5a2bd52cf948b7a17281b86aed248ff197ee15d3cf971e097460045"
+    },
+    {
+      "id": "rpc:private.cockpit_requirement_action_owner()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "ceb41a5b8897a2b5d87b3819da98e90562aca32ef25690053abf49dfaa2a1051"
+    },
+    {
+      "id": "rpc:private.cockpit_requirement_dto(r private.cockpit_requirements, detail boolean, history_page integer)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "1264f81843916ea8e07563ac570262f60ecf5192063b7a384cc91cb288580257"
+    },
+    {
+      "id": "rpc:private.cockpit_requirement_measure(r private.cockpit_requirements)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "1724ad3255f2891d9ae18f9f581378fb69242b00e79e86ed07043416cd195a1f"
+    },
+    {
+      "id": "rpc:private.cockpit_requirement_status(r private.cockpit_requirements)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c69abbabaf909de1db20cd11c3ee2ebb7e0f7f80eca29c3166666c609ee85837"
+    },
+    {
+      "id": "rpc:private.cockpit_requirement_sync(r private.cockpit_requirements, actor uuid, sync_owner boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "57bb0a26b7c7cb758ebe2701ef3f3820c0294516de265e9f9e85783ec0b01b85"
+    },
+    {
+      "id": "rpc:private.cockpit_requirement_visible(r private.cockpit_requirements)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "610420f3f13ea4210430dd3f02383a68e77efa8adfba104b2a9b5f38b11706a9"
+    },
+    {
+      "id": "rpc:private.cockpit_scope(t uuid, scope text)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "502b24e3540fc1610667deef5e0133ef4d3c8f23ff86db982fef9a60de27da08"
+    },
+    {
+      "id": "rpc:private.cockpit_service_command(target_tenant uuid, input jsonb, request_id uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "74bdc8e80da998cc1a6f54884e391d12799b32098f40dd44541799d2068394eb"
+    },
+    {
+      "id": "rpc:private.cockpit_service_dto(v private.cockpit_service_versions, detail boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "8ea510924e078fdcf9d2b10a3464bddae9a693b36f94d2717bf41989e85d3671"
+    },
+    {
+      "id": "rpc:private.cockpit_service_measure(v private.cockpit_service_versions)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c83f483d9c1ecee481d7ee2f47da1cd8bce63c20ea815ebb573b8451f17f81ee"
+    },
+    {
+      "id": "rpc:private.cockpit_service_source(v private.cockpit_service_versions, writing boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c3e13f86bd7b8f20a4bd2d28eb1d3f58de168b57305678fe2bfec591ca8affff"
+    },
+    {
+      "id": "rpc:private.cockpit_service_version_guard()",
+      "classification": "trigger-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "62ff25643f972e7fd1ab434e8e14adf94a7caa45ebe6fbbc71f0e3fa71e14361"
+    },
+    {
+      "id": "rpc:private.cockpit_service_visible(v private.cockpit_service_versions)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c1e59236b88ef78080a82f64edc548d8d2d0e91adce9c6a982e59a1358598599"
+    },
+    {
+      "id": "rpc:private.cockpit_sla_assert(t uuid, writing boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "9ac1e2f15d50f312d4609d48cfa9a517345b92c77595647fb21b5c591cd2329e"
+    },
+    {
+      "id": "rpc:private.cockpit_sla_norm(kind text, norm text)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "824aab482935a450900c1d490962db3bbc0cd2c0340b8c547b951cf5fa5ee8a3"
+    },
+    {
+      "id": "rpc:private.cockpit_sla_ticket_dto(t tickets, kind text, detail boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "a2a62993377e9b5622426c67cae4ffcc26288ded794e7b3eb21fb47618953838"
+    },
+    {
+      "id": "rpc:private.cockpit_source(t uuid, kind text, rid uuid, writing boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "63769293f84de058a40777e4b975cc6982835825a8a45e92a95ada77b4dc743d"
+    },
+    {
+      "id": "rpc:private.cockpit_ticket_contract_clock()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "bf47e76754500bc98f46a05417d6e6337f7fd3f6f423e19f34d805b70ddbf10e"
+    },
+    {
+      "id": "rpc:private.cockpit_ticket_sla_changed()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "96648569903e1ccf92385c92000f68b106b6e949366cd3c5c8427ccd03aaea2c"
+    },
+    {
+      "id": "rpc:private.cockpit_ticket_sla_sync(tid uuid, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c36830314d4767e31fbfedd627060bc29a11ac858af4bc73a94db269f3e28667"
+    },
+    {
+      "id": "rpc:private.cockpit_work_order_options(t uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "ea5e821da201a7c00e763ab4956b14285237f18ce7622652faa5452d207b46fb"
+    },
+    {
+      "id": "rpc:private.cockpit_work_order_source_access(t uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "d36af778d36d9cbc78d56ab75e1adce6a39523001c292f1833d383aa9e9edd85"
+    },
+    {
       "id": "rpc:private.commercial_access(t uuid)",
       "classification": "private-function",
       "security_definer": true,
@@ -8237,6 +9875,141 @@
       "authenticated": false,
       "service": false,
       "definition_sha256": "75ae7bffbc29f43ab95a16f99cacc401be6eadb9979595afc52b698832bd907a"
+    },
+    {
+      "id": "rpc:private.crm_admin()",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "5f258104e8b31a5934adffcf7b827e58d857c9dd94fc96de0be4ea2cf8bc3ac8"
+    },
+    {
+      "id": "rpc:private.crm_appointment_dto(a private.crm_appointments)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "1d6d787b84a5b939adecba8c76388e3dcff75bfa650a03c4fa52e14f03fc5fee"
+    },
+    {
+      "id": "rpc:private.crm_lead_dto(l private.crm_leads)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "62553eba366756d548b6e45b25b0a22d8519a1f5c06444c517d3f340219f035c"
+    },
+    {
+      "id": "rpc:private.crm_local_instant(day date, slot time without time zone)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "083ee6f3496e0f902346cdb839fea15322778d33e44bcd4606eaa059bbc8848a"
+    },
+    {
+      "id": "rpc:private.crm_lock_actor()",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "57bb45fba67962f5d3e29e315ec9854ad5279c79625708268a993aa908079f27"
+    },
+    {
+      "id": "rpc:private.crm_notification_projection(p jsonb, request_ids uuid[], lead_uuid uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "12ad6bf157c25300000a9db63a8045e1751f8c7c313f0a79787a3a2aad63b605"
+    },
+    {
+      "id": "rpc:private.crm_notifications(lead_uuid uuid, size integer, skip integer)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "e70daa99a1d1a5be6d0f7d0bf3b9847b72e8ae82b3f1fad12c042222ff51c0b7"
+    },
+    {
+      "id": "rpc:private.crm_notify(request_uuid uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "aa73ff760a6ccac5ad9ac2b49f8f148ed64e6e5af5cc879588602bff76cec8eb"
+    },
+    {
+      "id": "rpc:private.crm_owner_valid(owner_id uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "284927a13b8ee2fd6223e511749a6052fbf7fa96d969ad1d0f769d87897c88f4"
+    },
+    {
+      "id": "rpc:private.crm_primary_admin()",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "6bfd0677b5bf4ff17672bab50a1f45df6ad96aade7d2de937067f2546d53738b"
+    },
+    {
+      "id": "rpc:private.crm_register_primary()",
+      "classification": "trigger-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "188db40f0e9f364766d181ced0e3afaad717236a265a5c46e61bfd215b2fba2f"
+    },
+    {
+      "id": "rpc:private.crm_request_dto(r private.crm_requests)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "75b09e9f7a49244ab2955e6fefb97697658f8f20a8c3d16799ac3cfd476579ed"
+    },
+    {
+      "id": "rpc:private.crm_settings_dto()",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "b536d1cca1deb060450abcfe8cdbd7edb3b7e37b968640327422a240d26d65d0"
+    },
+    {
+      "id": "rpc:private.crm_slot(day date, slot time without time zone, exclude_id uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "3be72dbfc563b46e0953f7035fc82c516ca13f1e154060cf302cce818873dd2a"
+    },
+    {
+      "id": "rpc:private.crm_task_dto(t private.crm_tasks)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "286d1375fd46e113f3988aa3bba6fb9837b167a1fef190ae90d82ddff2cd5f90"
     },
     {
       "id": "rpc:private.current_personnel_id(target_tenant_id uuid)",
@@ -8734,6 +10507,15 @@
       "definition_sha256": "c6f3b4b539c72ab72dd29e5754c2eb9ef1d31ee4fc6571bfff2a6d7703d3065d"
     },
     {
+      "id": "rpc:private.execution_invoice_sources(target_tenant uuid, target_order uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "20a2b545c149b10866bda6bc509e79935668faf801b78380a141323d3f80d737"
+    },
+    {
       "id": "rpc:private.file_is_scanned(object_id uuid, object_version text)",
       "classification": "private-function",
       "security_definer": true,
@@ -9019,7 +10801,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "c9e1c18842ca58ffe30dee54018e6376361c020dec0b1d2beb54a6bfef17af94"
+      "definition_sha256": "f7c64044c8ec994a63da73160814f813cfecda4f2464e13aa0bec10d986f3ee3"
     },
     {
       "id": "rpc:private.management_table_allowed(t uuid, resource text, writing boolean)",
@@ -9442,7 +11224,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "8d115755da75cc6c24aaaa08c662f8999f008d99fa3134418ee6b6d772cfa419"
+      "definition_sha256": "a4e6c1354bb5f720e1cd50c961253fb3cab59fb011a9eda0b36aa38677bbbc83"
     },
     {
       "id": "rpc:private.notification_import_ticket_preferences(target_user uuid)",
@@ -9622,7 +11404,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": false,
-      "definition_sha256": "181f7ac34a1189b7394a837c0f5bd43049f45f0c0c4f0a24f53006d18cdd06cf"
+      "definition_sha256": "21e25d351515c6473602719d9012890cd9230f4ca412002f235f0e8347baeef0"
     },
     {
       "id": "rpc:private.notification_preview_text(value text)",
@@ -9665,9 +11447,9 @@
       "classification": "private-function",
       "security_definer": true,
       "anonymous": false,
-      "authenticated": false,
+      "authenticated": true,
       "service": false,
-      "definition_sha256": "e52f51f527dd27f80881f6efa98e7859bab1c5d7ffac3037b577651538630222"
+      "definition_sha256": "0f62de386433525363f247f7b278beebe617dbd170661deee453e4b7ce76ae94"
     },
     {
       "id": "rpc:private.notification_staff_own(t uuid, actor uuid)",
@@ -10291,6 +12073,33 @@
       "definition_sha256": "f63735a2657f028de89267209570a42428c95adef7da64661ad548e1506082c0"
     },
     {
+      "id": "rpc:private.report_assert(t uuid, writing boolean)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "0e7038d693c768e6b3db60dc5462ec51e4a948a969b6a84f3bdff0d2cb527c33"
+    },
+    {
+      "id": "rpc:private.report_audience(t uuid, actor uuid, audience text)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "06bacc36da0d04dede2b0b0d91f65e857d4f4bde3eab6bf3e4e30b31471fdc0b"
+    },
+    {
+      "id": "rpc:private.report_authority(t uuid, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "33f5fe0d420f481d05485b4ba241808def4809ed012c10152a17ad7492d42661"
+    },
+    {
       "id": "rpc:private.report_backoffice(t uuid)",
       "classification": "private-function",
       "security_definer": true,
@@ -10300,6 +12109,159 @@
       "definition_sha256": "68b904ff9568af466881c1755603cd21866258626fead789617326bebbd9aca6"
     },
     {
+      "id": "rpc:private.report_can_access_personnel(target_tenant_id uuid, target_personnel_id uuid, sensitive boolean, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "13d02b0e441be6ea566916af6d17a55654b7d1283fe94275778ce1c04c349e0e"
+    },
+    {
+      "id": "rpc:private.report_cap(t uuid, cap text, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "bde567818ea9719c6d7edf88686341d7c6cd8f126baa3771cfe1ebfa7ae4bd72"
+    },
+    {
+      "id": "rpc:private.report_capture(t uuid, actor uuid, period text, comment text)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "4f9e4b0b62a4188e17a2d4a05cebf8d85f49f54dd6df94772a1f2a7f851f9c78"
+    },
+    {
+      "id": "rpc:private.report_cockpit_access(t uuid, cap text, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "920e64b861489e20820684fb291230e3303e73957b800c7c8ea93b525b87b310"
+    },
+    {
+      "id": "rpc:private.report_cockpit_action_visible(a private.cockpit_actions, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "10a53b04359e9d1cde02c234dd3caa4db2e15364c667f6bc62ff075e0d85d885"
+    },
+    {
+      "id": "rpc:private.report_cockpit_decision_visible(d private.cockpit_decisions, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "2071d0e24011066e225495a5613f8470d50bf336f9261c479e4fd22fc980f45e"
+    },
+    {
+      "id": "rpc:private.report_cockpit_evidence(t uuid, kind text, parent uuid, evidence uuid, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "499b20fe863557a2e7ba70263b9b59211069c5c480ffb7c0ee6a0c39ff171263"
+    },
+    {
+      "id": "rpc:private.report_cockpit_requirement_status(r private.cockpit_requirements, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "feb4a04f2f4a2ddc06b1050866a79cc8bd6260a7304faaae5a37fd20eeb8cab4"
+    },
+    {
+      "id": "rpc:private.report_cockpit_requirement_visible(r private.cockpit_requirements, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c818dd3fa08f9bd58feee242a61b8617642687212f0b142942e2158602de0c08"
+    },
+    {
+      "id": "rpc:private.report_cockpit_scope(t uuid, scope text, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "3b3e07980a086a1d71a24cf5dbf24c5cb6dc93dbdc9aeae18e68d9c1effe1a31"
+    },
+    {
+      "id": "rpc:private.report_cockpit_service_dto(v private.cockpit_service_versions, detail boolean, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "c19aa0dd9c6b0d2299d3c5e288c20c6ea5f7d3c263cfe301f3481feab15ab4a4"
+    },
+    {
+      "id": "rpc:private.report_cockpit_service_source(v private.cockpit_service_versions, writing boolean, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "9e715e6711e71ffbbd4429693c2fd58769e4564ee6e96033117b742c67b99b29"
+    },
+    {
+      "id": "rpc:private.report_cockpit_service_visible(v private.cockpit_service_versions, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "f59ef3e04fa0a844628e6a996ad8545f630a45d6d0175be4202a2f076ef8ca6d"
+    },
+    {
+      "id": "rpc:private.report_cockpit_sla_ticket_dto(t tickets, kind text, detail boolean, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "9929d4d61dca3a0c0a652fa7a85cda42126eff528eed0aedc47b1ab962671634"
+    },
+    {
+      "id": "rpc:private.report_cockpit_source(t uuid, kind text, rid uuid, writing boolean, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "3ccd8ec14d419cd79684a572513e9f173e29b263124be31acea8b0c916e92a70"
+    },
+    {
+      "id": "rpc:private.report_commercial_access(t uuid, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "3a405728f646665a87cf9213b7706276f4f06e0360ae45a006688810c7da918c"
+    },
+    {
+      "id": "rpc:private.report_current_personnel_id(target_tenant_id uuid, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "421e56f1150117346fd72546a4da73ccfd8c7eea030e3f9ba99a61b7ec3e93d6"
+    },
+    {
       "id": "rpc:private.report_delivery(r work_order_report_versions)",
       "classification": "private-function",
       "security_definer": true,
@@ -10307,6 +12269,123 @@
       "authenticated": false,
       "service": false,
       "definition_sha256": "a4bfe01edc74f07c2d91f629f1d532b311ab4b5145dafff6333f2416749bc792"
+    },
+    {
+      "id": "rpc:private.report_dossier_access(t uuid, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "2c5ac740b2955a0e4caeb4490e45691148235888c6954953c32b38adb9956324"
+    },
+    {
+      "id": "rpc:private.report_dto(r private.cockpit_reports)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "d7116cee5066dde16238dbe53bbf3123983ba2407c9d38679106ed37b1d900ce"
+    },
+    {
+      "id": "rpc:private.report_facts(t uuid, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "a82664b6290935195b3fc4f5c47c79f5a61d8c7af69563bc69a9b1003e84387b"
+    },
+    {
+      "id": "rpc:private.report_management_table_allowed(t uuid, resource text, writing boolean, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "fa64df0f8def1df7a264a894f717a65e12c386efea4b6ca4530f9511f59af221"
+    },
+    {
+      "id": "rpc:private.report_next_run(t uuid, day integer, at_time time without time zone, after_time timestamp with time zone)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "4aeb0357ee475c4ab24041f4d59eea9f094e4b716c8b07579754279a4fbf17a5"
+    },
+    {
+      "id": "rpc:private.report_object_manage(t uuid, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "60ba7d92170c07edba87afd98c41b7facd9f3a5b1c2b6f985ec64ed0d5d0bf9f"
+    },
+    {
+      "id": "rpc:private.report_owner(t uuid, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "3d68b5e12b3b37df431baa11d1cc88a01e1a6aac457e8064312eda93ac6fab16"
+    },
+    {
+      "id": "rpc:private.report_planning_access(t uuid, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "8ad7cf9f493a448f1073391d10b62e096a03fb4511628218a308c7d3833435a8"
+    },
+    {
+      "id": "rpc:private.report_profile(t uuid, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "02cc88fbed49789ee382fb7617f940c1c0e3c8a4641c0886489e93698c6d9781"
+    },
+    {
+      "id": "rpc:private.report_readable(r private.cockpit_reports, actor uuid, current_policy jsonb)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "33a7d93d3266195f1087a19051b66f0d274fc09f87a48a1160ba187bde3d2b43"
+    },
+    {
+      "id": "rpc:private.report_readable(r private.cockpit_reports, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "200301fbd6393b5202529ea0bc94cab30a2b7f40852ad6b410a3490cb237a3f1"
+    },
+    {
+      "id": "rpc:private.report_role_name(t uuid, actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "5a07cdb8b8a658fe3631abd3faac553b0827dc3ba313b6d8e705d40c6e5e649a"
+    },
+    {
+      "id": "rpc:private.report_role(t uuid, roles app_role[], report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "1c621725b0a011729890b1b145234b999aedd08d24c2c01e19dec5b2d2c80f47"
     },
     {
       "id": "rpc:private.report_snapshot_for_actor(r work_order_report_versions)",
@@ -10325,6 +12404,15 @@
       "authenticated": true,
       "service": false,
       "definition_sha256": "4d6cf08cae90e431676ec1737f833da38cc5f24eefaa9160cbf939d5ec30c85f"
+    },
+    {
+      "id": "rpc:private.report_work_order_access(t uuid, financial boolean, report_actor uuid)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "7f991bd5fd1f7cf1d342bf2a62d06a8fabb36d8a59860a4ef176a0f18539a7a8"
     },
     {
       "id": "rpc:private.require_staff_personnel(target_tenant uuid)",
@@ -11461,6 +13549,249 @@
       "definition_sha256": "84c84aacd418647366862e3a50c22cc5998b22055450ce7c5b0c1677bbf6db6b"
     },
     {
+      "id": "rpc:public.cockpit_action_history(target_tenant uuid, kind text, record_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "3dab54bcbb8f146b6fd44082c3a8c8e24fadcbee54f86eea931cded97af293ac"
+    },
+    {
+      "id": "rpc:public.cockpit_customer_cards(target_tenant uuid, filters jsonb)",
+      "classification": "public-rpc",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "874301200925c0e414f16f4fa4fcc7dea6760b364c651738af8a91e5f3a76d89"
+    },
+    {
+      "id": "rpc:public.cockpit_entity_query(target_tenant uuid, source_kind text, source_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "18d677ffced3bfd9c2901ad1e0c11d959f1daa6f4215240718f859c88e8b0462"
+    },
+    {
+      "id": "rpc:public.cockpit_evidence_options(target_tenant uuid, source_kind text, source_id uuid, search text, selected_evidence uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "dcd6acf27bda4e849760f7856e099c852af71eed483ec444a524a9bdcb34b4b3"
+    },
+    {
+      "id": "rpc:public.cockpit_finance_command(target_tenant uuid, input jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "7b207fca9828c3598e7a6fa3056c8569c0c15c4f355331b76c60a2b2cae64599"
+    },
+    {
+      "id": "rpc:public.cockpit_finance_maintenance(batch_size integer)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "a8b71c6ec6f0e54d6302db8b16bf0d9dc15862ce1f30123779027f6a80156154"
+    },
+    {
+      "id": "rpc:public.cockpit_finance_query(target_tenant uuid, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "72abb6f73a1d2c93e9d86cf4a6d56bb326056f62c904f302e1f27578a193636e"
+    },
+    {
+      "id": "rpc:public.cockpit_followup_command(target_tenant uuid, command text, input jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "552c7df0018888f22f8fb1df900ab4c838027a93c046e95d446dc50eb0a73570"
+    },
+    {
+      "id": "rpc:public.cockpit_followup(target_tenant uuid)",
+      "classification": "public-rpc",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "aea7f27b6cbc6ddc7317e8bfa9225cc998379e7d717c7f08c69e08ca33cf066f"
+    },
+    {
+      "id": "rpc:public.cockpit_governance_command(target_tenant uuid, module text, command text, input jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "e6a1df2861c20127db8f4a50391c5d42cf35571820a90c1853349e86cb526e24"
+    },
+    {
+      "id": "rpc:public.cockpit_governance_query(target_tenant uuid, module text, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "256f4b3d86c554dd3c6b07bb5d0dc80f865ff86940b34d3b93fecf0dac696df1"
+    },
+    {
+      "id": "rpc:public.cockpit_governance_upload_allowed(target_tenant uuid, source_kind text, source_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "a61a35b50bf529c5033c710c55bccd33d4939035f8d9274d26c2695cdf209928"
+    },
+    {
+      "id": "rpc:public.cockpit_indexation_command(target_tenant uuid, command text, input jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "fb36712f8b564ece23e729d5aa88d48566e3ef6616f87eeba070a22703f0014f"
+    },
+    {
+      "id": "rpc:public.cockpit_indexation_evidence(target_tenant uuid, target_customer uuid, selected_evidence uuid, search text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "3ccfdb7be78e90cdec9d3c32befffe154d0fff086b7df9f522e71d74ae13b93b"
+    },
+    {
+      "id": "rpc:public.cockpit_indexation_query(target_tenant uuid, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "3203da0b4a2e0c146b9b0b8a92d4c80404a55d8fcb749c4513ed8d71ca35a4b2"
+    },
+    {
+      "id": "rpc:public.cockpit_invoice_list(target_tenant uuid, filters jsonb)",
+      "classification": "public-rpc",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "267ee2932baf1a2c637435ad7acdec6f5d0b52a50de64c9d25d2aecca948ba01"
+    },
+    {
+      "id": "rpc:public.cockpit_maintenance(batch_size integer)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "a56886e0faab158e2df00cf0e9804c396ad76cf8750734989bdebbec49593a65"
+    },
+    {
+      "id": "rpc:public.cockpit_overview_query(target_tenant uuid, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "80bcbd1a600d9886a31a15a866c352b887e09d0dd64ef7b6ac1c8f3ccd91e837"
+    },
+    {
+      "id": "rpc:public.cockpit_report_review_list(target_tenant uuid, filters jsonb)",
+      "classification": "public-rpc",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "b46cb7df482b470887be7d779996a58936410d5fdaf4f64b802633a2c99d4a09"
+    },
+    {
+      "id": "rpc:public.cockpit_reports_command(target_tenant uuid, command text, input jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "06efd7a8f9fcc31868a04e4961eecbc259a0f829119c2c5ad63599da9ca750a1"
+    },
+    {
+      "id": "rpc:public.cockpit_reports_maintenance(batch_size integer)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "0521fa9f1c83e3daf4400afbddf91a9ffd7c26062772c734a3b82ffbe829dcaf"
+    },
+    {
+      "id": "rpc:public.cockpit_reports_query(target_tenant uuid, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "b4d2683cb13412614399cc35569b1f99730019ca6b7598cd98df077afb87e4c8"
+    },
+    {
+      "id": "rpc:public.cockpit_sla_command(target_tenant uuid, command text, input jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "2001f3ab6672d17fa84467991a2e0d9a006e187da1de0b1f26c0440b4591e88b"
+    },
+    {
+      "id": "rpc:public.cockpit_sla_maintenance(batch_size integer)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "3dd073125a40c1f3096198db10760f5af95209c454c178c4b88a7ae7988b2857"
+    },
+    {
+      "id": "rpc:public.cockpit_sla_query(target_tenant uuid, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "8b96c832ad7e554d327ebddf4e92825a2fed123044ecd0ffb10f555531668a4d"
+    },
+    {
+      "id": "rpc:public.cockpit_work_order_financial_sources(target_tenant uuid, target_order uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "2c9dab3c10f8601085456be47b0f2386699dfb5f973b93ad2b163961a00ac36b"
+    },
+    {
+      "id": "rpc:public.cockpit_work_order_source(target_tenant uuid, target_order uuid)",
+      "classification": "public-rpc",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "a6ee9f42f13cdcc484c95633115a478490140b43bcbb685f69064bf03c9cf478"
+    },
+    {
       "id": "rpc:public.commercial_booking(target_tenant uuid, command_id uuid, input jsonb)",
       "classification": "public-rpc",
       "security_definer": true,
@@ -11539,7 +13870,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "4e9e23253048e9465e0d523b77b89fb0dad2c52cf676472afeca921fa9e3c655"
+      "definition_sha256": "66835b20c865ad929fef42304c0563a23f45e15c2c5e86aa85817d290bf31323"
     },
     {
       "id": "rpc:public.commercial_mail_claim(target_tenant uuid, event_id uuid, recipient_input text)",
@@ -11675,6 +14006,51 @@
       "authenticated": true,
       "service": false,
       "definition_sha256": "f617fc6d1d0fe7de72b911710224f70b7ce09966e1dadeab8fa1098632dcf8d5"
+    },
+    {
+      "id": "rpc:public.crm_availability(day date)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": true,
+      "definition_sha256": "28627b8ce1dc55f6803436396f6ed2f86ca4afbd0b73f4f207cdda618ca0402f"
+    },
+    {
+      "id": "rpc:public.crm_command(command text, payload jsonb, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "596ae6cb34c19fbd22e812bbc07b73dd69e3499f0a726390592597fbe3e856c5"
+    },
+    {
+      "id": "rpc:public.crm_intake(payload jsonb, request_id uuid, rate_key text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "5d315ded2b85cb92b6f0c7caf169f4f63a8bee68cff3b866dbd29457dcca36c3"
+    },
+    {
+      "id": "rpc:public.crm_prepare_notifications(batch_size integer)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "d8c0581cafcd44d0bbd255279c5628041f0d2824c23443f84efd1f3694f0470e"
+    },
+    {
+      "id": "rpc:public.crm_query(operation text, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "09b8a6b9a6a7e03eaa7c6d4c0798d3bf7171893aed1aa4194a9dfb5706133981"
     },
     {
       "id": "rpc:public.current_event_recipients(target_event uuid)",
@@ -11935,7 +14311,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "d80e730220c77f098c7e52863b79388dcba4963357cb53a924984af37cd7d12b"
+      "definition_sha256": "6bf7736263e8ed059f6aa5fd30e119a36f786ce259ba7f1e5fc0eb657ea236eb"
     },
     {
       "id": "rpc:public.customer_portal_report_file(target_tenant uuid, target_account uuid, target_report uuid, asset_id uuid)",
@@ -12133,7 +14509,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "ef523fdd872549996ead584923fa07f28dfe6b08a09a02e8f78f33cbb23517e5"
+      "definition_sha256": "16cb19fd289af2a8495b516b012fae8dca2c4a67f5e8a68175f8a4cff2990c08"
     },
     {
       "id": "rpc:public.expired_work_order_signature_uploads()",
@@ -12331,7 +14707,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "7c240d4eeb327efcb82b4eb9c583559ab6f1a862e6393131afacecacd0a0e83f"
+      "definition_sha256": "a7bfe1f9054051945fdf653d19b956c22229f12d608a705c21d8ccfdba340a7a"
     },
     {
       "id": "rpc:public.notification_deferred_mail(operation text, target_tenant uuid, target_mail_id uuid, input jsonb)",
@@ -12394,7 +14770,7 @@
       "anonymous": false,
       "authenticated": false,
       "service": true,
-      "definition_sha256": "80ebacf078d62f5f2b744676b24a977789fd540e68e8b58819dd7fd22e93f090"
+      "definition_sha256": "395fab3906ec02c2a100d46eb97273d025b43fd362f5ad9eb3d8646b9e5702d7"
     },
     {
       "id": "rpc:public.notification_device_logout(actor_id uuid, session_id uuid)",
@@ -12475,7 +14851,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "eb13894e97cd12ae53e598a16e2073d2ce91207feaec6a81715f1dee6af53e8b"
+      "definition_sha256": "a76179ecd9ce6bbf5ba3c354763b016dbce1c3dc73d38c8c931960e27bd8bd53"
     },
     {
       "id": "rpc:public.notification_template_resolve(target_tenant uuid, type_code text, target_context text, channel text)",
@@ -12502,7 +14878,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "362c30b211b6a3b2fe58b0914de3ec37804840837fc206f39e707e3181bb09d7"
+      "definition_sha256": "6196ffa3fad7ce0d7b83085f63fd6246492e182fbbd53e40a81532b9552f060c"
     },
     {
       "id": "rpc:public.object_customer_accounts(target_tenant uuid, target_object uuid)",
@@ -12613,6 +14989,33 @@
       "definition_sha256": "cac1a6acdae46a2fb240fa4f876ae22bd751c107149ee2d99eb9c6681f22afbd"
     },
     {
+      "id": "rpc:public.platform_account_command(target_user uuid, expected_revision bigint, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "384661e452600d1e5029346831356ceb3a006530f4bdc67b7969c3e0c6d37f48"
+    },
+    {
+      "id": "rpc:public.platform_account_query()",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "61673f01bd9df559a42c449b89d9b9ae6ffb987c54a49e53fcb26c03b7b65f36"
+    },
+    {
+      "id": "rpc:public.platform_register_primary_admin(target_user uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "24acc6970f009db7c7fca6d6982ddcaca62739591bd484da6fef267bf55d0527"
+    },
+    {
       "id": "rpc:public.platform_team_command(command text, input jsonb, request_id uuid)",
       "classification": "public-rpc",
       "security_definer": true,
@@ -12629,6 +15032,33 @@
       "authenticated": true,
       "service": false,
       "definition_sha256": "b29f55e0ba4adbc0aa9593187a2d7323f0045981a35102eea0eb4f0e3123f492"
+    },
+    {
+      "id": "rpc:public.platform_template_save_v3(target_tenant uuid, template_key text, subject text, body text, reset_to_default boolean, expected_revision integer, request_id uuid, actor_user_id uuid, actor_session_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "f229358fbaa9941b55fc699a45afd92b57127bdc0e059be7561a40e6a2291b71"
+    },
+    {
+      "id": "rpc:public.platform_tenant_lifecycle(target_tenant uuid, desired_status text, expected_version bigint, request_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "b1572ace9efeebbd49b1a41b49c30c41118250f9ed08ae3da85a373c5dde0869"
+    },
+    {
+      "id": "rpc:public.platform_tenant_provision_v3(input jsonb, request_id uuid, actor_user_id uuid, actor_session_id uuid)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "252770b1607064d7c5464fba12175fb199fdd347677dbf44680a6339324aab9d"
     },
     {
       "id": "rpc:public.platform_workspace_access()",

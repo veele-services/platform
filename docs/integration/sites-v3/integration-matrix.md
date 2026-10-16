@@ -1,6 +1,6 @@
 # Sites v3 integratieregister
 
-Baseline: `71df59ab0390ffeae482c7edbaf27efe3fa6546d`. De actuele lokale en remote main komen hiermee overeen; de werkboom was schoon. Ontwikkelbranch: `codex/sites-v3-integration`. Alle 344 SHA256-checksums zijn gecontroleerd zonder afwijking. De uitgepakte referentie blijft ongewijzigd buiten de runtime. `screen-register.json` omvat iedere acceptatie-ID uit docs/09; pending betekent niet geleverd.
+Baseline: `71df59ab0390ffeae482c7edbaf27efe3fa6546d`. Bij de inventarisatie kwamen lokale en remote main hiermee overeen en was de werkboom schoon. Ontwikkelbranch: `codex/sites-v3-integration`. Alle 344 SHA256-checksums zijn gecontroleerd zonder afwijking. De uitgepakte referentie blijft ongewijzigd buiten de runtime. `screen-register.json` omvat iedere acceptatie-ID uit docs/09; pending betekent niet geleverd.
 
 | Onderdeel | Hergebruik | Uitbreiden | Nieuw | Rechten/data | Bewijs |
 | --- | --- | --- | --- | --- | --- |
@@ -20,3 +20,7 @@ Gebouwd, getest, gedeployed en live functioneel geverifieerd worden afzonderlijk
 ## Integratieafwijkingen
 
 Noodzakelijke integratieverschillen worden per fase afzonderlijk gemotiveerd en met bekeken beelden vastgelegd. De Sites-bron blijft leidend; dit is geen algemene uitzondering voor een redesign. Interne assetnamen/paden en importpaden mogen wijzigen om bestaande assets en hostgrenzen te behouden. Demohelpers, lokale bedrijfsdata en ownerheader-fallback worden niet in productie opgenomen.
+
+## Uiteindelijke lokale status
+
+De [105-regelige acceptatiematrix](acceptance-matrix.md) is volledig ingevuld; alle bewijsdoelen bestaan. De [finale acceptatie](final-acceptance.md) bundelt ketens, bekeken regio’s, minimale afwijkingen en externe voorwaarden. De definitieve schone replay omvat 178 migraties; de 138 oorspronkelijke hashes blijven intact. De gezamenlijke CI/deployment/live-status wordt uitsluitend bijgewerkt op basis van werkelijke release-uitkomsten in [release-status.json](release-status.json).

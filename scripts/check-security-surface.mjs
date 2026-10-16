@@ -87,6 +87,7 @@ const baseOperationalPaths = [
   "scripts/migration-manifest.json",
   "scripts/migration-manifest.ts",
   "scripts/package-release.sh",
+  "scripts/materialize-standalone.mjs",
   "scripts/preflight.ts",
   "scripts/run-worker.mjs",
   "scripts/test-release-artifact.mjs",

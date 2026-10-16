@@ -1,0 +1,226 @@
+{
+  "html": "<header class=\"page-intro unified-page-heading \"><div class=\"page-heading-copy\"><span class=\"eyebrow\">KLANTPORTAAL</span><div class=\"page-heading-title\"><h1>Mijn afspraken</h1></div><div class=\"page-heading-description\">Je geplande en uitgevoerde afspraken.</div></div><div class=\"resource-header-actions\"><button type=\"button\" class=\"compact-filter-trigger\" aria-label=\"Zoeken en filteren\" title=\"Zoeken en filteren\" aria-haspopup=\"dialog\" aria-expanded=\"false\" data-state=\"closed\" data-slot=\"popover-trigger\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-sliders-horizontal\" aria-hidden=\"true\"><path d=\"M10 5H3\"></path><path d=\"M12 19H3\"></path><path d=\"M14 3v4\"></path><path d=\"M16 17v4\"></path><path d=\"M21 12h-9\"></path><path d=\"M21 19h-5\"></path><path d=\"M21 5h-7\"></path><path d=\"M8 10v4\"></path><path d=\"M8 12H3\"></path></svg></button></div></header>",
+  "children": [
+    {
+      "tag": "DIV",
+      "cls": "page-heading-copy",
+      "text": "",
+      "display": "contents",
+      "visibility": "visible",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0
+      }
+    },
+    {
+      "tag": "SPAN",
+      "cls": "eyebrow",
+      "text": "KLANTPORTAAL",
+      "display": "block",
+      "visibility": "visible",
+      "rect": {
+        "x": 274,
+        "y": 217.78125,
+        "width": 1058,
+        "height": 13.1875
+      }
+    },
+    {
+      "tag": "DIV",
+      "cls": "page-heading-title",
+      "text": "",
+      "display": "flex",
+      "visibility": "visible",
+      "rect": {
+        "x": 274,
+        "y": 244.40625,
+        "width": 1058,
+        "height": 29.125
+      }
+    },
+    {
+      "tag": "H1",
+      "cls": "",
+      "text": "Mijn afspraken",
+      "display": "block",
+      "visibility": "visible",
+      "rect": {
+        "x": 274,
+        "y": 244.40625,
+        "width": 161,
+        "height": 29.125
+      }
+    },
+    {
+      "tag": "DIV",
+      "cls": "page-heading-description",
+      "text": "Je geplande en uitgevoerde afspraken.",
+      "display": "grid",
+      "visibility": "visible",
+      "rect": {
+        "x": 274,
+        "y": 294.96875,
+        "width": 1058,
+        "height": 17.921875
+      }
+    },
+    {
+      "tag": "DIV",
+      "cls": "resource-header-actions",
+      "text": "",
+      "display": "flex",
+      "visibility": "visible",
+      "rect": {
+        "x": 1356,
+        "y": 237.96875,
+        "width": 42,
+        "height": 42
+      }
+    },
+    {
+      "tag": "BUTTON",
+      "cls": "compact-filter-trigger",
+      "text": "",
+      "display": "flex",
+      "visibility": "visible",
+      "rect": {
+        "x": 1356,
+        "y": 237.96875,
+        "width": 42,
+        "height": 42
+      }
+    },
+    {
+      "tag": "svg",
+      "cls": {},
+      "text": "",
+      "display": "block",
+      "visibility": "visible",
+      "rect": {
+        "x": 1366.5,
+        "y": 248.46875,
+        "width": 21,
+        "height": 21
+      }
+    },
+    {
+      "tag": "path",
+      "cls": {},
+      "text": "",
+      "display": "inline",
+      "visibility": "visible",
+      "rect": {
+        "x": 1369.125,
+        "y": 252.84375,
+        "width": 6.125,
+        "height": 0
+      }
+    },
+    {
+      "tag": "path",
+      "cls": {},
+      "text": "",
+      "display": "inline",
+      "visibility": "visible",
+      "rect": {
+        "x": 1369.125,
+        "y": 265.09375,
+        "width": 7.875,
+        "height": 0
+      }
+    },
+    {
+      "tag": "path",
+      "cls": {},
+      "text": "",
+      "display": "inline",
+      "visibility": "visible",
+      "rect": {
+        "x": 1378.75,
+        "y": 251.09375,
+        "width": 0,
+        "height": 3.5
+      }
+    },
+    {
+      "tag": "path",
+      "cls": {},
+      "text": "",
+      "display": "inline",
+      "visibility": "visible",
+      "rect": {
+        "x": 1380.5,
+        "y": 263.34375,
+        "width": 0,
+        "height": 3.5
+      }
+    },
+    {
+      "tag": "path",
+      "cls": {},
+      "text": "",
+      "display": "inline",
+      "visibility": "visible",
+      "rect": {
+        "x": 1377,
+        "y": 258.96875,
+        "width": 7.875,
+        "height": 0
+      }
+    },
+    {
+      "tag": "path",
+      "cls": {},
+      "text": "",
+      "display": "inline",
+      "visibility": "visible",
+      "rect": {
+        "x": 1380.5,
+        "y": 265.09375,
+        "width": 4.375,
+        "height": 0
+      }
+    },
+    {
+      "tag": "path",
+      "cls": {},
+      "text": "",
+      "display": "inline",
+      "visibility": "visible",
+      "rect": {
+        "x": 1378.75,
+        "y": 252.84375,
+        "width": 6.125,
+        "height": 0
+      }
+    },
+    {
+      "tag": "path",
+      "cls": {},
+      "text": "",
+      "display": "inline",
+      "visibility": "visible",
+      "rect": {
+        "x": 1373.5,
+        "y": 257.21875,
+        "width": 0,
+        "height": 3.5
+      }
+    },
+    {
+      "tag": "path",
+      "cls": {},
+      "text": "",
+      "display": "inline",
+      "visibility": "visible",
+      "rect": {
+        "x": 1369.125,
+        "y": 258.96875,
+        "width": 4.375,
+        "height": 0
+      }
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Klantportaal: bronpresentatie en native klantbinding
 
-Deze fase behandelt K01 t/m K08. De implementatie en browseracceptatie zijn in uitvoering. Gebouwd, getest, gedeployed en live gecontroleerd blijven afzonderlijke statussen.
+Deze fase behandelt K01 t/m K08. De implementatie en lokale browseracceptatie zijn voltooid. Gebouwd, getest, gedeployed en live gecontroleerd blijven afzonderlijke statussen.
 
 | Scope | Keuze | Native basis en bronadapter |
 | --- | --- | --- |
@@ -30,7 +30,7 @@ Bij meerdere gekoppelde klanten blijft het expliciet gekozen account via de quer
 
 ## Bewijsstatus
 
-Lint en TypeScript zijn tijdens implementatie gecontroleerd. Echte klantketens, bekeken vergelijkingsbeelden, native regressies en releasegates zijn nog niet afgerond. Er is nog geen deployment of liveacceptatie voor deze fase.
+De definitieve lokale run bevat achttien geslaagde ketens met nul browserfouten: [resultaat](evidence/phase-24/result.json), [uitvoering](evidence/phase-24/browser-chain.log) en [bekeken bronvergelijkingen](evidence/phase-24/acceptance.json). Runtime `60561a0d2a7dafbf9b57912b1a42ce9ebd0fd103`; latere CRM-/platformcorrecties veranderen dit portaal niet. Er is nog geen hosted deploymentacceptatie voor deze fase.
 
 Op het verpakte lokale artifact `ad4f36bb29fc647812fce236b13ec1ccaf394740` slagen veertien echte klantketens: modulecommando, geautoriseerde factuurfinalisatie en afgeschermde PDF, SMTP/OTP, object-/afspraakbinding, vrijgegeven rapport, factuurselectie, tenantaanvraag, profielopslag, gepubliceerde kennisbank/updates, object aanmaken/wijzigen met expliciete binding en instructiehistorie, concreet bezoekverzoek, beoordeelde supportescalatie met bewuste terugkoppeling, centraal nieuws met lezen/bevestigen en afzonderlijke accounts met intrekking. De beeldacceptatie is nog in uitvoering.
 
@@ -51,3 +51,11 @@ De klanttitels en primaire pagina-acties gebruiken de oorspronkelijke bronpresen
 De vergelijking van de klantpagina’s vond nog native nieuws- en ticketkaarten met een andere gridindeling. Deze gebruiken nu de oorspronkelijke `portal-demo-news-grid`, nieuwsmeta/-titel/-footer en `portal-demo-route-grid`/ticketregels. De oorspronkelijke klanttitelcomponent krijgt geen extra native `page-heading`-klasse: die klasse liet de beschrijving en acties op mobiel verkeerd aansluiten. Alleen de presentatie wordt overgenomen; doelgroep, lezen/bevestigen, intake, reageren, expliciete escalatie en actuele accountrechten blijven dezelfde native opdrachten. De bannerlabels Rapporten/Facturen en de klantkennisbank-eyebrow volgen de bron.
 
 De herhaalde browserproef vond dat de nieuwe nieuws-/tickettak een presentatiecontext las vóór zijn eigen `CustomerShell`-provider. De canonieke klantenshell is zelf altijd het bronframe; deze twee hoofdweergaven kiezen daarom rechtstreeks hun broncomponent. Dat voorkomt de onbedoelde terugval naar de oude kaartweergave. De daadwerkelijke klantbinding en alle acties blijven bij dezelfde controller/serveropdrachten. De mislukte vergelijkingsrun is bewaard en wordt niet als acceptatie aangemerkt.
+
+## Afgeronde lokale acceptatie
+
+K01–K08 zijn in de volledige achttienketenrun opnieuw uitgevoerd. Naast de hierboven beschreven mutaties bewijst deze de expliciete keuze tussen meerdere klantaccounts, correcte accountparameters in kennis-/releaselinks, geen fallback na intrekking, het echte profielmenu, de eigen notificatie-overlay en een geladen mobiel tenantlogo zonder afsnijden. Factuurfinalisatie en privé-PDF volgen werkelijke goedkeuring/scan. De centrale nieuwsworker materialiseert een werkelijk gepubliceerde campagne; de klant registreert lezen en bevestigen. De klant→tenant→Fieldgrid-escalatie met expliciet publiek antwoord is echt uitgevoerd, inclusief afgeschermde private canarynotities.
+
+Alle twaalf hoofdpagina’s zijn op 1440/768/390 px vastgelegd en zonder pagina-overflow gecontroleerd. Voor de definitieve beoordeling zijn één bron-/doelpaar per pagina en zeven concrete object-/bezoek-/aanvraag-/factuurvensters bekeken, verdeeld over deze drie breedtes. De exacte lijst staat in [acceptance.json](evidence/phase-24/acceptance.json); een gegenereerd beeld wordt niet automatisch als bekeken aangemerkt. Bronteksten over demo-opslag/betaling zijn feitelijk gemaakt. Native adresvalidatie, originele bestanden, accountversies, instructiehistorie, extra dossierbediening en werkelijke betaalbeperkingen blijven gemotiveerde integratieverschillen.
+
+De lokale providertransportlaag accepteert uitsluitend fictieve ontvangers. De concrete dossierstep-up gebruikt de native challenge-/verificatieketen met een synthetische lokale code; alleen de primaire login heeft daadwerkelijke Mailpit-bezorging. Externe mailbezorging en betaling bij een geconfigureerde echte provider vereisen afzonderlijke hosted acceptatie. Er is geen lokaal verzonnen betaalstatus.

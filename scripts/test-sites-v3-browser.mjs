@@ -35,6 +35,7 @@ try{
    assert.equal(responses[0].status(),200,`${width} ${path} integrated status`);assert.equal(responses[1].status(),200,`${width} ${path} reference status`);
    await Promise.all([settle(page),settle(ref)]);
    const [actual,source]=await Promise.all([geometry(page),geometry(ref)]);
+   assert.ok(actual.box&&actual.box.x+actual.box.width<=width+1,`Native heading clipped: ${path} at ${width}`);
    const canonical=await page.locator('link[rel="canonical"]').getAttribute('href');assert.equal(new URL(canonical).href,new URL('https://www.fieldgrid.nl'+path).href);
    assert.ok((await page.title()).length>10);assert.ok(await page.locator('meta[name="description"]').getAttribute('content'));assert.ok(await page.locator('meta[name="robots"]').getAttribute('content').then(v=>v.includes('noindex')));
    for(const href of await page.locator('a[href]').evaluateAll(a=>a.map(x=>x.getAttribute('href'))))if(href?.startsWith('/')&&!href.startsWith('//'))links.add(href.split('#')[0].split('?')[0]||'/');

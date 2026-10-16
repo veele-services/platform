@@ -1,0 +1,20 @@
+{
+  "version": "1.2.0-rc.1",
+  "implemented": true,
+  "locallyTested": true,
+  "scopeRows": 105,
+  "baseline": "71df59ab0390ffeae482c7edbaf27efe3fa6546d",
+  "localArtifact": "58363c2e89d376454aefd6db167a6413e187d3b0",
+  "deployed": {"staging": false, "production": false},
+  "liveFunctionallyVerified": {"staging": false, "production": false},
+  "desiredProductionMarketingOrigin": "https://www.fieldgrid.nl",
+  "report": "final-acceptance.md",
+  "pendingExternalEvidence": [
+    "Reviewed main CI and exact-SHA staging promotion/activation/worker acceptance",
+    "Hosted private chains and actual primary-administrator delivery",
+    "Physical Android/iOS installation",
+    "Configured payment provider acceptance where applicable",
+    "Definitive public business/privacy contact details",
+    "Explicit production acceptance and www DNS/TLS/operator conditions"
+  ]
+}

@@ -1,0 +1,46 @@
+▶ release gate closes staff eligibility, coworker metadata and stale-session paths
+  ✔ only the eligible staff member sees and changes the open shift (46.847116ms)
+  ✔ coworker dispatch and internal review rows stay private (29.60163ms)
+  ✔ revoking the live session closes direct membership reads (15.557882ms)
+✔ release gate closes staff eligibility, coworker metadata and stale-session paths (1315.078865ms)
+▶ release privacy boundaries use real authenticated principals
+  ✔ assignment exposes minimal customer projection, not CRM or all contacts (36.291117ms)
+  ✔ own raw report remains available and changes only through the versioned command (47.838397ms)
+  ✔ Storage blocks colleague read/update but permits own file (16.664857ms)
+  ✔ shared work-order exceptions expose only the employee contribution and no colleague file or owner identity (22.641725ms)
+  ✔ exception creation cannot attach colleague proof or choose the planner on behalf of staff (83.866045ms)
+  ✔ exception reads fail after module, assignment or session revocation (41.07614ms)
+  ✔ upload before metadata and failure cleanup retain authorization (31.427816ms)
+  ✔ all document buckets require service publication and scan proof cannot be forged (79.638175ms)
+  ✔ forged owned attachment cannot refer to colleague bytes (5.705245ms)
+  ✔ platform authority does not imply tenant authority (9.148981ms)
+  ✔ personnel metadata cannot authorize a foreign tenant or different employee file (243.877126ms)
+  ✔ invoice PDF attachment enforces exact tenant and invoice identity (44.05493ms)
+  ✔ own completed draft report still supports versioned atomic soft-delete (53.262237ms)
+  ✔ shared tasks expose aggregate results, not colleague identities or notes (48.135908ms)
+  ✔ both execution RPCs reject a task explicitly assigned to another employee (23.829402ms)
+  ✔ shared checklist conditions remain usable without exposing or overwriting another answer (96.741536ms)
+  ✔ report audiences cannot bypass private contributions or employee signatures (123.620775ms)
+  ✔ missing, wrong and expired sessions fail closed (10.486414ms)
+  ✔ returned assignment loses report access (7.718625ms)
+  ✔ revocation is effective without changing the existing JWT (15.976525ms)
+  ✔ inactive tenant closes staff data access (6.974217ms)
+✔ release privacy boundaries use real authenticated principals (2259.635528ms)
+▶ release database catalog denies accidental public exposure
+  ✔ all application and storage tables have RLS; exposed application tables force it (4.778824ms)
+  ✔ anonymous and ordinary actors never inherit a bypass or administrative database role (2.580888ms)
+  ✔ private grants remain the single scoped numbering counter exception (7.363386ms)
+  ✔ application tables and non-trigger functions are unavailable to anonymous callers (15.568227ms)
+  ✔ definers use an empty search path and directly readable views cannot bypass RLS (3.160976ms)
+  ✔ privileged provider, file, capability and worker RPCs remain service-only (2.426534ms)
+  ✔ the public commercial entitlement predicate is callable only inside trusted definers (0.608913ms)
+  ✔ private storage and the version-bound scan publication boundary remain enabled (1.529975ms)
+✔ release database catalog denies accidental public exposure (1209.666482ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5021.822689

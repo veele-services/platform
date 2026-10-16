@@ -3,15 +3,18 @@ import {randomUUID} from 'node:crypto';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {chromium,expect} from '@playwright/test';
 import {createClient} from '@supabase/supabase-js';
-import {createBrowserClient} from '@supabase/ssr';
+import {localSmtpBrowserLogin} from './local-smtp-browser.mjs';
 import pg from 'pg';
 import {localWorkOrderTestConfig} from './work-order-test-target.mjs';
 
 const local=localWorkOrderTestConfig(),platform='http://127.0.0.1:3000',marketing='http://www.localhost:3000';
 assert.equal(local.API_URL,'http://127.0.0.1:60321','Use the explicitly owned local replay stack');
-const browser=await chromium.launch(),context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'}),page=await context.newPage();
-const errors=[],consoleErrors=[],evidence='/tmp/fieldgrid-sites-evidence/real-chain';
-await mkdir(evidence,{recursive:true});page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
+// Each local test represents a distinct fictitious client at the trusted proxy boundary.
+// Production rate limits are unchanged; do not reset the shared rate window.
+const fixtureIp='2001:db8:'+randomUUID().replaceAll('-','').match(/.{4}/g).slice(0,6).join(':');
+const browser=await chromium.launch(),context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce',extraHTTPHeaders:{'x-forwarded-for':fixtureIp}}),page=await context.newPage();
+const errors=[],consoleErrors=[],evidence=process.env.FIELDGRID_SITES_EVIDENCE_DIR||'/tmp/fieldgrid-sites-evidence/real-chain';
+await mkdir(evidence,{recursive:true});page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')consoleErrors.push({text:m.text(),url:m.location().url})});
 const marker=randomUUID(),company='FICTITIOUS Browser '+marker.slice(0,8),email=marker+'@crm-browser.invalid';
 const service=createClient(local.API_URL,local.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}}),db=new pg.Client({connectionString:local.DB_URL});await db.connect();
 let adminId,leadId;const receipts=[];
@@ -36,10 +39,9 @@ try{
  assert.equal(new Set(receipts.map(r=>r.leadId)).size,1);assert.equal(new Set(receipts.map(r=>r.requestId)).size,3);
  assert.equal((await db.query('select count(*)::int n from private.crm_tasks where lead_id=$1',[leadId])).rows[0].n,3);
  assert.equal((await db.query('select count(*)::int n from private.crm_requests where lead_id=$1',[leadId])).rows[0].n,3);
- const created=await service.auth.admin.createUser({email:`sites-browser-admin-${marker}@fieldgrid.test`,password:'Fieldgrid-E2E-2026',email_confirm:true,user_metadata:{full_name:'FICTITIOUS browser administrator'}});if(created.error)throw new Error('Isolated local administrator fixture could not be created');adminId=created.data.user.id;
+ const created=await service.auth.admin.createUser({email:`sites-browser-admin-${marker}@public-crm.invalid`,password:'Fieldgrid-E2E-2026',email_confirm:true,user_metadata:{full_name:'FICTITIOUS browser administrator'}});if(created.error)throw new Error('Isolated local administrator fixture could not be created');adminId=created.data.user.id;
  await db.query('insert into public.platform_admins(user_id) values($1)',[adminId]);
- const jar=new Map(),auth=createBrowserClient(local.API_URL,local.ANON_KEY,{isSingleton:false,auth:{autoRefreshToken:false,detectSessionInUrl:false,persistSession:true},cookies:{getAll:()=>[...jar].map(([name,value])=>({name,value})),setAll:items=>{for(const{name,value}of items)value?jar.set(name,value):jar.delete(name)}}});
- const signed=await auth.auth.signInWithPassword({email:`sites-browser-admin-${marker}@fieldgrid.test`,password:'Fieldgrid-E2E-2026'});assert.ok(!signed.error&&signed.data.session,'Real local Auth session required');await context.addCookies([...jar].map(([name,value])=>({name,value,url:platform})));
+ await localSmtpBrowserLogin(page,context,platform,`sites-browser-admin-${marker}@public-crm.invalid`,'platform');
  await page.goto(platform+'/platform/crm?tab=requests&lead='+leadId,{waitUntil:'networkidle',timeout:90000});const dialog=page.getByRole('dialog');await expect(dialog.getByText(email,{exact:true}).first()).toBeVisible();await dialog.getByRole('tab',{name:'Aanvragen · 3'}).click();await expect(dialog.getByText('Demoaanvraag',{exact:true})).toBeVisible();await expect(dialog.getByText('30 dagen proberen',{exact:true})).toBeVisible();await page.screenshot({path:evidence+'/same-dossier-requests-1440.png'});
  await dialog.getByRole('tab',{name:'Notities & tijdlijn'}).click();await dialog.getByLabel('Interne notitie').fill('FICTITIOUS browser follow-up note');await dialog.getByRole('button',{name:'Notitie toevoegen'}).click();await expect(dialog.getByText('FICTITIOUS browser follow-up note',{exact:true})).toBeVisible();
  await dialog.getByRole('tab',{name:'Overzicht',exact:true}).click();await dialog.getByLabel('Fase',{exact:true}).selectOption('proposal');await dialog.getByLabel('Potentiële maandwaarde (€)').fill('123');await dialog.getByRole('button',{name:'Dossier opslaan'}).click();await expect(dialog.getByText('Leaddossier opgeslagen.',{exact:true})).toBeVisible();await dialog.getByRole('button',{name:'Sluiten',exact:true}).last().click();
@@ -49,8 +51,16 @@ try{
  const anonymous=await browser.newContext();assert.equal((await anonymous.request.get(platform+'/api/crm')).status(),403);assert.equal((await anonymous.request.get(platform+'/api/crm/appointments/'+appointment+'/ics')).status(),403);await anonymous.close();
  assert.equal((await context.request.post(platform+'/api/crm/leads',{headers:{origin:marketing,'idempotency-key':randomUUID()},data:{name:'forged'}})).status(),403);
  await db.query('delete from public.platform_admins where user_id=$1',[adminId]);assert.equal((await context.request.get(platform+'/api/crm?lead='+leadId)).status(),403);console.log('PASS: ICS and private API enforce host, current session and registry');
- assert.deepEqual(errors,[]);assert.deepEqual(consoleErrors,[]);
- await writeFile(evidence+'/result.json',JSON.stringify({marker,leadId,requests:receipts.map(r=>r.requestId),checks:['trial','appointment','demo','same-lead-snapshots','automatic-tasks','dossier-note','dossier-stage','ics','anonymous-denied','wrong-origin-denied','revocation-denied'],browserErrors:errors,consoleErrors,viewed:false},null,2));
+ assert.deepEqual(errors,[]);
+ const expectedUnavailableBranding=[];
+ for(const issue of consoleErrors){
+  const url=new URL(issue.url),match=url.pathname.match(/^\/api\/branding\/([a-f0-9-]{36})\/email-logo$/);
+  assert.ok(issue.text==='Failed to load resource: the server responded with a status of 404 (Not Found)'&&url.origin===platform&&match,'Unexpected browser console error: '+issue.text+' '+issue.url);
+  const tenant=(await db.query('select status from public.tenants where id=$1',[match[1]])).rows[0];assert.ok(tenant&&tenant.status!=='active','Active branding must load');
+  expectedUnavailableBranding.push({tenantId:match[1],status:404,reason:'Existing inactive local fixture; public branding correctly fails closed and the UI retains its name fallback.'});
+ }
+
+ await writeFile(evidence+'/result.json',JSON.stringify({marker,leadId,requests:receipts.map(r=>r.requestId),checks:['trial','appointment','demo','same-lead-snapshots','automatic-tasks','dossier-note','dossier-stage','ics','anonymous-denied','wrong-origin-denied','revocation-denied'],browserErrors:errors,consoleErrors,expectedUnavailableBranding,viewed:false},null,2));
 }catch(error){await page.screenshot({path:evidence+'/failure.png'}).catch(()=>{});console.error('Dialog labels',await page.getByRole('dialog').locator('label').allTextContents().catch(()=>[]));throw error
 }finally{
  if(leadId){await db.query("update private.crm_appointments set status='cancelled',revision=revision+1 where lead_id=$1 and status<>'cancelled'",[leadId]);await db.query("update private.crm_tasks set completed=true,revision=revision+1 where lead_id=$1 and not completed",[leadId]);await db.query("update private.crm_leads set stage='lost',revision=revision+1 where id=$1",[leadId])}

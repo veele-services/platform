@@ -1,0 +1,41 @@
+{
+  "runtime": "58363c2e89d376454aefd6db167a6413e187d3b0",
+  "environment": "isolated-local",
+  "widths": [
+    1440,
+    768,
+    390
+  ],
+  "viewedFinalSheets": [
+    "settings-390",
+    "platform-overview-bottom-390",
+    "platform-overview-bottom-1440",
+    "lead-history-390",
+    "lead-intakes-768",
+    "platform-overview-1440"
+  ],
+  "viewedFinalRaw": [
+    "lead-overview-source-1440.png",
+    "lead-overview-target-1440.png"
+  ],
+  "viewedUnchangedRegionsFromEc7aa9ef": [
+    "pipeline-board-1440",
+    "pipeline-list-390",
+    "website-requests-768",
+    "new-lead-390",
+    "agenda-week-1440",
+    "appointment-details-390",
+    "appointment-reschedule-768",
+    "agenda-list-390",
+    "tasks-1440",
+    "new-task-768",
+    "mail-preview-390",
+    "new-appointment-1440",
+    "pipeline-board-768"
+  ],
+  "rejectedPriorRegions": [
+    "native lead tab margin in v48 corrected and viewed in v50",
+    "native mobile cockpit grid and broken logo in v48 corrected and viewed in v50"
+  ],
+  "meaning": "Raw comparisons keep viewed=false; only the explicit viewed lists constitute actual viewing. Prior unchanged regions remain identified by provenance; no pixel equality or hosted acceptance claim."
+}
