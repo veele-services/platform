@@ -18,3 +18,5 @@
 
 /* Native mutation gate preserves the supplied layout and mounted drafts. */
 .sites-crm .crm-command-fields{display:contents}
+/* Grid children may shrink while the original table keeps its own scroll area. */
+.sites-crm .crm-mail-log,.sites-crm .crm-mail-log>.resource-table-panel{min-width:0;max-width:100%}
