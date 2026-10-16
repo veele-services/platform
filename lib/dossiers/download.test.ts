@@ -39,6 +39,6 @@ describe('private personnel file preview uses the original download authorizatio
   mocks.source.mockResolvedValue({data:{...source,personnel_id:actor},error:null});expect((await downloadDossierDocument(document,'personnel',true)).status).toBe(404);expect(mocks.read).not.toHaveBeenCalled();
  });
  it('rejects malformed identifiers before authentication or data access',async()=>{
-  expect((await downloadDossierDocument('invalid','personnel',true)).status).toBe(404);expect(mocks.context).not.toHaveBeenCalled();expect(mocks.read).not.toHaveBeenCalled();
+  const response=await downloadDossierDocument('invalid','personnel',true);expect(response.status).toBe(404);expect(response.headers.get('x-frame-options')).toBe('DENY');expect(mocks.context).not.toHaveBeenCalled();expect(mocks.read).not.toHaveBeenCalled();
  });
 });

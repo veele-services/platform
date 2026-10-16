@@ -36,5 +36,5 @@ export async function downloadDossierDocument(documentId: string, sourceKind?: "
     },preview?'inline':'attachment');
     if (preview) for (const [key,value] of Object.entries(privateFilePreviewHeaders)) response.headers.set(key,value);
     return response;
-  } catch { return new Response("Document niet gevonden", { status: 404, headers }); }
+  } catch { return new Response("Document niet gevonden", { status: 404, headers:{...headers,"X-Frame-Options":"DENY"} }); }
 }
