@@ -1,5 +1,8 @@
 # Exacte CI, stagingdeployment en publieke livecontrole
 
+Dit verslag beschrijft de stagingacceptatie. De latere, expliciet geautoriseerde
+productiepromotie en haar afzonderlijke www-status staan in [fase 28](phase-28.md).
+
 De applicatie uit PR [591](https://github.com/veele-services/platform/pull/591) staat
 op staging als `5480df58a052fa795c76d1beb7172291f7e9ef1f`. De repository staat
 uitsluitend squashmerges toe; de Git-tree is exact gelijk aan de beoordeelde

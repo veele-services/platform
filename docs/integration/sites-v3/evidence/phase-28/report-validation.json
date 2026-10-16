@@ -1,0 +1,14 @@
+{
+  "verifiedAt": "2026-10-16T10:01:36.981Z",
+  "success": true,
+  "scopeRows": 105,
+  "evidenceReferences": 819,
+  "localMarkdownLinks": 441,
+  "viewedLoginImages": 6,
+  "evidenceHashesVerifiedBeforeThisRecord": 649,
+  "productionDeploymentSucceeded": true,
+  "fullPrivateLiveAcceptance": false,
+  "wwwLiveAcceptance": false,
+  "wwwBlocker": "HTTP 502; owner performing proxy check",
+  "runtimeChangedByEvidenceCommit": false
+}

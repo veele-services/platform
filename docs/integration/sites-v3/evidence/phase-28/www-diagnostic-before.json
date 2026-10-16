@@ -1,0 +1,63 @@
+{
+  "observedAt": "2026-10-16T09:26:51.435Z",
+  "readOnly": true,
+  "records": [
+    {
+      "host": "fieldgrid.nl",
+      "resolved": [
+        {
+          "address": "2a01:4f8:1c1c:3f6d::1",
+          "family": 6
+        },
+        {
+          "address": "46.224.117.239",
+          "family": 4
+        }
+      ],
+      "status": 200,
+      "server": null
+    },
+    {
+      "host": "www.fieldgrid.nl",
+      "resolved": [
+        {
+          "address": "2606:4700:3032::6815:962",
+          "family": 6
+        },
+        {
+          "address": "2606:4700:3033::ac43:bd36",
+          "family": 6
+        },
+        {
+          "address": "104.21.9.98",
+          "family": 4
+        },
+        {
+          "address": "172.67.189.54",
+          "family": 4
+        }
+      ],
+      "status": 502,
+      "server": "cloudflare"
+    },
+    {
+      "host": "veele-services.fieldgrid.nl",
+      "resolved": [
+        {
+          "address": "46.224.117.239",
+          "family": 4
+        }
+      ],
+      "status": 200,
+      "server": null
+    }
+  ],
+  "directOrigin": {
+    "status": 502,
+    "remoteIp": "46.224.117.239",
+    "tlsVerification": 0
+  },
+  "expectedApplicationUpstream": "127.0.0.1:3302",
+  "currentUpstreamConfigurationObserved": false,
+  "dnsOrProxyChanged": false
+}

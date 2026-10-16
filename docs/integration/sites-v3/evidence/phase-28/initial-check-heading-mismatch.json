@@ -1,0 +1,48 @@
+{
+  "observedAt": "2026-10-16T09:56:50.724Z",
+  "expected": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "readOnly": true,
+  "formSubmission": false,
+  "providerDeliveryClaim": false,
+  "privatePortalClaim": false,
+  "health": [
+    {
+      "origin": "https://fieldgrid.nl",
+      "status": "ok",
+      "environment": "production",
+      "release": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+      "database": "ready",
+      "scanner": "ready",
+      "checkedAt": "2026-10-16T09:56:51.001Z"
+    },
+    {
+      "origin": "https://veele-services.fieldgrid.nl",
+      "status": "ok",
+      "environment": "production",
+      "release": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+      "database": "ready",
+      "scanner": "ready",
+      "checkedAt": "2026-10-16T09:56:51.347Z"
+    }
+  ],
+  "boundaries": [],
+  "portalLogins": [
+    {
+      "next": "app",
+      "width": 1440,
+      "status": 200,
+      "overflow": false
+    }
+  ],
+  "marketingPages": [],
+  "screenshots": [
+    {
+      "file": "production-login-app-1440.png",
+      "generated": true,
+      "viewed": false
+    }
+  ],
+  "blockers": [],
+  "success": false,
+  "error": "The expression evaluated to a falsy value:\n\n  assert.ok((await page.getByRole('heading',{name:'Welkom terug',exact:true}).count())===1)\n"
+}

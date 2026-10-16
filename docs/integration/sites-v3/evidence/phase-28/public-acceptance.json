@@ -1,0 +1,128 @@
+{
+  "observedAt": "2026-10-16T09:57:34.055Z",
+  "expected": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "readOnly": true,
+  "formSubmission": false,
+  "providerDeliveryClaim": false,
+  "privatePortalClaim": false,
+  "health": [
+    {
+      "origin": "https://fieldgrid.nl",
+      "status": "ok",
+      "environment": "production",
+      "release": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+      "database": "ready",
+      "scanner": "ready",
+      "checkedAt": "2026-10-16T09:57:34.389Z"
+    },
+    {
+      "origin": "https://veele-services.fieldgrid.nl",
+      "status": "ok",
+      "environment": "production",
+      "release": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+      "database": "ready",
+      "scanner": "ready",
+      "checkedAt": "2026-10-16T09:57:34.703Z"
+    }
+  ],
+  "boundaries": [
+    {
+      "origin": "https://fieldgrid.nl",
+      "path": "/platform",
+      "status": 307
+    },
+    {
+      "origin": "https://fieldgrid.nl",
+      "path": "/fieldgrid-site/platform",
+      "status": 404
+    },
+    {
+      "origin": "https://proof-9840749f.fieldgrid.nl",
+      "path": "/",
+      "status": 404
+    }
+  ],
+  "portalLogins": [
+    {
+      "next": "app",
+      "width": 1440,
+      "status": 200,
+      "overflow": false
+    },
+    {
+      "next": "staff",
+      "width": 1440,
+      "status": 200,
+      "overflow": false
+    },
+    {
+      "next": "klant",
+      "width": 1440,
+      "status": 200,
+      "overflow": false
+    },
+    {
+      "next": "app",
+      "width": 390,
+      "status": 200,
+      "overflow": false
+    },
+    {
+      "next": "staff",
+      "width": 390,
+      "status": 200,
+      "overflow": false
+    },
+    {
+      "next": "klant",
+      "width": 390,
+      "status": 200,
+      "overflow": false
+    }
+  ],
+  "marketingPages": [],
+  "screenshots": [
+    {
+      "file": "production-login-app-1440.png",
+      "generated": true,
+      "viewed": false
+    },
+    {
+      "file": "production-login-staff-1440.png",
+      "generated": true,
+      "viewed": false
+    },
+    {
+      "file": "production-login-klant-1440.png",
+      "generated": true,
+      "viewed": false
+    },
+    {
+      "file": "production-login-app-390.png",
+      "generated": true,
+      "viewed": false
+    },
+    {
+      "file": "production-login-staff-390.png",
+      "generated": true,
+      "viewed": false
+    },
+    {
+      "file": "production-login-klant-390.png",
+      "generated": true,
+      "viewed": false
+    }
+  ],
+  "blockers": [
+    {
+      "scope": "public-marketing-host",
+      "origin": "https://www.fieldgrid.nl",
+      "status": 502,
+      "detail": "Public www host does not reach the promoted marketing application. No DNS/Caddy mutation performed; origin routing requires operator verification."
+    }
+  ],
+  "marketingRootStatus": 502,
+  "applicationSmokePassed": true,
+  "publicMarketingPassed": false,
+  "success": false
+}

@@ -7,7 +7,7 @@
   "localArtifact": "891185891f4872e51b54921cf67988d14b816502",
   "deployed": {
     "staging": true,
-    "production": false
+    "production": true
   },
   "liveFunctionallyVerified": {
     "staging": false,
@@ -20,9 +20,10 @@
     "Physical Android/iOS installation",
     "Configured payment provider acceptance where applicable",
     "Definitive public business/privacy contact details",
-    "Explicit production acceptance and working www routing/TLS/operator conditions; no production promotion or DNS/Caddy mutation performed"
+    "Public www.fieldgrid.nl origin routing/edge acceptance; application is deployed but public marketing is not live-accepted.",
+    "Production primary-administrator registration and actual provider delivery are not independently verified; staging bootstrap is not production proof."
   ],
-  "fullRegressionGate": "PASSED: PR 38865034609, main 38869033340 and staging verify 38872995106 each executed all 134 required browser cases successfully, without retries or skipped cases. Main and staging use the exact application commit 5480df58a052fa795c76d1beb7172291f7e9ef1f.",
+  "fullRegressionGate": "PASSED: PR 38865034609, main 38869033340 and staging verify 38872995106 each executed all 134 required browser cases successfully, without retries or skipped cases. Main and staging use the exact application commit 5480df58a052fa795c76d1beb7172291f7e9ef1f. Production run 38879615718 also completed the full required verification before activation.",
   "nativeBrowserRegression": "evidence/phase-26/native-browser-regression.json",
   "standardBundlerRecovery": "evidence/phase-26/standard-bundler/result.json",
   "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
@@ -32,7 +33,8 @@
     "staging": true,
     "production": false,
     "evidence": "evidence/phase-27/public-readonly-result.json",
-    "scope": "23 public marketing routes on desktop/tablet/mobile; metadata, availability and host isolation only; no form submission or private portal claim."
+    "scope": "23 public marketing routes on desktop/tablet/mobile; metadata, availability and host isolation only; no form submission or private portal claim.",
+    "productionEvidence": "evidence/phase-28/public-acceptance.json"
   },
   "hostedContractAcceptance": {
     "staging": true,
@@ -49,5 +51,23 @@
     "externalMailDeliveryVerified": false
   },
   "stagingAcceptanceReport": "phase-27.md",
-  "deploymentEvidence": "evidence/phase-27/release-result.json"
+  "deploymentEvidence": "evidence/phase-27/release-result.json",
+  "productionDeployment": "https://github.com/veele-services/platform/actions/runs/38879615718",
+  "productionApplicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "productionPromotionAuthorized": "User explicitly requested production promotion on 2026-10-16",
+  "productionApplicationSmoke": {
+    "passed": true,
+    "portalLoginViews": 6,
+    "scope": "Public exact-SHA health, portal login pages and host isolation only; no full private functional acceptance",
+    "evidence": "evidence/phase-28/public-acceptance.json"
+  },
+  "productionMarketingBlockers": [
+    {
+      "scope": "public-marketing-host",
+      "origin": "https://www.fieldgrid.nl",
+      "status": 502,
+      "detail": "Public www host does not reach the promoted marketing application. No DNS/Caddy mutation performed; origin routing requires operator verification."
+    }
+  ],
+  "productionAcceptanceReport": "phase-28.md"
 }

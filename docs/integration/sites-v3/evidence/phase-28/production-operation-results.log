@@ -1,0 +1,6 @@
+Selected public verification messages only; complete job/step outcomes are in workflow.json.
+promotion	Require exact main CI, staging acceptance and operator acceptance	2026-10-16T09:19:29.1572942Z Exacte productie-SHA heeft expliciete acceptatie, groene main-CI en geslaagde stagingdeploy.
+deploy	Activate through the single fixed root broker	2026-10-16T09:56:09.4458780Z Healthcheck geslaagd voor release 5480df58a052.
+worker-acceptance	Verify exact deployed release before worker acceptance	2026-10-16T09:56:21.9241054Z Healthcheck geslaagd voor release 5480df58a052.
+acceptance	Verify public health, exact SHA and deployed scanner readiness	2026-10-16T09:57:00.8985810Z Healthcheck geslaagd voor release 5480df58a052.
+acceptance	Verify public marketing and existing portal entry points	2026-10-16T09:57:07.5854091Z 28 public marketing routes, 404, production robots, sitemap and three portal logins verified.
