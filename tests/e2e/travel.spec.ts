@@ -365,8 +365,8 @@ test("object arrival marker coordinates stay separate from official address", as
 }) => {
   await login(page, `/app/objecten/${objects[0]}`);
   await page.getByRole("checkbox",{name:"Gebruik adreslocatie",exact:true}).uncheck();
-  await page.getByLabel("Breedtegraad aankomst").fill("52.081");
-  await page.getByLabel("Lengtegraad aankomst").fill("4.415");
+  await page.getByRole("spinbutton",{name:"Breedtegraad aankomst",exact:true}).fill("52.081");
+  await page.getByRole("spinbutton",{name:"Lengtegraad aankomst",exact:true}).fill("4.415");
   await page
     .getByRole("button", { name: "Aankomstinstellingen opslaan" })
     .click();
