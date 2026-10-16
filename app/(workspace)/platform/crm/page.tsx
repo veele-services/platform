@@ -4,7 +4,6 @@ import { headers } from "next/headers";
 import { getAuthContext } from "@/lib/auth/context";
 import { HOST_KIND_HEADER } from "@/lib/tenancy/hostname";
 import { CRM } from "@/components/fieldgrid/crm/CRM";
-import "@/components/fieldgrid/crm/shared-presentation.css";
 
 export const metadata: Metadata = { title: "CRM & aanvragen", robots: { index: false, follow: false } };
 export default async function CrmPage() {

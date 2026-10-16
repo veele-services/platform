@@ -3,7 +3,6 @@ import {createContext,useContext,useCallback,useEffect,useLayoutEffect,useMemo,u
 import {ArrowDownToLine,ArrowRight,ArrowUpRight,Bell,CalendarDays,Check,CheckCheck,ChevronLeft,ChevronRight,Clock,Columns3,GripVertical,Inbox,List,Mail,Phone,Plus,RefreshCw,Search,Settings2,ShieldCheck,Sparkles,Target,UserRound,X} from 'lucide-react';
 import {Badge,Button,ContentTabs,Empty,Field,Metric,Modal,PageHeading,Table} from './ui';
 import {CRM_STAGES,type CrmAppointment,type CrmKind,type CrmLead,type CrmNotificationStatus,type CrmSettings,type CrmStage,type CrmState} from '@/lib/platform-crm/types';
-import './crm.css';
 import {ListPagination} from '@/components/fieldgrid/list-pagination';
 import {useRouter,useSearchParams} from 'next/navigation';
 
