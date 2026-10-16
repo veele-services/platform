@@ -30,8 +30,14 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
 - De statuslegenda op het planbord blijft open bij klikken na aanwijzen en
   behoudt de bestaande bediening met Escape en buiten klikken.
 
-Dit is een releasekandidaat. Lokale implementatie en tests betekenen geen
-productiepublicatie, externe bezorging of liveacceptatie. De volledige
+Op 16 oktober 2026 is kandidaat `5480df58a052fa795c76d1beb7172291f7e9ef1f`
+na volledige PR-, main- en staging-CI op staging geactiveerd. Elke verificatie
+telt 134 geslaagde browsergevallen; de verse worker en hosted contractacceptatie
+slagen. Alle 23 publieke routes zijn op drie breedtes live gecontroleerd.
+[Deployment- en livebewijs](docs/integration/sites-v3/phase-27.md).
+
+Dit blijft een releasekandidaat: productie is niet gepromoveerd. Externe
+bezorging en volledige private liveacceptatie zijn nog niet bewezen. De volledige
 [scopecheck](docs/integration/sites-v3/screen-register.json) houdt die statussen
 afzonderlijk bij. Definitieve publieke bedrijfs-/privacygegevens en de normale
 review-, staging- en productieacceptatie blijven afzonderlijke stappen.

@@ -110,3 +110,8 @@ snapshots: responsieve PWA, alle werkbonvensters, meerwerk, afgeronde werkbon,
 private dossierbevestiging en de gescande ticket-/escalatieketen. Exacte lokale
 [health en geweigerde preview](evidence/phase-26/standard-bundler/artifact-health.json)
 zijn apart gecontroleerd. Een volledige groene CI blijft de promotiegate.
+
+
+## Latere volledige acceptatie
+
+De bovenstaande uitslagen zijn historisch bewijs en blijven intact. Daarna slagen PR-CI 38865034609, main-CI 38869033340 en staging verify 38872995106 elk met alle 134 browsergevallen, zonder retries of skips. De exacte stagingdeployment en worker-/hostedacceptatie slagen eveneens. [Fase 27](phase-27.md) bevat de metadata en publieke livecontrole; productie en volledige private hosted browseracceptatie blijven apart.

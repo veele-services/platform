@@ -37,6 +37,7 @@
       "reason": "Native translate utility moves Source dialog outside the viewport. Never used as a replacement baseline."
     }
   ],
-  "exactCommitFullCI": "pending",
-  "snapshotRegeneration": false
+  "exactCommitFullCI": "PASSED subsequently: PR 38865034609, main 38869033340 and staging 38872995106, each 134/134 with zero retries/skips. Historical failed and focused results remain unchanged.",
+  "snapshotRegeneration": false,
+  "finalAcceptance": "../../phase-27/release-result.json"
 }

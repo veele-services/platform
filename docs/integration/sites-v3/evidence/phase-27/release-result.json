@@ -1,0 +1,67 @@
+{
+  "version": "1.2.0-rc.1",
+  "baseline": "71df59ab0390ffeae482c7edbaf27efe3fa6546d",
+  "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "reviewedPullRequest": "https://github.com/veele-services/platform/pull/591",
+  "reviewedHead": "ca13f25f3eba700ee1eb9003b463d88570548acf",
+  "sameTreeAfterRepositoryRequiredSquash": true,
+  "applicationTree": "a77228ac97233ec5e3cb2317bbd0bf526453e6ba",
+  "mainCI": "https://github.com/veele-services/platform/actions/runs/38869033340",
+  "stagingDeployment": "https://github.com/veele-services/platform/actions/runs/38872995106",
+  "primaryAdministratorBootstrap": "https://github.com/veele-services/platform/actions/runs/38878426408",
+  "fullBrowserRuns": [
+    {
+      "run": 38865034609,
+      "passed": 134,
+      "failed": 0,
+      "retried": 0,
+      "skipped": 0
+    },
+    {
+      "run": 38869033340,
+      "passed": 134,
+      "failed": 0,
+      "retried": 0,
+      "skipped": 0
+    },
+    {
+      "run": 38872995106,
+      "passed": 134,
+      "failed": 0,
+      "retried": 0,
+      "skipped": 0
+    }
+  ],
+  "hostedContracts": {
+    "workOrder": 44,
+    "ticket": 35,
+    "veeleWebsiteReadback": 6,
+    "allRollbackOnly": true,
+    "veeleWebsiteRoutes": 28,
+    "portalLoginEntryPoints": 3
+  },
+  "publicMarketing": {
+    "origin": "https://www.staging.fieldgrid.nl",
+    "routes": 23,
+    "widths": [
+      1440,
+      768,
+      390
+    ],
+    "pageViews": 69,
+    "passed": true,
+    "readOnly": true,
+    "fullBusinessChain": false
+  },
+  "deployed": {
+    "staging": true,
+    "production": false
+  },
+  "fullLiveFunctionalAcceptance": {
+    "staging": false,
+    "production": false
+  },
+  "productionPromoted": false,
+  "dnsOrCaddyChanged": false,
+  "primaryAdminPolicy": "Existing workflow registered precisely FIELDGRID_ADMIN_EMAIL from GitHub Environment staging. No arbitrary first Auth account, password reset, second mail configuration or outbound mail test."
+}

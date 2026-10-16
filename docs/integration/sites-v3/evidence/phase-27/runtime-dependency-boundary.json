@@ -1,0 +1,20 @@
+{
+  "artifact": "891185891f4872e51b54921cf67988d14b816502",
+  "versions": {
+    "next": "16.3.8",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "referenceFilesInSealedArtifact": 0,
+  "installedWorkspaces": [
+    {
+      "name": "fieldgrid",
+      "version": "1.2.0-rc.1",
+      "path": "/home/codex/repos/fieldgrid",
+      "private": true
+    }
+  ],
+  "referenceFilesPreserved": 279,
+  "highCriticalDependencyAudit": "passed in PR, main and staging reusable verification; see workflow metadata",
+  "existingBracesAuditException": "GHSA-vfj7-8cjw-p6xm is paired with the reviewed upstream patch and installed-copy regression tests; unchanged by this evidence commit."
+}

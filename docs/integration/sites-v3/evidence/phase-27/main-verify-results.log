@@ -1,0 +1,9 @@
+Selected test-result lines; no environment blocks. Full run is linked in workflow metadata.
+verify / verify	UNKNOWN STEP	2026-10-16T07:46:03.5127985Z  Test Files  208 passed (208)
+verify / verify	UNKNOWN STEP	2026-10-16T07:46:03.5137102Z       Tests  1998 passed (1998)
+verify / verify	UNKNOWN STEP	2026-10-16T07:51:39.1549979Z Files=12, Tests=398,  5 wallclock secs ( 0.09 usr  0.02 sys +  0.15 cusr  0.08 csys =  0.34 CPU)
+verify / verify	UNKNOWN STEP	2026-10-16T07:56:11.6626360Z ℹ tests 723
+verify / verify	UNKNOWN STEP	2026-10-16T07:56:11.6627381Z ℹ pass 723
+verify / verify	UNKNOWN STEP	2026-10-16T07:56:17.2317632Z 1418 entrypoint/resource classifications unchanged. Full review status remains in docs/security/release-security-inventory.md.
+verify / verify	UNKNOWN STEP	2026-10-16T07:56:17.7845619Z 1418 authorization surfaces have an explicit completed review status and evidence reference.
+verify / verify	UNKNOWN STEP	2026-10-16T08:18:58.6729143Z   134 passed (20.4m)

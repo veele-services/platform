@@ -1,0 +1,17 @@
+{
+  "verifiedAt": "2026-10-16T09:14:51.039Z",
+  "success": true,
+  "validatedEvidenceChecksumsBeforeThisRecord": 632,
+  "scopeRows": 105,
+  "uniqueScopeRows": 105,
+  "existingScopeEvidenceReferences": 609,
+  "validLocalMarkdownLinks": 433,
+  "actuallyViewedRegionsWithMatchingOriginalAndCropHashes": 24,
+  "sourceIntegrity": {
+    "files": 279,
+    "byteIdentical": true,
+    "command": "node scripts/verify-sites-reference.mjs"
+  },
+  "gitDiffCheck": true,
+  "applicationCodeChangedByEvidenceCommit": false
+}
