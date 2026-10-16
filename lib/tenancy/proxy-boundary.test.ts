@@ -106,6 +106,26 @@ it("preserves a staff query deep link only inside the validated next destination
  expect(location.searchParams.get("next")).toBe("/staff?tab=meer&section=beschikbaarheid&workOrder=00000000-0000-4000-8000-000000000001");
  expect([...location.searchParams.keys()]).toEqual(["next"]);
 });
+it.each(["alpha.staging.fieldgrid.nl", "staging.fieldgrid.nl", "app.example.nl"])("preserves validated authority %s when Next supplies a loopback URL",async host=>{
+ vi.stubGlobal('fetch',vi.fn(async(url:string)=>new Response(JSON.stringify(url.endsWith('/rpc/resolve_workspace_hostname')?'alpha':[{id:'FICTITIOUS'}]))));
+ const headers={host,'x-forwarded-host':'attacker.invalid','x-forwarded-proto':'http'};
+ const response=await proxy(new NextRequest('http://127.0.0.1:3301/staff?tab=meer',{headers}));
+ const location=new URL(response.headers.get('location')!);
+ expect(location.origin).toBe(`https://${host}`);
+ expect(location.pathname).toBe('/login');expect(location.searchParams.get('next')).toBe('/staff?tab=meer');
+ mocks.user.mockResolvedValue({data:{user:{id:'fixture-user'}},error:null});
+ const signedIn=await proxy(new NextRequest('http://127.0.0.1:3301/login?next=%2Fstaff%3Ftab%3Dmeer',{headers}));
+ expect(signedIn.headers.get('location')).toBe(`https://${host}/staff?tab=meer`);
+});
+it("preserves the configured local port and tenant authority through both login redirects",async()=>{
+ vi.stubEnv('APP_URL','http://localhost:3002');vi.stubEnv('DEPLOY_TARGET','local');
+ const headers={host:'alpha.localhost:3002','x-forwarded-host':'attacker.invalid'};
+ const anonymous=await proxy(new NextRequest('http://localhost:3002/app',{headers}));
+ expect(anonymous.headers.get('location')).toBe('http://alpha.localhost:3002/login?next=%2Fapp');
+ mocks.user.mockResolvedValue({data:{user:{id:'fixture-user'}},error:null});
+ const signedIn=await proxy(new NextRequest('http://localhost:3002/login?next=https%3A%2F%2Fattacker.invalid',{headers}));
+ expect(signedIn.headers.get('location')).toBe('http://alpha.localhost:3002/app');
+});
 it("maps only an active registered custom host and overwrites tenant/path signals",async()=>{
  const fetchMock=vi.fn(async(url:string)=>new Response(JSON.stringify(url.endsWith('/rpc/resolve_workspace_hostname')?'alpha':[{id:'FICTITIOUS'}])));vi.stubGlobal('fetch',fetchMock);
  const response=await proxy(new NextRequest('https://app.example.nl/app/klanten',{headers:{host:'app.example.nl',[TENANT_SLUG_HEADER]:'beta','x-fieldgrid-pathname':'/app/instellingen'}}));

@@ -163,14 +163,20 @@ export async function proxy(request: NextRequest) {
   }
   if (protectedPath && !user) {
     const destination = `${request.nextUrl.pathname}${request.nextUrl.search}`;
-    const url = request.nextUrl.clone();
+    // Next's internal URL may use the loopback listener. The authority has
+    // already passed hostname/custom-domain validation above; forwarded host
+    // and protocol headers must never choose the login destination.
+    const url = new URL(process.env.APP_URL!);
+    url.hostname = hostContext.hostname;
     url.pathname = "/login";
     url.search = "";
     url.searchParams.set("next", destination);
     return NextResponse.redirect(url);
   }
   if (request.nextUrl.pathname === "/login" && user) {
-    const url = new URL(signedInLoginDestination(request.nextUrl.searchParams.get("next")),request.nextUrl.origin);
+    const origin = new URL(process.env.APP_URL!);
+    origin.hostname = hostContext.hostname;
+    const url = new URL(signedInLoginDestination(request.nextUrl.searchParams.get("next")), origin);
     return NextResponse.redirect(url);
   }
   return response;
