@@ -8,10 +8,10 @@ import "./list-pagination.css";
 export const LIST_PAGE_SIZES = [10, 25, 50, 100] as const;
 const singular: Record<string, string> = { resultaten: "resultaat", werkbonnen: "werkbon", facturen: "factuur", klanten: "klant", objecten: "object", medewerkers: "medewerker", aanvragen: "aanvraag", offertes: "offerte", notities: "notitie", acties: "actie", bijlagen: "bijlage", registraties: "registratie", documenten: "document", berichten: "bericht", notificaties: "notificatie", afspraken: "afspraak", taken: "taak", templates: "template", overeenkomsten: "overeenkomst", tickets: "ticket" };
 const preferenceStorage = (key: string) => `fieldgrid:list-size:${key}`;
-function readPreference(key: string) {
+export function readListSizePreference(key: string) {
   try { const value = Number(localStorage.getItem(preferenceStorage(key))); return LIST_PAGE_SIZES.some(size => size === value) ? value : null; } catch { return null; }
 }
-function writePreference(key: string, size: number) {
+export function writeListSizePreference(key: string, size: number) {
   try { localStorage.setItem(preferenceStorage(key), String(size)); } catch { /* A blocked preference store never prevents browsing. */ }
 }
 
@@ -31,7 +31,7 @@ export function ListPagination({ total, page, pageSize, noun = "resultaten", bus
   useEffect(() => {
     if (loaded.current === preferenceKey) return;
     loaded.current = preferenceKey;
-    const preferred = readPreference(preferenceKey);
+    const preferred = readListSizePreference(preferenceKey);
     if (preferred === null || preferred === pageSize) return;
     if (onPageSizeChange) onPageSizeChange(preferred);
     else if (href) {
@@ -45,7 +45,7 @@ export function ListPagination({ total, page, pageSize, noun = "resultaten", bus
   return <nav className="list-pagination" aria-label={`Paginatie ${noun}`} aria-busy={busy}>
     <span className="list-pagination-summary" aria-live="polite">{total} {total === 1 ? singular[noun] ?? noun : noun} · pagina {current} van {pages}{busy && " · bijwerken…"}</span>
     <div className="list-pagination-controls"><label>Toon<select aria-label="Aantal per pagina" value={pageSize} disabled={busy} onChange={event => {
-      const size = Number(event.target.value); writePreference(preferenceKey, size);
+      const size = Number(event.target.value); writeListSizePreference(preferenceKey, size);
       if (onPageSizeChange) onPageSizeChange(size); else if (href) router.push(target(1, size), { scroll: false });
     }}>{[...new Set<number>([...LIST_PAGE_SIZES, pageSize])].sort((a,b)=>a-b).map(size=><option key={size} value={size}>{size}</option>)}</select><span>per pagina</span></label>
     <button className="secondary-button" aria-label="Vorige pagina" disabled={busy || current <= 1} onClick={() => navigate(current - 1)}><ChevronLeft size={16}/></button>

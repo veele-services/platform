@@ -1,5 +1,5 @@
 "use client";
-import {useCallback,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {Eye,Pencil,Plus} from 'lucide-react';
@@ -16,6 +16,7 @@ import {EntityDetailDialog} from './entity-dialog';
 import {EntityFilter} from './entity-filter';
 import {managementRequest} from './request';
 import {useCustomerCards} from './customers-store';
+import {readListSizePreference,writeListSizePreference} from '../list-pagination';
 export type {CustomerCards} from '@/lib/management-cockpit/entities';
 
 /** Sites EntityPage customer table. The original native list, wizard and
@@ -26,6 +27,13 @@ export function SitesCustomersList({data:initial,owners,tenant,defaultPaymentTer
  const writable=hasManagementPermission(tenant,'backoffice.customers.write')&&hasManagementPermission(tenant,'backoffice.functions.customer_command');
  const forbidden=useCallback(()=>{setSelected(null);setEditor(null);setError('Dit dossier is niet beschikbaar binnen je actuele rechten.');router.refresh()},[router]);
  const store=useCustomerCards(initial,forbidden),data=store.data,filters=store.filters;
+ const preferenceKey=`backoffice:${tenant.id}:customers`,preferenceLoaded=useRef('');
+ useEffect(()=>{
+  if(preferenceLoaded.current===preferenceKey)return;
+  preferenceLoaded.current=preferenceKey;
+  const preferred=readListSizePreference(preferenceKey);
+  if(preferred!==null&&preferred!==filters.pageSize&&!new URLSearchParams(window.location.search).has('pageSize'))store.update('pageSize',String(preferred));
+ },[preferenceKey,filters.pageSize,store]);
  const edit=(detail:EntityDetail)=>{if(detail.access.edit&&detail.profile.editing){setSelected(null);setEditor(detail.profile.editing as Row<'customers'>)}};
  const editId=async(id:string)=>{setPending(true);setError('');try{const detail=await managementRequest<EntityDetail>('/api/management-entities?'+new URLSearchParams({kind:'customer',id}));if(!detail.access.edit||!detail.profile.editing){forbidden();return}edit(detail)}catch(e){setError(e instanceof Error?e.message:'Het dossier kon niet worden geladen.');router.refresh()}finally{setPending(false)}};
 
@@ -43,7 +51,7 @@ export function SitesCustomersList({data:initial,owners,tenant,defaultPaymentTer
   <Field label="Verantwoordelijke"><select onChange={e=>store.update(e.currentTarget.name,e.currentTarget.value)} name="owner" value={filters.owner}><option value="">Iedereen</option>{owners.map(o=><option value={o.id} key={o.id}>{o.label}</option>)}</select></Field>
   <Field label="Dienst"><input onChange={e=>store.update(e.currentTarget.name,e.currentTarget.value)} name="service" value={filters.service}/></Field>
   <Field label="Aandacht / selectie"><select onChange={e=>store.update(e.currentTarget.name,e.currentTarget.value)} name="attention" value={filters.attention}><option value="">Alle klanten</option><option value="objects">Met actieve objecten</option><option value="requests">Open aanvragen</option><option value="commercial">Commerciële deadline</option><option value="actions">Open opvolgacties</option>{data.finance&&<option value="finance">Openstaande facturen</option>}</select></Field>
-  <Field label="Resultaten per pagina"><select onChange={e=>store.update(e.currentTarget.name,e.currentTarget.value)} name="pageSize" value={filters.pageSize}>{[10,25,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></Field>
+  <Field label="Resultaten per pagina"><select onChange={e=>{writeListSizePreference(preferenceKey,Number(e.currentTarget.value));store.update(e.currentTarget.name,e.currentTarget.value)}} name="pageSize" value={filters.pageSize}>{[10,25,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></Field>
   </div></details><Button onClick={store.reset}>Filters wissen</Button>
  </EntityFilter><button type="button" title="Nieuwe klant" aria-label="Nieuwe klant" className="fg-action-icon primary-button" disabled={!writable||pending||!store.isCurrent} onClick={()=>setEditor('new')}><Plus size={18}/></button></>}/>
  {(error||store.error)&&<p className="gov-error" role="alert">{error||store.error}</p>}{!store.isCurrent&&<p className="mc-muted" role="status">Lijst bijwerken…</p>}
