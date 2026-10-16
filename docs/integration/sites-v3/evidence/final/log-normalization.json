@@ -1,0 +1,30 @@
+{
+  "meaning": "Only CRLF/line-end whitespace and redundant blank EOF lines normalized for version control; test output and outcomes unchanged. Raw local logs retain their original hashes.",
+  "files": [
+    {
+      "file": "final/focused-lint.log",
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "normalizedSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    {
+      "file": "final/lint.log",
+      "rawSha256": "03b070fdadef38f350f81fb036239ea05e52d8e73eae190fc1cb762b70b98d93",
+      "normalizedSha256": "758b549fa0041a4c7d81c078a82b9edeb75829eb4bafddcee4b446691c0c664f"
+    },
+    {
+      "file": "final/unit-1981.log",
+      "rawSha256": "590904c911b80342da67f202d1d7264660ca436d23d4e2929e79da0cbb19c848",
+      "normalizedSha256": "3b90a747f946605eedfdb6e506aeb6eca7a1283b9c35049fa165974262b0d610"
+    },
+    {
+      "file": "final/build.log",
+      "rawSha256": "d8e734d9673085904f0bf0e06b732ec01c802b3d1566eb8e87afdee668916b4c",
+      "normalizedSha256": "3441dd1d3781c5b383c75d004375ce129f8ca7dbe88469316528d634ff82aa3d"
+    },
+    {
+      "file": "final/browser-harness-lint.log",
+      "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "normalizedSha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    }
+  ]
+}
