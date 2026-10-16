@@ -15,3 +15,6 @@
 .crm-task-title{font-size:12px;font-weight:550;line-height:1.6}.crm-task.done .crm-task-title{text-decoration:line-through;color:var(--brand-muted)}
 
 .crm-global-recipient{border:1px solid var(--brand-border,#e1e8ef);background:var(--brand-surface,#f7faf9);border-radius:12px;padding:17px 18px;margin:16px 0;display:grid;gap:5px}.crm-global-recipient>span{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--brand-muted,#69788a);font-weight:600}.crm-global-recipient>strong{font-size:13px;color:var(--brand-ink,#18394b)}.crm-global-recipient>p{font-size:12px;overflow-wrap:anywhere;margin:0}.crm-global-recipient>small{font-size:10px;color:var(--brand-muted,#69788a)}
+
+/* Native mutation gate preserves the supplied layout and mounted drafts. */
+.sites-crm .crm-command-fields{display:contents}
