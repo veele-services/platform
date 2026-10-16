@@ -40,6 +40,41 @@
       "file": "security-review.log",
       "rawSha256": "a92738f4d769ae5ffe255a9bcec63d7c1211e992eb6c4a71dfc32d0f64a48cf4",
       "storedSha256": "a92738f4d769ae5ffe255a9bcec63d7c1211e992eb6c4a71dfc32d0f64a48cf4"
+    },
+    {
+      "file": "unit-1998.log",
+      "rawSha256": "5e146b4894dd005dec4855448d1ec648043ea1e582580de1b5d2d5b3c6660308",
+      "storedSha256": "5e146b4894dd005dec4855448d1ec648043ea1e582580de1b5d2d5b3c6660308"
+    },
+    {
+      "file": "contract-image-unit-6.log",
+      "rawSha256": "5f0e4c071a0f51fe998ab29f38a18ad086b02a4dbb5f00ff7a4f798f150543aa",
+      "storedSha256": "5f0e4c071a0f51fe998ab29f38a18ad086b02a4dbb5f00ff7a4f798f150543aa"
+    },
+    {
+      "file": "linux-staging.log",
+      "rawSha256": "8fe0744ea83fd2432aed627c080b04a35a2c36ea85c0fc73e3266b257302739f",
+      "storedSha256": "8fe0744ea83fd2432aed627c080b04a35a2c36ea85c0fc73e3266b257302739f"
+    },
+    {
+      "file": "linux-production.log",
+      "rawSha256": "44631c7bf9e8624d9f33b7f4a61b6fb4c074f61ec53531afda23811494261a78",
+      "storedSha256": "44631c7bf9e8624d9f33b7f4a61b6fb4c074f61ec53531afda23811494261a78"
+    },
+    {
+      "file": "dockerhub-pinned-pull.log",
+      "rawSha256": "ad81e229f8aa5b351f7e8a64c12a19937a901658cdfa108c788158b8c0a79466",
+      "storedSha256": "ad81e229f8aa5b351f7e8a64c12a19937a901658cdfa108c788158b8c0a79466"
+    },
+    {
+      "file": "security-review-1418.log",
+      "rawSha256": "3c277810ac4b95c559ba9e89ca6ad07d89bee3c44f7dd676f704cb0176b33fd9",
+      "storedSha256": "3c277810ac4b95c559ba9e89ca6ad07d89bee3c44f7dd676f704cb0176b33fd9"
+    },
+    {
+      "file": "security-surface-1418.log",
+      "rawSha256": "cf6272671128163cc3a14d57678c91010b7d64674a2b3d658b7b075a1ceda712",
+      "storedSha256": "cf6272671128163cc3a14d57678c91010b7d64674a2b3d658b7b075a1ceda712"
     }
   ]
 }

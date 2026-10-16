@@ -4,8 +4,9 @@ set -euo pipefail
 # Privileged operations stay inside a disposable container. Unlike the unit
 # fixtures, Linux itself enforces UID, GID, traversal, read and write checks.
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+contract_image="$(bash "$repo_root/scripts/contract-test-image.sh")"
 docker run --rm --interactive --volume "$repo_root:/repo:ro" \
-  public.ecr.aws/docker/library/debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251 \
+  "$contract_image" \
   /bin/bash -se <<'CONTAINER'
 set -euo pipefail
 

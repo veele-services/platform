@@ -3776,6 +3776,11 @@
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
         "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
@@ -7155,6 +7160,11 @@
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
         "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
@@ -7626,6 +7636,11 @@
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
         "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
@@ -7639,6 +7654,11 @@
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
         "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
@@ -7671,6 +7691,11 @@
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
         "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
@@ -7741,6 +7766,11 @@
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
         "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
@@ -7869,11 +7899,16 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "be359bd9a16fed5ba381624f95a2efbcc6f9afabed3c77da49d450a768fc29ef",
+      "surfaceFingerprint": "237e14eb5dd3af183662a9d0be222fcc0f1a1e1729482285d714e7bbbb9dba55",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
         "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
@@ -7934,6 +7969,24 @@
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
         "docs/deployment/staging-runbook.md"
+      ]
+    },
+    {
+      "id": "operation:scripts/contract-test-image.sh",
+      "surfaceFingerprint": "e3786bc07930ad6a25bc08cfcaf0dc9e4f82b42d1eb6b6e549653b8db9bcf5af",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
+        "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
+        "scripts/test-standalone-materialization.mjs",
+        "lib/operations/deployment-broker.test.ts",
+        "lib/operations/production-deployment.test.ts",
+        "scripts/test-release-artifact.mjs"
       ]
     },
     {
@@ -8009,6 +8062,11 @@
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
         "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
@@ -8048,6 +8106,11 @@
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
         "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
@@ -8072,6 +8135,11 @@
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
         "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
+        "scripts/test-staging-contract-linux.sh",
+        "scripts/test-production-contract-linux.sh",
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
@@ -8160,14 +8228,20 @@
     },
     {
       "id": "operation:scripts/test-production-contract-linux.sh",
-      "surfaceFingerprint": "c0cef11882d60caebe0fb10894fdb9f643cb97ff63d7999f2fe2a64e4c51267d",
+      "surfaceFingerprint": "92d1289a33f0bfd9b84243b79f40a2f482a377ca7cd3648a01216110004428c2",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/product-management-review-2026-10-09.md",
-        "docs/releases/productbeheer-v1-oplevering.md",
+        "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
+        "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
         "scripts/test-staging-contract-linux.sh",
         "scripts/test-production-contract-linux.sh",
-        "scripts/start-ticket-test-scanner.sh"
+        "scripts/test-standalone-materialization.mjs",
+        "lib/operations/deployment-broker.test.ts",
+        "lib/operations/production-deployment.test.ts",
+        "scripts/test-release-artifact.mjs"
       ]
     },
     {
@@ -8182,14 +8256,20 @@
     },
     {
       "id": "operation:scripts/test-staging-contract-linux.sh",
-      "surfaceFingerprint": "3c2f9ab48573a4464fab7f52acf2c8e9d5a4746ce1b0f72216884359488afcc0",
+      "surfaceFingerprint": "6171d9e3fdbb6cd11d998e7ebee2a0f24c1072a8c83b00146b579738ed1a277b",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/product-management-review-2026-10-09.md",
-        "docs/releases/productbeheer-v1-oplevering.md",
+        "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
+        "docs/integration/sites-v3/phase-1.md",
+        "docs/integration/sites-v3/phase-26.md",
+        "scripts/contract-test-image.sh",
+        "lib/operations/contract-test-image.test.ts",
         "scripts/test-staging-contract-linux.sh",
         "scripts/test-production-contract-linux.sh",
-        "scripts/start-ticket-test-scanner.sh"
+        "scripts/test-standalone-materialization.mjs",
+        "lib/operations/deployment-broker.test.ts",
+        "lib/operations/production-deployment.test.ts",
+        "scripts/test-release-artifact.mjs"
       ]
     },
     {

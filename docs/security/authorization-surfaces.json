@@ -8856,7 +8856,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "fd0c6c83d6c9ba15c30f05c7a0e10669eef943ab7c4af96f4a5089debbb89594"
+      "source_sha256": "a488bd4134c8bb39d2a00bfba047af53933fa4af11e5b21405990ac8d7eeefe5"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -8882,6 +8882,11 @@
       "id": "operation:scripts/check-worker-timer.sh",
       "classification": "operation",
       "source_sha256": "05ded66f38e916af8152113bd255716d41a42a12da804237db9d2b5d54fdd86f"
+    },
+    {
+      "id": "operation:scripts/contract-test-image.sh",
+      "classification": "operation",
+      "source_sha256": "39d7fabb3e0305e686751fb7834434c3c82ee0d0d76fb8d8664071f32ae71c14"
     },
     {
       "id": "operation:scripts/deploy-local.sh",
@@ -8981,7 +8986,7 @@
     {
       "id": "operation:scripts/test-production-contract-linux.sh",
       "classification": "operation",
-      "source_sha256": "620b80d023b1bc855d7638c0a6c71fcadc18e9ecd9853ae1d7ce387a6539e016"
+      "source_sha256": "fcde9881cb72eeaa4c34b63d9368b06e21ab3f9f200324399bb4f425c1aef08c"
     },
     {
       "id": "operation:scripts/test-release-artifact.mjs",
@@ -8991,7 +8996,7 @@
     {
       "id": "operation:scripts/test-staging-contract-linux.sh",
       "classification": "operation",
-      "source_sha256": "418e265bcd777766c3604661b9204a514fe0bb5b3227be835e6bfac760e8b852"
+      "source_sha256": "cd31b8f86d7a8aafe74129ea22d68a84e1f222921bab58e75f834646a1496e40"
     },
     {
       "id": "operation:scripts/test-veele-marketing.mjs",

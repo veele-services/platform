@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 # Test real UID/GID enforcement inside a disposable container, never on the VPS.
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+contract_image="$(bash "$repo_root/scripts/contract-test-image.sh")"
 docker run --rm --interactive \
-  public.ecr.aws/docker/library/debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251 \
+  "$contract_image" \
   /bin/bash -se <<'CONTAINER'
 set -euo pipefail
 for account in fieldgrid fieldgrid-runner fieldgrid-production fieldgrid-production-runner clamav; do

@@ -77,6 +77,7 @@ const baseOperationalPaths = [
   "scripts/check-staging-runner-contract.sh",
   "scripts/check-ticket-scanner.ts",
   "scripts/check-worker-timer.sh",
+  "scripts/contract-test-image.sh",
   "scripts/deploy-local.sh",
   "scripts/diagnose-auth-mail.ts",
   "scripts/diagnose-auth-mail-context.ts",

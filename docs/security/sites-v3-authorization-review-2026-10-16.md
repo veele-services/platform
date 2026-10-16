@@ -2,7 +2,7 @@
 
 Beoordeelde basis: `71df59ab0390ffeae482c7edbaf27efe3fa6546d`. Runtimecontrole: het verpakte lokale artifact `6505f47e5b61566af57e197b862f6ee47d6798d4` (1.2.0-rc.1), op de schone replay van 178 migraties. Deze review vervangt de eerdere baselinebeoordeling alleen voor daadwerkelijk veranderde fingerprints. Het is geen hosted deploymentacceptatie.
 
-Het register bevat 1.417 oppervlakken: 991 ongewijzigd, 128 identiek verplaatst en 298 inhoudelijk nieuw/gewijzigd. Alle 156 verdwenen oude route-ID's hebben een bestaande vervanger onder `(workspace)`; er zijn geen verdwenen databasefuncties of tabellen. De classificatie per oppervlak en oude/nieuwe route staat in [review-classification.json](../integration/sites-v3/evidence/final/review-classification.json). Iedere nieuwe fingerprint heeft afzonderlijk bewijs in `authorization-review.json`; de detector is geen vervanging voor deze bron-/diffbeoordeling.
+Het register bevat 1.418 oppervlakken: 989 ongewijzigd, 128 identiek verplaatst en 301 inhoudelijk nieuw/gewijzigd. Alle 156 verdwenen oude route-ID's hebben een bestaande vervanger onder `(workspace)`; er zijn geen verdwenen databasefuncties of tabellen. De classificatie per oppervlak en oude/nieuwe route staat in [review-classification.json](../integration/sites-v3/evidence/final/review-classification.json). Iedere nieuwe fingerprint heeft afzonderlijk bewijs in `authorization-review.json`; de detector is geen vervanging voor deze bron-/diffbeoordeling.
 
 <a id="routeverplaatsingen"></a>
 ## Routeverplaatsingen
@@ -78,11 +78,11 @@ De releaseverpakker volgt alleen links binnen het getraceerde standalonepad, mat
 
 ## Vrijgavegrens
 
-Security-advisor: geen meldingen. Native database: 723 geslaagd; pgTAP: 398 geslaagd. Unitset: 1.992 geslaagd. Lint: geen fouten, 38 bestaande waarschuwingen. Bronintegriteit: 279 referentiebestanden exact. Geen hosted reset, secretwaarde-opvraging, DNS-mutatie of live providerbezorging is in dit bewijs opgenomen. CI op de te promoveren commit, exact-SHA staginghealth en een verse workeruitvoering blijven releasegates. Productiepublicatie en feitelijke juridische websitegegevens blijven afzonderlijke acceptatiepunten.
+Security-advisor: geen meldingen. Native database: 723 geslaagd; pgTAP: 398 geslaagd. Unitset: 1.998 geslaagd. Lint: geen fouten, 38 bestaande waarschuwingen. Bronintegriteit: 279 referentiebestanden exact. Geen hosted reset, secretwaarde-opvraging, DNS-mutatie of live providerbezorging is in dit bewijs opgenomen. CI op de te promoveren commit, exact-SHA staginghealth en een verse workeruitvoering blijven releasegates. Productiepublicatie en feitelijke juridische websitegegevens blijven afzonderlijke acceptatiepunten.
 
 ## Uiteindelijke lokale gates
 
-De [finale bewijsmap](../integration/sites-v3/evidence/final) bevat de schone replay van alle 178 migraties, 398 pgTAP-checks, 723 native databasechecks, 1.992 unitchecks en de extra 35 securitycatalogus-/releasechecks en tien echte HTTP/Auth/Data API/Storage/Realtime-controles. De 138 baseline-migraties hebben dezelfde statementhashes; geen toegepaste migratie is gewijzigd. Security-advisor meldt geen waarschuwingen/fouten. De snapshot en review sluiten op 1.417 actuele oppervlakken aan. De standaard koude webpackbuild compileert 108 pagina’s; het linkvrije standaloneartifact start en geeft lokaal dezelfde SHA met database/scanner ready. Bron- en browserartifactscans melden geen herkende credentials; dit blijft een afgebakende detectie.
+De [finale bewijsmap](../integration/sites-v3/evidence/final) bevat de schone replay van alle 178 migraties, 398 pgTAP-checks, 723 native databasechecks, 1.998 unitchecks en de extra 35 securitycatalogus-/releasechecks en tien echte HTTP/Auth/Data API/Storage/Realtime-controles. De 138 baseline-migraties hebben dezelfde statementhashes; geen toegepaste migratie is gewijzigd. Security-advisor meldt geen waarschuwingen/fouten. De snapshot en review sluiten op 1.418 actuele oppervlakken aan. De standaard koude webpackbuild compileert 108 pagina’s; het linkvrije standaloneartifact start en geeft lokaal dezelfde SHA met database/scanner ready. Bron- en browserartifactscans melden geen herkende credentials; dit blijft een afgebakende detectie.
 
 De laatste review omvat ook de werkelijk geweigerde branding van buiten gebruik gestelde lokale fixtures. De publieke logoroute blijft 404; de presentatie toont voortaan initialen als een eerder bekende logo-URL niet meer beschikbaar is. Geen privébytes, tenantactivatie of autorisatiefallback is toegevoegd. Het oorspronkelijke tweekoloms cockpitgrid en de bronafstand voor dossiertabs blijven door de native pendingveldset heen behouden.
 
@@ -107,3 +107,14 @@ De rolleneditor gebruikt expliciete geregistreerde afhankelijkheden. Alleen oude
 Formulierfooter-, tabstijl- en focusaanpassingen wijzigen uitsluitend de presentatie rond bestaande native opdrachten. Form-associatie houdt het echte submitformulier/handler intact; Tab/ShiftTab blijven in het actieve venster. Alleen directe fragments/footers worden uitgepakt, geen willekeurige onderliggende componenten. De aanvullende native dossiertabs behouden Radix-toetsenbordgedrag met de bronstijl. De algemene volledige browserregressie wordt nog afgerond; dit hoofdstuk claimt geen groene promotiegate of liveacceptatie.
 
 De effectieve Next-response is ook via het werkelijk verpakte HTTP-endpoint gecontroleerd: een geweigerde preview bevat vaste 404-tekst, private/no-store en CSP frame-ancestors none. De statische queryheader SAMEORIGIN is daarom geen bewijs van toelating. Het concrete resultaat staat in fase 26. De volledige native browserdekking en nog vereiste exacte-commit-CI worden daar afzonderlijk verantwoord.
+
+
+De Linux-rechtentests behouden hun volledige UID/GID-/socket-/directory-assertions.
+Alleen het ophalen van hun Debian-testimage heeft nu een begrensde transportkeuze:
+public ECR, daarna de officiële Docker Hub-repository, beide met dezelfde vaste
+digest. Er zijn geen argument-/omgevingsoverrides, extra credentials, mutabele
+tags of lokale hostmutaties. Een ontbrekend image na pull en uitval van beide
+registries geven een foutstatus; beide oorspronkelijke runners blijven verplicht.
+De helper is expliciet toegevoegd aan de operationele inventaris. Zes gerichte
+herstel-/weigertests, beide werkelijke Linux-runners, de 1.998-unitset en de
+1.418-surface-controle slagen; fase 26 bewaart het concrete bewijs.

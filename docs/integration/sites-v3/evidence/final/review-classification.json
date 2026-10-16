@@ -13,7 +13,7 @@
     "sla": 22,
     "mail": 9,
     "platform": 9,
-    "operations": 10
+    "operations": 13
   },
   "removed": [
     {
@@ -2129,6 +2129,12 @@
       "previous": "operation:scripts/check-security-surface.mjs"
     },
     {
+      "id": "operation:scripts/contract-test-image.sh",
+      "kind": "reviewed-change",
+      "group": "operations",
+      "previous": null
+    },
+    {
       "id": "operation:scripts/materialize-standalone.mjs",
       "kind": "reviewed-change",
       "group": "operations",
@@ -2145,6 +2151,18 @@
       "kind": "reviewed-change",
       "group": "operations",
       "previous": "operation:scripts/package-release.sh"
+    },
+    {
+      "id": "operation:scripts/test-production-contract-linux.sh",
+      "kind": "reviewed-change",
+      "group": "operations",
+      "previous": "operation:scripts/test-production-contract-linux.sh"
+    },
+    {
+      "id": "operation:scripts/test-staging-contract-linux.sh",
+      "kind": "reviewed-change",
+      "group": "operations",
+      "previous": "operation:scripts/test-staging-contract-linux.sh"
     },
     {
       "id": "rpc:private.agreement_scope_guard()",
