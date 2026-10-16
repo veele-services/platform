@@ -52,3 +52,7 @@
 
 /* A real file link keeps the source document button’s mobile footer sizing. */
 @media(max-width:600px){.sites-portals .portal-demo .mc-dialog-frame>footer>.sites-document-download{flex:1}}
+/* Native ticket/account forms retain their commands inside the source frame.
+   Give their controls the source field size rather than inherited rem scaling. */
+.sites-portals .portal-demo .mc-dialog .sites-native-editor :is(input:not([type=checkbox]):not([type=radio]),select,textarea){font-size:13px}
+@media(max-width:620px){.sites-portals .portal-demo .mc-dialog .sites-native-editor :is(input:not([type=checkbox]):not([type=radio]),select,textarea){font-size:16px}}
