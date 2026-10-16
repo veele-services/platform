@@ -31,6 +31,7 @@ export function CRMOverview({navigate}:{navigate:(path:string)=>void}){
       const response=await fetch('/api/crm?view=overview',{credentials:'same-origin',cache:'no-store',signal:request.signal});
       const result:unknown=await response.json().catch(()=>null);
       const payload=result&&typeof result==='object'?result as Record<string,unknown>:null;
+      if(response.status===401||response.status===403){if(!request.signal.aborted)setData(null);throw new Error('Je hebt geen actuele toegang tot het platform-CRM.')}
       if(!response.ok||payload?.ok===false)throw new Error(typeof payload?.error==='string'?payload.error:'Het CRM-overzicht kon niet worden geladen.');
       if(!isCrmState(result))throw new Error('De server gaf geen geldig CRM-overzicht terug. Probeer het opnieuw.');
       if(!request.signal.aborted){setData(result);setError('')}
