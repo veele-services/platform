@@ -20,3 +20,4 @@
 .sites-crm .crm-command-fields{display:contents}
 /* Grid children may shrink while the original table keeps its own scroll area. */
 .sites-crm .crm-mail-log,.sites-crm .crm-mail-log>.resource-table-panel{min-width:0;max-width:100%}
+.sites-crm .crm-mail-log{grid-template-columns:minmax(0,1fr)}

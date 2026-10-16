@@ -48,4 +48,4 @@
 @media(min-width:701px) and (max-width:1000px){.sites-portals .portal-demo.personnel-app .ps-sidebar-brand .ps-sidebar-logo .brand-logo-image{height:57px;padding:8px}}
 
 /* Keep the required native ticket fields in the source form typography. */
-.sites-portals .portal-demo .sites-staff-native-dialog .ticket-form label{font-weight:400;color:var(--brand-ink)}
+.sites-portals .portal-demo .mc-dialog .ticket-form label{font-size:12px;font-weight:400;color:var(--brand-ink)}

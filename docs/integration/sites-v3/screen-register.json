@@ -836,11 +836,13 @@
         "Nieuwe-leaddialoog direct geopend."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-25.md"
+      ]
     },
     {
       "id": "A02",
@@ -850,11 +852,13 @@
         "Afspraakdialoog direct geopend, leadkeuze; zonder lead eerst contact toevoegen."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-25.md"
+      ]
     },
     {
       "id": "A03",
@@ -864,11 +868,13 @@
         "Aanvragenlijst en dossierdoorklikken."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-25.md"
+      ]
     },
     {
       "id": "A04",
@@ -878,11 +884,13 @@
         "CRM-takenlijst."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-25.md"
+      ]
     },
     {
       "id": "A05",
@@ -892,11 +900,13 @@
         "Agenda-instellingen en centrale meldingscontext."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-25.md"
+      ]
     },
     {
       "id": "A06",
@@ -906,11 +916,13 @@
         "Bestaande zesstappen-onboarding behouden, gekoppeld aan echte provisioning."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-25.md"
+      ]
     },
     {
       "id": "A07",
@@ -920,11 +932,13 @@
         "Huisstijl van die tenant; Fieldgrid-platformchrome blijft ongewijzigd."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-25.md"
+      ]
     },
     {
       "id": "A08",
@@ -934,11 +948,13 @@
         "Bestaand tenantgebonden templatebeheer."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-25.md"
+      ]
     },
     {
       "id": "R01",
@@ -1607,11 +1623,13 @@
         "Alleen toegewezen werk, echte instructies/contact/uitvoering; bestaande uitvoeringsflow en offline/PWA-afspraken behouden."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-23.md"
+      ]
     },
     {
       "id": "S02",
@@ -1621,11 +1639,13 @@
         "Werkelijke urenregistratie en aanvraag/goedkeuringsflow; geen ongetoetste lokale wijziging van betaalde uren."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-23.md"
+      ]
     },
     {
       "id": "S03",
@@ -1635,11 +1655,13 @@
         "Eigen medewerkerbinding, echte opslag en relevante planning/goedkeuring; datums en status kloppen."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-23.md"
+      ]
     },
     {
       "id": "S04",
@@ -1649,11 +1671,13 @@
         "Echte afgeschermde bestanden/downloads; geen fictieve preview als geleverd personeelstuk."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-23.md"
+      ]
     },
     {
       "id": "S05",
@@ -1663,11 +1687,13 @@
         "Echte geautoriseerde content en support; medewerker ziet alleen toegestane gegevens."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-23.md"
+      ]
     },
     {
       "id": "S06",
@@ -1677,11 +1703,13 @@
         "Eigen profiel en echte accountinstellingen; PWA-installatiegedrag koppelen aan bestaande implementatie. Prototypeaccount niet hardcoderen."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-23.md"
+      ]
     },
     {
       "id": "K01",
@@ -1691,11 +1719,13 @@
         "Account-/objectgebonden samenvatting uit echte data; doorklikken houdt klantcontext."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-24.md"
+      ]
     },
     {
       "id": "K02",
@@ -1705,11 +1735,13 @@
         "Bestaande objectrechten en eventuele aanvraag/beoordeling behouden; klant kan geen willekeurige tenantlocatie overnemen."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-24.md"
+      ]
     },
     {
       "id": "K03",
@@ -1719,11 +1751,13 @@
         "Alleen eigen afspraken; instructies en werkboninformatie volgens bestaande toegestane projectie. Geen toegang tot interne staffnotities."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-24.md"
+      ]
     },
     {
       "id": "K04",
@@ -1733,11 +1767,13 @@
         "Werkelijke vrijgegeven rapporten en beveiligde downloads; geen intern rapport blootleggen."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-24.md"
+      ]
     },
     {
       "id": "K05",
@@ -1747,11 +1783,13 @@
         "Echte factuur/PDF/betaalroute; demo-“betalen” nooit als ontvangen betaling opslaan."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-24.md"
+      ]
     },
     {
       "id": "K06",
@@ -1761,11 +1799,13 @@
         "Echte tenantaanvraag met klantbinding; gescheiden van het platform-CRM voor Fieldgrid-verkoop."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-24.md"
+      ]
     },
     {
       "id": "K07",
@@ -1775,11 +1815,13 @@
         "Bestaande klantgebonden tickets/content en echte berichtregistratie."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-24.md"
+      ]
     },
     {
       "id": "K08",
@@ -1789,11 +1831,13 @@
         "Werkelijke accountvoorkeuren en rechten; mobiele links werken en server beschermt iedere onderliggende resource."
       ],
       "route": null,
-      "implementation": "pending",
+      "implementation": "implemented",
       "tested": false,
       "deployed": false,
       "liveVerified": false,
-      "evidence": []
+      "evidence": [
+        "docs/integration/sites-v3/phase-24.md"
+      ]
     }
   ]
 }
