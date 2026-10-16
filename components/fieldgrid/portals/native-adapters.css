@@ -49,3 +49,6 @@
 
 /* Keep the required native ticket fields in the source form typography. */
 .sites-portals .portal-demo .mc-dialog .ticket-form label{font-size:12px;font-weight:400;color:var(--brand-ink)}
+
+/* A real file link keeps the source document button’s mobile footer sizing. */
+@media(max-width:600px){.sites-portals .portal-demo .mc-dialog-frame>footer>.sites-document-download{flex:1}}

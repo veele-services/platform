@@ -37,8 +37,13 @@ try{
  else{
   assert.equal(headers['content-security-policy'],"default-src 'none'; frame-ancestors 'self'");assert.equal(headers['x-frame-options'],'SAMEORIGIN');
   await expect(iframe).not.toHaveAttribute('sandbox');
-  await expect(iframe.contentFrame().locator('embed[type="application/pdf"]')).toBeVisible({timeout:30000});
   await expect.poll(()=>page.frames().some(frame=>frame.url().startsWith('chrome-extension://')),{timeout:30000}).toBe(true);
+  let viewerFrame;await expect.poll(async()=>{for(const frame of page.frames())if(await frame.locator('pdf-viewer').count()){viewerFrame=frame;return true}return false},{timeout:30000}).toBe(true);
+  await expect(viewerFrame.locator('pdf-viewer')).toBeVisible();
+  await expect(viewerFrame.locator('embed')).toBeVisible();
+  const viewer=await viewerFrame.locator('embed').evaluate(el=>({tag:el.tagName,type:el.getAttribute('type'),width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height}));assert.equal(viewer.type,'application/x-google-chrome-pdf');await writeFile(directory+'/viewer-structure.json',JSON.stringify(viewer,null,2));
+  for(const width of[1440,768,390]){await page.setViewportSize({width,height:1000});await expect(iframe).toBeVisible();await expect(page.getByRole('dialog').getByRole('link',{name:'Document downloaden',exact:true})).toBeInViewport({ratio:1});await captureManagementImage(page,directory+'/document-viewer-'+width+'.png','dialog[open],[role="dialog"]')}
+  await page.setViewportSize({width:1440,height:1000});
   assert.deepEqual(errors,[]);
   await db.query('update public.personnel_documents set visible_to_employee=false where id=$1',[id]);assert.equal((await context.request.get(url)).status(),404);
  }
