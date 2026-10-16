@@ -1,0 +1,1500 @@
+{
+  "meaning": "Full supplied/candidate JPEG diagnostic; RGB threshold16, no masking. Not a visual-viewing claim.",
+  "rows": [
+    {
+      "path": "/",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        9871,
+        1440,
+        9871
+      ],
+      "changedPixelRatio": 0.00008899526109028692,
+      "meanRgbDelta": 0.005775757268767096,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        3503,
+        1440,
+        3503
+      ],
+      "changedPixelRatio": 0.00025057886890601707,
+      "meanRgbDelta": 0.01624870481386325,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        6958,
+        1440,
+        6958
+      ],
+      "changedPixelRatio": 0.00012805004630960366,
+      "meanRgbDelta": 0.008086082633366335,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        6897,
+        1440,
+        6897
+      ],
+      "changedPixelRatio": 0.00012757156895912877,
+      "meanRgbDelta": 0.008178005466681702,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        6923,
+        1440,
+        6923
+      ],
+      "changedPixelRatio": 0.00012628998346895213,
+      "meanRgbDelta": 0.007450273110030441,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        6923,
+        1440,
+        6923
+      ],
+      "changedPixelRatio": 0.00012628998346895213,
+      "meanRgbDelta": 0.007450273110030441,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        6934,
+        1440,
+        6934
+      ],
+      "changedPixelRatio": 0.00012929445886613466,
+      "meanRgbDelta": 0.008007409811022444,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        6912,
+        1440,
+        6912
+      ],
+      "changedPixelRatio": 0.0001294045781893004,
+      "meanRgbDelta": 0.00822549618484225,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        7004,
+        1440,
+        7004
+      ],
+      "changedPixelRatio": 0.00012522606129830574,
+      "meanRgbDelta": 0.007365070488821203,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        5320,
+        1440,
+        5320
+      ],
+      "changedPixelRatio": 0.00017361111111111112,
+      "meanRgbDelta": 0.010594933514341409,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/planning",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        4780,
+        1440,
+        4780
+      ],
+      "changedPixelRatio": 0.00018494304974430497,
+      "meanRgbDelta": 0.010842776615527662,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        4657,
+        1440,
+        4657
+      ],
+      "changedPixelRatio": 0.00018848567270297997,
+      "meanRgbDelta": 0.012077994894185574,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        4779,
+        1440,
+        4779
+      ],
+      "changedPixelRatio": 0.00018280207388807513,
+      "meanRgbDelta": 0.010820245596087822,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        4721,
+        1440,
+        4721
+      ],
+      "changedPixelRatio": 0.0001859304761232319,
+      "meanRgbDelta": 0.011914260161453553,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        4805,
+        1440,
+        4805
+      ],
+      "changedPixelRatio": 0.00018224650248583653,
+      "meanRgbDelta": 0.01069131306124022,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        4921,
+        1440,
+        4921
+      ],
+      "changedPixelRatio": 0.00018020840389261443,
+      "meanRgbDelta": 0.011329656724393566,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        4895,
+        1440,
+        4895
+      ],
+      "changedPixelRatio": 0.00017932130291680853,
+      "meanRgbDelta": 0.011631246926190747,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/werkwijze",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        4331,
+        1440,
+        4331
+      ],
+      "changedPixelRatio": 0.00020090946407039687,
+      "meanRgbDelta": 0.011947084755039038,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/over",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        3862,
+        1440,
+        3862
+      ],
+      "changedPixelRatio": 0.00023214080211749814,
+      "meanRgbDelta": 0.014376126838905191,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/demo",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        3342,
+        1440,
+        3342
+      ],
+      "changedPixelRatio": 0.0002674296828246559,
+      "meanRgbDelta": 0.016884226012367845,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/proberen",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        3587,
+        1440,
+        3587
+      ],
+      "changedPixelRatio": 0.0010255010376978597,
+      "meanRgbDelta": 0.06474634482544993,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/afspraak",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        3650,
+        1440,
+        3650
+      ],
+      "changedPixelRatio": 0.0011750380517503805,
+      "meanRgbDelta": 0.08031919076610858,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/privacy",
+      "width": 1440,
+      "dimensions": [
+        1440,
+        2403,
+        1440,
+        2237
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    },
+    {
+      "path": "/",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        9586,
+        1024,
+        9586
+      ],
+      "changedPixelRatio": 0.00012978725485082412,
+      "meanRgbDelta": 0.007902216883128173,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        3535,
+        1024,
+        3535
+      ],
+      "changedPixelRatio": 0.0003560930869872702,
+      "meanRgbDelta": 0.022764449994106553,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        6950,
+        1024,
+        6950
+      ],
+      "changedPixelRatio": 0.00018294739208633094,
+      "meanRgbDelta": 0.011265222197242207,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        6889,
+        1024,
+        6889
+      ],
+      "changedPixelRatio": 0.00018088165916678765,
+      "meanRgbDelta": 0.010858475316930372,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        6950,
+        1024,
+        6950
+      ],
+      "changedPixelRatio": 0.00018294739208633094,
+      "meanRgbDelta": 0.011265222197242207,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        6904,
+        1024,
+        6904
+      ],
+      "changedPixelRatio": 0.00018954138904982618,
+      "meanRgbDelta": 0.011458955708043646,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        6978,
+        1024,
+        6978
+      ],
+      "changedPixelRatio": 0.00017969421754084264,
+      "meanRgbDelta": 0.01083166141205694,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        6980,
+        1024,
+        6980
+      ],
+      "changedPixelRatio": 0.00017712437320916905,
+      "meanRgbDelta": 0.010391063380491882,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        7000,
+        1024,
+        7000
+      ],
+      "changedPixelRatio": 0.00018694196428571428,
+      "meanRgbDelta": 0.011302362351190476,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        5229,
+        1024,
+        5229
+      ],
+      "changedPixelRatio": 0.00023886468493019699,
+      "meanRgbDelta": 0.01391291853923631,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/planning",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        4936,
+        1024,
+        4936
+      ],
+      "changedPixelRatio": 0.0002651121859805511,
+      "meanRgbDelta": 0.016028471729808213,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        4750,
+        1024,
+        4750
+      ],
+      "changedPixelRatio": 0.0002637746710526316,
+      "meanRgbDelta": 0.016774739583333333,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        4866,
+        1024,
+        4866
+      ],
+      "changedPixelRatio": 0.00025788795982326345,
+      "meanRgbDelta": 0.015506124019557473,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        4833,
+        1024,
+        4833
+      ],
+      "changedPixelRatio": 0.0002616694470308297,
+      "meanRgbDelta": 0.015632476269915166,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        4892,
+        1024,
+        4892
+      ],
+      "changedPixelRatio": 0.00025352297117743253,
+      "meanRgbDelta": 0.014821977633551376,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        5007,
+        1024,
+        5007
+      ],
+      "changedPixelRatio": 0.000250235607649291,
+      "meanRgbDelta": 0.016102716613407897,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        5035,
+        1024,
+        5035
+      ],
+      "changedPixelRatio": 0.0002445770233366435,
+      "meanRgbDelta": 0.014457650612380007,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/werkwijze",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        4222,
+        1024,
+        4222
+      ],
+      "changedPixelRatio": 0.0002995377635007106,
+      "meanRgbDelta": 0.018920609308384653,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/over",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        3669,
+        1024,
+        3669
+      ],
+      "changedPixelRatio": 0.00033776446238757154,
+      "meanRgbDelta": 0.019719340533296992,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/demo",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        3453,
+        1024,
+        3453
+      ],
+      "changedPixelRatio": 0.0003659634737909065,
+      "meanRgbDelta": 0.0229387074343566,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/proberen",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        3635,
+        1024,
+        3635
+      ],
+      "changedPixelRatio": 0.0014397244669876203,
+      "meanRgbDelta": 0.09044419489339753,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/afspraak",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        3802,
+        1024,
+        3802
+      ],
+      "changedPixelRatio": 0.0016536321344029457,
+      "meanRgbDelta": 0.11164311478059794,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/privacy",
+      "width": 1024,
+      "dimensions": [
+        1024,
+        2403,
+        1024,
+        2237
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    },
+    {
+      "path": "/",
+      "width": 768,
+      "dimensions": [
+        768,
+        13088,
+        768,
+        13088
+      ],
+      "changedPixelRatio": 0.00012734311328443357,
+      "meanRgbDelta": 0.008108473251579054,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches",
+      "width": 768,
+      "dimensions": [
+        768,
+        4429,
+        768,
+        4429
+      ],
+      "changedPixelRatio": 0.0003745437269511553,
+      "meanRgbDelta": 0.021979797765986804,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 768,
+      "dimensions": [
+        768,
+        7959,
+        768,
+        7959
+      ],
+      "changedPixelRatio": 0.0002148053042677053,
+      "meanRgbDelta": 0.013386913050913711,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 768,
+      "dimensions": [
+        768,
+        7958,
+        768,
+        7958
+      ],
+      "changedPixelRatio": 0.00021188714710563793,
+      "meanRgbDelta": 0.0131455113303175,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 768,
+      "dimensions": [
+        768,
+        7990,
+        768,
+        7990
+      ],
+      "changedPixelRatio": 0.00021103853775552775,
+      "meanRgbDelta": 0.013092863475177305,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 768,
+      "dimensions": [
+        768,
+        8076,
+        768,
+        8076
+      ],
+      "changedPixelRatio": 0.00020605033432392273,
+      "meanRgbDelta": 0.012054535730009355,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 768,
+      "dimensions": [
+        768,
+        7988,
+        768,
+        7988
+      ],
+      "changedPixelRatio": 0.00020603822400267068,
+      "meanRgbDelta": 0.01211327625118233,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 768,
+      "dimensions": [
+        768,
+        7954,
+        768,
+        7954
+      ],
+      "changedPixelRatio": 0.00021101149316905541,
+      "meanRgbDelta": 0.012645137928505574,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 768,
+      "dimensions": [
+        768,
+        8110,
+        768,
+        8110
+      ],
+      "changedPixelRatio": 0.0002072736847513358,
+      "meanRgbDelta": 0.013090620290450748,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform",
+      "width": 768,
+      "dimensions": [
+        768,
+        6549,
+        768,
+        6549
+      ],
+      "changedPixelRatio": 0.0002513106326665649,
+      "meanRgbDelta": 0.014733814852988582,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/planning",
+      "width": 768,
+      "dimensions": [
+        768,
+        6056,
+        768,
+        6056
+      ],
+      "changedPixelRatio": 0.00027542416611624833,
+      "meanRgbDelta": 0.01732377153511669,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 768,
+      "dimensions": [
+        768,
+        5913,
+        768,
+        5913
+      ],
+      "changedPixelRatio": 0.0002820850245222391,
+      "meanRgbDelta": 0.01773575643121559,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 768,
+      "dimensions": [
+        768,
+        5988,
+        768,
+        5988
+      ],
+      "changedPixelRatio": 0.000274855266087731,
+      "meanRgbDelta": 0.016159126702479033,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 768,
+      "dimensions": [
+        768,
+        5933,
+        768,
+        5933
+      ],
+      "changedPixelRatio": 0.00027784215405359853,
+      "meanRgbDelta": 0.016432410177538066,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 768,
+      "dimensions": [
+        768,
+        6006,
+        768,
+        6006
+      ],
+      "changedPixelRatio": 0.0002807522338772339,
+      "meanRgbDelta": 0.017417911949161948,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 768,
+      "dimensions": [
+        768,
+        6219,
+        768,
+        6219
+      ],
+      "changedPixelRatio": 0.0002640178619284987,
+      "meanRgbDelta": 0.01559038385949867,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 768,
+      "dimensions": [
+        768,
+        6174,
+        768,
+        6174
+      ],
+      "changedPixelRatio": 0.0002737454108627578,
+      "meanRgbDelta": 0.01756420574182054,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/werkwijze",
+      "width": 768,
+      "dimensions": [
+        768,
+        4846,
+        768,
+        4846
+      ],
+      "changedPixelRatio": 0.0003468818785252442,
+      "meanRgbDelta": 0.021930941756087494,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/over",
+      "width": 768,
+      "dimensions": [
+        768,
+        4456,
+        768,
+        4456
+      ],
+      "changedPixelRatio": 0.000392144486834231,
+      "meanRgbDelta": 0.02375318313011171,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/demo",
+      "width": 768,
+      "dimensions": [
+        768,
+        4159,
+        768,
+        4159
+      ],
+      "changedPixelRatio": 0.00040731195399535146,
+      "meanRgbDelta": 0.025955570750180332,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/proberen",
+      "width": 768,
+      "dimensions": [
+        768,
+        5212,
+        768,
+        5212
+      ],
+      "changedPixelRatio": 0.0013830263494499873,
+      "meanRgbDelta": 0.08720161006651317,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/afspraak",
+      "width": 768,
+      "dimensions": [
+        768,
+        5257,
+        768,
+        5257
+      ],
+      "changedPixelRatio": 0.0015408522763299727,
+      "meanRgbDelta": 0.106577886231057,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/privacy",
+      "width": 768,
+      "dimensions": [
+        768,
+        2794,
+        768,
+        2575
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    },
+    {
+      "path": "/",
+      "width": 390,
+      "dimensions": [
+        390,
+        14482,
+        390,
+        14482
+      ],
+      "changedPixelRatio": 0.0000442636128314902,
+      "meanRgbDelta": 0.002590837786252784,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches",
+      "width": 390,
+      "dimensions": [
+        390,
+        6313,
+        390,
+        6313
+      ],
+      "changedPixelRatio": 0.0001035713850540399,
+      "meanRgbDelta": 0.006050328923764691,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 390,
+      "dimensions": [
+        390,
+        9418,
+        390,
+        9418
+      ],
+      "changedPixelRatio": 0.00006670260439638227,
+      "meanRgbDelta": 0.00389506908937786,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 390,
+      "dimensions": [
+        390,
+        9352,
+        390,
+        9352
+      ],
+      "changedPixelRatio": 0.00006936676098352745,
+      "meanRgbDelta": 0.004253215181358894,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 390,
+      "dimensions": [
+        390,
+        9378,
+        390,
+        9378
+      ],
+      "changedPixelRatio": 0.00010089079186967863,
+      "meanRgbDelta": 0.006487906775814645,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 390,
+      "dimensions": [
+        390,
+        9399,
+        390,
+        9399
+      ],
+      "changedPixelRatio": 0.00009875573233377255,
+      "meanRgbDelta": 0.0066184527722989266,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 390,
+      "dimensions": [
+        390,
+        9408,
+        390,
+        9408
+      ],
+      "changedPixelRatio": 0.00006813622885051456,
+      "meanRgbDelta": 0.004329375981161695,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 390,
+      "dimensions": [
+        390,
+        9398,
+        390,
+        9308
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 390,
+      "dimensions": [
+        390,
+        9531,
+        390,
+        9531
+      ],
+      "changedPixelRatio": 0.00006752594099147451,
+      "meanRgbDelta": 0.0036507052559932637,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform",
+      "width": 390,
+      "dimensions": [
+        390,
+        8220,
+        390,
+        8220
+      ],
+      "changedPixelRatio": 0.00011292033189843409,
+      "meanRgbDelta": 0.00706219976292969,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/planning",
+      "width": 390,
+      "dimensions": [
+        390,
+        7152,
+        390,
+        7152
+      ],
+      "changedPixelRatio": 0.00012870704984798944,
+      "meanRgbDelta": 0.00857819939195778,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 390,
+      "dimensions": [
+        390,
+        7197,
+        390,
+        7197
+      ],
+      "changedPixelRatio": 0.00009084981990359231,
+      "meanRgbDelta": 0.005179271040046363,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 390,
+      "dimensions": [
+        390,
+        7273,
+        390,
+        7273
+      ],
+      "changedPixelRatio": 0.00008990047488603793,
+      "meanRgbDelta": 0.005251715453832875,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 390,
+      "dimensions": [
+        390,
+        7058,
+        390,
+        7058
+      ],
+      "changedPixelRatio": 0.00009154914227172657,
+      "meanRgbDelta": 0.005353566178162381,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 390,
+      "dimensions": [
+        390,
+        7295,
+        390,
+        7295
+      ],
+      "changedPixelRatio": 0.0000892778685787596,
+      "meanRgbDelta": 0.005583030175216604,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 390,
+      "dimensions": [
+        390,
+        7359,
+        390,
+        7359
+      ],
+      "changedPixelRatio": 0.00012543510301357835,
+      "meanRgbDelta": 0.008341085919561255,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 390,
+      "dimensions": [
+        390,
+        7315,
+        390,
+        7315
+      ],
+      "changedPixelRatio": 0.0001244369665422297,
+      "meanRgbDelta": 0.007587500219079167,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/werkwijze",
+      "width": 390,
+      "dimensions": [
+        390,
+        5601,
+        390,
+        5601
+      ],
+      "changedPixelRatio": 0.00011719518950370584,
+      "meanRgbDelta": 0.007062688744531273,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/over",
+      "width": 390,
+      "dimensions": [
+        390,
+        5857,
+        390,
+        5857
+      ],
+      "changedPixelRatio": 0.0001129483458320747,
+      "meanRgbDelta": 0.006789158709937265,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/demo",
+      "width": 390,
+      "dimensions": [
+        390,
+        4800,
+        390,
+        4800
+      ],
+      "changedPixelRatio": 0.0001997863247863248,
+      "meanRgbDelta": 0.013321581196581197,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/proberen",
+      "width": 390,
+      "dimensions": [
+        390,
+        5874,
+        390,
+        5874
+      ],
+      "changedPixelRatio": 0.0021131802030678434,
+      "meanRgbDelta": 0.14589819252740602,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/afspraak",
+      "width": 390,
+      "dimensions": [
+        390,
+        6125,
+        390,
+        6145
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    },
+    {
+      "path": "/privacy",
+      "width": 390,
+      "dimensions": [
+        390,
+        3756,
+        390,
+        3610
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    },
+    {
+      "path": "/",
+      "width": 320,
+      "dimensions": [
+        320,
+        15649,
+        320,
+        15649
+      ],
+      "changedPixelRatio": 0.00005012301105501949,
+      "meanRgbDelta": 0.003122803374017509,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches",
+      "width": 320,
+      "dimensions": [
+        320,
+        6828,
+        320,
+        6828
+      ],
+      "changedPixelRatio": 0.00011670694200351494,
+      "meanRgbDelta": 0.006331160906073032,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/schoonmaak",
+      "width": 320,
+      "dimensions": [
+        320,
+        10050,
+        320,
+        10050
+      ],
+      "changedPixelRatio": 0.00007835820895522388,
+      "meanRgbDelta": 0.004588308457711443,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/glasbewassing",
+      "width": 320,
+      "dimensions": [
+        320,
+        10309,
+        320,
+        10309
+      ],
+      "changedPixelRatio": 0.00010518721505480648,
+      "meanRgbDelta": 0.00681989038704045,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/facilitair",
+      "width": 320,
+      "dimensions": [
+        320,
+        10402,
+        320,
+        10357
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    },
+    {
+      "path": "/branches/groenonderhoud",
+      "width": 320,
+      "dimensions": [
+        320,
+        10298,
+        320,
+        10298
+      ],
+      "changedPixelRatio": 0.000111065255389396,
+      "meanRgbDelta": 0.007320292775296174,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/vastgoedservice",
+      "width": 320,
+      "dimensions": [
+        320,
+        10260,
+        320,
+        10260
+      ],
+      "changedPixelRatio": 0.00007614522417153996,
+      "meanRgbDelta": 0.004331546458739441,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/branches/beveiliging",
+      "width": 320,
+      "dimensions": [
+        320,
+        10538,
+        320,
+        10405
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    },
+    {
+      "path": "/branches/evenementen",
+      "width": 320,
+      "dimensions": [
+        320,
+        10712,
+        320,
+        10667
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    },
+    {
+      "path": "/platform",
+      "width": 320,
+      "dimensions": [
+        320,
+        9220,
+        320,
+        9220
+      ],
+      "changedPixelRatio": 0.00011998373101952278,
+      "meanRgbDelta": 0.007544400759219089,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/planning",
+      "width": 320,
+      "dimensions": [
+        320,
+        7821,
+        320,
+        7821
+      ],
+      "changedPixelRatio": 0.00014304436772791203,
+      "meanRgbDelta": 0.009456777692537187,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/werkbonnen",
+      "width": 320,
+      "dimensions": [
+        320,
+        8016,
+        320,
+        8016
+      ],
+      "changedPixelRatio": 0.00009785117265469062,
+      "meanRgbDelta": 0.006086264970059881,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/objecten",
+      "width": 320,
+      "dimensions": [
+        320,
+        8034,
+        320,
+        8034
+      ],
+      "changedPixelRatio": 0.00009802091112770724,
+      "meanRgbDelta": 0.005739668907144635,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/personeelsapp",
+      "width": 320,
+      "dimensions": [
+        320,
+        7767,
+        320,
+        7767
+      ],
+      "changedPixelRatio": 0.00010219518475601906,
+      "meanRgbDelta": 0.006183747478648985,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/klantportaal",
+      "width": 320,
+      "dimensions": [
+        320,
+        8021,
+        320,
+        8021
+      ],
+      "changedPixelRatio": 0.00009233574367285874,
+      "meanRgbDelta": 0.005379888210115115,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/onboarding",
+      "width": 320,
+      "dimensions": [
+        320,
+        8145,
+        320,
+        8145
+      ],
+      "changedPixelRatio": 0.00009860343769183548,
+      "meanRgbDelta": 0.00587719971352568,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/platform/offertes-facturatie",
+      "width": 320,
+      "dimensions": [
+        320,
+        8104,
+        320,
+        8104
+      ],
+      "changedPixelRatio": 0.00009678862290227049,
+      "meanRgbDelta": 0.005935597647252385,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/werkwijze",
+      "width": 320,
+      "dimensions": [
+        320,
+        6031,
+        320,
+        6031
+      ],
+      "changedPixelRatio": 0.00013368429779472723,
+      "meanRgbDelta": 0.008114671419886144,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/over",
+      "width": 320,
+      "dimensions": [
+        320,
+        6539,
+        320,
+        6539
+      ],
+      "changedPixelRatio": 0.00012186496406178315,
+      "meanRgbDelta": 0.0066245157261558855,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/demo",
+      "width": 320,
+      "dimensions": [
+        320,
+        5199,
+        320,
+        5199
+      ],
+      "changedPixelRatio": 0.0001520725139449894,
+      "meanRgbDelta": 0.009526872154901583,
+      "dimensionMatch": true
+    },
+    {
+      "path": "/proberen",
+      "width": 320,
+      "dimensions": [
+        320,
+        6540,
+        320,
+        6556
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    },
+    {
+      "path": "/afspraak",
+      "width": 320,
+      "dimensions": [
+        320,
+        6816,
+        320,
+        6852
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    },
+    {
+      "path": "/privacy",
+      "width": 320,
+      "dimensions": [
+        320,
+        4401,
+        320,
+        4105
+      ],
+      "changedPixelRatio": null,
+      "meanRgbDelta": null,
+      "dimensionMatch": false
+    }
+  ]
+}

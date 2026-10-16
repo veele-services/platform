@@ -1,0 +1,4 @@
+PASS: actual decision publish, cancel without mutation, atomic revision, one follow-up and persisted completion
+PASS: actual missing-evidence signal, scanner-backed Storage upload, separate approval, private download and closed automatic follow-up
+PASS: identical real-byte upload retry reuses one document; real ClamAV rejects EICAR without publishing
+PASS: anonymous, cross-origin and revoked module access denied; private browser window cleared

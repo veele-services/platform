@@ -1,0 +1,39 @@
+▶ Customer 360 uses persistent sources, guarded relationships and exact revisions
+  ✔ account owners show the own tenant's employee name, never email or another tenant's name (68.801233ms)
+  ✔ five-step customer input is atomic and retry-safe, private customer has no required company number (53.782409ms)
+  ✔ updates use optimistic versions, address source and customer relationships are retained (16.182817ms)
+  ✔ server list filters and stable pages share one scoped source; staff and other tenant are rejected (176.048216ms)
+  ✔ contacts are versioned, primary selection is unique and wrong-customer objects are rejected (26.057156ms)
+  ✔ internal follow-up cannot cross customer or tenant, completion is persisted (62.915182ms)
+  ✔ contract draft uses existing tables; incomplete activation rejected, real evidence required (37.435681ms)
+  ✔ draft successor preserves signed agreement and operational options until activation (27.148317ms)
+  ✔ shared customer documents require live explicit bindings; no internal fields or files leak (47.576592ms)
+  ✔ history projection excludes raw audit snapshots and is unavailable to staff (28.110654ms)
+  ✔ preapproved extra work uses exact agreement, enforces cumulative limits and remains subject to review (326.779778ms)
+  ✔ daily reminders are opt-in, tenant scoped and deduplicated (33.304036ms)
+  ✔ server pagination has stable ties and live sessions are required (368.407615ms)
+✔ Customer 360 uses persistent sources, guarded relationships and exact revisions (2410.194173ms)
+▶ Entity source: native invoker resource authority, bounded metadata and no HR/financial payload
+  ✔ customer and object refer to their actual source and native operational rows (287.474856ms)
+  ✔ customer cards preserve every native filter, sort, count and revision with RLS metadata (179.302062ms)
+  ✔ personnel preview includes actual assigned work and omits private HR fields (168.287667ms)
+  ✔ document previews expose bounded native metadata, never storage paths or fabricated content (241.63977ms)
+  ✔ revoked document and module capabilities remain independent of the base profile (399.121699ms)
+  ✔ invalid, anonymous, service, staff, foreign and expired callers fail closed; planner receives only the native safe profile (93.060957ms)
+✔ Entity source: native invoker resource authority, bounded metadata and no HR/financial payload (2465.420731ms)
+▶ HR classification applies to legacy rows as well as managed dossiers
+  ✔ staff and planner cannot read private legacy or managed HR records; HR retains originals (45.430924ms)
+  ✔ planner identity and own operational selfservice remain available without emergency contacts (27.498889ms)
+  ✔ only explicitly published own document fields reach staff; raw HR metadata stays private (41.038705ms)
+  ✔ planning receives absence time blocks without private reasons; HR and own selfservice retain their scope (72.476145ms)
+  ✔ availability projection requires a live session and module; combined roles preserve own access only (23.39182ms)
+  ✔ file descriptor keeps own downloads usable and rejects hidden, colleague and foreign files (35.29445ms)
+✔ HR classification applies to legacy rows as well as managed dossiers (1304.453959ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6390.228648

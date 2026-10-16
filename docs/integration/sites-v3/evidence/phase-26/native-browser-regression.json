@@ -1,0 +1,32 @@
+{
+  "fullRun": {
+    "runtime": "590f76c605778dc205e0bb298960fa1623ef08c3",
+    "total": 134,
+    "passed": 127,
+    "failed": 5,
+    "notRun": 2,
+    "result": "failed; retained without reinterpretation",
+    "log": "full-browser-134.log"
+  },
+  "focusedRerun": {
+    "runtime": "02b5acf09c536263b16bc1b492ec5a08a06e662a",
+    "passed": 8,
+    "failed": 0,
+    "log": "focused-browser-8.log",
+    "covers": "All five failed cases and both not-run cases, plus the narrow wizard geometry test"
+  },
+  "caseCoverage": 134,
+  "exactCommitFullCIGate": "pending",
+  "diagnosis": {
+    "loginBranding": "A concurrently rebuilt secondary local test server lacked copied static assets; complete standalone assets were restored.",
+    "statusLegend": "Pointer hover opened the popup and its click then closed it; click now pins the popup without changing presentation.",
+    "arrivalCoordinates": "Legacy label locator also found a hidden tab control; the test now selects the visible semantic spinbutton.",
+    "tenantMarketing": "ENOSPC interrupted browser recording and its newly created empty fixture; ordinary guarded fixture cleanup succeeded without disabling triggers. The unchanged assertions passed with local trace recording off."
+  },
+  "latestPrivatePreviewPolicy": {
+    "runtime": "6505f47e5b61566af57e197b862f6ee47d6798d4",
+    "proof": "private-preview-effective-http.json",
+    "meaning": "Query-level SAMEORIGIN is not approval. A denied response contains fixed 404 text and an effective CSP frame-ancestors none."
+  },
+  "latestStandardBundlerRecovery": "standard-bundler/result.json"
+}

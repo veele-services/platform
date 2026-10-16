@@ -1,0 +1,200 @@
+[
+  {
+    "key": "all",
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "height": 595.59375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-commercial-page",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "height": 537.59375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "content-tabs",
+          "height": 279.09375
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "all",
+    "width": 768,
+    "target": {
+      "width": 684,
+      "height": 595.59375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-commercial-page",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "height": 537.59375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "content-tabs",
+          "height": 279.09375
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "all",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 629.8125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-commercial-page",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 569.8125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 116.3125
+        },
+        {
+          "cls": "content-tabs",
+          "height": 276.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "summary",
+    "width": 1440,
+    "target": {
+      "width": 680,
+      "height": 516.75,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 514.75
+        }
+      ]
+    },
+    "source": {
+      "width": 680,
+      "height": 516.75,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 514.75
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "summary",
+    "width": 768,
+    "target": {
+      "width": 680,
+      "height": 516.75,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 514.75
+        }
+      ]
+    },
+    "source": {
+      "width": 680,
+      "height": 516.75,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 514.75
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "summary",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 1000,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 1000
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 1000,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 1000
+        }
+      ]
+    },
+    "viewed": true
+  }
+]

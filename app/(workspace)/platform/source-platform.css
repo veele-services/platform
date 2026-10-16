@@ -1,0 +1,28 @@
+/* The supplied platform DOM shares the exact isolated Sites font cascade.
+   Native platform CSS still loads for its retained operational controls. */
+.sites-platform .fg-console{font-family:FieldgridSitesInter,Arial,sans-serif}
+.sites-platform .fg-console :is(h1,h2,h3,h4){font-family:FieldgridSitesPoppins,FieldgridSitesInter,sans-serif}
+.sites-platform .fg-console .fg-cockpit-facts dd{font-family:FieldgridSitesPoppins,FieldgridSitesInter,sans-serif}
+.sites-platform .fg-console .fg-cockpit-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.sites-platform .fg-console .shell-account-button{font-family:FieldgridSitesInter,Arial,sans-serif}
+.sites-platform .ed-platform .fg-panel h2{font-family:FieldgridSitesInter,Arial,sans-serif}
+.sites-platform .fg-console .fg-eyebrow{color:var(--brand-muted);font-weight:450;letter-spacing:.12em;line-height:1.6}
+.sites-platform .fg-console .fg-table td small{font-size:11px}
+.sites-platform .fg-console>.fg-workspace>.fg-main>.list-pagination{font-size:10px;padding:0 3px;margin-top:-8px}
+.sites-platform .ed-platform .ed-color .sites-color-code{width:9ch;min-height:0;padding:0;border:0;background:none;font-family:monospace;border-radius:0}
+.sites-platform-extra{margin-top:20px;font-size:12px;color:var(--brand-muted)}
+.sites-platform-extra>summary{cursor:pointer}
+.sites-platform-extra[open]>summary{margin-bottom:18px}
+
+.sites-platform-support-defaults .section-heading{flex-wrap:wrap}
+.sites-platform-support-defaults .section-heading>select{min-width:0;max-width:100%;flex:1 1 200px}
+.sites-platform .sites-support-composer{margin-top:20px}
+.sites-platform .sites-support-composer>.sites-platform-extra{margin-top:0}
+
+.sites-platform .sites-support-composer>.mc-field{font-weight:400}
+.sites-platform .sites-support-composer>.ticket-form-footer{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.sites-platform .sites-support-composer>.ticket-form-footer>button{width:auto;align-self:flex-start;order:-1}
+
+.sites-platform .sites-module-save{display:flex;align-items:center;flex-wrap:wrap;gap:18px;margin-top:18px}
+.sites-platform .sites-module-save>p{flex:1 1 250px;margin:0}
+.sites-platform .sites-sender-advice{margin:0 0 18px}

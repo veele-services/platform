@@ -32,7 +32,7 @@ test("logout removes legacy searches, fences another tab before logout completes
     await expect(other.getByRole("heading",{name:"Planbord",exact:true})).toBeVisible();
     const held=new Promise<void>(resolve=>{release=resolve;});
     await page.route("**/auth/signout",async route=>{await held;await route.continue();});
-    await page.locator(".shell-account-button").click();
+    await page.getByRole("button",{name:/^Accountmenu van /}).click();
     const logout=page.getByRole("menuitem",{name:"Uitloggen",exact:true}).click();
     await expect(other.locator("html")).toHaveAttribute("data-account-blocked","true");
     await expect(other.getByRole("heading",{name:"Klanten",exact:true})).not.toBeVisible();
@@ -70,7 +70,11 @@ test("logout removes legacy searches, fences another tab before logout completes
       // Do not wait for a particular fetch: the earlier pulse can win the race
       // between this URL check and the focus event and navigate immediately.
       if(new URL(other.url()).pathname!=="/login"){
-        await other.evaluate(()=>window.dispatchEvent(new Event("focus")));
+        await other.evaluate(()=>window.dispatchEvent(new Event("focus"))).catch(error=>{
+          // A concurrent safe login navigation may win after the URL check.
+          // The following URL assertion must still prove that it completed.
+          if(!String(error).includes("Execution context was destroyed"))throw error;
+        });
       }
       await expect.poll(()=>new URL(other.url()).pathname).toBe("/login");
     },{timeout:10000});
@@ -95,7 +99,7 @@ test("delayed hydration cannot attach a new account to an old rendered document"
     await delayed.goto("/app/klanten",{waitUntil:"commit"});
     await expect(delayed.locator("html")).toHaveAttribute("data-account-blocked","true");
     await expect(delayed.getByRole("heading",{name:"Klanten",exact:true})).not.toBeVisible();
-    await page.locator(".shell-account-button").click();
+    await page.getByRole("button",{name:/^Accountmenu van /}).click();
     await page.getByRole("menuitem",{name:"Uitloggen",exact:true}).click();
     await page.waitForURL(url=>url.pathname==="/login");
     await login(page,email,password);
@@ -115,6 +119,7 @@ for(const audience of ["staff","customer"] as const)test(`${audience}: two real 
   let primaryFailure:unknown;
   const emails=[0,1].map(()=>`device-${randomUUID()}@fieldgrid.test`);
   const names=["FICTITIOUS Device Alpha","FICTITIOUS Device Beta"];
+  const identity=(target:Page,index:number)=>audience==="staff"?target.getByRole("button",{name:`Profielmenu van ${names[index]}`,exact:true}):target.getByRole("heading",{name:names[index],exact:true});
   const target=audience==="staff"?"/staff":"/klant",other=await context.newPage();
   if(audience==="staff")await Promise.all([page.setViewportSize({width:390,height:844}),other.setViewportSize({width:390,height:844})]);
   const checked=async(result:{error:unknown})=>{if(result.error)throw new Error("Synthetic fixture operation failed");};
@@ -122,7 +127,7 @@ for(const audience of ["staff","customer"] as const)test(`${audience}: two real 
     await authenticateWorkspace(page,emails[index],target,password);
     await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked");
     if(audience==="staff")await page.getByRole("button",{name:"Meer",exact:true}).click();
-    await expect(page.getByRole("heading",{name:names[index],exact:true})).toBeVisible();
+    await expect(identity(page,index)).toBeVisible();
     await expect(page.getByText(names[1-index],{exact:true})).toHaveCount(0);
   };
   try{
@@ -155,7 +160,7 @@ for(const audience of ["staff","customer"] as const)test(`${audience}: two real 
         expect((await page.request.get(`/api/files/personnel-document/${documents[1]}`)).status()).toBe(404);
         expect(await page.content()).not.toContain("FICTITIOUS INTERNAL HR");
       }
-      await expect(other.getByRole("heading",{name:names[0],exact:true})).toBeVisible();
+      await expect(identity(other,0)).toBeVisible();
     },{timeout:30000});
     await test.step("logout fences the first account in every tab",async()=>{
       if(audience==="customer"){
@@ -163,13 +168,13 @@ for(const audience of ["staff","customer"] as const)test(`${audience}: two real 
         await page.getByRole("menuitem",{name:"Uitloggen",exact:true}).click();
       }else await page.getByRole("button",{name:"Uitloggen",exact:true}).click();
       await page.waitForURL(url=>url.pathname==="/login");
-      await expect(other.getByRole("heading",{name:names[0],exact:true})).not.toBeVisible();
+      await expect(identity(other,0)).not.toBeVisible();
     },{timeout:30000});
     await test.step("the second account cannot revive the first account",async()=>{
       await enter(1);
-      await page.goBack();await expect(page.getByRole("heading",{name:names[0],exact:true})).not.toBeVisible();
+      await page.goBack();await expect(identity(page,0)).not.toBeVisible();
       await other.bringToFront();await other.evaluate(()=>window.dispatchEvent(new Event("focus")));
-      await expect(other.getByRole("heading",{name:names[0],exact:true})).not.toBeVisible();
+      await expect(identity(other,0)).not.toBeVisible();
       await page.goto(target);await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked");
     },{timeout:30000});
     await test.step("the second account sees only its own resources",async()=>{
@@ -178,7 +183,7 @@ for(const audience of ["staff","customer"] as const)test(`${audience}: two real 
         expect((await page.request.get(`/api/files/personnel-document/${documents[0]}`)).status()).toBe(404);
         const own=await page.request.get(`/api/files/personnel-document/${documents[1]}`);expect(own.status()).toBe(200);expect(await own.text()).toContain("FICTITIOUS own document 1");
       }
-      await expect(page.getByRole("heading",{name:names[1],exact:true})).toBeVisible();
+      await expect(identity(page,1)).toBeVisible();
     },{timeout:30000});
   }catch(error){primaryFailure=error;}finally{
     await other.close();

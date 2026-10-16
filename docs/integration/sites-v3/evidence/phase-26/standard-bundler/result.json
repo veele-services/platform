@@ -1,0 +1,42 @@
+{
+  "ci": {
+    "url": "https://github.com/veele-services/platform/actions/runs/38859392619",
+    "runtime": "7116af813c5fd6772a0b67f98844caf6487fea06",
+    "passed": 128,
+    "failed": 6,
+    "notRun": 0,
+    "result": "failure; retained"
+  },
+  "cause": "Default Turbopack CSS optimization omits translate:none in the adapter chunk. The native Tailwind -50% utilities remain in another chunk, adding a second translation to Source transform positioning.",
+  "fix": "The Source staff adapter explicitly replaces the native translate utilities with zero utilities through the existing class merger. Source geometry, colors, fonts, DOM and business commands remain intact.",
+  "recovery": {
+    "runtime": "891185891f4872e51b54921cf67988d14b816502",
+    "builder": "pnpm build (default Turbopack)",
+    "passed": 6,
+    "failed": 0,
+    "log": "recovery-6.log"
+  },
+  "images": [
+    {
+      "file": "dialog-after-390.png",
+      "sha256": "623d97fa4439bbdfd2aa4d2372bbf773e5e7312e500667b38ae6bc03a9f1324a",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "dialog-after-1440.png",
+      "sha256": "27dc49428944c82a0ff3082c514257eca4b849d40f8849995dd7bfacbd042e6f",
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "ci-dialog-before-390.png",
+      "sha256": "cfdc8758d30f101bf1e335681cfc376b87c53f0affe5a0f8920fcec12a2a68bf",
+      "viewed": true,
+      "accepted": false,
+      "reason": "Native translate utility moves Source dialog outside the viewport. Never used as a replacement baseline."
+    }
+  ],
+  "exactCommitFullCI": "pending",
+  "snapshotRegeneration": false
+}

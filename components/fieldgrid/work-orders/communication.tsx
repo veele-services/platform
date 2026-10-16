@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addWorkOrderCommunication } from "@/app/app/work-order-file-actions";
+import { addWorkOrderCommunication } from "@/app/(workspace)/app/work-order-file-actions";
 import { CUSTOMER_DOCUMENT_ACCEPT } from "@/lib/customers/documents";
 
 export function WorkOrderCommunication({ orderId }: { orderId: string }) {

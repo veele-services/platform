@@ -1,0 +1,37 @@
+{
+  "runtime": "60561a0d2a7dafbf9b57912b1a42ce9ebd0fd103",
+  "codeUnchangedThrough": "58363c2e",
+  "environment": "isolated-local",
+  "viewedPairs": [
+    "cockpit-1440",
+    "objects-390",
+    "appointments-768",
+    "reports-1440",
+    "invoices-768",
+    "requests-390",
+    "profile-1440",
+    "knowledge-768",
+    "updates-390",
+    "more-1440",
+    "news-768",
+    "tickets-390",
+    "object-details-1440",
+    "visit-details-390",
+    "invoice-details-768",
+    "object-create-768",
+    "visit-request-create-1440",
+    "request-create-390",
+    "object-instructions-390"
+  ],
+  "widths": [
+    1440,
+    768,
+    390
+  ],
+  "remainingExternal": [
+    "hosted-acceptance",
+    "external-provider-delivery",
+    "configured-provider-payment"
+  ],
+  "meaning": "Only listed comparison sheets were viewed in final review. Full browser captures and measured comparisons are separate evidence; no screenshot is marked viewed merely because it was generated."
+}

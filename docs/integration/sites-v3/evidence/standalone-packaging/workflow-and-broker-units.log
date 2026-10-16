@@ -1,0 +1,9 @@
+
+ RUN  v5.0.2 /home/codex/repos/fieldgrid
+
+
+ Test Files  2 passed (2)
+      Tests  25 passed (25)
+   Start at  11:19:10
+   Duration  300ms (tests 50%, transform 30%, import 16%, worker 4%)
+

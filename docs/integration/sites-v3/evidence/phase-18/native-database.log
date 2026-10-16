@@ -1,0 +1,48 @@
+▶ Planning followup uses price-free operational inputs without widening invoker dossier sources
+  ✔ raw financial rows stay closed while a real operational action remains visible (64.357263ms)
+  ✔ read-only commercial and customer functions cannot create visits or publish documents (11.131017ms)
+  ✔ helpers expose only safe columns and keep other tenant rows unavailable (21.469104ms)
+  ✔ function, module and session revocation stop the same authenticated caller (39.393368ms)
+✔ Planning followup uses price-free operational inputs without widening invoker dossier sources (1400.943645ms)
+▶ Service levels: versioned contract norms, native ticket clock and unique source visits
+  ✔ RPCs enforce current tenant/session/module access and all new private tables deny raw access (76.33376ms)
+  ✔ a service has an actual contract/object binding and immutable, idempotent norm versions (1009.337276ms)
+  ✔ policy identity and customer-facing category are explicit; norm labels cannot switch the metric (588.263415ms)
+  ✔ new tickets bind the effective norm to the existing native deadlines; later edits do not change that clock (474.728407ms)
+  ✔ SLA events write real reporter messages and use the existing pause/resume/resolution transitions (1319.775012ms)
+  ✔ bounded real worker signals, native pauses and source assignment never create a second clock or false completion (1597.850788ms)
+  ✔ unique completed visits are independent of staff count and split orders; inspections stay a separate measure (1490.626247ms)
+  ✔ confidential tickets are omitted from SLA rows, counts and focus after exact category rights are denied (845.145094ms)
+  ✔ module, receipt replay and expired sessions use current authority (14.20348ms)
+✔ Service levels: versioned contract norms, native ticket clock and unique source visits (8531.02544ms)
+▶ notification administration and legacy receipts keep their live authority
+  ✔ a scoped delegate cannot replace a wider or unrelated existing grant (26.832786ms)
+  ✔ a saved verification cannot overwrite a grant outside its current management scope (77.579566ms)
+  ✔ tenant template lists/details/previews never expose unpublished platform content (702.69006ms)
+  ✔ announcement receipts cannot move tenant/parent or acknowledge an invisible announcement (63.039406ms)
+  ✔ announcement receipts fail closed after session or membership revocation (20.639144ms)
+  ✔ assigned reminders require current session, membership, tenant and appropriate personnel scope (36.036485ms)
+  ✔ customer audit records preserve chronology without copying contact and address content (63.762141ms)
+✔ notification administration and legacy receipts keep their live authority (2088.6631ms)
+✔ delegation rechecks the locked grant after concurrent scope expansion (4500.535692ms)
+▶ Central notifications: policy, live scope, inbox, templates and exact campaign confirmation
+  ✔ current session and concrete customer binding; no fake memberships or platform content bypass (88.962353ms)
+  ✔ precise preview, contextual options and limited grants never broaden selected personnel (188.252128ms)
+  ✔ campaign publish requires exact reviewed set and strict idempotent payload (604.200105ms)
+  ✔ selected-channel reachability is current, zero reach cannot publish, and partial suppression stays truthful (594.467757ms)
+  ✔ sender revocation and scoped history cannot be bypassed by an earlier confirmed campaign (237.058419ms)
+  ✔ global deny wins, CAS prevents overwrite, pending requests never replay after re-enable (499.813063ms)
+  ✔ customer campaign candidates use tenant dates and the selected object binding (187.722757ms)
+  ✔ reschedule debounce settings inherit, explicitly disable and validate their bounded scope (638.732071ms)
+  ✔ template plain text validation, draft/publish, tenant field inheritance and immutable versions (493.869151ms)
+  ✔ manual template body roundtrip and push channel safety are effective in the resolver (922.327456ms)
+  ✔ preferences and independent acknowledgement/read/archive; raw mutation denied (123.547409ms)
+✔ Central notifications: policy, live scope, inbox, templates and exact campaign confirmation (5809.458768ms)
+ℹ tests 36
+ℹ suites 0
+ℹ pass 36
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22597.891978

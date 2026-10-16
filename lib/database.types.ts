@@ -2942,7 +2942,7 @@ export type Database = {
           payload: Json
           processed_at: string | null
           status: Database["public"]["Enums"]["delivery_status"]
-          tenant_id: string
+          tenant_id: string | null
         }
         Insert: {
           aggregate_id: string
@@ -2958,7 +2958,7 @@ export type Database = {
           payload: Json
           processed_at?: string | null
           status?: Database["public"]["Enums"]["delivery_status"]
-          tenant_id: string
+          tenant_id?: string | null
         }
         Update: {
           aggregate_id?: string
@@ -2974,7 +2974,7 @@ export type Database = {
           payload?: Json
           processed_at?: string | null
           status?: Database["public"]["Enums"]["delivery_status"]
-          tenant_id?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -8102,7 +8102,7 @@ export type Database = {
           payload: Json
           processed_at: string | null
           status: Database["public"]["Enums"]["delivery_status"]
-          tenant_id: string
+          tenant_id: string | null
         }[]
         SetofOptions: {
           from: "*"
@@ -8139,6 +8139,145 @@ export type Database = {
       }
       claim_provider_payment_check: {
         Args: { lease_id: string; target_attempt: string }
+        Returns: Json
+      }
+      cockpit_action_history: {
+        Args: { kind: string; record_id: string; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_customer_cards: {
+        Args: { filters?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_entity_query: {
+        Args: { source_id: string; source_kind: string; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_evidence_options: {
+        Args: {
+          search?: string
+          selected_evidence?: string
+          source_id: string
+          source_kind: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_finance_command: {
+        Args: { input: Json; request_id: string; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_finance_maintenance: {
+        Args: { batch_size?: number }
+        Returns: number
+      }
+      cockpit_finance_query: {
+        Args: { payload?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_followup: { Args: { target_tenant: string }; Returns: Json }
+      cockpit_followup_command: {
+        Args: {
+          command: string
+          input: Json
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_governance_command: {
+        Args: {
+          command: string
+          input: Json
+          module: string
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_governance_query: {
+        Args: { module: string; payload?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_governance_upload_allowed: {
+        Args: { source_id: string; source_kind: string; target_tenant: string }
+        Returns: boolean
+      }
+      cockpit_indexation_command: {
+        Args: {
+          command: string
+          input: Json
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_indexation_evidence: {
+        Args: {
+          search?: string
+          selected_evidence?: string
+          target_customer: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_indexation_query: {
+        Args: { payload?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_invoice_list: {
+        Args: { filters?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_maintenance: { Args: { batch_size?: number }; Returns: number }
+      cockpit_overview_query: {
+        Args: { payload?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_report_review_list: {
+        Args: { filters?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_reports_command: {
+        Args: {
+          command: string
+          input: Json
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_reports_maintenance: {
+        Args: { batch_size?: number }
+        Returns: number
+      }
+      cockpit_reports_query: {
+        Args: { payload?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_sla_command: {
+        Args: {
+          command: string
+          input: Json
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      cockpit_sla_maintenance: {
+        Args: { batch_size?: number }
+        Returns: number
+      }
+      cockpit_sla_query: {
+        Args: { payload?: Json; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_work_order_financial_sources: {
+        Args: { target_order: string; target_tenant: string }
+        Returns: Json
+      }
+      cockpit_work_order_source: {
+        Args: { target_order: string; target_tenant: string }
         Returns: Json
       }
       commercial_booking: {
@@ -8414,6 +8553,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      crm_availability: { Args: { day: string }; Returns: Json }
+      crm_command: {
+        Args: { command: string; payload: Json; request_id: string }
+        Returns: Json
+      }
+      crm_intake: {
+        Args: { payload: Json; rate_key: string; request_id: string }
+        Returns: Json
+      }
+      crm_prepare_notifications: {
+        Args: { batch_size?: number }
+        Returns: number
+      }
+      crm_query: { Args: { operation: string; payload?: Json }; Returns: Json }
       current_event_recipients: {
         Args: { target_event: string }
         Returns: {
@@ -8914,6 +9067,29 @@ export type Database = {
         Args: { target_order: string; target_tenant: string }
         Returns: Json
       }
+      knowledge_command: {
+        Args: { command: string; payload: Json; request_id: string }
+        Returns: Json
+      }
+      knowledge_query: {
+        Args: {
+          actor_context: string
+          operation: string
+          payload?: Json
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      knowledge_ticket_search: {
+        Args: {
+          actor_context: string
+          message_audience: string
+          search?: string
+          target_tenant: string
+          ticket_id: string
+        }
+        Returns: Json
+      }
       manage_work_order: {
         Args: { input: Json; target_tenant: string }
         Returns: Json
@@ -9191,6 +9367,25 @@ export type Database = {
           personnel_id: string
         }[]
       }
+      platform_account_command: {
+        Args: {
+          expected_revision: number
+          request_id: string
+          target_user: string
+        }
+        Returns: Json
+      }
+      platform_account_query: { Args: never; Returns: Json }
+      platform_register_primary_admin: {
+        Args: { target_user: string }
+        Returns: undefined
+      }
+      platform_team_command: {
+        Args: { command: string; input: Json; request_id: string }
+        Returns: Json
+      }
+      platform_team_query: { Args: never; Returns: Json }
+      platform_workspace_access: { Args: never; Returns: boolean }
       platform_workspace_domain_command: {
         Args: {
           actor_user_id: string
@@ -9256,6 +9451,25 @@ export type Database = {
       process_object_reminders: { Args: never; Returns: number }
       process_ticket_deadlines: {
         Args: { target_tenant?: string }
+        Returns: Json
+      }
+      product_command: {
+        Args: {
+          actor_context: string
+          command: string
+          payload: Json
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      product_query: {
+        Args: {
+          actor_context: string
+          operation: string
+          payload?: Json
+          target_tenant: string
+        }
         Returns: Json
       }
       provision_platform_tenant: {
@@ -10385,3 +10599,4 @@ export const Constants = {
     },
   },
 } as const
+

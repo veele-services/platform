@@ -1,0 +1,23 @@
+{
+  "checks": [
+    "real-auth",
+    "native-news-publication",
+    "native-staff-read-RLS",
+    "private-self-read-state-no-reader-identities",
+    "real-withdrawal",
+    "knowledge-real-published-content",
+    "knowledge-search-category",
+    "full-article-300-words",
+    "stable-article-deep-link",
+    "delayed-knowledge-response-cannot-resurrect-after-revocation",
+    "reader-edit-command-denied",
+    "scoped-release-and-change",
+    "native-tenant-idea",
+    "unsaved-cancel-preserves-input",
+    "strict-news-API",
+    "anonymous-denial",
+    "real-staff-auth-backoffice-api-denied-and-shell-redirect",
+    "live-read-revocation-clears-open-article"
+  ],
+  "browserErrors": []
+}

@@ -4,12 +4,13 @@ import {ChevronLeft,ChevronRight,Plus,Trash2} from "lucide-react";
 import {toast} from "sonner";
 import type {TenantContext} from "@/lib/auth/context";
 import type {Row} from "@/lib/objects/model";
-import {commercialAction,readCommercialOptions} from "@/app/app/commercial-actions";
-import {sendCommercialQuote,uploadCommercialAttachment} from "@/app/app/commercial-delivery-actions";
+import {commercialAction,readCommercialOptions} from "@/app/(workspace)/app/commercial-actions";
+import {sendCommercialQuote,uploadCommercialAttachment} from "@/app/(workspace)/app/commercial-delivery-actions";
 import {emptyOptions,emptyTerms,workKinds,priceBases,priorities,sources,previewPrices,money,type CommercialOptions,type QuoteLine,type QuoteTerms,type QuoteSnapshot} from "@/lib/commercial/model";
 import {localToInstant,tenantToday} from "@/lib/planning/time";
 import {ObjectWizard} from "@/components/fieldgrid/objects/forms";
 import {CommercialDialog} from "./dialog";
+import {useDashboardPresentation} from "../presentation";
 import {QuoteDocument} from "./document";
 
 export function LineEditor({lines,onChange,options}:{lines:QuoteLine[];onChange:(lines:QuoteLine[])=>void;options:CommercialOptions}){
@@ -21,6 +22,7 @@ export function LineEditor({lines,onChange,options}:{lines:QuoteLine[];onChange:
 }
 
 export function CommercialWizard({kind,tenant,userId,initialOptions,onClose,onSaved,record,request,customerId="",objectId=""}:{kind:"request"|"quote";tenant:TenantContext;userId:string;initialOptions:CommercialOptions;onClose:()=>void;onSaved:(id:string,kind:"request"|"quote")=>void;record?:Row<"requests">|Row<"quotes">;request?:Row<"requests">;customerId?:string;objectId?:string}){
+ const presentation=useDashboardPresentation();
  const q=record&&"quote_number"in record?record:null;const r=record&&"request_number"in record?record:request;
  const [id]=useState(()=>record?.id||crypto.randomUUID());const [commandId,setCommandId]=useState(()=>crypto.randomUUID());const [version,setVersion]=useState(record?.version??0);
  const [step,setStep]=useState(1),[pending,start]=useTransition(),[error,setError]=useState(""),[dirty,setDirty]=useState(false);
@@ -38,7 +40,7 @@ export function CommercialWizard({kind,tenant,userId,initialOptions,onClose,onSa
  const changeCustomer=(value:string)=>{setCustomer(value);setObject("");setContact("");setDirty(true);};
  const term=(key:keyof QuoteTerms,value:string)=>setTerms(v=>({...v,[key]:value}));
  const field=(label:string,value:string,set:(v:string)=>void,props:React.InputHTMLAttributes<HTMLInputElement>={})=><label>{label}<input value={value} onChange={e=>set(e.target.value)} {...props}/></label>;
- const choice=(label:string,value:string,set:(v:string)=>void,items:Array<[string,string]>,blank?:string)=><label>{label}<select required={label==="Klant"||label==="Behandelaar"} value={value} onChange={e=>set(e.target.value)}>{blank!==undefined&&<option value="">{blank}</option>}{items.map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>;
+ const choice=(label:string,value:string,set:(v:string)=>void,items:Array<[string,string]>,blank?:string)=><label>{label}<select aria-label={label} required={label==="Klant"||label==="Behandelaar"} value={value} onChange={e=>set(e.target.value)}>{blank!==undefined&&<option value="">{blank}</option>}{items.map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>;
  const submit=(event:FormEvent<HTMLFormElement>,send=false)=>{event.preventDefault();setError("");start(async()=>{
   try{
    const payload=kind==="request"?{id,version,customer_id:prospect?"":customer,object_id:object,contact_id:contact,prospect:prospect?prospectData:undefined,subject,description,discipline,source,priority,work_kind:workKind,owner_id:owner,next_action:nextAction,followup_on:followup,preferences}:{id,version,request_id:q?.request_id||request?.id||"",customer_id:customer,object_id:object,contact_id:contact,subject,work_kind:workKind,price_basis:basis,owner_id:owner,followup_on:followup,lines,terms,expires_at:expires?localToInstant(`${expires}T23:59`,tenant.timezone):""};
@@ -69,6 +71,6 @@ export function CommercialWizard({kind,tenant,userId,initialOptions,onClose,onSa
  {kind==="quote"&&<p className="dossier-notice wide">Een concept mag onvolledig zijn. Aanbieden vereist klant, ontvanger, object, dienst, werkzaamheden, regels en geldigheid. Offerteakkoord is geen planning of betaalbevestiging.</p>}</fieldset>
  {error&&<p className="auth-message error" role="alert">{error}</p>}
  </div><footer className="wizard-footer"><button type="button" className="secondary-button" disabled={pending} onClick={()=>step>1?setStep(step-1):(!dirty||confirm("Niet opgeslagen invoer weggooien?"))&&onClose()}><ChevronLeft size={16}/>{step===1?"Annuleren":"Vorige"}</button>{kind==="quote"&&<button className="secondary-button" type="submit" disabled={pending||!customer||subject.trim().length<2}>Opslaan als concept</button>}{step<steps.length?<button key="next" type="button" className="primary-button" disabled={pending} onClick={e=>{const fields=e.currentTarget.form?.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement>("fieldset:not([hidden]) input,fieldset:not([hidden]) select,fieldset:not([hidden]) textarea");if(fields&&[...fields].every(f=>f.reportValidity())){setError("");setStep(step+1);}}}>Volgende<ChevronRight size={16}/></button>:<button key="submit" type="submit" value={kind==="quote"?"send":"save"} className="primary-button" disabled={pending}>{pending?"Bezig…":kind==="quote"?"Verzenden":"Aanvraag opslaan"}</button>}</footer>
- </form>{newObject&&<ObjectWizard tenant={tenant} customers={options.customers} customerId={customer} onClose={()=>setNewObject(false)} onSaved={async id=>{const result=await readCommercialOptions(lookup,customer);if(result.ok)setOptions(result.data);setObject(id);setDirty(true);}}/>}
+ </form>{newObject&&<ObjectWizard presentation={presentation} tenant={tenant} customers={options.customers} customerId={customer} onClose={()=>setNewObject(false)} onSaved={async id=>{const result=await readCommercialOptions(lookup,customer);if(result.ok)setOptions(result.data);setObject(id);setDirty(true);}}/>}
  </CommercialDialog>;
 }

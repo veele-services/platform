@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, LockKeyhole, Pencil, Plus, ShieldCheck, ShieldMinus } from "lucide-react";
-import { confirmTicketVerification, requestTicketVerification, runTicketCommand } from "@/app/tickets/actions";
+import { confirmTicketVerification, requestTicketVerification, runTicketCommand } from "@/app/(workspace)/tickets/actions";
 import { ticketPaths, type TicketAccess, type TicketCategory, type TicketGrant, type TicketGroup, type TicketPerson, type TicketScope, type TicketSettings } from "@/lib/tickets/model";
 import { TicketDialog } from "./dialog";
 import { TicketPushControl } from "./push";
@@ -14,6 +14,7 @@ import { ContentSection } from "../content-section";
 import { ContentTabs } from "../content-tabs";
 import { ActionIcon } from "../action-icon";
 import { EmptyState } from "../empty-state";
+import {PlatformSupportDefaults} from "./platform-settings";
 import "./tickets.css";
 
 export function TicketSettingsPage({ access, data }: { access: TicketAccess; data: TicketSettings }) {
@@ -41,11 +42,11 @@ export function TicketSettingsPage({ access, data }: { access: TicketAccess; dat
     ...(data.canDelegate ? [{ id: "permissions", title: "Bevoegdheden", content: permissions }] : []),
     ...(access.canAudit ? [{ id: "audit", title: "Beheergeschiedenis", content: audit }] : []),
   ];
-  return <div className="ticket-workspace ticket-settings-workspace">
-    <Link className="ticket-back" href={ticketPaths[access.workspace]}><ArrowLeft size={14}/>{access.workspace === "platform" || access.workspace === "support" ? "Terug naar support" : "Terug naar meldingen"}</Link>
-    <PageHeading eyebrow="INRICHTING & OPVOLGING" title={access.workspace === "platform" ? "Supportinstellingen" : "Meldingsinstellingen"} help="Stel categorieën, reactietermijnen en toegang tot meldingen in. Beheerders krijgen niet automatisch toegang tot alle gesprekken."/>
+  return <div className={access.workspace === "platform" ? "sites-platform-support-settings" : "ticket-workspace ticket-settings-workspace"}>
+    {access.workspace !== "platform" && <Link className="ticket-back" href={ticketPaths[access.workspace]}><ArrowLeft size={14}/>{access.workspace === "support" ? "Terug naar support" : "Terug naar meldingen"}</Link>}
+    <PageHeading eyebrow={access.workspace === "platform" ? "FIELDGRID PLATFORM" : "INRICHTING & OPVOLGING"} title={access.workspace === "platform" ? "Supportinstellingen" : "Meldingsinstellingen"} help="Stel categorieën, reactietermijnen en toegang tot meldingen in. Beheerders krijgen niet automatisch toegang tot alle gesprekken."/>
     {data.warnings.map(warning => <p className="ticket-notice" key={warning}>{warning}</p>)}
-    <div className="ticket-settings-tabs"><ContentTabs label="Meldingsinstellingen" tabs={tabs}/></div>
+    {access.workspace === "platform" ? <>{data.canConfigure && <PlatformSupportDefaults data={data}/>}<details className="sites-platform-extra"><summary>Uitgebreide inrichting, notificaties en bevoegdheden</summary><div className="ticket-settings-tabs"><ContentTabs label="Meldingsinstellingen" tabs={tabs}/></div></details></> : <div className="ticket-settings-tabs"><ContentTabs label="Meldingsinstellingen" tabs={tabs}/></div>}
     {category && <TicketCategoryForm access={access} data={data} category={category === "new" ? null : category} onClose={() => setCategory(null)} onSaved={() => { setCategory(null); router.refresh(); }}/>}
     {grant && <TicketGrantForm access={access} data={data} grant={grant === "new" ? null : grant} onClose={() => setGrant(null)} onSaved={() => { setGrant(null); router.refresh(); }}/>}
   </div>;

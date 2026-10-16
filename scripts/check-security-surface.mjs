@@ -77,6 +77,7 @@ const baseOperationalPaths = [
   "scripts/check-staging-runner-contract.sh",
   "scripts/check-ticket-scanner.ts",
   "scripts/check-worker-timer.sh",
+  "scripts/contract-test-image.sh",
   "scripts/deploy-local.sh",
   "scripts/diagnose-auth-mail.ts",
   "scripts/diagnose-auth-mail-context.ts",
@@ -87,6 +88,7 @@ const baseOperationalPaths = [
   "scripts/migration-manifest.json",
   "scripts/migration-manifest.ts",
   "scripts/package-release.sh",
+  "scripts/materialize-standalone.mjs",
   "scripts/preflight.ts",
   "scripts/run-worker.mjs",
   "scripts/test-release-artifact.mjs",
@@ -144,7 +146,10 @@ export function codeSurfaces(path, source) {
   // query. Keep every module with an observed data/control dependency in the
   // review inventory instead of treating only admin-client helpers as a
   // surface.
-  if (!isAction && !isRoute && !resources.size && !controls.size) return [];
+  // This pure request-origin guard has no database/Auth calls of its own.
+  // Its full source still belongs to the upload authorization review.
+  const isUploadOriginBoundary = path === "lib/tickets/files-origin.ts";
+  if (!isAction && !isRoute && !resources.size && !controls.size && !isUploadOriginBoundary) return [];
   const exports = new Set();
   for (const statement of file.statements) {
     if (ts.isExportDeclaration(statement) && statement.exportClause && ts.isNamedExports(statement.exportClause)) {

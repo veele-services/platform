@@ -1,0 +1,1410 @@
+[
+  {
+    "route": "besluiten",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "top": 114,
+      "left": 260,
+      "height": 612.09375,
+      "heading": [
+        {
+          "text": "Beslisnotities & logboek",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Binnen jouw toegangsrechten",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.328125,
+          "parentWidth": 339.328125
+        },
+        {
+          "text": "Concepten om verder uit te werken",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.328125,
+          "parentWidth": 339.328125
+        },
+        {
+          "text": "Gekoppeld aan het Control Center",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.34375,
+          "parentWidth": 339.34375
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 128
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 42.796875
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 262.1875
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "top": 162,
+      "left": 260,
+      "height": 612.09375,
+      "heading": [
+        {
+          "text": "Beslisnotities & logboek",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Binnen jouw toegangsrechten",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.328125,
+          "parentWidth": 339.328125
+        },
+        {
+          "text": "Concepten om verder uit te werken",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.328125,
+          "parentWidth": 339.328125
+        },
+        {
+          "text": "Gekoppeld aan het Control Center",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.34375,
+          "parentWidth": 339.34375
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 128
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 42.796875
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 262.1875
+        }
+      ]
+    },
+    "viewed": true,
+    "imageComparison": {
+      "source": {
+        "format": "raw",
+        "width": 1152,
+        "height": 613,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 2118528
+      },
+      "target": {
+        "format": "raw",
+        "width": 1152,
+        "height": 613,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 2118528
+      },
+      "meanAbsoluteChannelDifference": 8.685275814150203e-05,
+      "channelsDifferingOver10": 0,
+      "notes": "Only prototype/topbar/dev chrome excluded with visibility:hidden during element capture. Actual peildatum retained; no DOM, text or layout normalization."
+    }
+  },
+  {
+    "route": "besluiten",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "top": 151,
+      "left": 112,
+      "height": 647.28125,
+      "heading": [
+        {
+          "text": "Beslisnotities & logboek",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Binnen jouw toegangsrechten",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.65625,
+          "parentWidth": 168.65625
+        },
+        {
+          "text": "Concepten om verder uit te werken",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.671875,
+          "parentWidth": 168.671875
+        },
+        {
+          "text": "Gekoppeld aan het Control Center",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.671875,
+          "parentWidth": 168.671875
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 128
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 77.984375
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 262.1875
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "top": 175,
+      "left": 112,
+      "height": 647.28125,
+      "heading": [
+        {
+          "text": "Beslisnotities & logboek",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Binnen jouw toegangsrechten",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.65625,
+          "parentWidth": 168.65625
+        },
+        {
+          "text": "Concepten om verder uit te werken",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.671875,
+          "parentWidth": 168.671875
+        },
+        {
+          "text": "Gekoppeld aan het Control Center",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.671875,
+          "parentWidth": 168.671875
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 128
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 77.984375
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 262.1875
+        }
+      ]
+    },
+    "viewed": true,
+    "imageComparison": {
+      "source": {
+        "format": "raw",
+        "width": 628,
+        "height": 648,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 1220832
+      },
+      "target": {
+        "format": "raw",
+        "width": 628,
+        "height": 648,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 1220832
+      },
+      "meanAbsoluteChannelDifference": 0,
+      "channelsDifferingOver10": 0,
+      "notes": "Only prototype/topbar/dev chrome excluded with visibility:hidden during element capture. Actual peildatum retained; no DOM, text or layout normalization."
+    }
+  },
+  {
+    "route": "besluiten",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "top": 141,
+      "left": 16,
+      "height": 996.46875,
+      "heading": [
+        {
+          "text": "Beslisnotities & logboek",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Binnen jouw toegangsrechten",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        },
+        {
+          "text": "Concepten om verder uit te werken",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        },
+        {
+          "text": "Gekoppeld aan het Control Center",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 158.15625
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 407.75
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 85.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 273.375
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "top": 186,
+      "left": 16,
+      "height": 996.46875,
+      "heading": [
+        {
+          "text": "Beslisnotities & logboek",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Binnen jouw toegangsrechten",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        },
+        {
+          "text": "Concepten om verder uit te werken",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        },
+        {
+          "text": "Gekoppeld aan het Control Center",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 158.15625
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 407.75
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 85.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 273.375
+        }
+      ]
+    },
+    "fonts": {
+      "target": {
+        "url": "http://gov-270d71f3.localhost:3000",
+        "faces": [
+          {
+            "family": "Inter",
+            "weight": "400",
+            "status": "unloaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "500",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "600",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "400",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "500",
+            "status": "unloaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600",
+            "status": "unloaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "700",
+            "status": "unloaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "100 900",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600 800",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "normal",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600 800",
+            "status": "loaded"
+          },
+          {
+            "family": "__nextjs-Geist",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist Mono",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist Mono",
+            "weight": "400 600",
+            "status": "unloaded"
+          }
+        ],
+        "body": {
+          "font": "14px / 21px Inter, Arial, sans-serif",
+          "scale": "",
+          "width": 390,
+          "height": 1177.46875
+        },
+        "description": {
+          "font": "11.2px / 17.92px Inter, Arial, sans-serif",
+          "scale": ".8",
+          "width": 358,
+          "height": 35.84375
+        },
+        "heading": {
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "scale": ".8",
+          "width": 253,
+          "height": 29.125
+        },
+        "metrics": [
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 13.5
+          },
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 27
+          },
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 27
+          }
+        ]
+      },
+      "source": {
+        "url": "http://127.0.0.1:3311",
+        "faces": [
+          {
+            "family": "Inter",
+            "weight": "400",
+            "status": "unloaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "500",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "600",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "400",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "500",
+            "status": "unloaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600",
+            "status": "unloaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "700",
+            "status": "unloaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "100 900",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600 800",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "normal",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600 800",
+            "status": "loaded"
+          },
+          {
+            "family": "__nextjs-Geist",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist Mono",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist Mono",
+            "weight": "400 600",
+            "status": "unloaded"
+          }
+        ],
+        "body": {
+          "font": "14px / 21px Inter, Arial, sans-serif",
+          "scale": "",
+          "width": 390,
+          "height": 1287.46875
+        },
+        "description": {
+          "font": "11.2px / 17.92px Inter, Arial, sans-serif",
+          "scale": ".8",
+          "width": 358,
+          "height": 35.84375
+        },
+        "heading": {
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "scale": ".8",
+          "width": 253,
+          "height": 29.125
+        },
+        "metrics": [
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 13.5
+          },
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 27
+          },
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 27
+          }
+        ]
+      }
+    },
+    "viewed": true,
+    "imageComparison": {
+      "source": {
+        "format": "raw",
+        "width": 358,
+        "height": 997,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 1070778
+      },
+      "target": {
+        "format": "raw",
+        "width": 358,
+        "height": 997,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 1070778
+      },
+      "meanAbsoluteChannelDifference": 0,
+      "channelsDifferingOver10": 0,
+      "notes": "Only prototype/topbar/dev chrome excluded with visibility:hidden during element capture. Actual peildatum retained; no DOM, text or layout normalization."
+    }
+  },
+  {
+    "route": "compliance",
+    "width": 1440,
+    "target": {
+      "width": 1152,
+      "top": 114,
+      "left": 260,
+      "height": 612.09375,
+      "heading": [
+        {
+          "text": "Documenten & compliance",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Beoordeeld en actueel",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.328125,
+          "parentWidth": 339.328125
+        },
+        {
+          "text": "Op tijd verlengen of beoordelen",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.328125,
+          "parentWidth": 339.328125
+        },
+        {
+          "text": "Eisen zonder gekoppeld document",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.34375,
+          "parentWidth": 339.34375
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 128
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 42.796875
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 262.1875
+        }
+      ]
+    },
+    "source": {
+      "width": 1152,
+      "top": 162,
+      "left": 260,
+      "height": 612.09375,
+      "heading": [
+        {
+          "text": "Documenten & compliance",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Beoordeeld en actueel",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.328125,
+          "parentWidth": 339.328125
+        },
+        {
+          "text": "Op tijd verlengen of beoordelen",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.328125,
+          "parentWidth": 339.328125
+        },
+        {
+          "text": "Eisen zonder gekoppeld document",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 339.34375,
+          "parentWidth": 339.34375
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 128
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 42.796875
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 262.1875
+        }
+      ]
+    },
+    "viewed": true,
+    "imageComparison": {
+      "source": {
+        "format": "raw",
+        "width": 1152,
+        "height": 613,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 2118528
+      },
+      "target": {
+        "format": "raw",
+        "width": 1152,
+        "height": 613,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 2118528
+      },
+      "meanAbsoluteChannelDifference": 0.037708729835055285,
+      "channelsDifferingOver10": 1329,
+      "notes": "Only prototype/topbar/dev chrome excluded with visibility:hidden during element capture. Actual peildatum retained; no DOM, text or layout normalization."
+    }
+  },
+  {
+    "route": "compliance",
+    "width": 768,
+    "target": {
+      "width": 628,
+      "top": 151,
+      "left": 112,
+      "height": 647.28125,
+      "heading": [
+        {
+          "text": "Documenten & compliance",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Beoordeeld en actueel",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.65625,
+          "parentWidth": 168.65625
+        },
+        {
+          "text": "Op tijd verlengen of beoordelen",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.671875,
+          "parentWidth": 168.671875
+        },
+        {
+          "text": "Eisen zonder gekoppeld document",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.671875,
+          "parentWidth": 168.671875
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 128
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 77.984375
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 262.1875
+        }
+      ]
+    },
+    "source": {
+      "width": 628,
+      "top": 175,
+      "left": 112,
+      "height": 647.28125,
+      "heading": [
+        {
+          "text": "Documenten & compliance",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Beoordeeld en actueel",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.65625,
+          "parentWidth": 168.65625
+        },
+        {
+          "text": "Op tijd verlengen of beoordelen",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.671875,
+          "parentWidth": 168.671875
+        },
+        {
+          "text": "Eisen zonder gekoppeld document",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "none",
+          "width": 168.671875,
+          "parentWidth": 168.671875
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 95.109375
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 128
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 77.984375
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 262.1875
+        }
+      ]
+    },
+    "viewed": true,
+    "imageComparison": {
+      "source": {
+        "format": "raw",
+        "width": 628,
+        "height": 648,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 1220832
+      },
+      "target": {
+        "format": "raw",
+        "width": 628,
+        "height": 648,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 1220832
+      },
+      "meanAbsoluteChannelDifference": 0.052240603129668946,
+      "channelsDifferingOver10": 1056,
+      "notes": "Only prototype/topbar/dev chrome excluded with visibility:hidden during element capture. Actual peildatum retained; no DOM, text or layout normalization."
+    }
+  },
+  {
+    "route": "compliance",
+    "width": 390,
+    "target": {
+      "width": 358,
+      "top": 141,
+      "left": 16,
+      "height": 978.546875,
+      "heading": [
+        {
+          "text": "Documenten & compliance",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Beoordeeld en actueel",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        },
+        {
+          "text": "Op tijd verlengen of beoordelen",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        },
+        {
+          "text": "Eisen zonder gekoppeld document",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 407.75
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 85.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 273.375
+        }
+      ]
+    },
+    "source": {
+      "width": 358,
+      "top": 186,
+      "left": 16,
+      "height": 978.546875,
+      "heading": [
+        {
+          "text": "Documenten & compliance",
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "height": 29.125
+        }
+      ],
+      "metricText": [
+        {
+          "text": "Beoordeeld en actueel",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        },
+        {
+          "text": "Op tijd verlengen of beoordelen",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        },
+        {
+          "text": "Eisen zonder gekoppeld document",
+          "font": "9px / 13.5px Inter, Arial, sans-serif",
+          "display": "block",
+          "maxWidth": "130px",
+          "width": 130,
+          "parentWidth": 330
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "height": 140.234375
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-metrics",
+          "height": 407.75
+        },
+        {
+          "tag": "DIV",
+          "cls": "gov-toolbar",
+          "height": 85.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "content-tabs",
+          "height": 273.375
+        }
+      ]
+    },
+    "fonts": {
+      "target": {
+        "url": "http://gov-270d71f3.localhost:3000",
+        "faces": [
+          {
+            "family": "Inter",
+            "weight": "400",
+            "status": "unloaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "500",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "600",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "400",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "500",
+            "status": "unloaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600",
+            "status": "unloaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "700",
+            "status": "unloaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "100 900",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600 800",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "normal",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600 800",
+            "status": "loaded"
+          },
+          {
+            "family": "__nextjs-Geist",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist Mono",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist Mono",
+            "weight": "400 600",
+            "status": "unloaded"
+          }
+        ],
+        "body": {
+          "font": "14px / 21px Inter, Arial, sans-serif",
+          "scale": "",
+          "width": 390,
+          "height": 1159.546875
+        },
+        "description": {
+          "font": "11.2px / 17.92px Inter, Arial, sans-serif",
+          "scale": ".8",
+          "width": 358,
+          "height": 17.921875
+        },
+        "heading": {
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "scale": ".8",
+          "width": 298,
+          "height": 29.125
+        },
+        "metrics": [
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 13.5
+          },
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 27
+          },
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 27
+          }
+        ]
+      },
+      "source": {
+        "url": "http://127.0.0.1:3311",
+        "faces": [
+          {
+            "family": "Inter",
+            "weight": "400",
+            "status": "unloaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "500",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "600",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "700",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "400",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "500",
+            "status": "unloaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600",
+            "status": "unloaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "700",
+            "status": "unloaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "100 900",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600 800",
+            "status": "loaded"
+          },
+          {
+            "family": "Inter",
+            "weight": "normal",
+            "status": "loaded"
+          },
+          {
+            "family": "Poppins",
+            "weight": "600 800",
+            "status": "loaded"
+          },
+          {
+            "family": "__nextjs-Geist",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist Mono",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist",
+            "weight": "400 600",
+            "status": "unloaded"
+          },
+          {
+            "family": "__nextjs-Geist Mono",
+            "weight": "400 600",
+            "status": "unloaded"
+          }
+        ],
+        "body": {
+          "font": "14px / 21px Inter, Arial, sans-serif",
+          "scale": "",
+          "width": 390,
+          "height": 1269.546875
+        },
+        "description": {
+          "font": "11.2px / 17.92px Inter, Arial, sans-serif",
+          "scale": ".8",
+          "width": 358,
+          "height": 17.921875
+        },
+        "heading": {
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "scale": ".8",
+          "width": 298,
+          "height": 29.125
+        },
+        "metrics": [
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 13.5
+          },
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 27
+          },
+          {
+            "font": "9px / 13.5px Inter, Arial, sans-serif",
+            "scale": ".8",
+            "width": 130,
+            "height": 27
+          }
+        ]
+      }
+    },
+    "viewed": true,
+    "imageComparison": {
+      "source": {
+        "format": "raw",
+        "width": 358,
+        "height": 979,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 1051446
+      },
+      "target": {
+        "format": "raw",
+        "width": 358,
+        "height": 979,
+        "channels": 3,
+        "depth": "uchar",
+        "premultiplied": false,
+        "hasAlpha": false,
+        "size": 1051446
+      },
+      "meanAbsoluteChannelDifference": 0.0612651529417583,
+      "channelsDifferingOver10": 1079,
+      "notes": "Only prototype/topbar/dev chrome excluded with visibility:hidden during element capture. Actual peildatum retained; no DOM, text or layout normalization."
+    }
+  }
+]

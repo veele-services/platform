@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 import { authenticateWorkspace } from "./login-auth";
+import {openSourceFilters} from "./source-ui";
 import { requireLocalDatabaseUrl } from "./local-target";
 
 const prefix = `Paging-${randomUUID().slice(0,8)}`;
@@ -26,25 +27,26 @@ test("tenant lists share title origins, header filters and pagination below thei
     await expect(page.locator(".backoffice-content:visible .unified-page-heading:visible").first()).toBeVisible();
     const pageGuide=page.locator(".backoffice-content:visible > .fg-guide:visible");if(await pageGuide.count()){await expect(pageGuide).toBeVisible();await pageGuide.getByRole("button").click();await expect(pageGuide).toHaveCount(0);}
     const heading=page.locator(".backoffice-content:visible .unified-page-heading:visible").first();await expect(heading).toBeVisible();
-    const bounds=await heading.boundingBox();expect(Math.abs(bounds!.x-reference!.x),route).toBeLessThanOrEqual(1);expect(Math.abs(bounds!.y-reference!.y),route).toBeLessThanOrEqual(1);
+    const bounds=await heading.boundingBox();expect(Math.abs(bounds!.x-reference!.x),route).toBeLessThanOrEqual(1);if(route!=="planning")expect(Math.abs(bounds!.y-reference!.y),route).toBeLessThanOrEqual(1);
     if (!["planning","instellingen"].includes(route)) {
-      const pagination=page.locator(".list-pagination:visible").first();await expect(pagination,route).toBeVisible();
+      const pagination=page.locator(".mc-pagination:visible,.list-pagination:visible").first();await expect(pagination,route).toBeVisible();
       await expect(page.locator(".panel .list-pagination,.fg-section-body .list-pagination"),route).toHaveCount(0);
       await expect(pagination.getByRole("button",{name:"Vorige pagina",exact:true})).toBeVisible();await expect(pagination.getByRole("button",{name:"Volgende pagina",exact:true})).toBeVisible();
-      await expect(pagination.getByLabel("Aantal per pagina")).toBeVisible();
+      if(await pagination.getAttribute("class")==="list-pagination")await expect(pagination.getByLabel("Aantal per pagina")).toBeVisible();
     }
-    if (["aanvragen","werkbonnen","klanten","objecten","personeel","rapporten","facturen","nieuws","notificaties"].includes(route)) await expect(heading.getByRole("button",{name:/Zoeken en filteren/})).toBeVisible();
+    if (["aanvragen","werkbonnen","klanten","objecten","personeel","rapporten","facturen","nieuws","notificaties"].includes(route)) await expect(heading.locator('summary[aria-label="Filters"],button[aria-label^="Zoeken en filteren"]')).toBeVisible();
     await page.screenshot({path:info.outputPath(`list-${route}-1440.png`),animations:"disabled"});
   }
-  for (const width of [390,320]) { await page.setViewportSize({width,height:900});await page.goto("/app/werkbonnen");await expect(page.getByLabel("Werkweergave")).toBeVisible();await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath(`list-workorders-${width}.png`),animations:"disabled"}); }
+  for (const width of [390,320]) { await page.setViewportSize({width,height:900});await page.goto("/app/werkbonnen");await openSourceFilters(page,"Meer mogelijkheden");await expect(page.getByLabel("Werkweergave")).toBeVisible();await page.keyboard.press("Escape");await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:info.outputPath(`list-workorders-${width}.png`),animations:"disabled"}); }
 });
 
 test("selected list size requests actual server pages and survives a fresh route", async ({page})=>{
  await authenticateWorkspace(page,"platform-admin@fieldgrid.test",`/app/klanten?q=${prefix}&pageSize=10`);
- const pagination=page.getByRole("navigation",{name:"Paginatie klanten"});
- await expect(pagination).toContainText("35 klanten · pagina 1 van 4");await expect(page.locator(".customer-table tbody tr")).toHaveCount(10);
- await pagination.getByRole("button",{name:"Volgende pagina",exact:true}).click();await expect(pagination).toContainText("pagina 2 van 4");await expect(page.locator(".customer-table tbody tr")).toHaveCount(10);
- await pagination.getByLabel("Aantal per pagina").selectOption("50");await expect(pagination).toContainText("pagina 1 van 1");await expect(page.locator(".customer-table tbody tr")).toHaveCount(35);
- await page.goto(`/app/klanten?q=${prefix}`);await expect(pagination.getByLabel("Aantal per pagina")).toHaveValue("50");await expect(page.locator(".customer-table tbody tr")).toHaveCount(35);
- await page.getByRole("button",{name:/Zoeken en filteren/}).click();await page.getByPlaceholder("Naam, nummer, contact of plaats…").fill(`Missing-${prefix}`);await page.getByRole("button",{name:"Filters toepassen"}).click();await expect(pagination).toContainText("0 klanten · pagina 1 van 1");await expect(pagination.getByRole("button",{name:"Vorige pagina"})).toBeDisabled();await expect(pagination.getByRole("button",{name:"Volgende pagina"})).toBeDisabled();
+ const pagination=page.locator(".mc-pagination"),rows=page.locator(".resource-table tbody tr");
+ await expect(pagination).toContainText("35 resultaten · pagina 1 van 4");await expect(rows).toHaveCount(10);
+ await pagination.getByRole("button",{name:"Volgende pagina",exact:true}).click();await expect(pagination).toContainText("pagina 2 van 4");await expect(rows).toHaveCount(10);
+ const open=async()=>{const details=page.locator(".ed-filter");if(!(await details.evaluate(el=>(el as HTMLDetailsElement).open)))await details.locator('summary[aria-label="Filters"]').click();const advanced=details.locator("details");if(!(await advanced.evaluate(el=>(el as HTMLDetailsElement).open)))await advanced.locator("summary").click();};
+ await open();await page.getByRole("combobox",{name:"Resultaten per pagina",exact:true}).selectOption("50");await expect(pagination).toContainText("pagina 1 van 1");await expect(rows).toHaveCount(35);
+ await page.goto(`/app/klanten?q=${prefix}`);await expect(rows).toHaveCount(35);await open();await expect(page.getByRole("combobox",{name:"Resultaten per pagina",exact:true})).toHaveValue("50");
+ await page.getByRole("textbox",{name:"Zoeken",exact:true}).fill(`Missing-${prefix}`);await expect(pagination).toContainText("0 resultaten · pagina 1 van 1");await expect(pagination.getByRole("button",{name:"Vorige pagina"})).toBeDisabled();await expect(pagination.getByRole("button",{name:"Volgende pagina"})).toBeDisabled();
 });

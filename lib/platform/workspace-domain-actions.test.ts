@@ -2,7 +2,7 @@ import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 vi.mock('server-only',()=>({}));vi.mock('next/cache',()=>({revalidatePath:vi.fn()}));
 const m=vi.hoisted(()=>({guard:vi.fn(),admin:vi.fn(),rpc:vi.fn(),from:vi.fn(),txt:vi.fn(),cname:vi.fn(),domain:{host:'app.example.nl',verification_token:'fixture-token'}}));
 vi.mock('@/lib/platform/data',()=>({requirePlatformAdmin:m.guard}));vi.mock('@/lib/supabase/admin',()=>({createAdminClient:m.admin}));vi.mock('node:dns/promises',()=>({resolveTxt:m.txt,resolveCname:m.cname}));vi.mock('@/lib/tenancy/hostname',()=>({tenantAppUrl:()=> 'https://fixture.fieldgrid.nl/app'}));
-import {managePlatformWorkspaceDomain} from '@/app/platform/domain-actions';
+import {managePlatformWorkspaceDomain} from '@/app/(workspace)/platform/domain-actions';
 const tenantId='10000000-0000-4000-8000-000000000001',id='10000000-0000-4000-8000-000000000002';
 beforeEach(()=>{vi.clearAllMocks();vi.stubEnv('DEPLOY_TARGET','production');m.guard.mockResolvedValue({user:{id:'platform-fixture'}});m.admin.mockReturnValue({from:m.from,rpc:m.rpc});m.rpc.mockResolvedValue({error:null});m.txt.mockResolvedValue([['fieldgrid-verification=fixture-token']]);m.cname.mockResolvedValue(['fixture.fieldgrid.nl']);m.from.mockImplementation((table:string)=>{const q={select:()=>q,eq:vi.fn(()=>q),single:async()=>({data:table==='tenants'?{slug:'fixture',status:'active'}:m.domain,error:null})};return q;});});
 it('checks live platform access before privileged reads or DNS',async()=>{m.guard.mockRejectedValue(Error('Geen toegang'));expect(await managePlatformWorkspaceDomain({tenantId,operation:'register',host:'app.example.nl'})).toEqual({ok:false,error:'Geen toegang'});expect(m.admin).not.toHaveBeenCalled();expect(m.txt).not.toHaveBeenCalled();});

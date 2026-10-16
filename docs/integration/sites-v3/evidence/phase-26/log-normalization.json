@@ -1,0 +1,80 @@
+{
+  "meaning": "Only line endings/trailing whitespace normalized. Failures and not-run cases remain explicit; no outcome was changed.",
+  "files": [
+    {
+      "file": "full-browser-134.log",
+      "rawSha256": "344efee2770ae79dc8f30da8bfbf850fc64b02e553cb07af5aa6b51691fe365a",
+      "storedSha256": "950392ed12a23fc431154b480bd951d53d7ab828a6b734770f19384b310428f8"
+    },
+    {
+      "file": "focused-browser-8.log",
+      "rawSha256": "edde3a9861834c474bfd58452062a80b4cffa0abba7b202f06beb72a2aa32695",
+      "storedSha256": "edde3a9861834c474bfd58452062a80b4cffa0abba7b202f06beb72a2aa32695"
+    },
+    {
+      "file": "unit-1992.log",
+      "rawSha256": "96654a0fc0886148e231a370181d2103ef17c63d2a50adec6260f83bdff9422f",
+      "storedSha256": "14eb89c5a5e84bebeb9c43d63b6fecbcf074dfe245ebfe065b23c4cbda90492c"
+    },
+    {
+      "file": "build.log",
+      "rawSha256": "70fcf6ca88b4050ef95fc2c4303acaeef65566a2cbcacb161100d7327d4f00ba",
+      "storedSha256": "e2bb4c2479528020a357c57dc5b11e434220911120ed2fc4d4eb268f40956f8d"
+    },
+    {
+      "file": "package.log",
+      "rawSha256": "b2d6c9d6a1b98839d3614c96ae3f3724b73b82f8834a1be0a05abc174ab765e3",
+      "storedSha256": "b2d6c9d6a1b98839d3614c96ae3f3724b73b82f8834a1be0a05abc174ab765e3"
+    },
+    {
+      "file": "private-preview-unit-54.log",
+      "rawSha256": "6bd92b533f22752d6261edd86ffd031bf4cf6c5ebda1cb6ac71b5b6f363954e0",
+      "storedSha256": "e3268dfe3069feeaaeed87d33cd3d656049bf1cfb27f63c62e0cdc76d63e8fac"
+    },
+    {
+      "file": "security-surface.log",
+      "rawSha256": "db33efae221193c6ebcfdda942a742f60e19f1691b337b6d81a7bb1cd254a822",
+      "storedSha256": "db33efae221193c6ebcfdda942a742f60e19f1691b337b6d81a7bb1cd254a822"
+    },
+    {
+      "file": "security-review.log",
+      "rawSha256": "a92738f4d769ae5ffe255a9bcec63d7c1211e992eb6c4a71dfc32d0f64a48cf4",
+      "storedSha256": "a92738f4d769ae5ffe255a9bcec63d7c1211e992eb6c4a71dfc32d0f64a48cf4"
+    },
+    {
+      "file": "unit-1998.log",
+      "rawSha256": "5e146b4894dd005dec4855448d1ec648043ea1e582580de1b5d2d5b3c6660308",
+      "storedSha256": "5e146b4894dd005dec4855448d1ec648043ea1e582580de1b5d2d5b3c6660308"
+    },
+    {
+      "file": "contract-image-unit-6.log",
+      "rawSha256": "5f0e4c071a0f51fe998ab29f38a18ad086b02a4dbb5f00ff7a4f798f150543aa",
+      "storedSha256": "5f0e4c071a0f51fe998ab29f38a18ad086b02a4dbb5f00ff7a4f798f150543aa"
+    },
+    {
+      "file": "linux-staging.log",
+      "rawSha256": "8fe0744ea83fd2432aed627c080b04a35a2c36ea85c0fc73e3266b257302739f",
+      "storedSha256": "8fe0744ea83fd2432aed627c080b04a35a2c36ea85c0fc73e3266b257302739f"
+    },
+    {
+      "file": "linux-production.log",
+      "rawSha256": "44631c7bf9e8624d9f33b7f4a61b6fb4c074f61ec53531afda23811494261a78",
+      "storedSha256": "44631c7bf9e8624d9f33b7f4a61b6fb4c074f61ec53531afda23811494261a78"
+    },
+    {
+      "file": "dockerhub-pinned-pull.log",
+      "rawSha256": "ad81e229f8aa5b351f7e8a64c12a19937a901658cdfa108c788158b8c0a79466",
+      "storedSha256": "ad81e229f8aa5b351f7e8a64c12a19937a901658cdfa108c788158b8c0a79466"
+    },
+    {
+      "file": "security-review-1418.log",
+      "rawSha256": "3c277810ac4b95c559ba9e89ca6ad07d89bee3c44f7dd676f704cb0176b33fd9",
+      "storedSha256": "3c277810ac4b95c559ba9e89ca6ad07d89bee3c44f7dd676f704cb0176b33fd9"
+    },
+    {
+      "file": "security-surface-1418.log",
+      "rawSha256": "cf6272671128163cc3a14d57678c91010b7d64674a2b3d658b7b075a1ceda712",
+      "storedSha256": "cf6272671128163cc3a14d57678c91010b7d64674a2b3d658b7b075a1ceda712"
+    }
+  ]
+}

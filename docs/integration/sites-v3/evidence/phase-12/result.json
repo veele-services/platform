@@ -1,0 +1,23 @@
+{
+  "tenant": "d78961af-02a4-46e3-adff-e66d8ce5871f",
+  "quote": "0067807c-22e4-4079-87d6-18032a3a619a",
+  "order": "4fb82d47-9714-441b-abb1-52512a34db62",
+  "request": "5a222e53-7c77-432e-ba66-c67d64178580",
+  "checks": [
+    "real-auth-six-column-union-three-tabs",
+    "source-list-summary-three-widths",
+    "lost-response-idempotent-native-save",
+    "native-full-price-editor",
+    "central-policy-local-provider-capture",
+    "real-ClamAV-attachment-private-download-anonymous-denial",
+    "real-ClamAV-PDF-and-private-download",
+    "native-phone-acceptance",
+    "real-unassigned-order-no-invoice",
+    "immutable-published-PDF",
+    "native-intake-no-object",
+    "immutable-original-wording",
+    "search-reset",
+    "live-revocation"
+  ],
+  "browserErrors": []
+}

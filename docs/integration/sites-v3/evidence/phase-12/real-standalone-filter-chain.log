@@ -1,0 +1,1 @@
+PASS: actual authorized RSC refresh retains filter, focus and input; newly stored intake appears; clear, Escape and outside dismissal stay closed across refresh

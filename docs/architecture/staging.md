@@ -2,6 +2,16 @@
 
 Status: **canonical**
 
+## Signature Grid marketing host
+
+Sites v3 reserves `www.staging.fieldgrid.nl` as a separate public marketing host,
+never a tenant. Proxy dispatches its pages to the internal `/fieldgrid-site`
+namespace before protected `/platform` processing. Only public CRM intake and
+availability plus marketing/static assets are permitted on that host. CRM
+administration remains on the platform origin. Direct requests to the internal
+namespace fail closed. Staging marketing remains noindex. This contract does not
+provision DNS/TLS or change APP_URL, ports, tenant origins or release gates.
+
 Scope: staging only
 
 This document is the architectural source of truth for the first Fieldgrid V1
@@ -74,6 +84,13 @@ actual application validation rather than assuming that `APP_ENV=staging` is
 accepted.
 
 ### Filesystem layout
+
+The standalone release materializes only Next.js's traced runtime dependency
+graph into regular files. Packaging must support the actual traced pnpm layout
+without assuming a `.pnpm/node_modules` hoist directory exists. Links escaping
+the trace and conflicting module resolutions fail closed. No dependencies are
+installed or copied from an untraced workspace during packaging. The resulting
+archive remains link-free and is boot-tested before promotion.
 
 The future staging runtime uses this layout:
 

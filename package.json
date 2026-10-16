@@ -1,6 +1,6 @@
 {
   "name": "fieldgrid",
-  "version": "1.1.0",
+  "version": "1.2.0-rc.1",
   "private": true,
   "engines": {
     "node": ">=24.0.0"
@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:db": "supabase test db && node --test --test-concurrency=1 scripts/test-security-catalog.mjs scripts/test-release-security.mjs scripts/test-release-security-gate.mjs scripts/test-platform-security.mjs scripts/test-platform-support-team.mjs scripts/test-management-roles.mjs scripts/test-management-followup.mjs scripts/test-management-mutation-replies.mjs scripts/test-product-management.mjs scripts/test-knowledge-base.mjs scripts/test-workspace-domains.mjs scripts/test-module-security.mjs scripts/test-resource-lifecycle-security.mjs scripts/test-payment-security.mjs scripts/test-personnel-privacy.mjs scripts/test-personnel-numbering.mjs scripts/test-planboard.mjs scripts/test-live-planning.mjs scripts/test-object360.mjs scripts/test-dossier-alignment.mjs scripts/test-travel.mjs scripts/test-commercial.mjs scripts/test-customer360.mjs scripts/test-work-orders.mjs scripts/test-list-pagination.mjs scripts/test-account-guides.mjs scripts/test-task-catalogue.mjs scripts/test-work-order-lineage.mjs scripts/test-work-order-reports.mjs scripts/test-work-order-rpc-guards.mjs scripts/test-tickets.mjs scripts/test-ticket-delivery.mjs scripts/test-notifications.mjs scripts/test-notification-boundaries.mjs scripts/test-notification-delivery.mjs scripts/test-notification-mail.mjs scripts/test-notification-permissions.mjs scripts/test-notification-operational.mjs scripts/test-notification-policy-ui.mjs scripts/test-email-centre.mjs scripts/test-customer-portal.mjs scripts/test-customer-commercial.mjs scripts/test-customer-payments.mjs scripts/test-customer-payment-concurrency.mjs scripts/test-customer-tickets.mjs scripts/test-tenant-house-style.mjs scripts/test-customer-activity.mjs scripts/test-veele-marketing.mjs",
+    "test:db": "supabase test db && node --test --test-concurrency=1 scripts/test-security-catalog.mjs scripts/test-release-security.mjs scripts/test-release-security-gate.mjs scripts/test-platform-security.mjs scripts/test-platform-tenant-lifecycle.mjs scripts/test-platform-onboarding-source.mjs scripts/test-platform-source-templates.mjs scripts/test-platform-support-team.mjs scripts/test-management-roles.mjs scripts/test-management-followup.mjs scripts/test-management-mutation-replies.mjs scripts/test-product-management.mjs scripts/test-knowledge-base.mjs scripts/test-workspace-domains.mjs scripts/test-module-security.mjs scripts/test-resource-lifecycle-security.mjs scripts/test-payment-security.mjs scripts/test-source-invoice-list.mjs scripts/test-personnel-privacy.mjs scripts/test-personnel-numbering.mjs scripts/test-planboard.mjs scripts/test-live-planning.mjs scripts/test-object360.mjs scripts/test-dossier-alignment.mjs scripts/test-travel.mjs scripts/test-commercial.mjs scripts/test-commercial-source-list.mjs scripts/test-customer360.mjs scripts/test-work-orders.mjs scripts/test-list-pagination.mjs scripts/test-account-guides.mjs scripts/test-task-catalogue.mjs scripts/test-work-order-lineage.mjs scripts/test-work-order-reports.mjs scripts/test-report-review-list.mjs scripts/test-report-rls-helpers.mjs scripts/test-work-order-rpc-guards.mjs scripts/test-tickets.mjs scripts/test-ticket-delivery.mjs scripts/test-notifications.mjs scripts/test-notification-boundaries.mjs scripts/test-notification-delivery.mjs scripts/test-notification-mail.mjs scripts/test-notification-permissions.mjs scripts/test-notification-operational.mjs scripts/test-notification-policy-ui.mjs scripts/test-email-centre.mjs scripts/test-customer-portal.mjs scripts/test-customer-commercial.mjs scripts/test-customer-payments.mjs scripts/test-customer-payment-concurrency.mjs scripts/test-customer-tickets.mjs scripts/test-tenant-house-style.mjs scripts/test-customer-activity.mjs scripts/test-veele-marketing.mjs scripts/test-platform-crm.mjs scripts/test-platform-crm-concurrency.mjs scripts/test-platform-primary-admin.mjs scripts/test-management-cockpit.mjs scripts/test-management-cockpit-concurrency.mjs scripts/test-management-governance.mjs scripts/test-management-governance-concurrency.mjs scripts/test-management-service-levels.mjs scripts/test-management-service-levels-concurrency.mjs scripts/test-management-finance.mjs scripts/test-management-finance-concurrency.mjs scripts/test-management-indexation.mjs scripts/test-management-indexation-concurrency.mjs scripts/test-management-reports.mjs scripts/test-management-reports-concurrency.mjs scripts/test-management-overview.mjs scripts/test-management-overview-source.mjs scripts/test-management-entities.mjs",
     "test:e2e": "playwright test",
     "test:security:http": "node --conditions=react-server --import tsx --test scripts/test-release-storage-http.mjs scripts/test-release-platform-http.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
@@ -29,7 +29,8 @@
     "security:review": "node scripts/check-authorization-review.mjs",
     "deploy:preflight": "tsx scripts/preflight.ts",
     "tickets:scanner-check": "tsx scripts/check-ticket-scanner.ts",
-    "bootstrap:admin": "tsx scripts/bootstrap-platform-admin.ts"
+    "bootstrap:admin": "tsx scripts/bootstrap-platform-admin.ts",
+    "test:sites:source": "node scripts/verify-sites-reference.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.7.0",
@@ -48,6 +49,7 @@
     "input-otp": "1.4.2",
     "lucide-react": "1.31.0",
     "maplibre-gl": "6.11.2",
+    "motion": "14.0.0",
     "next": "16.3.8",
     "next-themes": "0.4.6",
     "pdf-lib": "1.17.1",

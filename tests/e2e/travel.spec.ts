@@ -231,6 +231,9 @@ test("PDOK address selection, exact suffixes, stale response protection and mobi
   await expect(page.getByRole("listbox", { name: "Adresresultaten" })).toHaveCount(0);
   await address.getByRole("combobox", { name: "Postcode", exact: true }).focus();
   await page.getByRole("option", { name: /FICTIEF Testplein/ }).click();
+  // These digits were already present after the manual-edit checks. Await the
+  // actual provider confirmation, rather than mistaking the old value for it.
+  await expect.poll(async()=>JSON.parse(await address.locator('input[type="hidden"]').first().inputValue()).status).toBe("confirmed");
   await expect(address.getByLabel("Huisnummer", { exact: true })).toHaveValue(
     "12",
   );
@@ -361,9 +364,9 @@ test("object arrival marker coordinates stay separate from official address", as
   page,
 }) => {
   await login(page, `/app/objecten/${objects[0]}`);
-  await page.getByLabel("Gebruik adreslocatie").uncheck();
-  await page.getByLabel("Breedtegraad aankomst").fill("52.081");
-  await page.getByLabel("Lengtegraad aankomst").fill("4.415");
+  await page.getByRole("checkbox",{name:"Gebruik adreslocatie",exact:true}).uncheck();
+  await page.getByRole("spinbutton",{name:"Breedtegraad aankomst",exact:true}).fill("52.081");
+  await page.getByRole("spinbutton",{name:"Lengtegraad aankomst",exact:true}).fill("4.415");
   await page
     .getByRole("button", { name: "Aankomstinstellingen opslaan" })
     .click();
@@ -433,7 +436,7 @@ test("MapLibre worker and draggable arrival marker work without changing the off
     { steps: 8 },
   );
   await page.mouse.up();
-  await expect(page.getByLabel("Gebruik adreslocatie")).not.toBeChecked();
+  await expect(page.getByRole("checkbox",{name:"Gebruik adreslocatie",exact:true})).not.toBeChecked();
   await expect(page.getByLabel("Lengtegraad aankomst")).not.toHaveValue(before);
   await page
     .getByRole("button", { name: "Aankomstinstellingen opslaan" })
@@ -489,7 +492,7 @@ test("reisinformatie starts collapsed and shows one employee's route at a time",
     await login(page, `/app/planning?day=${day}`);
     await page.getByRole("button", {name: "Acties voor werkbon FICTIEF-REIS-1", exact: true}).first().click();
     await page.getByRole("button", {name: "Bekijk werkbon", exact: true}).click();
-    const panel = page.getByRole("dialog", {name: "FICTIEF reisobject 1", exact: true});
+    const panel = page.getByRole("dialog", {name: "FICTIEF-REIS-1", exact: true});
     const travel = panel.locator(".pb-travel");
     const summary = travel.locator("summary");
     await expect(travel).not.toHaveAttribute("open");
@@ -522,10 +525,10 @@ test("reisinformatie starts collapsed and shows one employee's route at a time",
     }
     await summary.click();
     await expect(travel).not.toHaveAttribute("open");
-    await page.getByRole("button", {name: "Details sluiten", exact: true}).click();
+    await panel.getByRole("button",{name:"Sluiten",exact:true}).click();
     await page.getByRole("button", {name: "Acties voor werkbon FICTIEF-REIS-1", exact: true}).first().click();
     await page.getByRole("button", {name: "Bekijk werkbon", exact: true}).click();
-    await expect(page.getByRole("dialog", {name: "FICTIEF reisobject 1", exact: true}).locator(".pb-travel")).not.toHaveAttribute("open");
+    await expect(page.getByRole("dialog", {name: "FICTIEF-REIS-1", exact: true}).locator(".pb-travel")).not.toHaveAttribute("open");
   } finally {
     await db.query("delete from public.work_order_assignments where id=$1", [secondAssignment]);
     await db.query("delete from public.personnel where id=$1", [secondPerson]);

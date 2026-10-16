@@ -3,13 +3,18 @@ import { useRef, useState, useTransition } from "react";
 import { saveKnowledge } from "@/lib/knowledge/actions";
 import { knowledgeContentSchema, knowledgeLabels, knowledgeWorkspaces, type KnowledgeArticle, type KnowledgeContent } from "@/lib/knowledge/model";
 import { KnowledgeBody } from "./article";
+import {useUnsavedDraft,confirmDiscard} from "../unsaved-form";
 export function KnowledgeEditor({ article, onSaved, onClose }: { article?: KnowledgeArticle; onSaved: (slug: string) => void; onClose: () => void }) {
   const [slug,setSlug]=useState(article?.slug??""), [content,setContent]=useState<KnowledgeContent>(article ? { title:article.title,summary:article.summary,body:article.body,category:article.category,tags:article.tags,audiences:article.audiences,related:article.relatedSlugs??article.related.map(a=>a.slug) } : { title:"",summary:"",body:"## Doel\n\n\n## Voor je begint\n\n\n## Stap voor stap\n\n1. \n\n## Controleer het resultaat\n\n\n## Veelgestelde vragen\n\n",category:"Aan de slag",tags:[],audiences:["backoffice"],related:[] });
   const [tagText,setTagText]=useState(content.tags.join(", ")), [relatedText,setRelatedText]=useState(content.related.join(", "));
   const [pending,start]=useTransition(),[error,setError]=useState(""),[preview,setPreview]=useState(false);
   const receipt=useRef<{ fingerprint:string; id:string }|null>(null);
+  const [original]=useState(()=>({slug,content:JSON.stringify(content),tagText,relatedText}));
+  const dirty=slug!==original.slug||JSON.stringify(content)!==original.content||tagText!==original.tagText||relatedText!==original.relatedText;
+  const draftRef=useUnsavedDraft<HTMLFormElement>(dirty);
+  const close=()=>{if(!pending&&(!dirty||confirmDiscard()))onClose()};
   const field=<K extends keyof KnowledgeContent>(key:K,value:KnowledgeContent[K])=>setContent(previous=>({...previous,[key]:value}));
-  return <section className="kb-editor resource-panel" aria-label="Artikel bewerken"><header className="kb-section-header"><div><h2>{article ? "Artikel bewerken" : "Nieuw artikel"}</h2><p>Opslaan wijzigt het concept. Publiceren maakt het apart beschikbaar voor de gekozen portalen.</p></div><button type="button" className="secondary-button" onClick={onClose} disabled={pending}>Sluiten</button></header><form onSubmit={event=>{event.preventDefault();setError("");start(async()=>{
+  return <section className="kb-editor resource-panel" aria-label="Artikel bewerken"><header className="kb-section-header"><div><h2>{article ? "Artikel bewerken" : "Nieuw artikel"}</h2><p>Opslaan wijzigt het concept. Publiceren maakt het apart beschikbaar voor de gekozen portalen.</p></div><button type="button" className="secondary-button" onClick={close} disabled={pending}>Sluiten</button></header><form ref={draftRef} onSubmit={event=>{event.preventDefault();setError("");start(async()=>{
     const parsed=knowledgeContentSchema.safeParse({...content,tags:tagText.split(",").map(s=>s.trim()).filter(Boolean),related:relatedText.split(",").map(s=>s.trim()).filter(Boolean)});if(!parsed.success){setError("Controleer de lengtes van titel, samenvatting en uitleg, en kies ten minste één doelgroep. Controleer ook trefwoorden en verwante artikelcodes.");return;}
     const operation={command:"save" as const,payload:{slug,revision:article?.revision??0,content:parsed.data}},fingerprint=JSON.stringify(operation);
     if(receipt.current?.fingerprint!==fingerprint)receipt.current={fingerprint,id:crypto.randomUUID()};

@@ -1,0 +1,17 @@
+{
+  "checks": [
+    "actual-auth-source-geometry",
+    "responsive-320-390-768-1440",
+    "source-dialogs",
+    "pointer-drag-native-commit",
+    "pointer-resize-native-commit",
+    "multi-crew-whole-and-single-scope",
+    "native-undo",
+    "manual-travel-signature",
+    "coupled-travel-height",
+    "actual-release-dispatch",
+    "date-empty-backlog",
+    "live-function-revocation"
+  ],
+  "browserErrors": []
+}

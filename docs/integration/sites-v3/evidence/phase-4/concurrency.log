@@ -1,0 +1,16 @@
+▶ Financial source control: real report approval, independent transactions and current authority
+  ✔ simultaneous identical retries approve the real report and append one financial review (359.932519ms)
+  ✔ different request keys for one source fingerprint have one winner (225.082669ms)
+  ✔ financial command authority is rechecked after the native planning lock wait (147.189447ms)
+  ✔ expired sessions cannot approve after waiting on the native work order (144.767065ms)
+  ✔ revoked native report approval during its row wait rolls back the entire financial transaction (218.010917ms)
+  ✔ a worker holding the source signal cannot deadlock a native financial confirmation through progress metadata (294.525055ms)
+✔ Financial source control: real report approval, independent transactions and current authority (5518.265169ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5591.71978

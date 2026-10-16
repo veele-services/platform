@@ -1,0 +1,29 @@
+"use client";
+import {cloneElement,isValidElement,useEffect,useId,useRef,type ReactNode,type ReactElement,type ButtonHTMLAttributes} from 'react';
+import {X,ArrowUpRight,Search,ChevronLeft,ChevronRight,type LucideIcon} from 'lucide-react';
+export {PageHeading} from '@/components/fieldgrid/page-heading';
+export {ContentTabs} from '@/components/fieldgrid/content-tabs';
+export function Button({children,onClick,primary=false,disabled=false,type='button',...rest}:ButtonHTMLAttributes<HTMLButtonElement>&{primary?:boolean}){return <button {...rest} type={type} className={primary?'primary-button':'secondary-button'} onClick={onClick} disabled={disabled}>{children}</button>}
+export function Badge({children,tone='neutral'}:{children:ReactNode;tone?:string}){return <span className={`mc-badge ${tone}`}>{children}</span>}
+export function Metric({label,value,detail,icon:Icon,onClick,tone='neutral'}:{label:ReactNode;value:ReactNode;detail?:ReactNode;icon?:LucideIcon;onClick?:()=>void;tone?:string}){return <button className={`metric mc-metric ${tone}`} onClick={onClick} disabled={!onClick}><span className="metric-icon">{Icon&&<Icon size={18}/>}</span><div><span>{label}</span><strong>{value}</strong>{detail&&<small>{detail}</small>}</div>{onClick&&<ArrowUpRight className="metric-arrow" size={15}/>}</button>}
+export function Panel({title,eyebrow,action,children,className=''}:{title?:ReactNode;eyebrow?:string;action?:ReactNode;children:ReactNode;className?:string}){return <section className={`panel ${className}`}>{(title||action)&&<div className="section-heading"><div>{eyebrow&&<span className="eyebrow">{eyebrow}</span>}<h2>{title}</h2></div>{action}</div>}{children}</section>}
+export function Empty({title='Geen resultaten',text='Pas je filters aan om meer resultaten te zien.'}:{title?:string;text?:string}){return <div className="mc-empty"><Search size={28}/><h3>{title}</h3><p>{text}</p></div>}
+export function Modal({title,subtitle,children,onClose,footer,wide=false,closeDisabled=false,commandBusy}:{title:ReactNode;subtitle?:string;children:ReactNode;onClose:()=>void;footer?:ReactNode;wide?:boolean;closeDisabled?:boolean;commandBusy?:boolean}){
+ const ref=useRef<HTMLDialogElement>(null),id=useId(),blocked=closeDisabled||commandBusy===true;
+ useEffect(()=>{const previous=document.activeElement as HTMLElement;ref.current?.showModal();return()=>{previous?.focus()}},[]);
+ const dismiss=()=>{if(!blocked)onClose()};
+ return <dialog ref={ref} aria-labelledby={id} className={`mc-dialog ${wide?'wide':''}`} onCancel={e=>{e.preventDefault();dismiss()}} onKeyDown={e=>{
+  if(e.key!=='Tab'||e.defaultPrevented)return;
+  const controls=[...e.currentTarget.querySelectorAll<HTMLElement>('button,input:not([type=hidden]),select,textarea,a[href],summary,iframe,[tabindex]:not([tabindex="-1"])')].filter(el=>!el.matches(':disabled')&&!el.closest('[hidden],[inert]')&&el.getClientRects().length>0),first=controls[0],last=controls.at(-1);
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}
+ }} onClick={e=>{if(e.target===e.currentTarget)dismiss()}}><div className="mc-dialog-frame"><header><div><span className="eyebrow">{subtitle||'FIELDGRID'}</span><h2 id={id}>{title}</h2></div><button className="fg-action-icon" disabled={blocked} onClick={dismiss} aria-label="Sluiten"><X size={20}/></button></header><div className="mc-dialog-body">{commandBusy===undefined?children:<fieldset className="crm-command-fields" disabled={commandBusy} aria-busy={commandBusy}>{children}</fieldset>}</div>{footer&&<footer>{footer}</footer>}</div></dialog>;
+}
+export function Field({label,children,group=false}:{label:ReactNode;children:ReactNode;group?:boolean}){
+ const id=useId(),native=isValidElement(children)&&typeof children.type==='string';
+ if(group)return <div className="mc-field" role="group" aria-labelledby={id}><span id={id}>{label}</span>{children}</div>;
+ return <label className="mc-field" htmlFor={native?id:undefined}><span id={id+'-label'}>{label}</span>{native?cloneElement(children as ReactElement<{id:string;'aria-labelledby':string}>,{id,'aria-labelledby':id+'-label'}):children}</label>;
+}
+export function Table({headers,children}:{headers:ReactNode[];children:ReactNode}){return <div className="panel resource-table-panel"><div className="table-scroll"><table className="resource-table"><thead><tr>{headers.map((h,i)=><th key={i}>{h}</th>)}</tr></thead><tbody>{children}</tbody></table></div></div>}
+export function SourceLink({id,onClick}:{id:string;onClick:()=>void}){return <button className="mc-source-link" onClick={onClick}>{id}<ArrowUpRight size={13}/></button>}
+export function Timeline({items}:{items:string[]}){return <ol className="mc-timeline">{items.map((item:string,i:number)=><li key={i}>{item}</li>)}</ol>}
+export function Pagination({count,page,setPage,size=8}:{count:number;page:number;setPage:(page:number)=>void;size?:number}){const max=Math.max(1,Math.ceil(count/size));return <div className="mc-pagination"><span>{count} resultaten · pagina {page} van {max}</span><div><button className="fg-action-icon" aria-label="Vorige pagina" disabled={page<=1} onClick={()=>setPage(page-1)}><ChevronLeft size={16}/></button><button className="fg-action-icon" aria-label="Volgende pagina" disabled={page>=max} onClick={()=>setPage(page+1)}><ChevronRight size={16}/></button></div></div>}

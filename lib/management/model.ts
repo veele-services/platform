@@ -17,7 +17,7 @@ export function hasManagementPermission(tenant: { permissions?: string[] | null 
   return tenant.permissions == null || tenant.permissions.includes(capability);
 }
 export const backofficePagePermission: Record<string, string> = {
-  aanvragen: "commercial", planning: "planning", werkbonnen: "work_orders", taken: "tasks", klanten: "customers", objecten: "objects", personeel: "personnel", rapporten: "reports", facturen: "finance", nieuws: "news", opvolging: "followup", instellingen: "settings", updates: "product",
+  overzicht: "overview", aanvragen: "commercial", planning: "planning", werkbonnen: "work_orders", taken: "tasks", klanten: "customers", objecten: "objects", personeel: "personnel", rapporten: "reports", facturen: "finance", nieuws: "news", opvolging: "followup", besluiten:"decisions", compliance:"compliance", sla:"sla", omzet:"finance", indexatie:"finance", weekrapport:"reports", instellingen: "settings", updates: "product",
 };
 export function permissionForPath(pathname: string): string | null {
   const parts = pathname.split("/").filter(Boolean);
@@ -27,4 +27,12 @@ export function permissionForPath(pathname: string): string | null {
   const pageModule = parts[1] ? backofficePagePermission[parts[1]] : "overview";
   return pageModule ? `backoffice.${pageModule}.read` : "backoffice.access";
 }
-export const managementModuleNames: Record<string, string> = { product: "Roadmap en updates", access: "Toegang", overview: "Overzicht", commercial: "Aanvragen en offertes", planning: "Planbord", work_orders: "Werkbonnen", tasks: "Taken en tarieven", customers: "Klanten", objects: "Objecten", personnel: "Personeel", reports: "Rapportcontrole", finance: "Facturen en betalingen", news: "Nieuws", followup: "Opvolging", settings: "Instellingen", tickets: "Tickets en support", notifications: "Notificaties", management: "Gebruikers en eigenaarschap" };
+/** Navigation also hides adapters whose read function was explicitly removed.
+ * The canonical page permission remains unchanged for live auth resolution. */
+export function navigationPermissionForPath(pathname:string):string|null{
+ const parts=pathname.split('/').filter(Boolean);if(parts[0]!=='app')return permissionForPath(pathname);
+  const adapterPermissions:Record<string,string>={overzicht:'cockpit_overview_query',aanvragen:'commercial_list',planning:'get_planboard',werkbonnen:'work_order_list',rapporten:'cockpit_report_review_list',facturen:'cockpit_invoice_list',taken:'task_catalogue',klanten:'cockpit_customer_cards',objecten:'cockpit_entity_query',personeel:'cockpit_entity_query',opvolging:'cockpit_followup',sla:'cockpit_sla_query',omzet:'cockpit_finance_query',indexatie:'cockpit_indexation_query',weekrapport:'cockpit_reports_query'};
+  const adapter=adapterPermissions[parts[1]||'overzicht'];if(adapter)return `backoffice.functions.${adapter}`;
+ return permissionForPath(pathname);
+}
+export const managementModuleNames: Record<string, string> = { product: "Roadmap en updates", access: "Toegang", overview: "Overzicht", commercial: "Aanvragen en offertes", planning: "Planbord", work_orders: "Werkbonnen", tasks: "Taken en tarieven", customers: "Klanten", objects: "Objecten", personnel: "Personeel", reports: "Rapportcontrole", finance: "Facturen en betalingen", news: "Nieuws", followup: "Opvolging", decisions:"Beslisnotities", compliance:"Documenten en compliance", sla:"SLA-bewaking", settings: "Instellingen", tickets: "Tickets en support", notifications: "Notificaties", management: "Gebruikers en eigenaarschap" };

@@ -21,7 +21,7 @@ import type { DossierData } from "@/lib/personnel/dossier-data";
 import type { TenantContext } from "@/lib/auth/context";
 import { dossierTabs, dossierDefinitions, businessToday, employmentStatus, currentContract, dossierSignals, certificateValidity, noticeDeadline, contractDeadlines, type DossierRecord, type DossierTab, type DossierValues, type RecordKind } from "@/lib/personnel/dossier";
 import { DossierRecordEditor, DossierUpload, QualificationCatalogEditor } from "./personnel-dossier-forms";
-import { dossierRecordHistory, prepareDossierChecklist, reviewStaffLeaveRequest, reviewStaffTimeCorrection, setQualificationRequirementActive, setStaffAvailabilitySelfService, setStaffLeaveEntitlement } from "@/app/app/personeel/dossier-actions";
+import { dossierRecordHistory, prepareDossierChecklist, reviewStaffLeaveRequest, reviewStaffTimeCorrection, setQualificationRequirementActive, setStaffAvailabilitySelfService, setStaffLeaveEntitlement } from "@/app/(workspace)/app/personeel/dossier-actions";
 import type { Json } from "@/lib/database.types";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { CompactFilterMenu } from "./compact-filter-menu";

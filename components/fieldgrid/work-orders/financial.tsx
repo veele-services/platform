@@ -5,7 +5,7 @@ import { Download, FilePlus2, Send } from "lucide-react";
 import { toast } from "sonner";
 import type { WorkOrderDossier } from "@/lib/work-orders/model";
 import { financialMoney as money, orderFinancialSummary, agreedTaskAmount } from "@/lib/work-orders/financial-summary";
-import { createInvoice, sendInvoice } from "@/app/app/finance-actions";
+import { createInvoice, sendInvoice } from "@/app/(workspace)/app/finance-actions";
 import { ContentSection } from "../content-section";
 import { HelpTip } from "../help-tip";
 

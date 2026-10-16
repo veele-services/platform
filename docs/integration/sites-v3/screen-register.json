@@ -1,0 +1,2055 @@
+{
+  "baseline": "71df59ab0390ffeae482c7edbaf27efe3fa6546d",
+  "platformSource": "3999c85b76aecf729f3b2bba86e1535255915848",
+  "marketingSource": "c78377808dc560f4b8c2288b69dfe504845d8c94",
+  "checksums": {
+    "verified": 344,
+    "failed": 0
+  },
+  "screens": [
+    {
+      "id": "W01",
+      "scope": "`/` — Signature Grid",
+      "reference": [
+        "`M/components/homes/Signature.tsx`, `Signature.module.css`, `M/components/sections.tsx`",
+        "Volledige hero met product-/fotogrid, alle secties en lange copy; zie volgorde hieronder",
+        "Beide CTA's, perspectieftabs, demo, onboardingchecklist, FAQ en alle cards werken; plaatsing van de twee verplaatste secties exact controleren."
+      ],
+      "route": "https://www.fieldgrid.nl/",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W02",
+      "scope": "`/branches`",
+      "reference": [
+        "`M/components/standard-pages.tsx` → `BranchesPage`, `M/lib/content.ts`",
+        "Brancheoverzicht met vijf kernsectoren en twee ontwikkelrichtingen",
+        "Alle zeven branchecards openen het juiste detail; geen oude conceptkeuze."
+      ],
+      "route": "https://www.fieldgrid.nl/branches",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W03",
+      "scope": "`/branches/schoonmaak`",
+      "reference": [
+        "`M/components/detail-pages.tsx` → `SectorPage`, `M/lib/content.ts`",
+        "Schoonmaakcopy, eigen beeld, voordelen, praktijk, stappen en FAQ",
+        "Breadcrumbs, relevante productlinks en beide conversieroutes werken; eigen titel/description."
+      ],
+      "route": "https://www.fieldgrid.nl/branches/schoonmaak",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W04",
+      "scope": "`/branches/glasbewassing`",
+      "reference": [
+        "Dezelfde `SectorPage`, eigen sectorrecord",
+        "Glasbewassingcopy, sectorspecifieke foto en voorbeelden",
+        "Geen gekopieerde schoonmaaktekst of verkeerde gerelateerde links; formulierbestemmingen werken."
+      ],
+      "route": "https://www.fieldgrid.nl/branches/glasbewassing",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W05",
+      "scope": "`/branches/facilitair`",
+      "reference": [
+        "Dezelfde `SectorPage`, eigen sectorrecord",
+        "Facilitaire dienstverlening, locatiecontext en eigen lange copy",
+        "Correcte sectorselectie/content en metadata; volledige template zichtbaar."
+      ],
+      "route": "https://www.fieldgrid.nl/branches/facilitair",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W06",
+      "scope": "`/branches/groenonderhoud`",
+      "reference": [
+        "Dezelfde `SectorPage`, eigen sectorrecord",
+        "Groenonderhoud, eigen beeld, praktijk en FAQ",
+        "Links en CTA's werken; geen aanvullende onbewezen productclaims."
+      ],
+      "route": "https://www.fieldgrid.nl/branches/groenonderhoud",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W07",
+      "scope": "`/branches/vastgoedservice`",
+      "reference": [
+        "Dezelfde `SectorPage`, eigen sectorrecord",
+        "Vastgoedservice, klantlocaties en eigen inhoud",
+        "Eigen metadata, gerelateerde producten, leesbare mobiele content."
+      ],
+      "route": "https://www.fieldgrid.nl/branches/vastgoedservice",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W08",
+      "scope": "`/branches/beveiliging`",
+      "reference": [
+        "Dezelfde `SectorPage`, eigen sectorrecord",
+        "Verticale uitbreiding met de bestaande aanduiding in ontwikkeling",
+        "Afspraken-CTA werkt; sectorspecifieke functies niet als reeds gebouwd presenteren."
+      ],
+      "route": "https://www.fieldgrid.nl/branches/beveiliging",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W09",
+      "scope": "`/branches/evenementen`",
+      "reference": [
+        "Dezelfde `SectorPage`, eigen sectorrecord",
+        "Evenementen als ontwikkelrichting, eigen foto en inhoud",
+        "Ontwikkelstatus zichtbaar houden, ook in menu/context; juiste contactbestemming."
+      ],
+      "route": "https://www.fieldgrid.nl/branches/evenementen",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W10",
+      "scope": "`/platform`",
+      "reference": [
+        "`M/components/standard-pages.tsx` → `PlatformPage`",
+        "Publiek productoverzicht met productonderdelen en verbonden werkdag",
+        "Anoniem bereikbaar op www; links naar de zeven productdetails, geen privédashboard."
+      ],
+      "route": "https://www.fieldgrid.nl/platform",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W11",
+      "scope": "`/platform/planning`",
+      "reference": [
+        "`M/components/detail-pages.tsx` → `ProductPage`, `M/lib/content.ts`",
+        "Planningtemplate, eigen copy, voordelen, demo en FAQ",
+        "Directe route/refresh, demo-interactie, gerelateerde product- en CTA-links."
+      ],
+      "route": "https://www.fieldgrid.nl/platform/planning",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W12",
+      "scope": "`/platform/werkbonnen`",
+      "reference": [
+        "Dezelfde `ProductPage`, eigen productrecord",
+        "Digitale werkbonnen en uitvoeringscontext",
+        "Juiste content en productdemo; niets schrijft vanuit de publieke demo naar echte werkbonnen."
+      ],
+      "route": "https://www.fieldgrid.nl/platform/werkbonnen",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W13",
+      "scope": "`/platform/objecten`",
+      "reference": [
+        "Dezelfde `ProductPage`, eigen productrecord",
+        "Klanten & Object 360",
+        "Eigen content en links, behoud de in de copy beschreven functionele grenzen."
+      ],
+      "route": "https://www.fieldgrid.nl/platform/objecten",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W14",
+      "scope": "`/platform/personeelsapp`",
+      "reference": [
+        "Dezelfde `ProductPage`, eigen productrecord",
+        "Personeelsapp en mobiele werkdag",
+        "Mobiele presentatie, CTA's en gerelateerde onboarding-/werkboninformatie."
+      ],
+      "route": "https://www.fieldgrid.nl/platform/personeelsapp",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W15",
+      "scope": "`/platform/klantportaal`",
+      "reference": [
+        "Dezelfde `ProductPage`, eigen productrecord",
+        "Klantportaal, locaties en terugkoppeling",
+        "Eigen demo en links; publieke visual is geen toegang tot klantdata."
+      ],
+      "route": "https://www.fieldgrid.nl/platform/klantportaal",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W16",
+      "scope": "`/platform/onboarding`",
+      "reference": [
+        "Dezelfde `ProductPage`, eigen productrecord",
+        "Personeel & onboarding, eigen onboardingbeeld",
+        "Complete content/FAQ en koppeling naar personeelsapp; geen fictieve accountactivatie."
+      ],
+      "route": "https://www.fieldgrid.nl/platform/onboarding",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W17",
+      "scope": "`/platform/offertes-facturatie`",
+      "reference": [
+        "Dezelfde `ProductPage`, eigen productrecord",
+        "Offertes & facturatie",
+        "Behoud bestaande productnuances; CTA's en breadcrumbs werken."
+      ],
+      "route": "https://www.fieldgrid.nl/platform/offertes-facturatie",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W18",
+      "scope": "`/werkwijze`",
+      "reference": [
+        "`M/components/standard-pages.tsx` → `WorkflowPage`",
+        "Procesuitleg van inrichting tot gebruik",
+        "Volledige stappen en gerelateerde links; beide vervolgroutes beschikbaar."
+      ],
+      "route": "https://www.fieldgrid.nl/werkwijze",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W19",
+      "scope": "`/over`",
+      "reference": [
+        "`M/components/standard-pages.tsx` → `AboutPage`",
+        "Over Fieldgrid, merkverhaal en bijbehorende compositie",
+        "Eigen metadata; werkende contact-/vervolglinks, geen lege placeholdertekst."
+      ],
+      "route": "https://www.fieldgrid.nl/over",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W20",
+      "scope": "`/demo`",
+      "reference": [
+        "`M/components/standard-pages.tsx` → `DemoPage`, `M/components/product-demo.tsx`",
+        "Interactieve productdemo met de bestaande tabs en voorbeelduitvoering",
+        "Tabwissel en voorbeeldinteracties werken; persoonlijke demo gaat naar `/afspraak?type=demo`."
+      ],
+      "route": "https://www.fieldgrid.nl/demo",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W21",
+      "scope": "`/proberen`",
+      "reference": [
+        "`M/components/conversion-pages.tsx` → `TrialPage`, bijbehorende CSS Module",
+        "Drie stappen: organisatie, kennismaken, controleren; eigen illustratieve panelen en receipt",
+        "Valideren, teruggaan met behoud invoer, werkelijk registreren in CRM; na succes een aanvraag bevestigen, geen niet-bestaand proefaccount."
+      ],
+      "route": "https://www.fieldgrid.nl/proberen",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json",
+        "evidence/final/public-forms.json"
+      ]
+    },
+    {
+      "id": "W22",
+      "scope": "`/afspraak` en `?type=demo`",
+      "reference": [
+        "`M/components/conversion-pages.tsx` → `AppointmentPage`, bijbehorende CSS Module",
+        "Twee stappen: onderwerp/moment en contactgegevens; kennismaking of productdemo",
+        "Uitsluitend telefonisch, 30 minuten; telefoon verplicht. Live slots, fout/lege/loading states, 409-herstel en receipt; query kiest Productdemo vooraf."
+      ],
+      "route": "https://www.fieldgrid.nl/afspraak",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json",
+        "evidence/final/public-forms.json"
+      ]
+    },
+    {
+      "id": "W23",
+      "scope": "`/privacy`",
+      "reference": [
+        "`M/components/standard-pages.tsx` → `PrivacyPage`",
+        "Bestaande pagina-opmaak en leesstructuur",
+        "Vóór productie de prototypeprivacy vervangen door feitelijke productie-inhoud; geen prototypeverklaring als definitief beleid publiceren."
+      ],
+      "route": "https://www.fieldgrid.nl/privacy",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W24",
+      "scope": "Alle pagina's: `M/components/site-chrome.tsx`",
+      "reference": [
+        "Logo naar home; desktop-megamenu's en mobiel menu; één disclosure tegelijk; sluiten bij Escape, buitenklik en navigatie; sticky-headerstate; footer",
+        "Elke menu-, footer- en onderliggende link heeft een concrete bestemming. Toetsenbord en mobiel blijven bruikbaar."
+      ],
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W25",
+      "scope": "Gedeelde CTA's: `M/components/ui.tsx`, `sections.tsx`, `site-chrome.tsx`",
+      "reference": [
+        "“Probeer nu 30 dagen gratis” naar `/proberen`; “Plan een afspraak in” naar `/afspraak`; bestaande kortere headerlabels behouden",
+        "Controleer iedere voorkomende CTA, niet alleen de hero. Een persoonlijke demo kiest het juiste querytype."
+      ],
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W26",
+      "scope": "Perspectieven/demo: `M/components/homes/Signature.tsx`, `M/components/product-demo.tsx`",
+      "reference": [
+        "Voor kantoor / Voor je team / Voor je klant; demo planning/werkbon/klant; mobiele personeelsappvisual",
+        "Selectiestatus, inhoud en toetsenbordpijlen volgen dezelfde keuze; demo blijft veilig demonstratief."
+      ],
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W27",
+      "scope": "Onboarding/FAQ: `M/components/homes/Signature.tsx`, `M/components/ui.tsx`",
+      "reference": [
+        "Checklist met voortgang; bestaande FAQ-disclosures en revealpresentatie",
+        "Voortgang reageert op de checklist; FAQ opent/sluit; reduced motion laat alle inhoud leesbaar."
+      ],
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W28",
+      "scope": "Sector-/producttemplates: `M/components/detail-pages.tsx`, `M/lib/content.ts`",
+      "reference": [
+        "Breadcrumbs, beeldhero, voordelen, lange tekst, stappen, demo, FAQ, gerelateerde pagina's",
+        "Geen weggelaten secties of generieke vultekst; broncopy en beeldcrops per record behouden."
+      ],
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W29",
+      "scope": "Routing/404: `M/app/[...path]/page.tsx`, `M/app/not-found.tsx`",
+      "reference": [
+        "Legacy-prefixen `signature`, `horizon`, `atlas`, `flow`, `people` permanent naar hetzelfde pad zonder prefix",
+        "Ook onderliggende oude paden testen; onbekend pad echte 404 met werkende terugweg. Geen oude designs opnieuw activeren."
+      ],
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "W30",
+      "scope": "SEO/merkassets: `M/lib/seo.ts`, `lib/concepts.ts`, `app/layout.tsx`, `app/robots.ts`, `public/`",
+      "reference": [
+        "Lokale Poppins/Inter, echte SVG-logo's, 12 WebP-assets, alt-teksten, semantische headings, metadata en JSON-LD",
+        "Productie-origin www; sitemap toevoegen; uitsluitend productie indexeerbaar. Sites-origin/preview-noindex niet onbedoeld meenemen naar live."
+      ],
+      "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/marketing-crawl.json",
+        "evidence/phase-1/marketing-interactions.json",
+        "evidence/final/marketing/comparison.json",
+        "evidence/final/viewed-checkpoint.json"
+      ]
+    },
+    {
+      "id": "I01",
+      "scope": "Proefperiode versturen",
+      "reference": [
+        "`kind=trial`; organisatie, branche, team, doel, contactgegevens; lead + nieuwe aanvraagsnapshot + opvolging + historie + centraal notificatie-event",
+        "Successcreen pas na echte commit. Geen afspraak of account automatisch verzinnen. Aanvraag staat daarna in CRM en overzicht."
+      ],
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
+    },
+    {
+      "id": "I02",
+      "scope": "Kennismaking/demo versturen",
+      "reference": [
+        "`kind=appointment/demo`; contactgegevens en Amsterdam-slot; dezelfde registraties plus afspraakreservering",
+        "Afspraak en demo afzonderlijk controleren; geen video-optie of achtergebleven video-validatie; server weigert ontbrekende telefoon."
+      ],
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
+    },
+    {
+      "id": "I03",
+      "scope": "Tijdslot ophalen/kiezen",
+      "reference": [
+        "`GET /api/crm/availability?date=YYYY-MM-DD`; alleen openbare beschikbaarheid, geen persoonsgegevens",
+        "Datumwijziging verwijdert oude selectie; stale responses overschrijven geen nieuwe datum; fout/geen slots/opnieuw laden zijn bruikbaar."
+      ],
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
+    },
+    {
+      "id": "I04",
+      "scope": "Dubbel klikken, time-out en opnieuw proberen",
+      "reference": [
+        "Serveridempotentie en atomaire transactie; gewijzigde payload bij bestaande sleutel geeft conflict",
+        "Eén aanvraag/afspraak/taak/delivery bij dezelfde poging; formulierinvoer blijft bewaard; geen schijnsucces bij onzekere response."
+      ],
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
+    },
+    {
+      "id": "I05",
+      "scope": "Herhaalde interesse van dezelfde relatie",
+      "reference": [
+        "Bestaande lead koppelen op de afgesproken bedrijfs-/e-mailnormalisatie; iedere intake heeft eigen blijvende snapshot",
+        "Een latere wijziging in het leaddossier overschrijft eerder ontvangen contact-/aanvraaggegevens niet."
+      ],
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
+    },
+    {
+      "id": "I06",
+      "scope": "Agenda openen en beschermen",
+      "reference": [
+        "Werkdagen, uren, buffer, voorlooptijd, horizon en blokkades uit CRM; UTC-opslag en `Europe/Amsterdam`-presentatie",
+        "Concurrente/overlappende reserveringen, zomertijd en wintertijd controleren; één geldig slot kan niet dubbel worden verkocht."
+      ],
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
+    },
+    {
+      "id": "I07",
+      "scope": "Mail aan platformbeheerder",
+      "reference": [
+        "Bestaande globale SendGrid-configuratie, centrale policy/transport/worker, expliciete primaire platformbeheerderregistratie",
+        "Geen nieuw CRM-adresveld, geen providerkey in browser, geen willekeurige eerste Auth-user. Platformmelding zonder klanttenant correct door centrale deliveryketen."
+      ],
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
+    },
+    {
+      "id": "I08",
+      "scope": "Mailstatus en herstel",
+      "reference": [
+        "Duurzame outbox/delivery; ontbrekende configuratie, blokkade, fout, queued/sending, accepted en onzekere uitkomst afzonderlijk behandelen",
+        "Intake blijft bewaard bij mailfout. `accepted` is geen bezorgbewijs; retry is beleidsmatig veilig en dupliceert niet blind."
+      ],
+      "route": "www: /proberen, /afspraak → platform: /platform/crm",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/crm-browser.json",
+        "evidence/phase-1/crm-database-11.log",
+        "evidence/phase-1/crm-concurrency-7.log",
+        "evidence/phase-1/primary-admin-6.log"
+      ],
+      "limitations": [
+        "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
+      ]
+    },
+    {
+      "id": "C01",
+      "scope": "Platformoverzicht",
+      "reference": [
+        "Header → vier platformmetrics → vier CRM-kaarten → Aandacht nodig/Supportcockpit → Tenantoverzicht/Platformacties",
+        "Exact deze volgorde en desktop/mobile grids. Geen terugkeer van de verwijderde groepskop, introductie, “Alle gegevens”-selector of losse refreshknop."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "C02",
+      "scope": "Actieve pipeline",
+      "reference": [
+        "Aantal, potentiële maandwaarde, actieve fasebalken, gewonnen/verloren; Open pipeline",
+        "Won/lost uitgesloten van actief. Fasebalken openen in de referentie pipeline zonder extra fasefilter; geen omzetlabel voor potentiële waarde."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "C03",
+      "scope": "Recente aanvragen",
+      "reference": [
+        "Hoogstens drie nieuwste aanvraagsnapshots; rij en footer doorklikbaar",
+        "Rij opent Aanvragen met hetzelfde leaddossier; legacy lege snapshotvelden hebben correcte fallback."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "C04",
+      "scope": "Afspraken",
+      "reference": [
+        "Eerstvolgende niet-geannuleerde afspraken, bevestigingsstatus en datumblok",
+        "Rij opent Agenda met gekoppeld dossier; footer opent agenda. Gedeelde definitie van toekomstig gebruiken in kaart en CRM-teller."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "C05",
+      "scope": "Opvolging",
+      "reference": [
+        "Open taken en volgende leadcontactmomenten, datum en achterstalligheid",
+        "Taak naar Opvolging, leadmoment naar Pipeline, juiste dossierselectie; Amsterdam-kalenderdatum."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "C06",
+      "scope": "Laden/verversen/fout/lege data",
+      "reference": [
+        "Bestaande loading, empty, fout met retry, refreshfout met laatste data en herkenbare voorbeeldlabels",
+        "Veilige datarefetch bij focus en circa 30 seconden/zichtbaarheid of gelijkwaardige bestaande infrastructuur; geen handmatige groepsrefresh toevoegen."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "C07",
+      "scope": "Aandacht en Support",
+      "reference": [
+        "Bestaande feiten en links naar organisaties/support",
+        "Feiten uit echte status; support blijft expliciet gedeelde supportcontext, geen onbeperkte tenantinzage."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "C08",
+      "scope": "Tenantoverzicht",
+      "reference": [
+        "Recente tenants, status, tenantdetail en “Alle tenants”",
+        "Echte record-ID's en bevoegde navigatie; geen hardgecodeerde voorbeeldorganisatie."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "A01",
+      "scope": "Nieuwe lead",
+      "reference": [
+        "`#/platform/crm?action=new-lead`",
+        "Nieuwe-leaddialoog direct geopend."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-25.md",
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "A02",
+      "scope": "Afspraak plannen",
+      "reference": [
+        "`#/platform/crm?tab=agenda&action=new-appointment`",
+        "Afspraakdialoog direct geopend, leadkeuze; zonder lead eerst contact toevoegen."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-25.md",
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "A03",
+      "scope": "Aanvragen bekijken",
+      "reference": [
+        "`#/platform/crm?tab=requests`",
+        "Aanvragenlijst en dossierdoorklikken."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-25.md",
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "A04",
+      "scope": "Opvolging",
+      "reference": [
+        "`#/platform/crm?tab=tasks`",
+        "CRM-takenlijst."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-25.md",
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "A05",
+      "scope": "Beschikbaarheid",
+      "reference": [
+        "`#/platform/crm?tab=settings`",
+        "Agenda-instellingen en centrale meldingscontext."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-25.md",
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "A06",
+      "scope": "Tenant onboarden",
+      "reference": [
+        "`startWizard()` / `#/platform/onboarding`",
+        "Bestaande zesstappen-onboarding behouden, gekoppeld aan echte provisioning."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-25.md",
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md",
+        "evidence/phase-20/result.json",
+        "phase-20.md"
+      ]
+    },
+    {
+      "id": "A07",
+      "scope": "Huisstijl beheren",
+      "reference": [
+        "Geselecteerde tenant → detailtab `branding`",
+        "Huisstijl van die tenant; Fieldgrid-platformchrome blijft ongewijzigd."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-25.md",
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md",
+        "evidence/phase-20/result.json",
+        "phase-20.md"
+      ]
+    },
+    {
+      "id": "A08",
+      "scope": "Templates beheren",
+      "reference": [
+        "`#/platform/templates`",
+        "Bestaand tenantgebonden templatebeheer."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-25.md",
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md",
+        "evidence/phase-20/result.json",
+        "phase-20.md"
+      ]
+    },
+    {
+      "id": "R01",
+      "scope": "`#/platform/crm` — Pipeline",
+      "reference": [
+        "Eigen heading, vier CRM-metrics, zoek/type/eigenaar/gegevensfilters, reset, bord/lijst; zeven fases `new`, `contacted`, `scheduled`, `proposal`, `trial`, `won`, `lost`",
+        "Filters en tellingen gebruiken echte data; fasewissel blijft bewaard na refresh. Drag/drop én alternatief via dossier. Overvolle borden scrollen binnen hun eigen container."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "R02",
+      "scope": "Leaddossier",
+      "reference": [
+        "Tabs Overzicht en Notities & tijdlijn; fase, eigenaar, potentiële maandwaarde, volgend contactmoment; aanvragen, afspraken en taken met context",
+        "Verplicht platformrecht; correcte lead-ID; wijzigingen, notities en nieuwe opvolgtaak werkelijk opslaan en opnieuw ophalen; aanvraaghistorie niet herschrijven."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "R03",
+      "scope": "Nieuwe lead",
+      "reference": [
+        "Bedrijf, contactpersoon, e-mail, telefoon, branche, eigenaar; bestaande dialoog/foutstatus",
+        "Servervalidatie en duurzame registratie. Directe A01-route en reguliere knop geven hetzelfde resultaat."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "R04",
+      "scope": "`?tab=requests` — Aanvragen",
+      "reference": [
+        "Zoeken, aanvraagtypefilter, type/bron/contactgegevens, mailstatus en dossierdoorklikken",
+        "Iedere intake afzonderlijk tonen, inclusief herhaalde aanvraag bij één lead; originele snapshots en juiste type behouden."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "R05",
+      "scope": "`?tab=agenda` — Agenda",
+      "reference": [
+        "Week-/lijstweergave, datum, vorige/volgende week, Vandaag; afspraak openen/beheren",
+        "Werkelijke beschikbaarheid en afspraken; geen persoonsgegevens in publieke slotresponse. Juiste Amsterdamdatum en tijd."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "R06",
+      "scope": "Nieuwe/bestaande afspraak",
+      "reference": [
+        "Lead kiezen; datum/vrij tijdslot; bevestigen, verplaatsen, annuleren met bevestiging; ICS-export waar beschikbaar",
+        "Atomaire slotmutatie. Bij verplaatsconflict blijft oude afspraak staan; annuleren maakt slot vrij. ICS is export, geen bewijs van Google-/Microsoft-synchronisatie."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "R07",
+      "scope": "`?tab=tasks` — Opvolging",
+      "reference": [
+        "Filteren, taak aanmaken/bewerken, datum/eigenaar/lead, afronden/heropenen; dossierdoorklikken",
+        "Mutaties server-side; dezelfde taak in overzicht en dossier. Bestaande deadlines en achterstalligheid consistent."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "R08",
+      "scope": "`?tab=settings` — Beschikbaarheid",
+      "reference": [
+        "Werkdagen, start/eind, buffer, minimaal vooraf boeken, boekingshorizon, vaste duur 30 minuten telefonisch, blokdagen toevoegen/verwijderen",
+        "Opslaan heeft effect op de publieke website. Blokkade voorkomt nieuwe reserveringen; bestaande afspraken blijven totdat ze bewust worden verplaatst/geannuleerd."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "R09",
+      "scope": "`?tab=settings` — Mail & beschikbaarheid",
+      "reference": [
+        "E-mailmeldingen aan/uit; automatisch gekoppelde beheerder; zichtbare status van globale SendGrid-service",
+        "Globale identiteit/configuratie lezen; geen nieuw ontvanger- of credentialformulier. Bevoegde wijziging van meldingsvoorkeur met audit."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "R10",
+      "scope": "Mailregistratie / beheerdersmelding",
+      "reference": [
+        "Statusfilter, melding openen, vastgelegde inhoud/ontvanger, gekoppeld leaddossier, passende retryactie",
+        "Werkelijke centrale deliverystatus. Geaccepteerde historische ontvanger niet herschrijven bij latere accountwijziging. Onzekere uitkomst niet blind opnieuw verzenden."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "R11",
+      "scope": "Leeg/loading/fout/voorbeeldtoestanden",
+      "reference": [
+        "Bestaande feedback, disabled acties tijdens mutatie, herstelbare fouten, voorbeeldbadges en voorbeeldbeheer",
+        "Voorbeelden duidelijk afzonderlijk; voorbeeldbeheer mag geen echte aanvragen verwijderen of echte mails veroorzaken. Prototypefixtures niet als productieklanten importeren."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-25/result.json",
+        "evidence/phase-25/acceptance.json",
+        "phase-25.md"
+      ]
+    },
+    {
+      "id": "P01",
+      "scope": "`#/platform/tenants`",
+      "reference": [
+        "Zoekbare tenanttabel, status/modules/medewerkers, paginatie, detail, Nieuwe tenant",
+        "Echte tenants en serverrechten; bestaande uitgebreide velden/lifecycle niet terugbrengen tot demokolommen."
+      ],
+      "route": "/platform?view=tenants",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-19.md",
+        "evidence/phase-19/verification.json",
+        "evidence/phase-19/result.json",
+        "evidence/phase-19/comparison.json"
+      ]
+    },
+    {
+      "id": "P02",
+      "scope": "`#/platform/detail`",
+      "reference": [
+        "Tenanthero; tabs Overzicht, Huisstijl, Modules, Communicatie, Domein",
+        "Productieroute bevat een echte stabiele tenantselectie. Activeren/pauzeren, palette, whitelabel, moduleafhankelijkheden, afzender en domein werken via bestaand beheer."
+      ],
+      "route": "/platform?view=detail&tenant=<stable UUID>&tab=<tab>",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-19.md",
+        "evidence/phase-19/verification.json",
+        "evidence/phase-19/result.json",
+        "evidence/phase-19/comparison.json"
+      ]
+    },
+    {
+      "id": "P03",
+      "scope": "`#/platform/onboarding`",
+      "reference": [
+        "Zes stappen Organisatie, Beheerder, Huisstijl, Modules, Communicatie, Controleren; terug/wijzigen/validatie",
+        "Echte tenantprovisioning en uitnodiging volgens bestaande procedure; lokale voorbeeldmelding niet als voltooid productieaccount tonen."
+      ],
+      "route": "/platform?view=onboarding",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-20/verification.json",
+        "evidence/phase-20/comparison.json",
+        "phase-20.md"
+      ]
+    },
+    {
+      "id": "P04",
+      "scope": "`#/platform/templates`",
+      "reference": [
+        "Tenantkeuze, templatelijst, berichteditor, tokens en live preview",
+        "Tenantgebonden revisies en centrale verzendregels behouden; opslaan is geen testmailversturen."
+      ],
+      "route": "/platform?view=templates&tenant={uuid}",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-20/verification.json",
+        "evidence/phase-20/comparison.json",
+        "phase-20.md"
+      ]
+    },
+    {
+      "id": "P05",
+      "scope": "`#/platform/support`",
+      "reference": [
+        "Supporttickets, status, toegewezen persoon, openen en antwoord-/statusflow",
+        "Werkelijke gedeelde tickets, rechten, berichten en audit; geen automatische brede tenantinzage."
+      ],
+      "route": "/platform/support",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-21/verification.json",
+        "evidence/phase-21/comparison.json",
+        "phase-21.md"
+      ]
+    },
+    {
+      "id": "P06",
+      "scope": "`#/platform/supportsettings`",
+      "reference": [
+        "Reactietermijn en standaardverantwoordelijke",
+        "Bestaande instellingen duurzaam bewaren en in relevante supportflow gebruiken."
+      ],
+      "route": "/platform/support/instellingen",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-21/verification.json",
+        "evidence/phase-21/comparison.json",
+        "phase-21.md"
+      ]
+    },
+    {
+      "id": "P07",
+      "scope": "`#/platform/productbeheer`",
+      "reference": [
+        "V1-modules, doorklikken, roadmap-/updatepaneel",
+        "Echte modules/entitlements en hun afhankelijkheden behouden; geen demoflag als productierecht."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-22/result.json",
+        "evidence/phase-22/comparison.json",
+        "phase-22.md"
+      ]
+    },
+    {
+      "id": "P08",
+      "scope": "`#/platform/team` en platformaccount",
+      "reference": [
+        "Beheerderrij met bestaande accountidentiteit; supportmedewerker toevoegen/bekijken",
+        "Primaire beheerder expliciet bepalen; supportrechten apart. Uitnodiging/lifecycle koppelen aan echte accounts, geen lokale naamrij als geslaagde uitnodiging."
+      ],
+      "route": "platform: /platform/team",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/primary-admin-6.log",
+        "evidence/phase-22/result.json",
+        "evidence/phase-22/comparison.json",
+        "phase-22.md"
+      ]
+    },
+    {
+      "id": "P09",
+      "scope": "`#/platform/kennisbank`, `#/platform/notificaties`",
+      "reference": [
+        "Artikelen/berichten, panels en detailvensters; topbarbel",
+        "Bestaande content, leesrechten en notificatielifecycle aansluiten; CRM-bel gaat naar aanvragen zoals in bron."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-22/result.json",
+        "evidence/phase-22/comparison.json",
+        "phase-22.md"
+      ]
+    },
+    {
+      "id": "T01",
+      "scope": "`#/app/overzicht`",
+      "reference": [
+        "`P/src/Management.tsx` → `Overview`, `ExistingDashboards.tsx` → `OperationalOverview`; geïntegreerde operationele en managementmetrics, trend, acties en verdieping",
+        "Eén bestaand `/app`-overzicht behouden; echte aggregaties en bronlinks. Geen tweede los dashboard dat gegevens anders telt."
+      ],
+      "route": "/app (canoniek); /app/overzicht → /app; /api/management-overview",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-7.md",
+        "evidence/phase-7/native-regression.log",
+        "evidence/phase-7/real-browser-chain.log",
+        "evidence/phase-7/comparison.json"
+      ]
+    },
+    {
+      "id": "T02",
+      "scope": "`#/app/aanvragen`",
+      "reference": [
+        "`ExistingDashboards.tsx`; Aanvragen & offertes, tabs Alle dossiers/Aanvragen/Offertes, filters en dossier",
+        "Bestaande commerciële tenantintake, offertevelden, lifecycle en mutaties behouden. Dit domein is niet het nieuwe platform-CRM."
+      ],
+      "route": "/app/aanvragen",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-12.md",
+        "evidence/phase-12/native-regression.log",
+        "evidence/phase-12/real-standalone-browser-chain.log",
+        "evidence/phase-12/real-standalone-filter-chain.log",
+        "evidence/phase-12/comparison.json",
+        "evidence/phase-12/cold-production-build.log",
+        "evidence/phase-12/shared-filter-task-regression.log"
+      ]
+    },
+    {
+      "id": "T03",
+      "scope": "`#/app/planning`",
+      "reference": [
+        "`ExistingDashboards.tsx`; planbord en gekoppelde werkbonnen",
+        "Bestaande planning, toewijzing, navigatie en dossiers behouden; demo vervangt geen rijk operationeel planbord."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-13/browser.log",
+        "evidence/phase-13/native-database.log",
+        "evidence/phase-13/comparison.json",
+        "evidence/phase-13/local-artifact.json"
+      ]
+    },
+    {
+      "id": "T04",
+      "scope": "`#/app/werkbonnen`, `#/app/rapporten`",
+      "reference": [
+        "`ExistingDashboards.tsx`; werkbonnen en rapportcontrole",
+        "Echte werkboncyclus, uitvoering, beoordeling, correctie en bronkoppelingen; geen vereenvoudigde lokale status als volledige verwerking."
+      ],
+      "route": "/app/werkbonnen; /app/rapporten",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-14.md",
+        "evidence/phase-14/verification.json",
+        "evidence/phase-14/browser-result.json",
+        "evidence/phase-14/comparison.json"
+      ]
+    },
+    {
+      "id": "T05",
+      "scope": "`#/app/taken`",
+      "reference": [
+        "`ExistingDashboards.tsx`; Taken & tarieven",
+        "Bestaande taak-/tariefgegevens, geldige mutaties en rechten behouden. Niet verwarren met CRM-opvolgtaken."
+      ],
+      "route": "/app/taken; /app/taken/beheer; /app/taken/templates",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-11.md",
+        "evidence/phase-11/native-regression.log",
+        "evidence/phase-11/real-standalone-browser-chain.log",
+        "evidence/phase-11/comparison.json",
+        "standalone-packaging.md"
+      ]
+    },
+    {
+      "id": "T06",
+      "scope": "`#/app/klanten`, `#/app/objecten`, `#/app/personeel`",
+      "reference": [
+        "`ExistingDashboards.tsx` → `EntityPage`; zoeken/status/sorteren/pagineren, nieuw/bewerken, dossier Overzicht/Documenten/Opvolging",
+        "Echte relaties en record-ID's; object-klantbinding en personeelsrechten. Demo vervangt geen bestaande velden, documenten of dossiers."
+      ],
+      "route": "/app/klanten, /app/objecten, /app/personeel; /api/management-entities",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-8.md",
+        "evidence/phase-8/native-regression.log",
+        "evidence/phase-8/real-browser-chain.log",
+        "evidence/phase-8/comparison.json",
+        "phase-9.md",
+        "evidence/phase-9/native-regression.log",
+        "evidence/phase-9/real-browser-chain.log",
+        "evidence/phase-9/comparison.json",
+        "phase-10.md",
+        "evidence/phase-10/native-regression.log",
+        "evidence/phase-10/real-browser-chain.log",
+        "evidence/phase-10/comparison.json",
+        "rls-helper-repair.md",
+        "evidence/rls-helper-repair/native-regression.log",
+        "evidence/rls-helper-repair/full-personnel-browser-chain.log",
+        "evidence/rls-helper-repair/real-full-HR-dossier-1440.png"
+      ]
+    },
+    {
+      "id": "T07",
+      "scope": "`#/app/facturen`",
+      "reference": [
+        "`ExistingDashboards.tsx`; factuuroverzicht en bron/detailinteracties",
+        "Bestaande facturatie, documenten, betaalstatus en lifecycle behouden; lokale demonstratie is geen boekhouding."
+      ],
+      "route": "/app/facturen",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-15.md",
+        "evidence/phase-15/verification.json",
+        "evidence/phase-15/result.json",
+        "evidence/phase-15/comparison.json"
+      ]
+    },
+    {
+      "id": "T08",
+      "scope": "`#/app/opvolging`",
+      "reference": [
+        "`P/src/Management.tsx` → `ControlCenter`; vandaag/week/achterstallig/mijn/zonder eigenaar/uitgesteld/afgerond, bronnen, toewijzing, uitstellen/afronden, nieuwe actie",
+        "Eén gedeelde actie-/dossierregistratie met audit en revisiecontrole; bronwijziging en cockpit blijven consistent."
+      ],
+      "route": "tenant: /app/opvolging",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-1/followup-browser.json",
+        "evidence/phase-1/followup-comparison.json",
+        "evidence/phase-1/followup-database-7.log",
+        "evidence/phase-1/followup-concurrency-5.log"
+      ]
+    },
+    {
+      "id": "T09",
+      "scope": "`#/app/sla`",
+      "reference": [
+        "`P/src/FinanceSLA.tsx` → `SLAView`; metrics, filters, serviceafspraakdetail, contractversie en historie",
+        "De bestaande ticketklok hergebruiken; geen tweede SLA-timer met afwijkende pauzes/deadlines."
+      ],
+      "route": "/app/sla",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-3.md",
+        "evidence/phase-3/database-and-concurrency.log",
+        "evidence/phase-3/real-browser-chain.log",
+        "evidence/phase-3/source-comparison.json"
+      ]
+    },
+    {
+      "id": "T10",
+      "scope": "`#/app/omzet`",
+      "reference": [
+        "`P/src/FinanceSLA.tsx` → `FinanceView`; categorieën, bronregels, controle-uitkomst en onderbouwing",
+        "Nog te factureren, te controleren en onbetaald onderscheiden; echte bronallocatie en financiële rechten."
+      ],
+      "route": "/app/omzet",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-4/concurrency.log",
+        "evidence/phase-4/native-regression.log",
+        "evidence/phase-4/real-browser-chain.log",
+        "evidence/phase-4/comparison.json"
+      ]
+    },
+    {
+      "id": "T11",
+      "scope": "`#/app/indexatie`",
+      "reference": [
+        "`P/src/FinanceSLA.tsx` → `IndexationView`; concept, goedkeuring, verwerking, tarief/percentage/ingangsdatum en historie",
+        "Versies en rolgebonden goedkeuring; verwerking via bestaande contract-/tarieflogica, geen lokale optelling."
+      ],
+      "route": "/app/indexatie",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-5/native-regression.log",
+        "evidence/phase-5/concurrency.log",
+        "evidence/phase-5/real-browser-source-chain.log",
+        "evidence/phase-5/comparison.json"
+      ]
+    },
+    {
+      "id": "T12",
+      "scope": "`#/app/besluiten`",
+      "reference": [
+        "`P/src/Governance.tsx` → `DecisionsView`; concept/vaststellen/herzien, toegangsscope, bron, motivering en vervolgactie",
+        "Dossierautoriteit, versiehistorie, beperkte scopes en echte gekoppelde opvolging."
+      ],
+      "route": "/app/besluiten",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-2.md",
+        "evidence/phase-2/governance-db.log",
+        "evidence/phase-2/governance-concurrency.log",
+        "evidence/phase-2/result.json",
+        "evidence/phase-2/source-comparison.json"
+      ]
+    },
+    {
+      "id": "T13",
+      "scope": "`#/app/compliance`",
+      "reference": [
+        "`P/src/Governance.tsx` → `ComplianceView`; eis, bewijs, verloopdatum, eigenaar, beoordeling en afgeschermde dossierstate",
+        "Echte private bestanden en serverrechten; een ingevulde bestandsnaam is geen upload."
+      ],
+      "route": "/app/compliance",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-2.md",
+        "evidence/phase-2/governance-db.log",
+        "evidence/phase-2/governance-concurrency.log",
+        "evidence/phase-2/result.json",
+        "evidence/phase-2/source-comparison.json"
+      ]
+    },
+    {
+      "id": "T14",
+      "scope": "`#/app/weekrapport`",
+      "reference": [
+        "`P/src/Governance.tsx` → `ReportsView`; periode, toelichting, snapshot, archief, bekijken, PDF en rapportplanning",
+        "Onveranderlijke opgeslagen snapshot, consistente metrics en echte jobs. Lokale planningsinstelling bewijst geen verzonden rapport."
+      ],
+      "route": "/app/weekrapport",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "evidence/phase-6/native-regression.log",
+        "evidence/phase-6/real-browser-chain.log",
+        "evidence/phase-6/comparison.json"
+      ]
+    },
+    {
+      "id": "T15",
+      "scope": "`#/app/nieuws`, `#/app/kennisbank`, `#/app/updates`",
+      "reference": [
+        "`P/src/App.tsx` → `InformationView`; bestaande tabellen/artikeldetails",
+        "Echte content en module-/rolrechten; geen demoberichten als volledige kennisbankimport."
+      ],
+      "route": "/app/nieuws; /app/kennisbank; /app/updates",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-16.md",
+        "evidence/phase-16/verification.json",
+        "evidence/phase-16/result.json",
+        "evidence/phase-16/comparison.json"
+      ]
+    },
+    {
+      "id": "T16",
+      "scope": "`#/app/gebruikers`, `#/app/instellingen`",
+      "reference": [
+        "`P/src/App.tsx` → `RolesView`, `SettingsView`; rollenoverzicht, huisstijl/organisatie",
+        "Werkelijke roltoekenning en alle bestaande instellingen behouden; opgeslagen tenantpalet werkt in backoffice/staff/klant, niet in Fieldgrid-platformchrome."
+      ],
+      "route": "/app/gebruikers; /app/instellingen",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-17.md",
+        "evidence/phase-17/verification.json",
+        "evidence/phase-17/result.json",
+        "evidence/phase-17/comparison.json"
+      ]
+    },
+    {
+      "id": "T17",
+      "scope": "Shell, zoeken, meldingen en bronvenster",
+      "reference": [
+        "`P/src/App.tsx` → `SourceDetail`; responsive navigatie, globale zoekresultaten, accountmenu, brongegevens/Opvolging",
+        "Echte brongebaseerde doorklikken en zoekscope; vertrouwelijke financiële/HR-/compliancedata nooit via detaildialoog of ID-wissel uitlekken."
+      ],
+      "route": "All /app backoffice shell; /api/search; /api/management-cockpit; native notification and ticket commands",
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-18.md",
+        "evidence/phase-18/verification.json",
+        "evidence/phase-18/result.json",
+        "evidence/phase-18/comparison.json"
+      ]
+    },
+    {
+      "id": "S01",
+      "scope": "Staff `planning`",
+      "reference": [
+        "Dagplanning, weekstrip, vorige/volgende dag, werkbon openen; detailtabs Overzicht/Werkzaamheden/Rapport en rapportnotitie",
+        "Alleen toegewezen werk, echte instructies/contact/uitvoering; bestaande uitvoeringsflow en offline/PWA-afspraken behouden."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-23.md",
+        "evidence/phase-23/result.json",
+        "evidence/phase-23/acceptance.json",
+        "phase-23.md"
+      ]
+    },
+    {
+      "id": "S02",
+      "scope": "Staff `uren`",
+      "reference": [
+        "Mijn uren, weekoverzicht, urencorrectie met datum/tijden/reden",
+        "Werkelijke urenregistratie en aanvraag/goedkeuringsflow; geen ongetoetste lokale wijziging van betaalde uren."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-23.md",
+        "evidence/phase-23/result.json",
+        "evidence/phase-23/acceptance.json",
+        "phase-23.md"
+      ]
+    },
+    {
+      "id": "S03",
+      "scope": "Staff `verlof`, `beschikbaarheid`",
+      "reference": [
+        "Verlofaanvragen en nieuwe aanvraag; vaste beschikbaarheidsweek",
+        "Eigen medewerkerbinding, echte opslag en relevante planning/goedkeuring; datums en status kloppen."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-23.md",
+        "evidence/phase-23/result.json",
+        "evidence/phase-23/acceptance.json",
+        "phase-23.md"
+      ]
+    },
+    {
+      "id": "S04",
+      "scope": "Staff `documenten`",
+      "reference": [
+        "Documentenlijst en documentvoorbeeld",
+        "Echte afgeschermde bestanden/downloads; geen fictieve preview als geleverd personeelstuk."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-23.md",
+        "evidence/phase-23/result.json",
+        "evidence/phase-23/acceptance.json",
+        "evidence/phase-23/private-preview/acceptance.json"
+      ]
+    },
+    {
+      "id": "S05",
+      "scope": "Staff `nieuws`, `knowledge`, `updates`, `tickets`",
+      "reference": [
+        "Nieuws en gelezenstatus, kennisbank, updates, tickets met detail-/contactflow",
+        "Echte geautoriseerde content en support; medewerker ziet alleen toegestane gegevens."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-23.md",
+        "evidence/phase-23/result.json",
+        "evidence/phase-23/acceptance.json",
+        "phase-23.md"
+      ]
+    },
+    {
+      "id": "S06",
+      "scope": "Staff `instellingen`, `profiel`, `meer` en overlays",
+      "reference": [
+        "Profiel/meldingen/account; mobiel Meer; notificaties; installatie-uitleg",
+        "Eigen profiel en echte accountinstellingen; PWA-installatiegedrag koppelen aan bestaande implementatie. Prototypeaccount niet hardcoderen."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-23.md",
+        "evidence/phase-23/result.json",
+        "evidence/phase-23/acceptance.json",
+        "phase-23.md"
+      ]
+    },
+    {
+      "id": "K01",
+      "scope": "Klant `dashboard`",
+      "reference": [
+        "Cockpit, eerstvolgende afspraak, objecten, recente activiteit en snelle acties",
+        "Account-/objectgebonden samenvatting uit echte data; doorklikken houdt klantcontext."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-24.md",
+        "evidence/phase-24/result.json",
+        "evidence/phase-24/acceptance.json",
+        "phase-24.md"
+      ]
+    },
+    {
+      "id": "K02",
+      "scope": "Klant `objects`",
+      "reference": [
+        "Mijn objecten, objectdetail, contact/instructies, object toevoegen",
+        "Bestaande objectrechten en eventuele aanvraag/beoordeling behouden; klant kan geen willekeurige tenantlocatie overnemen."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-24.md",
+        "evidence/phase-24/result.json",
+        "evidence/phase-24/acceptance.json",
+        "phase-24.md"
+      ]
+    },
+    {
+      "id": "K03",
+      "scope": "Klant `appointments`",
+      "reference": [
+        "Gepland/Uitgevoerd, afspraakdetail en instructie voor afspraak",
+        "Alleen eigen afspraken; instructies en werkboninformatie volgens bestaande toegestane projectie. Geen toegang tot interne staffnotities."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-24.md",
+        "evidence/phase-24/result.json",
+        "evidence/phase-24/acceptance.json",
+        "phase-24.md"
+      ]
+    },
+    {
+      "id": "K04",
+      "scope": "Klant `reports`",
+      "reference": [
+        "Rapportenlijst en rapportvoorbeeld",
+        "Werkelijke vrijgegeven rapporten en beveiligde downloads; geen intern rapport blootleggen."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-24.md",
+        "evidence/phase-24/result.json",
+        "evidence/phase-24/acceptance.json",
+        "phase-24.md"
+      ]
+    },
+    {
+      "id": "K05",
+      "scope": "Klant `invoices`",
+      "reference": [
+        "Facturen, status, factuur bekijken en betaalvoorbeeld",
+        "Echte factuur/PDF/betaalroute; demo-“betalen” nooit als ontvangen betaling opslaan."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-24.md",
+        "evidence/phase-24/result.json",
+        "evidence/phase-24/acceptance.json",
+        "phase-24.md"
+      ]
+    },
+    {
+      "id": "K06",
+      "scope": "Klant `requests`",
+      "reference": [
+        "Diensten & aanvragen, dienst/object/frequentie/voorkeursdatum/omschrijving, aanvraagdetail",
+        "Echte tenantaanvraag met klantbinding; gescheiden van het platform-CRM voor Fieldgrid-verkoop."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-24.md",
+        "evidence/phase-24/result.json",
+        "evidence/phase-24/acceptance.json",
+        "phase-24.md"
+      ]
+    },
+    {
+      "id": "K07",
+      "scope": "Klant `tickets`, `news`",
+      "reference": [
+        "Tickets en nieuws met details",
+        "Bestaande klantgebonden tickets/content en echte berichtregistratie."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-24.md",
+        "evidence/phase-24/result.json",
+        "evidence/phase-24/acceptance.json",
+        "phase-24.md"
+      ]
+    },
+    {
+      "id": "K08",
+      "scope": "Klant `profile`, `more`, `knowledge`, `updates`, `notifications`",
+      "reference": [
+        "Mijn gegevens, e-mailvoorkeuren, Meer en content/meldingen",
+        "Werkelijke accountvoorkeuren en rechten; mobiele links werken en server beschermt iedere onderliggende resource."
+      ],
+      "route": null,
+      "implementation": "implemented; locally accepted with documented native/security adaptations",
+      "tested": true,
+      "deployed": false,
+      "liveVerified": false,
+      "evidence": [
+        "phase-24.md",
+        "evidence/phase-24/result.json",
+        "evidence/phase-24/acceptance.json",
+        "phase-24.md"
+      ]
+    }
+  ],
+  "acceptanceReport": "final-acceptance.md",
+  "releaseStatus": "release-status.json"
+}

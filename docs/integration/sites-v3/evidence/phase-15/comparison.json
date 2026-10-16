@@ -1,0 +1,131 @@
+[
+  {
+    "key": "invoices",
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "height": 585.546875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-invoices-list",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "height": 527,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "metric-grid ed-three",
+          "height": 128
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 116.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "invoices",
+    "width": 768,
+    "target": {
+      "width": 684,
+      "height": 585.546875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-invoices-list",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "height": 527,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "metric-grid ed-three",
+          "height": 128
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 116.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "key": "invoices",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 897.359375,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "sites-invoices-list",
+          "height": 0
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 836.8125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 116.3125
+        },
+        {
+          "cls": "metric-grid ed-three",
+          "height": 399
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 120.5
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "viewed": true
+  }
+]

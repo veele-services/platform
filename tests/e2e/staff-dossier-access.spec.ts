@@ -20,6 +20,7 @@ test("dossier opens inline only after email confirmation and locks on loss of fo
     await page.setViewportSize({ width: 390, height: 844 });
     await authenticateStaff(page,"field-worker@fieldgrid.test");
     await page.getByRole("button",{name:/WB-2030-001/}).click();
+    await page.getByText("Contact, route en objectdossier",{exact:true}).click();
     await page.getByRole("button",{name:"Beveiligde objecttoegang",exact:true}).click();
     const dialog=page.getByRole("dialog",{name:"Beveiligde objecttoegang",exact:true});
     await expect(dialog.getByRole("heading",{name:"Bevestig je dossierinzage"})).toBeVisible();

@@ -1,0 +1,616 @@
+  1) [chromium] › tests/e2e/fieldgrid.spec.ts:408:5 › personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, uren en personeelszaken
+
+    Error: expect(locator).toHaveScreenshot(expected) failed
+
+    Locator: getByRole('dialog').filter({ hasText: 'WB-2030-001' })
+      231340 pixels (ratio 0.71 of all image pixels) are different.
+
+      Snapshot: staff-work-order-overview-390.png
+
+    Call log:
+      - Expect "toHaveScreenshot(staff-work-order-overview-390.png)" getByRole('dialog').filter({ hasText: 'WB-2030-001' }) with timeout 8000ms
+        - verifying given screenshot expectation
+      - waiting for getByRole('dialog').filter({ hasText: 'WB-2030-001' })
+        - locator resolved to <div role="dialog" tabindex="-1" id="radix-_r_d_" data-state="open" aria-modal="true" data-tenant-theme="" data-slot="dialog-content" aria-labelledby="radix-_r_e_" class="fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-i…>…</div>
+      - taking element screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - attempting scroll into view action
+        - waiting for element to be stable
+      - 231340 pixels (ratio 0.71 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - waiting for getByRole('dialog').filter({ hasText: 'WB-2030-001' })
+        - locator resolved to <div role="dialog" tabindex="-1" id="radix-_r_d_" data-state="open" aria-modal="true" data-tenant-theme="" data-slot="dialog-content" aria-labelledby="radix-_r_e_" class="fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-i…>…</div>
+      - taking element screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - attempting scroll into view action
+        - waiting for element to be stable
+      - captured a stable screenshot
+      - 231340 pixels (ratio 0.71 of all image pixels) are different.
+
+
+      449 |   // needs no transition or toast. Assert the durable state in either case.
+      450 |   await expect(order.getByRole("button", { name: "Vertrek", exact: true })).toBeEnabled();
+    > 451 |   await expect(order).toHaveScreenshot("staff-work-order-overview-390.png", {
+          |                       ^
+      452 |     animations: "disabled",
+      453 |     mask: [order.locator("time")],
+      454 |     stylePath: "tests/e2e/staff-screenshot.css",
+        at /home/runner/work/platform/platform/tests/e2e/fieldgrid.spec.ts:451:23
+
+    attachment #1: staff-work-order-overview-390 (image/png) ───────────────────────────────────────
+    Expected: tests/e2e/fieldgrid.spec.ts-snapshots/staff-work-order-overview-390-chromium-linux.png
+    Received: test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium/staff-work-order-overview-390-actual.png
+    Diff:     test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium/staff-work-order-overview-390-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(locator).toHaveScreenshot(expected) failed
+
+    Locator: getByRole('dialog').filter({ hasText: 'WB-2030-001' })
+      231156 pixels (ratio 0.71 of all image pixels) are different.
+
+      Snapshot: staff-work-order-overview-390.png
+
+    Call log:
+      - Expect "toHaveScreenshot(staff-work-order-overview-390.png)" getByRole('dialog').filter({ hasText: 'WB-2030-001' }) with timeout 8000ms
+        - verifying given screenshot expectation
+      - waiting for getByRole('dialog').filter({ hasText: 'WB-2030-001' })
+        - locator resolved to <div role="dialog" tabindex="-1" id="radix-_r_d_" data-state="open" aria-modal="true" data-tenant-theme="" data-slot="dialog-content" aria-labelledby="radix-_r_e_" class="fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-i…>…</div>
+      - taking element screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - attempting scroll into view action
+        - waiting for element to be stable
+      - 231340 pixels (ratio 0.71 of all image pixels) are different.
+      - waiting 100ms before taking screenshot
+      - waiting for getByRole('dialog').filter({ hasText: 'WB-2030-001' })
+        - locator resolved to <div role="dialog" tabindex="-1" id="radix-_r_d_" data-state="open" aria-modal="true" data-tenant-theme="" data-slot="dialog-content" aria-labelledby="radix-_r_e_" class="fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-i…>…</div>
+      - taking element screenshot
+        - disabled all CSS animations
+      - waiting for fonts to load...
+      - fonts loaded
+      - attempting scroll into view action
+        - waiting for element to be stable
+      - captured a stable screenshot
+      - 231156 pixels (ratio 0.71 of all image pixels) are different.
+
+
+      449 |   // needs no transition or toast. Assert the durable state in either case.
+      450 |   await expect(order.getByRole("button", { name: "Vertrek", exact: true })).toBeEnabled();
+    > 451 |   await expect(order).toHaveScreenshot("staff-work-order-overview-390.png", {
+          |                       ^
+      452 |     animations: "disabled",
+      453 |     mask: [order.locator("time")],
+      454 |     stylePath: "tests/e2e/staff-screenshot.css",
+        at /home/runner/work/platform/platform/tests/e2e/fieldgrid.spec.ts:451:23
+
+    attachment #1: staff-work-order-overview-390 (image/png) ───────────────────────────────────────
+    Expected: tests/e2e/fieldgrid.spec.ts-snapshots/staff-work-order-overview-390-chromium-linux.png
+    Received: test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium-retry1/staff-work-order-overview-390-actual.png
+    Diff:     test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium-retry1/staff-work-order-overview-390-diff.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium-retry1/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/fieldgrid-personeels-PWA-b-15180-uws-uren-en-personeelszaken-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › tests/e2e/staff-dossier-access.spec.ts:8:5 › dossier opens inline only after email confirmation and locks on loss of focus
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog', { name: 'Beveiligde objecttoegang', exact: true }).getByRole('button', { name: 'Code per e-mail versturen' })
+        - locator resolved to <button type="button" class="secondary-button">Code per e-mail versturen</button>
+      - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - element is outside of the viewport
+      - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+          - waiting 100ms
+        53 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - element is outside of the viewport
+         - retrying click action
+           - waiting 500ms
+
+
+      26 |     await expect(dialog.getByRole("heading",{name:"Bevestig je dossierinzage"})).toBeVisible();
+      27 |     await expect(dialog.getByRole("heading",{name:"Voorbereiding & instructies"})).toHaveCount(0);
+    > 28 |     await dialog.getByRole("button",{name:"Code per e-mail versturen"}).click();
+         |                                                                         ^
+      29 |     await expect(dialog.getByLabel("E-mailcode")).toBeVisible();
+      30 |     // Opening the email app clears typed digits, while retaining the pending challenge.
+      31 |     await page.evaluate(()=>window.dispatchEvent(new Event("blur")));
+        at /home/runner/work/platform/platform/tests/e2e/staff-dossier-access.spec.ts:28:73
+
+    Error Context: test-results/staff-dossier-access-dossi-c2d35--and-locks-on-loss-of-focus-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog', { name: 'Beveiligde objecttoegang', exact: true }).getByRole('button', { name: 'Code per e-mail versturen' })
+        - locator resolved to <button type="button" class="secondary-button">Code per e-mail versturen</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+          - waiting 100ms
+        54 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - element is outside of the viewport
+         - retrying click action
+           - waiting 500ms
+
+
+      26 |     await expect(dialog.getByRole("heading",{name:"Bevestig je dossierinzage"})).toBeVisible();
+      27 |     await expect(dialog.getByRole("heading",{name:"Voorbereiding & instructies"})).toHaveCount(0);
+    > 28 |     await dialog.getByRole("button",{name:"Code per e-mail versturen"}).click();
+         |                                                                         ^
+      29 |     await expect(dialog.getByLabel("E-mailcode")).toBeVisible();
+      30 |     // Opening the email app clears typed digits, while retaining the pending challenge.
+      31 |     await page.evaluate(()=>window.dispatchEvent(new Event("blur")));
+        at /home/runner/work/platform/platform/tests/e2e/staff-dossier-access.spec.ts:28:73
+
+    Error Context: test-results/staff-dossier-access-dossi-c2d35--and-locks-on-loss-of-focus-chromium-retry1/error-context.md
+
+  3) [chromium] › tests/e2e/staff-popups.spec.ts:54:5 › werkbonvensters blijven binnen het scherm en bewaren terugkeer naar de bon
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 8000ms exceeded while waiting on the predicate
+
+      25 |     const box = await dialog.boundingBox();
+      26 |     return !!box && box.x >= -1 && box.y >= -1 && box.x + box.width <= viewport.width + 1 && box.y + box.height <= viewport.height + 1;
+    > 27 |   }).toBe(true);
+         |      ^
+      28 |   await expect.poll(() => dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      29 |   const input = dialog.locator('input:not([type="checkbox"]), select, textarea').first();
+      30 |   if (await input.count()) await expect(input).toHaveCSS("font-size", viewport.width <= 600 ? "16px" : "13px");
+        at inspectDialog (/home/runner/work/platform/platform/tests/e2e/staff-popups.spec.ts:27:6)
+        at /home/runner/work/platform/platform/tests/e2e/staff-popups.spec.ts:60:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/staff-popups-werkbonvenste-84385-waren-terugkeer-naar-de-bon-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/staff-popups-werkbonvenste-84385-waren-terugkeer-naar-de-bon-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/staff-popups-werkbonvenste-84385-waren-terugkeer-naar-de-bon-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/staff-popups-werkbonvenste-84385-waren-terugkeer-naar-de-bon-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    Call Log:
+    - Timeout 8000ms exceeded while waiting on the predicate
+
+      25 |     const box = await dialog.boundingBox();
+      26 |     return !!box && box.x >= -1 && box.y >= -1 && box.x + box.width <= viewport.width + 1 && box.y + box.height <= viewport.height + 1;
+    > 27 |   }).toBe(true);
+         |      ^
+      28 |   await expect.poll(() => dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      29 |   const input = dialog.locator('input:not([type="checkbox"]), select, textarea').first();
+      30 |   if (await input.count()) await expect(input).toHaveCSS("font-size", viewport.width <= 600 ? "16px" : "13px");
+        at inspectDialog (/home/runner/work/platform/platform/tests/e2e/staff-popups.spec.ts:27:6)
+        at /home/runner/work/platform/platform/tests/e2e/staff-popups.spec.ts:60:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/staff-popups-werkbonvenste-84385-waren-terugkeer-naar-de-bon-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/staff-popups-werkbonvenste-84385-waren-terugkeer-naar-de-bon-chromium-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/staff-popups-werkbonvenste-84385-waren-terugkeer-naar-de-bon-chromium-retry1/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/staff-popups-werkbonvenste-84385-waren-terugkeer-naar-de-bon-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › tests/e2e/staff-popups.spec.ts:186:5 › actieve uitvoering toont meerwerk en afrondingscontrole zonder rapport of meerwerk te versturen
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog').filter({ hasText: 'WB-2030-001' }).getByRole('tab', { name: 'Werkzaamheden', exact: true })
+        - locator resolved to <button role="tab" type="button" tabindex="-1" id="_r_t_-taken-tab" aria-selected="false" aria-controls="_r_t_-taken-panel">Werkzaamheden</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+          - waiting 100ms
+        56 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - element is outside of the viewport
+         - retrying click action
+           - waiting 500ms
+
+
+      199 |     await openFixtureOrder(page);
+      200 |     const sheet = page.getByRole("dialog").filter({hasText:"WB-2030-001"});
+    > 201 |     await sheet.getByRole("tab", { name: "Werkzaamheden", exact: true }).click();
+          |                                                                          ^
+      202 |     await sheet.getByText("Tijd, meerwerk en kosten",{exact:true}).click();
+      203 |     const extra = sheet.locator(".fg-section").filter({ has: page.getByRole("heading", { name: "Meerwerk", exact: true }) });
+      204 |     await extra.getByRole("button", { name: "Toevoegen", exact: true }).click();
+        at /home/runner/work/platform/platform/tests/e2e/staff-popups.spec.ts:201:74
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/staff-popups-actieve-uitvo-c732d-rt-of-meerwerk-te-versturen-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/staff-popups-actieve-uitvo-c732d-rt-of-meerwerk-te-versturen-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/staff-popups-actieve-uitvo-c732d-rt-of-meerwerk-te-versturen-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/staff-popups-actieve-uitvo-c732d-rt-of-meerwerk-te-versturen-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog').filter({ hasText: 'WB-2030-001' }).getByRole('tab', { name: 'Werkzaamheden', exact: true })
+        - locator resolved to <button role="tab" type="button" tabindex="-1" id="_r_t_-taken-tab" aria-selected="false" aria-controls="_r_t_-taken-panel">Werkzaamheden</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+          - waiting 100ms
+        55 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - element is outside of the viewport
+         - retrying click action
+           - waiting 500ms
+
+
+      199 |     await openFixtureOrder(page);
+      200 |     const sheet = page.getByRole("dialog").filter({hasText:"WB-2030-001"});
+    > 201 |     await sheet.getByRole("tab", { name: "Werkzaamheden", exact: true }).click();
+          |                                                                          ^
+      202 |     await sheet.getByText("Tijd, meerwerk en kosten",{exact:true}).click();
+      203 |     const extra = sheet.locator(".fg-section").filter({ has: page.getByRole("heading", { name: "Meerwerk", exact: true }) });
+      204 |     await extra.getByRole("button", { name: "Toevoegen", exact: true }).click();
+        at /home/runner/work/platform/platform/tests/e2e/staff-popups.spec.ts:201:74
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/staff-popups-actieve-uitvo-c732d-rt-of-meerwerk-te-versturen-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/staff-popups-actieve-uitvo-c732d-rt-of-meerwerk-te-versturen-chromium-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/staff-popups-actieve-uitvo-c732d-rt-of-meerwerk-te-versturen-chromium-retry1/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/staff-popups-actieve-uitvo-c732d-rt-of-meerwerk-te-versturen-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › tests/e2e/staff-popups.spec.ts:221:5 › gereedgemelde werkbon toont geen hervatten of uitvoeringsacties
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog').filter({ hasText: 'WB-2030-001' }).getByRole('tab', { name: 'Werkzaamheden', exact: true })
+        - locator resolved to <button role="tab" type="button" tabindex="-1" id="_r_t_-taken-tab" aria-selected="false" aria-controls="_r_t_-taken-panel">Werkzaamheden</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+          - waiting 100ms
+        55 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - element is outside of the viewport
+         - retrying click action
+           - waiting 500ms
+
+
+      235 |   const sheet=page.getByRole("dialog").filter({hasText:"WB-2030-001"});
+      236 |   await expect(sheet.getByRole("button",{name:/Hervatten|Gereedmelden hervatten|Oplevering afronden|Werk afronden|Pauzeren|Werkbon terugmelden/})).toHaveCount(0);
+    > 237 |   await sheet.getByRole("tab",{name:"Werkzaamheden",exact:true}).click();
+          |                                                                  ^
+      238 |   for(const checkbox of await sheet.getByRole("checkbox").all())await expect(checkbox).toBeDisabled();
+      239 |   await expect(sheet.getByRole("button",{name:/^(?:15 minuten|Toevoegen|Materiaal|Onkosten)(?:\s|$)/})).toHaveCount(0);
+      240 |   await sheet.getByRole("tab",{name:"Rapport",exact:true}).click();await expect(sheet.getByRole("button",{name:"Notitie",exact:true})).toHaveCount(0);
+        at /home/runner/work/platform/platform/tests/e2e/staff-popups.spec.ts:237:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/staff-popups-gereedgemelde-92663-vatten-of-uitvoeringsacties-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/staff-popups-gereedgemelde-92663-vatten-of-uitvoeringsacties-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/staff-popups-gereedgemelde-92663-vatten-of-uitvoeringsacties-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/staff-popups-gereedgemelde-92663-vatten-of-uitvoeringsacties-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog').filter({ hasText: 'WB-2030-001' }).getByRole('tab', { name: 'Werkzaamheden', exact: true })
+        - locator resolved to <button role="tab" type="button" tabindex="-1" id="_r_t_-taken-tab" aria-selected="false" aria-controls="_r_t_-taken-panel">Werkzaamheden</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+          - waiting 100ms
+        55 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - element is outside of the viewport
+         - retrying click action
+           - waiting 500ms
+
+
+      235 |   const sheet=page.getByRole("dialog").filter({hasText:"WB-2030-001"});
+      236 |   await expect(sheet.getByRole("button",{name:/Hervatten|Gereedmelden hervatten|Oplevering afronden|Werk afronden|Pauzeren|Werkbon terugmelden/})).toHaveCount(0);
+    > 237 |   await sheet.getByRole("tab",{name:"Werkzaamheden",exact:true}).click();
+          |                                                                  ^
+      238 |   for(const checkbox of await sheet.getByRole("checkbox").all())await expect(checkbox).toBeDisabled();
+      239 |   await expect(sheet.getByRole("button",{name:/^(?:15 minuten|Toevoegen|Materiaal|Onkosten)(?:\s|$)/})).toHaveCount(0);
+      240 |   await sheet.getByRole("tab",{name:"Rapport",exact:true}).click();await expect(sheet.getByRole("button",{name:"Notitie",exact:true})).toHaveCount(0);
+        at /home/runner/work/platform/platform/tests/e2e/staff-popups.spec.ts:237:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/staff-popups-gereedgemelde-92663-vatten-of-uitvoeringsacties-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/staff-popups-gereedgemelde-92663-vatten-of-uitvoeringsacties-chromium-retry1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/staff-popups-gereedgemelde-92663-vatten-of-uitvoeringsacties-chromium-retry1/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/staff-popups-gereedgemelde-92663-vatten-of-uitvoeringsacties-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › tests/e2e/tickets.spec.ts:140:5 › personeelsmelding met echte scan, private notitie, bewuste escalatie en onafhankelijk platformgesprek
+
+    TimeoutError: locator.click: Timeout 20000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog').getByRole('button', { name: 'Sluiten', exact: true })
+        - locator resolved to <button type="button" aria-label="Sluiten" class="fg-action-icon">…</button>
+      - attempting click action
+        - waiting for element to be visible, enabled and stable
+        - element is not stable
+      - retrying click action
+        - waiting for element to be visible, enabled and stable
+        - element is visible, enabled and stable
+        - scrolling into view if needed
+        - done scrolling
+        - element is outside of the viewport
+      - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+          - waiting 100ms
+        37 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - element is outside of the viewport
+         - retrying click action
+           - waiting 500ms
+
+
+      143 |   const note = `TENANT-PRIVATE-${fixture}`, platformNote = `PLATFORM-PRIVATE-${fixture}`;
+      144 |   await login(page, "worker", `/staff?workOrder=${orderId}`);
+    > 145 |   await page.getByRole("dialog").getByRole("button",{name:"Sluiten",exact:true}).click();
+          |                                                                                  ^
+      146 |   await page.getByRole("navigation",{name:"Hoofdnavigatie"}).getByRole("link",{name:"Tickets",exact:true}).click();
+      147 |   await page.getByRole("button",{name:"Nieuw ticket",exact:true}).click();
+      148 |   const form = page.getByRole("dialog", { name: "Nieuw ticket", exact: true });
+        at /home/runner/work/platform/platform/tests/e2e/tickets.spec.ts:145:82
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/tickets-personeelsmelding--43b61-afhankelijk-platformgesprek-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/tickets-personeelsmelding--43b61-afhankelijk-platformgesprek-chromium/error-context.md
+
+    Error Context: test-results/tickets-personeelsmelding--43b61-afhankelijk-platformgesprek-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/tickets-personeelsmelding--43b61-afhankelijk-platformgesprek-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/tickets-personeelsmelding--43b61-afhankelijk-platformgesprek-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    TimeoutError: locator.click: Timeout 20000ms exceeded.
+    Call log:
+      - waiting for getByRole('dialog').getByRole('button', { name: 'Sluiten', exact: true })
+        - locator resolved to <button type="button" aria-label="Sluiten" class="fg-action-icon">…</button>
+      - attempting click action
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+        - waiting 20ms
+        2 × waiting for element to be visible, enabled and stable
+          - element is visible, enabled and stable
+          - scrolling into view if needed
+          - done scrolling
+          - element is outside of the viewport
+        - retrying click action
+          - waiting 100ms
+        37 × waiting for element to be visible, enabled and stable
+           - element is visible, enabled and stable
+           - scrolling into view if needed
+           - done scrolling
+           - element is outside of the viewport
+         - retrying click action
+           - waiting 500ms
+
+
+      143 |   const note = `TENANT-PRIVATE-${fixture}`, platformNote = `PLATFORM-PRIVATE-${fixture}`;
+      144 |   await login(page, "worker", `/staff?workOrder=${orderId}`);
+    > 145 |   await page.getByRole("dialog").getByRole("button",{name:"Sluiten",exact:true}).click();
+          |                                                                                  ^
+      146 |   await page.getByRole("navigation",{name:"Hoofdnavigatie"}).getByRole("link",{name:"Tickets",exact:true}).click();
+      147 |   await page.getByRole("button",{name:"Nieuw ticket",exact:true}).click();
+      148 |   const form = page.getByRole("dialog", { name: "Nieuw ticket", exact: true });
+        at /home/runner/work/platform/platform/tests/e2e/tickets.spec.ts:145:82
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/tickets-personeelsmelding--43b61-afhankelijk-platformgesprek-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/tickets-personeelsmelding--43b61-afhankelijk-platformgesprek-chromium-retry1/error-context.md
+
+    Error Context: test-results/tickets-personeelsmelding--43b61-afhankelijk-platformgesprek-chromium-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/tickets-personeelsmelding--43b61-afhankelijk-platformgesprek-chromium-retry1/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace test-results/tickets-personeelsmelding--43b61-afhankelijk-platformgesprek-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+

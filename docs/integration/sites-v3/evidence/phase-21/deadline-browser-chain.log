@@ -1,0 +1,7 @@
+PASS: six-source-columns-real-shared-tickets-and-no-original-personnel-or-tenant-note-projection
+PASS: real-modal-answer-reaches-only-the-tenant-and-cancelled-close-preserves-draft
+PASS: platform-answer-needs-explicit-tenant-response-draft-before-original-reporter-can-see-it
+PASS: source-close-action-uses-real-resolution-lifecycle-and-audit
+PASS: saved-source-defaults-survive-reload-and-drive-new-routing-without-rewriting-historical-deadlines
+PASS: support-setting-draft-is-preserved-when-navigation-is-cancelled
+PASS: open-conversation-is-cleared-after-current-read-scope-revocation

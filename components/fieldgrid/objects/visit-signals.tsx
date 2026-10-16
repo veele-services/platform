@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useState} from "react";
-import {getVisitSignals} from "@/app/klant/actions";
+import {getVisitSignals} from "@/app/(workspace)/klant/actions";
 
 // Counts only; secrets and request bodies never enter generic work-order cards.
 export function ObjectVisitSignals({orderId}:{orderId:string}) {

@@ -1,0 +1,21 @@
+{
+  "checks": [
+    "actual-native-auth",
+    "source-seven-column-orders-and-review",
+    "compact-source-dialog-three-widths",
+    "metadata-native-bindings-price-lineage-preserved",
+    "lost-response-idempotent-retry",
+    "native-six-step-create",
+    "actual-staff-submission",
+    "native-correction",
+    "native-resubmission",
+    "native-version-bound-approval",
+    "concurrent-new-version-requires-acknowledgement",
+    "private-no-store-endpoint",
+    "anonymous-denial",
+    "strict-query",
+    "live-report-function-revocation",
+    "live-canonical-work-order-read-revocation"
+  ],
+  "browserErrors": []
+}

@@ -12,7 +12,7 @@ vi.mock("@/lib/auth/context", () => ({ getAuthContext: async () => ({ user: { id
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ rpc: mocks.rpc }) }));
 vi.mock("@/components/fieldgrid/notifications/push", () => ({ NotificationPushControl: () => null }));
 
-import { saveStaffOnboarding } from "@/app/staff/actions";
+import { saveStaffOnboarding } from "@/app/(workspace)/staff/actions";
 import { Onboarding } from "@/components/fieldgrid/staff/onboarding";
 
 const profile: StaffPersonnel = {

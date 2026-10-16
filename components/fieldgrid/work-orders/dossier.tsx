@@ -21,7 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { TenantContext } from "@/lib/auth/context";
 import { workOrderTabs, type WorkOrderDossier, type WorkOrderOptions } from "@/lib/work-orders/model";
 import { historyActor, historyMessage } from "@/lib/work-orders/history";
-import { mutateWorkOrder } from "@/app/app/work-order-actions";
+import { mutateWorkOrder } from "@/app/(workspace)/app/work-order-actions";
 import { executionLabels } from "@/lib/dossiers/status";
 import { CommercialOrderContext } from "@/components/fieldgrid/commercial/order-context";
 import { DossierChainPanel } from "@/components/fieldgrid/dossier-chain";

@@ -1,4 +1,5 @@
 "use client";
+import {CustomerContentLink} from "../customer-portal/context";
 import { useState } from "react";
 import {
   Plus,
@@ -84,6 +85,7 @@ export function ProductDetail({
   return (
     <ProductDialog
       title={item.title}
+      compactSummary={!admin?(release?.intro??roadmap?.summary):undefined}
       description={
         idea
           ? "Inzending en terugkoppeling van de organisatie."
@@ -170,12 +172,12 @@ export function ProductDetail({
             {idea.roadmap && (
               <section className="product-linked">
                 <h3>Gekoppelde ontwikkeling</h3>
-                <a
+                <CustomerContentLink
                   className="table-record-link"
                   href={`${productPath(snapshot.workspace)}?roadmap=${idea.roadmap.id}`}
                 >
                   {idea.roadmap.title}
-                </a>
+                </CustomerContentLink>
                 <p>{idea.roadmap.summary}</p>
                 <small>{progressLabels[idea.roadmap.progress]}</small>
               </section>
@@ -354,12 +356,12 @@ export function ProductDetail({
                 {c.roadmap && (
                   <p>
                     Ontwikkeling:{" "}
-                    <a
+                    <CustomerContentLink
                       className="table-record-link"
                       href={`${productPath(snapshot.workspace)}?roadmap=${c.roadmap.id}`}
                     >
                       {c.roadmap.title}
-                    </a>{" "}
+                    </CustomerContentLink>{" "}
                     · {progressLabels[c.roadmap.progress]}
                   </p>
                 )}

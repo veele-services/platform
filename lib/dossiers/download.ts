@@ -3,14 +3,14 @@ import { z } from "zod";
 import { getAuthContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { authorizedFileResponse, privateFileHeaders as headers } from "@/lib/files/private-download";
-export async function downloadDossierDocument(documentId: string, sourceKind?: "customer" | "personnel") {
+import { authorizedFileResponse, privateFileHeaders as headers, privateFilePreviewHeaders } from "@/lib/files/private-download";
+export async function downloadDossierDocument(documentId: string, sourceKind?: "customer" | "personnel", preview=false) {
   try {
     const id = z.uuid().parse(documentId); const context = await getAuthContext(); if (!context.tenant) throw new Error();
     const db = await createClient();
     const tenantId = context.tenant.id;
     let audited = false;
-    return await authorizedFileResponse(async () => {
+    const response = await authorizedFileResponse(async () => {
       // Repeat registry AND source RLS after the bytes have been buffered.
       let query = db.from("dossier_documents").select("*").eq("tenant_id", tenantId);
       query = sourceKind ? query.eq("source_kind", sourceKind).eq("source_id", id) : query.eq("id", id);
@@ -28,7 +28,13 @@ export async function downloadDossierDocument(documentId: string, sourceKind?: "
         if (audit) throw new Error();
         audited = true;
       }
-      return { bucket: `${entry.source_kind}-documents`, path: doc.storage_path, scope: [tenantId, parentId], name: doc.file_name || "document", mime: doc.mime_type || "application/octet-stream", sha256: "sha256" in doc ? doc.sha256 : null };
-    });
-  } catch { return new Response("Document niet gevonden", { status: 404, headers }); }
+      // Inline rendering is limited to the same scanned, authorized PDF/image
+      // bytes. HTML, SVG and other active documents never get an inline response.
+      const mime=doc.mime_type || "application/octet-stream";
+      if(preview&&!['application/pdf','image/png','image/jpeg','image/webp'].includes(mime))throw new Error();
+      return { bucket: `${entry.source_kind}-documents`, path: doc.storage_path, scope: [tenantId, parentId], name: doc.file_name || "document", mime, sha256: "sha256" in doc ? doc.sha256 : null };
+    },preview?'inline':'attachment');
+    if (preview) for (const [key,value] of Object.entries(privateFilePreviewHeaders)) response.headers.set(key,value);
+    return response;
+  } catch { return new Response("Document niet gevonden", { status: 404, headers:{...headers,"X-Frame-Options":"DENY","Content-Security-Policy":"default-src 'none'; sandbox; frame-ancestors 'none'"} }); }
 }

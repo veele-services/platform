@@ -9,6 +9,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { useTenantTheme } from "../tenant-theme";
+import {useDashboardPresentation} from '../presentation';
+import {SourceNativeDialog} from '../source-native-dialog';
 import { saveProduct, uploadProductFile } from "@/lib/product/actions";
 import {
   groupLabels,
@@ -27,13 +29,17 @@ export function ProductDialog({
   children,
   close,
   busy = false,
+  compactSummary,
 }: {
   title: string;
   description: string;
   children: ReactNode;
   close: () => void;
   busy?: boolean;
+  compactSummary?: string;
 }) {
+  const presentation=useDashboardPresentation(),theme=useTenantTheme();
+  if(presentation==='sites')return compactSummary!==undefined?<SourceNativeDialog sourceForm title={title} eyebrow="FIELDGRID" description="" onClose={close} busy={busy}><p>{compactSummary}</p><details><summary>Volledige informatie en wijzigingen</summary><div className="sites-native-editor">{children}</div></details></SourceNativeDialog>:<SourceNativeDialog title={title} eyebrow="FIELDGRID" description={description} onClose={close} busy={busy}>{children}</SourceNativeDialog>;
   return (
     <Dialog
       open
@@ -45,7 +51,7 @@ export function ProductDialog({
         showCloseButton={false}
         className="commercial-dialog wo-dialog product-dialog"
         data-dialog-size="compact"
-        style={useTenantTheme()}
+        style={theme}
       >
         <header>
           <div className="product-dialog-heading">

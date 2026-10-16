@@ -1,0 +1,12 @@
+✔ standalone trace materializes transitive pnpm runtime without a hoist directory (31.91719ms)
+✔ standalone trace supports a flat runtime tree (6.040348ms)
+✔ conflicting traced package resolutions fail before writing the release (6.079829ms)
+✔ an escaping nested file link is refused before dereferencing package content (4.465594ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 99.794742

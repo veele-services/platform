@@ -8,6 +8,16 @@ De [stagingarchitectuur](staging.md) blijft ongewijzigd voor staging.
 
 ## Vast contract
 
+De Signature Grid-marketingwebsite krijgt uitsluitend `https://www.fieldgrid.nl`.
+Dit is een expliciete marketinghost, geen tenant `www`. `APP_URL` blijft
+`https://fieldgrid.nl`. Hostdispatch naar het interne `/fieldgrid-site`-pad vindt
+vóór de private `/platform`-logincontrole plaats. Op www is `/platform` publieke
+productuitleg; op de platformorigin blijft het beveiligd beheer. Alleen de
+publieke CRM-intake/beschikbaarheid en marketingassets zijn op www toegestaan;
+private API's worden daar geweigerd. Interne presentatiepaden zijn niet direct
+bereikbaar. DNS/TLS, publicatie en productiepromotie blijven afzonderlijke,
+bewust uitgevoerde operatorstappen; de gewenste hostname bewijst geen livegang.
+
 | Onderdeel | Productie |
 | --- | --- |
 | Platform | `https://fieldgrid.nl` |

@@ -12,9 +12,11 @@ const ONBOARDING_EMAIL = "new-field-worker@fieldgrid.test";
 export const E2E_PASSWORD = "Fieldgrid-E2E-2026";
 
 async function user(admin: ReturnType<typeof createClient<Database>>, email: string) {
-  const { data: listed, error: listError } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  if (listError) throw listError;
-  const existing = listed.users.find((item) => item.email === email);
+  // Exact synthetic identity only. Listing unrelated retired SQL fixtures can
+  // fail in GoTrue on PostgreSQL infinity timestamps and truncates at 1,000.
+  const lookup=new pg.Client({connectionString:requireLocalDatabaseUrl().href});await lookup.connect();
+  let existing:{id:string}|undefined;
+  try{existing=(await lookup.query("select id from auth.users where email=$1",[email])).rows[0]}finally{await lookup.end()}
   if (existing) { await admin.auth.admin.updateUserById(existing.id, { password: E2E_PASSWORD, email_confirm: true }); return existing; }
   const { data, error } = await admin.auth.admin.createUser({ email, password: E2E_PASSWORD, email_confirm: true });
   if (error) throw error;

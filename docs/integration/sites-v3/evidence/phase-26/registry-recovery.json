@@ -1,0 +1,15 @@
+{
+  "failedCI": "https://github.com/veele-services/platform/actions/runs/38858676964",
+  "failure": "Docker exit 125 before Linux assertions: public ECR returned toomanyrequests: Data limit exceeded.",
+  "change": "Each Linux contract runner obtains the identical pinned Debian image from public ECR or official Docker Hub, with one bounded pull per registry. Neither transport failure nor failed post-pull inspection can skip the tests.",
+  "digest": "sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251",
+  "dockerHubManifestVerified": true,
+  "actualDockerHubPull": "dockerhub-pinned-pull.log",
+  "linuxStaging": "linux-staging.log",
+  "linuxProduction": "linux-production.log",
+  "failureRecoveryTests": "contract-image-unit-6.log",
+  "newCredentials": false,
+  "runtimeMutation": false,
+  "testAssertionsRemoved": false,
+  "fullExactCommitCI": "pending"
+}

@@ -18,6 +18,32 @@ beforeEach(()=>{
  vi.stubEnv("APP_URL","https://staging.fieldgrid.nl");vi.stubEnv("DEPLOY_TARGET","staging");
  vi.stubGlobal("fetch",vi.fn(async()=>new Response(JSON.stringify([{id:"FICTITIOUS"}]),{status:200})));
 });
+it("dispatches www product routes before private platform login and strips spoofed identities",async()=>{
+ const response=await proxy(new NextRequest("https://www.staging.fieldgrid.nl/platform/planning?from=menu",{headers:{host:"www.staging.fieldgrid.nl",[TENANT_SLUG_HEADER]:"alpha",[BROWSER_SESSION_HEADER]:"spoofed","x-fieldgrid-protected-page":"1"}}));
+ expect(response.headers.get("x-middleware-rewrite")).toBe("https://www.staging.fieldgrid.nl/fieldgrid-site/platform/planning?from=menu");
+ expect(response.headers.get("x-middleware-request-x-fieldgrid-host-kind")).toBe("marketing");
+ expect(response.headers.get("x-middleware-request-x-fieldgrid-protected-page")).toBe("0");
+ expect(response.headers.get(`x-middleware-request-${TENANT_SLUG_HEADER}`)).toBeNull();
+ expect(response.headers.get(`x-middleware-request-${BROWSER_SESSION_HEADER}`)).toBeNull();
+ expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+ expect(mocks.user).not.toHaveBeenCalled();expect(fetch).not.toHaveBeenCalled();
+ const privatePage=await proxy(new NextRequest("https://staging.fieldgrid.nl/platform",{headers:{host:"staging.fieldgrid.nl"}}));
+ expect(new URL(privatePage.headers.get("location")!).pathname).toBe("/login");
+});
+it.each(["www.staging.fieldgrid.nl","staging.fieldgrid.nl","alpha.staging.fieldgrid.nl"])("rejects direct internal marketing requests on %s",async host=>{
+ expect((await proxy(new NextRequest(`https://${host}/fieldgrid-site/platform`,{headers:{host}}))).status).toBe(404);
+});
+it.each(["/api/crm","/api/crm/leads","/api/worker","/app","/staff","/klant","/login"])("rejects private routes on the marketing host: %s",async path=>{
+ expect((await proxy(new NextRequest(`https://www.staging.fieldgrid.nl${path}`,{headers:{host:"www.staging.fieldgrid.nl"}}))).status).toBe(404);
+ expect(mocks.user).not.toHaveBeenCalled();expect(fetch).not.toHaveBeenCalled();
+});
+it("defers only a concrete personnel preview to the authorized file handler's closed same-origin policy",async()=>{
+ const path='/api/files/personnel-document/10000000-0000-4000-8000-000000000001';
+ const request=(suffix:string)=>new NextRequest('https://alpha.staging.fieldgrid.nl'+path+suffix,{headers:{host:'alpha.staging.fieldgrid.nl'}});
+ expect((await proxy(request('?preview=1'))).headers.get('content-security-policy')).toBeNull();
+ for(const suffix of['','?preview=0','/extra?preview=1'])expect((await proxy(request(suffix))).headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
+ expect((await proxy(new NextRequest('https://www.staging.fieldgrid.nl'+path+'?preview=1',{headers:{host:'www.staging.fieldgrid.nl'}}))).status).toBe(404);
+});
 it("replaces spoofed signals with one live verified identity and preserves refreshed cookies",async()=>{
  mocks.user.mockImplementation(async()=>{mocks.refresh();return {data:{user:{id:"fixture-user"}},error:null};});
  const response=await proxy(new NextRequest("https://alpha.staging.fieldgrid.nl/api/auth/session",{headers:{host:"alpha.staging.fieldgrid.nl",[BROWSER_SESSION_HEADER]:"b".repeat(64)}}));
@@ -79,6 +105,26 @@ it("preserves a staff query deep link only inside the validated next destination
  expect(location.pathname).toBe("/login");
  expect(location.searchParams.get("next")).toBe("/staff?tab=meer&section=beschikbaarheid&workOrder=00000000-0000-4000-8000-000000000001");
  expect([...location.searchParams.keys()]).toEqual(["next"]);
+});
+it.each(["alpha.staging.fieldgrid.nl", "staging.fieldgrid.nl", "app.example.nl"])("preserves validated authority %s when Next supplies a loopback URL",async host=>{
+ vi.stubGlobal('fetch',vi.fn(async(url:string)=>new Response(JSON.stringify(url.endsWith('/rpc/resolve_workspace_hostname')?'alpha':[{id:'FICTITIOUS'}]))));
+ const headers={host,'x-forwarded-host':'attacker.invalid','x-forwarded-proto':'http'};
+ const response=await proxy(new NextRequest('http://127.0.0.1:3301/staff?tab=meer',{headers}));
+ const location=new URL(response.headers.get('location')!);
+ expect(location.origin).toBe(`https://${host}`);
+ expect(location.pathname).toBe('/login');expect(location.searchParams.get('next')).toBe('/staff?tab=meer');
+ mocks.user.mockResolvedValue({data:{user:{id:'fixture-user'}},error:null});
+ const signedIn=await proxy(new NextRequest('http://127.0.0.1:3301/login?next=%2Fstaff%3Ftab%3Dmeer',{headers}));
+ expect(signedIn.headers.get('location')).toBe(`https://${host}/staff?tab=meer`);
+});
+it("preserves the configured local port and tenant authority through both login redirects",async()=>{
+ vi.stubEnv('APP_URL','http://localhost:3002');vi.stubEnv('DEPLOY_TARGET','local');
+ const headers={host:'alpha.localhost:3002','x-forwarded-host':'attacker.invalid'};
+ const anonymous=await proxy(new NextRequest('http://localhost:3002/app',{headers}));
+ expect(anonymous.headers.get('location')).toBe('http://alpha.localhost:3002/login?next=%2Fapp');
+ mocks.user.mockResolvedValue({data:{user:{id:'fixture-user'}},error:null});
+ const signedIn=await proxy(new NextRequest('http://localhost:3002/login?next=https%3A%2F%2Fattacker.invalid',{headers}));
+ expect(signedIn.headers.get('location')).toBe('http://alpha.localhost:3002/app');
 });
 it("maps only an active registered custom host and overwrites tenant/path signals",async()=>{
  const fetchMock=vi.fn(async(url:string)=>new Response(JSON.stringify(url.endsWith('/rpc/resolve_workspace_hostname')?'alpha':[{id:'FICTITIOUS'}])));vi.stubGlobal('fetch',fetchMock);

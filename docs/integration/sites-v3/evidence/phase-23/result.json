@@ -1,0 +1,23 @@
+{
+  "checks": [
+    "actual-local-SMTP-OTP-own-staff-binding-scanned-tenant-logo-and-management-denial",
+    "first-real-OTP-stays-on-tenant-origin-reload-preserves-install-phase-next-login-reminds-once-and-third-does-not",
+    "source-day-navigation-week-strip-list-agenda-and-real-assigned-order-summary",
+    "real-report-response-held-once-busy-close-guard-and-confirmed-client-completion",
+    "real-assignment-start-pause-resume-native-task-completions-report-note-stop-and-versioned-report-submission",
+    "source-leave-cards-real-request-and-versioned-withdrawal",
+    "source-week-checkbox-real-availability-CAS-reload-and-native-edit-permission",
+    "source-document-modal-original-scanned-PDF-inline-bytes-own-scope-and-current-visibility-denial",
+    "source-staff-news-and-actual-own-read-registration",
+    "source-settings-native-profile-preference-save-PWA-manifest-branding-and-existing-notification-route",
+    "source-more-and-real-audience-bound-knowledge-release-details-and-deep-links",
+    "source-information-guide-dismissal-persists-for-the-real-staff-account",
+    "source-ticket-route-cards-native-intake-own-conversation-and-real-persisted-reply",
+    "source-hours-summary-and-week-layout-on-native-time-projection",
+    "real-time-correction-request-preserves-recorded-time-until-native-manager-review",
+    "source-profile-view-current-user-menu-working-settings-action-and-real-notification-overlay"
+  ],
+  "browserErrors": [],
+  "capture": true,
+  "viewed": false
+}

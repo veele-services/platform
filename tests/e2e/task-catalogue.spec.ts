@@ -13,7 +13,7 @@ test.afterAll(async()=>{if(!db)return;try{const categories=(await db.query('sele
  }finally{await db.end();}});
 
 test('categorieën nummeren taken; wizard bewaart invoer en acties werken zonder mobiele overlap',async({page},info)=>{
- test.setTimeout(120000);await authenticateWorkspace(page,'platform-admin@fieldgrid.test','/app/taken');
+ test.setTimeout(120000);await authenticateWorkspace(page,'platform-admin@fieldgrid.test','/app/taken/beheer');
  await expect(page.getByRole('heading',{name:'Taken & tarieven',exact:true})).toBeVisible();await page.getByRole('tab',{name:'Categorieën',exact:true}).click();await page.getByRole('button',{name:'Voeg toe',exact:true}).click();
  let dialog=page.getByRole('dialog',{name:'Nieuwe taakcategorie',exact:true});await dialog.getByLabel('Naam',{exact:true}).fill(categoryName);await dialog.getByLabel('Prefix',{exact:true}).fill(prefix);await dialog.getByRole('button',{name:'Opslaan',exact:true}).click();await expect(dialog).toHaveCount(0);
  await expect(page.getByRole('row').filter({hasText:categoryName})).toContainText(`${prefix}-001`);
@@ -24,5 +24,5 @@ test('categorieën nummeren taken; wizard bewaart invoer en acties werken zonder
 });
 
 test('instellingentabs bewaren huisstijlconcepten en velden blijven compact',async({page})=>{
- await authenticateWorkspace(page,'platform-admin@fieldgrid.test','/app/instellingen');const input=page.getByLabel('Primaire kleur hexcode',{exact:true});await input.fill('#123456');await expect.poll(async()=>Number((await input.boundingBox())?.height)).toBeLessThanOrEqual(48);await page.getByRole('tab',{name:'Reizen',exact:true}).click();await expect(input).toBeHidden();await page.getByRole('tab',{name:'Huisstijl & afzender',exact:true}).click();await expect(input).toHaveValue('#123456');await page.getByRole('button',{name:'Wijzigingen annuleren',exact:true}).click();
+ await authenticateWorkspace(page,'platform-admin@fieldgrid.test','/app/instellingen');await page.getByText('Logo, afzender en huisstijlvoorbeeld',{exact:true}).click();const input=page.getByLabel('Primaire kleur hexcode',{exact:true});await input.fill('#123456');await expect.poll(async()=>Number((await input.boundingBox())?.height)).toBeLessThanOrEqual(48);await page.getByRole('tab',{name:'Reizen',exact:true}).click();await expect(input).toBeHidden();await page.getByRole('tab',{name:'Huisstijl & afzender',exact:true}).click();await expect(input).toHaveValue('#123456');await page.getByRole('button',{name:'Wijzigingen annuleren',exact:true}).click();
 });

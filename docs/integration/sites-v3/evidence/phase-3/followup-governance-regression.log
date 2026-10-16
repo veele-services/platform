@@ -1,0 +1,55 @@
+▶ Management cockpit: concurrent commits and rights revoked while waiting
+  ✔ simultaneous retries create one action, event and receipt (42.779267ms)
+  ✔ one revision cannot be overwritten by two simultaneous commands (76.127996ms)
+  ✔ permission revocation rejects a waiting idempotent receipt replay (83.504797ms)
+  ✔ session revocation rejects a command already waiting for the action row (52.117446ms)
+✔ Management cockpit: concurrent commits and rights revoked while waiting (1293.194783ms)
+▶ Management cockpit preserves source authority, deadlines and tenant/HR boundaries
+  ✔ fresh management only, no portal/cross-tenant access or direct private-table grants (187.384443ms)
+  ✔ new action is committed once and points to an authorized real source (161.92313ms)
+  ✔ assign, snooze, complete and reopen preserve the original deadline and immutable events (527.413605ms)
+  ✔ source assignments update the actual dossier owner without faking execution or changing its deadline (385.375694ms)
+  ✔ HR action metadata stays protected independently of general follow-up access (427.63233ms)
+  ✔ source, function and session revocation remove the same existing action (128.010448ms)
+✔ Management cockpit preserves source authority, deadlines and tenant/HR boundaries (2968.257571ms)
+▶ Management governance: real concurrent transactions and authority after lock waits
+  ✔ simultaneous publication retries create one signed-off version and action (136.665714ms)
+  ✔ competing revisions have one winner without a partial draft or duplicate version (114.475358ms)
+  ✔ source revocation while publication waits for the linked action rolls back the entire revision (99.261428ms)
+  ✔ a proposed owner banned while the action row is locked cannot receive a published revision (93.293428ms)
+  ✔ requirement editing and Control Center assignment share canonical lock order and current revisions (291.637533ms)
+  ✔ session revocation while waiting for the requirement row prevents mutation (52.789574ms)
+✔ Management governance: real concurrent transactions and authority after lock waits (1879.428905ms)
+▶ Management governance: immutable decisions, real scanned evidence and current source authority
+  ✔ management page rights, private tables and tenant binding are enforced at the RPC boundary (53.714973ms)
+  ✔ draft publication is atomic and idempotent, with exactly one source-bound follow-up (361.531937ms)
+  ✔ revision retains the signed-off snapshot; old financial versions do not leak through general notes (699.595595ms)
+  ✔ saving a revision is atomic; invalid fields or stale versions leave the signed-off record untouched (516.16809ms)
+  ✔ a filename, fabricated document ID or unscanned pointer cannot count as approved evidence (395.233811ms)
+  ✔ current scanner identity and review are required; changed evidence automatically requires review again (927.239742ms)
+  ✔ automatic evidence signals follow actual review and expiry, never a manual claim of completion (717.232281ms)
+  ✔ lists, metrics, focus and immutable version history have independent bounds (2047.111238ms)
+  ✔ assignment stays consistent with the source and revoked module rights also reject receipt replay (693.140648ms)
+  ✔ the one shared action follows a revised source while historic financial notes keep their classification (1214.486643ms)
+  ✔ former personnel requirement history stays classified even without a document (632.017597ms)
+  ✔ source, evidence-function and session revocation protect current and historical data (633.990211ms)
+✔ Management governance: immutable decisions, real scanned evidence and current source authority (9937.134002ms)
+▶ Service levels: versioned contract norms, native ticket clock and unique source visits
+  ✔ RPCs enforce current tenant/session/module access and all new private tables deny raw access (82.247314ms)
+  ✔ a service has an actual contract/object binding and immutable, idempotent norm versions (939.708329ms)
+  ✔ policy identity and customer-facing category are explicit; norm labels cannot switch the metric (553.896956ms)
+  ✔ new tickets bind the effective norm to the existing native deadlines; later edits do not change that clock (436.946173ms)
+  ✔ SLA events write real reporter messages and use the existing pause/resume/resolution transitions (1140.221716ms)
+  ✔ bounded real worker signals, native pauses and source assignment never create a second clock or false completion (1420.49834ms)
+  ✔ unique completed visits are independent of staff count and split orders; inspections stay a separate measure (1405.241094ms)
+  ✔ confidential tickets are omitted from SLA rows, counts and focus after exact category rights are denied (709.338537ms)
+  ✔ module, receipt replay and expired sessions use current authority (18.668947ms)
+✔ Service levels: versioned contract norms, native ticket clock and unique source visits (7902.426881ms)
+ℹ tests 42
+ℹ suites 0
+ℹ pass 42
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 24328.419813

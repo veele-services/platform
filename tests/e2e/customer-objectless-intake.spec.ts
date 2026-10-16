@@ -22,9 +22,9 @@ test("customer without objects submits a complete request visible in backoffice"
   await page.context().addCookies([{name:"fieldgrid_tenant_id",value:tenant,url:"http://127.0.0.1:3000"}]);
   await page.setViewportSize({width:390,height:844});await authenticateWorkspace(page,email,`/klant?account=${account}&view=requests`);
   await page.getByRole("button",{name:"Nieuwe aanvraag",exact:true}).first().click();const form=page.getByRole("dialog",{name:"Dienst aanvragen"});await expect(form).toBeVisible();
-  await expect(form.getByText("Objecten (optioneel)",{exact:true})).toBeVisible();await expect(form.locator('input[name=objects]')).toHaveCount(0);
-  await form.getByLabel("Gewenste dienst *").selectOption("Andere dienstverlening");await form.getByLabel("Frequentie").selectOption("Maandelijks");await form.getByLabel("Wat zijn je wensen? *").fill("FICTITIOUS volledige aanvraag: schoonmaak, locatie bespreken.");
-  await form.getByRole("button",{name:"Aanvraag versturen",exact:true}).click();await expect(form).toBeHidden();
+  await expect(form.getByRole("combobox",{name:"Object",exact:true})).toHaveValue("");await expect(form.getByRole("combobox",{name:"Object",exact:true}).locator("option")).toHaveText(["Locatie nog vaststellen"]);await expect(form.locator('input[name=objects]')).toHaveCount(0);
+  await form.getByRole("combobox",{name:"Dienst",exact:true}).selectOption("Andere dienstverlening");await form.getByLabel("Frequentie").selectOption("Maandelijks");await form.getByLabel("Wat kunnen we voor je doen?",{exact:true}).fill("FICTITIOUS volledige aanvraag: schoonmaak, locatie bespreken.");
+  await form.getByRole("button",{name:"Aanvraag opslaan",exact:true}).click();await expect(form).toBeHidden();
   await expect(page.getByText("Locatie later vaststellen",{exact:false}).first()).toBeVisible();await page.reload();await expect(page.getByText("Locatie later vaststellen",{exact:false}).first()).toBeVisible();
   const rows=(await db.query("select * from public.requests where customer_id=$1",[customer])).rows;expect(rows).toHaveLength(1);expect(rows[0].object_id).toBeNull();expect(rows[0].description).toBe("FICTITIOUS volledige aanvraag: schoonmaak, locatie bespreken.");expect(rows[0].preferences.frequency).toBe("Maandelijks");
   expect((await db.query("select count(*)::int n from public.objects where customer_id=$1",[customer])).rows[0].n).toBe(0);

@@ -4,7 +4,7 @@ vi.mock("server-only", () => ({}));
 const mocks=vi.hoisted(()=>({rpc:vi.fn(),download:vi.fn(),upload:vi.fn(),scan:vi.fn()}));
 vi.mock("@/lib/supabase/admin",()=>({createAdminClient:()=>({rpc:mocks.rpc,storage:{from:()=>({download:mocks.download,upload:mocks.upload})}})}));
 vi.mock("@/lib/tickets/scan",()=>({TICKET_FILE_LIMIT:10485760,scanTicketBytes:mocks.scan}));
-import { publishScannedFile, readScannedFile, scanFileBytes } from "./scanned-storage";
+import { publishScannedFile, readScannedFile, scanFileBytes,scannedUploadMatches } from "./scanned-storage";
 const bytes=Buffer.from("%PDF-1.7\nFICTITIOUS TEST ONLY"),hash=createHash("sha256").update(bytes).digest("hex");
 const scan={status:"clean",engine:"FICTITIOUS ClamAV mock",databaseVersion:"FICTITIOUS",databaseAt:new Date().toISOString()};
 const input={bucket:"customer-documents",path:"tenant/customer/fixture.pdf",bytes,mime:"application/pdf",authorize:vi.fn()};
@@ -77,4 +77,17 @@ it.each(["tenant/../file.pdf","tenant/%2f/file.pdf","tenant//file.pdf","tenant/b
 });
 it("does not accept a format by filename or supplied MIME alone",async()=>{
  await expect(scanFileBytes(Buffer.from("<script>"),"image/png")).rejects.toThrow("bestandsformaat");expect(mocks.scan).not.toHaveBeenCalled();
+});
+
+it("an upload retry reuses only its current scanned immutable content",async()=>{
+ expect(await scannedUploadMatches(input.bucket,input.path,bytes,input.mime)).toBe(false);
+ receipt=hash;expect(await scannedUploadMatches(input.bucket,input.path,bytes,input.mime)).toBe(true);
+ expect(await scannedUploadMatches(input.bucket,input.path,Buffer.from("%PDF-different"),input.mime)).toBe(false);
+ mocks.rpc.mockResolvedValueOnce({data:null,error:null});expect(await scannedUploadMatches(input.bucket,input.path,bytes,input.mime)).toBe(false);
+ expect(mocks.upload).not.toHaveBeenCalled();expect(mocks.scan).not.toHaveBeenCalled();
+});
+it("a missing scan proof or unsafe path can never produce a successful upload receipt",async()=>{
+ mocks.rpc.mockResolvedValue({data:{id:"object-id",version:"changed-v2",size:bytes.length,mime:input.mime,sha256:null},error:null});
+ expect(await scannedUploadMatches(input.bucket,input.path,bytes,input.mime)).toBe(false);
+ mocks.rpc.mockClear();await expect(scannedUploadMatches(input.bucket,"tenant/../file.pdf",bytes,input.mime)).rejects.toThrow();expect(mocks.rpc).not.toHaveBeenCalled();
 });

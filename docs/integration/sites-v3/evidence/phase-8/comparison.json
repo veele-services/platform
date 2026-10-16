@@ -1,0 +1,242 @@
+[
+  {
+    "key": "list",
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "height": 434.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 117.796875
+        },
+        {
+          "cls": "mc-pagination",
+          "height": 42
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "height": 434.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 117.796875
+        },
+        {
+          "cls": "mc-pagination",
+          "height": 42
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Broncompositie, fonts en responsive geometrie sluiten aan; echte versievoetregel en detailvoetregel met bestaand volledig dossier/lifecycle. Zie phase-8.md."
+  },
+  {
+    "key": "list",
+    "width": 768,
+    "target": {
+      "width": 684,
+      "height": 434.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 117.796875
+        },
+        {
+          "cls": "mc-pagination",
+          "height": 42
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "height": 434.296875,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 64
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 117.796875
+        },
+        {
+          "cls": "mc-pagination",
+          "height": 42
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Broncompositie, fonts en responsive geometrie sluiten aan; echte versievoetregel en detailvoetregel met bestaand volledig dossier/lifecycle. Zie phase-8.md."
+  },
+  {
+    "key": "list",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 473.8125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 116.3125
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 120.5
+        },
+        {
+          "cls": "mc-pagination",
+          "height": 44
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 473.8125,
+      "heading": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "page-intro unified-page-heading ",
+          "height": 116.3125
+        },
+        {
+          "cls": "panel resource-table-panel",
+          "height": 120.5
+        },
+        {
+          "cls": "mc-pagination",
+          "height": 44
+        },
+        {
+          "cls": "mc-page-footer",
+          "height": 33
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Broncompositie, fonts en responsive geometrie sluiten aan; echte versievoetregel en detailvoetregel met bestaand volledig dossier/lifecycle. Zie phase-8.md."
+  },
+  {
+    "key": "detail",
+    "width": 1440,
+    "target": {
+      "width": 860,
+      "height": 661.4375,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 659.4375
+        }
+      ]
+    },
+    "source": {
+      "width": 860,
+      "height": 661.4375,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 659.4375
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Broncompositie, fonts en responsive geometrie sluiten aan; echte versievoetregel en detailvoetregel met bestaand volledig dossier/lifecycle. Zie phase-8.md."
+  },
+  {
+    "key": "detail",
+    "width": 768,
+    "target": {
+      "width": 728,
+      "height": 661.4375,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 659.4375
+        }
+      ]
+    },
+    "source": {
+      "width": 728,
+      "height": 661.4375,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 659.4375
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Broncompositie, fonts en responsive geometrie sluiten aan; echte versievoetregel en detailvoetregel met bestaand volledig dossier/lifecycle. Zie phase-8.md."
+  },
+  {
+    "key": "detail",
+    "width": 390,
+    "target": {
+      "width": 390,
+      "height": 1000,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 1000
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "height": 1000,
+      "heading": "600 20px / 27px Poppins, Inter, sans-serif",
+      "children": [
+        {
+          "cls": "mc-dialog-frame",
+          "height": 1000
+        }
+      ]
+    },
+    "viewed": true,
+    "observations": "Broncompositie, fonts en responsive geometrie sluiten aan; echte versievoetregel en detailvoetregel met bestaand volledig dossier/lifecycle. Zie phase-8.md."
+  }
+]

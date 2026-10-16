@@ -1,7 +1,7 @@
 "use client";
 import { EmptyState } from "../empty-state";
 import { useEffect, useState } from "react";
-import { loadNotificationTemplate } from "@/app/notifications/actions";
+import { loadNotificationTemplate } from "@/app/(workspace)/notifications/actions";
 import { channelLabels, workspaceLabels, type NotificationAccess, type NotificationTemplate } from "@/lib/notifications/model";
 import { ErrorMessage, notificationDate, State, useNotificationCommand } from "./shared";
 

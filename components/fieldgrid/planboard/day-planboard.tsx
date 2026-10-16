@@ -1,4 +1,8 @@
 "use client";
+import {useDashboardPresentation} from "../presentation";
+import {SourcePlanboardHeading} from "./source-heading";
+import "./source-planboard.css";
+import {assignmentStatuses} from "@/lib/planning/assignment-status";
 import { cosmeticPlanningPreferences } from "@/lib/auth/browser-state";
 import { useTravelDay, TravelBadge, TravelList, TravelDialog, VehicleIcon } from "../travel";
 import { vehicles } from "@/lib/travel/model";
@@ -11,7 +15,7 @@ import {
   type CSSProperties,
 } from "react";
 import Link from "next/link";
-import { Dialog } from "radix-ui";
+import {PlanningConfirmationFrame} from "./confirmation-frame";
 import {
   ChevronDown,
   ChevronUp,
@@ -23,7 +27,6 @@ import {
   Undo2,
   CalendarPlus,
   Eye,
-  X,
   AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -36,7 +39,7 @@ import {
   loadPlanboard,
   loadPlanboardOrder,
   savePlanning,
-} from "@/app/app/planning/actions";
+} from "@/app/(workspace)/app/planning/actions";
 import type { TenantContext } from "@/lib/auth/context";
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { createClient } from "@/lib/supabase/client";
@@ -69,9 +72,8 @@ import { EmptyState } from "../empty-state";
 import { ActionIcon } from "../action-icon";
 import { assignmentStatus, assignmentStatusStyle } from "@/lib/planning/assignment-status";
 import {
-  HEADER_HEIGHT,
-  PERSONNEL_WIDTH,
-  ROW_HEIGHT,
+  DEFAULT_BOARD_GEOMETRY,
+  SOURCE_BOARD_GEOMETRY,
   useBoardDrag,
   type PlanningScopeChoice,
 } from "./use-board-drag";
@@ -143,6 +145,9 @@ export function DayPlanboard({
   tenant: TenantContext;
   initialOrder?: string;
 }) {
+  const sites=useDashboardPresentation()==="sites",geometry=sites?SOURCE_BOARD_GEOMETRY:DEFAULT_BOARD_GEOMETRY;
+  const {personnelWidth:PERSONNEL_WIDTH,rowHeight:ROW_HEIGHT,headerHeight:HEADER_HEIGHT}=geometry;
+  const [filterReset,setFilterReset]=useState(0);
   const [data, setData] = useState(initial);
   const [prefs, setPrefs] = useState(defaults);
   const [query, setQuery] = useState<PlanningQuery>(() => initialPlanningQuery(initial.day));
@@ -207,6 +212,15 @@ export function DayPlanboard({
     try {
       const fresh = await loadPlanboard(q);
       if (sequence === requestNumber.current) {
+        if('accessDenied' in fresh){
+          deferredData.current=null;
+          selectedRef.current=null;confirmationRef.current=null;scopeChoiceRef.current=null;
+          setData(previous=>({...previous,day:q.day,board:[],orders:[],people:[],availability:[],total:0,undo:null}));
+          setSelected(null);setConfirmation(null);setScopeChoice(null);setMenu(null);
+          setReleasing(null);setTravelSelection(null);setLastError(null);
+          setLoadError('Je actuele rechten geven geen toegang meer tot het planbord.');
+          return;
+        }
         if (busyRef.current || dragRef.current() || selectedRef.current || confirmationRef.current || scopeChoiceRef.current)
           deferredData.current = { sequence, data: fresh };
         else {
@@ -361,14 +375,15 @@ export function DayPlanboard({
   );
   const pxPerMinute = useMemo(() => {
     const fitting = Math.max(
-      1.35,
+      sites ? (1000-PERSONNEL_WIDTH)/windowRange.minutes : 1.35,
       (boardSize.width - PERSONNEL_WIDTH) / windowRange.minutes,
     );
     return (
       fitting * (prefs.zoom === "wide" ? 1.7 : prefs.zoom === "precise" ? 3 : 1)
     );
-  }, [boardSize.width, windowRange.minutes, prefs.zoom]);
+  }, [boardSize.width, windowRange.minutes, prefs.zoom,PERSONNEL_WIDTH,sites]);
   const drag = useBoardDrag({
+    geometry,
     board,
     list,
     data,
@@ -379,6 +394,7 @@ export function DayPlanboard({
     onChooseScope: setScopeChoice,
     onStart: () => {
       setFilterOpen(false);
+      if(sites)setFilterReset(n=>n+1);
       setMenu(null);
     },
   });
@@ -568,8 +584,8 @@ export function DayPlanboard({
   ).filter((m) => m <= windowRange.minutes);
   const targetPreview = drag.preview;
   return (
-    <div className="pb-root planboard-viewport" ref={root}>
-      <PageHeading eyebrow="PLANNING" title="Planbord" titleAccessory={<StatusLegend/>} className="pb-page-heading" actions={<div className="pb-toolbar">
+    <div className={`pb-root planboard-viewport ${sites?"sites-planboard":""}`} ref={root} style={sites?{"--source-board-height":`${HEADER_HEIGHT+Math.max(1,data.people.length)*ROW_HEIGHT}px`} as CSSProperties:undefined}>
+      {sites?<SourcePlanboardHeading tenant={tenant} query={query} appearance={prefs} timezone={data.timezone} active={activeFilters>0} busy={busy} undoAvailable={!!data.undo} reset={filterReset} onDay={setDay} onShift={dayStep} onQuery={patch=>setQuery(q=>({...q,...patch,page:1}))} onWindow={changeWindow} onZoom={zoom=>setPrefs(p=>({...p,zoom}))} onUndo={undo} onClear={clearFilters}/>:<PageHeading eyebrow="PLANNING" title="Planbord" titleAccessory={<StatusLegend/>} className="pb-page-heading" actions={<div className="pb-toolbar">
         <div className="pb-date">
           <button
             className="pb-icon"
@@ -636,7 +652,8 @@ export function DayPlanboard({
           <Undo2 size={16} />
           <span>Ongedaan maken</span>
         </button>
-      </div>}/>
+      </div>}/>}
+      {sites&&<div className="ed-plan-legend">{assignmentStatuses.filter(s=>["planned","released","in_progress"].includes(s.status)).map(s=><span key={s.status}><i style={{background:s.background,border:`1px solid ${s.border}`}}/>{s.label}</span>)}<StatusLegend/><small>{new Intl.DateTimeFormat("nl-NL",{timeZone:data.timezone,day:"numeric",month:"short",year:"numeric"}).format(new Date(query.day+"T12:00:00Z"))} · dagweergave · {prefs.from}–{prefs.to}</small></div>}
       {(windowError || loadError || lastError) && (
         <div className="pb-alert" role="alert">
           <span>{windowError || loadError || lastError?.message}</span>
@@ -676,8 +693,7 @@ export function DayPlanboard({
           }
         >
           <div className="pb-ruler">
-            <span className="pb-avatar-head" />
-            <strong>Medewerker</strong>
+            {sites?<strong className="pb-source-personnel-heading">Medewerker</strong>:<><span className="pb-avatar-head" /><strong>Medewerker</strong></>}
             <div>
               {ticks.map((minute) => (
                 <time
@@ -883,7 +899,7 @@ export function DayPlanboard({
                         title={`${person.name} · ${order.number} · ${order.object} · ${status.label}${attention ? " · Kwalificatie controleren" : ""}`}
                       >
                         <div className="pb-bon-text">
-                          <strong>
+                          {sites?<><strong>{order.number} · {order.object}</strong><span>{clockLabel(assignment.start,data.timezone)} – {clockLabel(assignment.end,data.timezone)}</span><span className="pb-source-travel"><TravelBadge leg={travel.data?.legs.find(l=>l.assignmentId===assignment.id&&l.direction==="before")}/></span></>:<>                          <strong>
                             {rawLeft < 0 ? "‹ " : ""}
                             {clockLabel(assignment.start, data.timezone)}–
                             {clockLabel(assignment.end, data.timezone)}
@@ -893,6 +909,7 @@ export function DayPlanboard({
                           </strong>
                           <span>{order.object}</span>
                           <TravelBadge leg={travel.data?.legs.find(l=>l.assignmentId===assignment.id&&l.direction==="before")}/>
+</>}
                           <small>
                             {attention && <AlertTriangle size={11} aria-hidden="true" />}
                             {status.label}
@@ -1064,6 +1081,7 @@ export function DayPlanboard({
       >
         <span />
       </div>
+      {sites&&<div className="ed-section-label"><h2>Werkbonnen</h2><span>{data.total} in selectie</span></div>}
       <section
         className={`pb-list ${prefs.collapsed ? "collapsed" : ""}`}
         ref={list}
@@ -1094,7 +1112,7 @@ export function DayPlanboard({
             {data.total} {data.total === 1 ? "bon" : "bonnen"}
           </span>
           <div className="pb-list-controls">
-            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+            {!sites&&<Popover open={filterOpen} onOpenChange={setFilterOpen}>
               <PopoverTrigger asChild>
                 <button
                   className="compact-filter-trigger pb-filter-button"
@@ -1159,7 +1177,7 @@ export function DayPlanboard({
                   </button>
                 </div>
               </PopoverContent>
-            </Popover>
+            </Popover>}
             <button
               className="pb-icon"
               aria-label={
@@ -1192,7 +1210,7 @@ export function DayPlanboard({
                     <th>Klantvenster</th>
                     <th>Duur</th>
                     <th>Status / bezetting</th>
-                    <th>Actie</th>
+                    <th>{sites?'Acties':'Actie'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1216,7 +1234,7 @@ export function DayPlanboard({
                         </button>
                       </td>
                       <td>
-                        <strong>{order.number}</strong>
+                        {sites?<button className="ed-record" onClick={()=>open(order)}>{order.number}</button>:<strong>{order.number}</strong>}
                       </td>
                       <td>
                         <strong>{order.object}</strong>
@@ -1326,27 +1344,7 @@ export function DayPlanboard({
         />
       )}
       {releasing && <WorkOrderReleaseDialog order={releasing} tenant={tenant} onClose={() => setReleasing(null)} onSaved={() => { setReleasing(null); void refresh(queryRef.current); }}/>}
-      <Dialog.Root
-        open={Boolean(confirmation)}
-        onOpenChange={(value) => {
-          if (!value && !busy) setConfirmation(null);
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Overlay className="pb-confirm-overlay" />
-          <Dialog.Content
-            className="pb-confirm"
-            style={theme}
-            onEscapeKeyDown={(e) => {
-              if (busy) e.preventDefault();
-            }}
-          >
-            <Dialog.Title>
-              <AlertTriangle size={20} /> Controleer de afwijking
-            </Dialog.Title>
-            <Dialog.Description>
-              De bestaande planning blijft behouden totdat je bevestigt.
-            </Dialog.Description>
+      {confirmation && <PlanningConfirmationFrame sites={sites} theme={theme} busy={busy} title="Controleer de afwijking" description="De bestaande planning blijft behouden totdat je bevestigt." onClose={()=>setConfirmation(null)}>
             {confirmation && (
               <>
                 <div className="pb-comparison">
@@ -1404,24 +1402,10 @@ export function DayPlanboard({
                 </div>
               </>
             )}
-            <Dialog.Close
-              className="pb-close"
-              disabled={busy}
-              aria-label="Bevestiging sluiten"
-            >
-              <X size={18} />
-            </Dialog.Close>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
-      <Dialog.Root open={Boolean(scopeChoice)} onOpenChange={open => { if (!open) setScopeChoice(null); }}>
-        <Dialog.Portal><Dialog.Overlay className="pb-confirm-overlay"/><Dialog.Content className="pb-confirm" style={theme}>
-          <Dialog.Title>Welke inzet wil je wijzigen?</Dialog.Title>
-          <Dialog.Description>Deze werkbon heeft meerdere medewerkers. Kies voor wie de nieuwe tijd geldt.</Dialog.Description>
+      </PlanningConfirmationFrame>}
+      {scopeChoice && <PlanningConfirmationFrame sites={sites} theme={theme} title="Welke inzet wil je wijzigen?" description="Deze werkbon heeft meerdere medewerkers. Kies voor wie de nieuwe tijd geldt." onClose={()=>setScopeChoice(null)}>
           {scopeChoice && <><div className="pb-comparison"><p><strong>{scopeChoice.order.number}</strong> · {scopeChoice.order.object}</p><p>Geselecteerd: {data.people.find(p => p.id === scopeChoice.personnelId)?.name ?? "Medewerker"}</p><p>Nieuwe inzet: {label(scopeChoice.single.assignments.find(a => a.personnelId === scopeChoice.personnelId)?.start ?? null, data.timezone)} – {label(scopeChoice.single.assignments.find(a => a.personnelId === scopeChoice.personnelId)?.end ?? null, data.timezone)}</p></div><div className="pb-form-actions"><button className="secondary-button" onClick={() => setScopeChoice(null)}>Annuleren</button><button className="secondary-button" onClick={() => { const proposal = scopeChoice.whole; setScopeChoice(null); void save(proposal); }}>Het hele bezoek</button><button className="primary-button" onClick={() => { const proposal = scopeChoice.single; setScopeChoice(null); void save(proposal); }}>Alleen deze inzet</button></div></>}
-          <Dialog.Close className="pb-close" aria-label="Keuze sluiten"><X size={18}/></Dialog.Close>
-        </Dialog.Content></Dialog.Portal>
-      </Dialog.Root>
+      </PlanningConfirmationFrame>}
     </div>
   );
 }

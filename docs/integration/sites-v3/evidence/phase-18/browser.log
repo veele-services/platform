@@ -1,0 +1,17 @@
+PASS: native-draft-survives-cancelled-sidebar-navigation-and-retained-tabs
+PASS: three-character-real-categorised-search-source-preview-and-cancelled-dossier-navigation-retain-draft
+PASS: source-account-menu-profile-and-cancelled-signout-preserve-authenticated-draft
+PASS: unsaved-role-rights-navigation-and-explicit-current-reload
+PASS: source-bell-personal-detail-native-read-ack-archive-and-foreign-inbox-isolation
+PASS: inline-native-feedback-real-commit-lost-response-same-request-id-no-second-revision
+PASS: inline-concurrent-version-conflict-keeps-feedback-and-explicitly-adopts-current-action
+PASS: real-ticket-native-deadline-history-public-reference-without-message-body-leak
+PASS: basic-personnel-preview-does-not-offer-private-HR-dossier-or-ungranted-finance-review
+PASS: minimal-native-entity-commercial-ticket-projections-independent-followup-rights-and-current-search-source-revocation
+PASS: shared-source-ticket-and-campaign-frames-real-native-create-draft-and-discard-protection
+PASS: source-inline-feedback-composition-captured-at-three-widths
+PASS: native-personal-notification-unarchive-restores-the-real-source-bell-row
+PASS: full-source-shell-account-search-bell-captured-at-desktop-tablet-mobile
+PASS: real-multi-category-results-stay-bounded-and-keyboard-scroll-to-the-last-result
+PASS: late-successful-search-response-cannot-restore-cleared-account
+PASS: foreign-source-and-revoked-ticket-read-denied-open-source-cleared

@@ -1,0 +1,4 @@
+PASS: real Auth/SSR, source report overview at 1440/768/390
+PASS: one immutable real snapshot, byte-stable tenant PDF and browser download, reload, source archive at three widths
+PASS: persisted owner schedule, bounded real worker, one report and central notification request
+PASS: anonymous, forged origin and revoked report rights; private dialog and PDF cleared

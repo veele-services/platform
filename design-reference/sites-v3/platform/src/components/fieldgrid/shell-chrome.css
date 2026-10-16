@@ -1,0 +1,36 @@
+.workspace-shell .workspace-topbar { grid-template-columns:minmax(0,1fr) minmax(240px,380px) auto; }
+.workspace-shell .shell-account-actions { display:flex; align-items:center; gap:10px; }
+.shell-account-button { display:grid; place-items:center; flex:0 0 42px; width:42px; height:42px; padding:0; border:1px solid var(--brand-border,#d3dde4); border-radius:50%; background:var(--brand-surface,#fff); color:var(--brand-ink,#18334a); font-family:inherit;font-size:13px;line-height:1;font-weight:600; cursor:pointer; }
+.shell-account-button:hover,.shell-account-button[data-state=open] { background:var(--brand-accent-soft,#eef7f8); }
+.shell-account-menu { min-width:230px; max-width:calc(100vw - 24px); }
+.shell-account-menu [data-slot=dropdown-menu-label] strong,.shell-account-menu [data-slot=dropdown-menu-label] small { display:block; overflow-wrap:anywhere; }
+.shell-account-menu [data-slot=dropdown-menu-label] small { color:var(--brand-muted,#64748b); font-size:12px; font-weight:400; margin-top:4px; }
+.shell-profile-dialog dl { margin:8px 0 0; display:grid; gap:18px; }
+.shell-profile-dialog dt { font-size:12px; color:var(--brand-muted,#64748b); }
+.shell-profile-dialog dd { margin:4px 0 0; font-weight:600; overflow-wrap:anywhere; }
+.workspace-shell .workspace-topbar .shell-global-search { display:block; position:relative; min-width:0; width:100%; }
+.shell-search-field { width:100%; display:flex; align-items:center; gap:10px; height:42px; padding:0 12px; border:1px solid var(--brand-border,#d3dde4); border-radius:10px; background:var(--brand-surface,#fff); color:var(--brand-muted,#64748b); }
+.workspace-shell .shell-search-field input:not([type=checkbox]):not([type=radio]) { width:100%; min-width:0; height:100%; margin:0; padding:0; border:0; outline:0; box-shadow:none; border-radius:0; background:transparent; font-size:13px; color:var(--brand-ink,#18334a); }
+.shell-search-field:focus-within { border-color:var(--brand-accent,#43868b); }
+.shell-search-field input::-webkit-search-cancel-button { display:none; }
+.shell-search-field>svg { flex:none; }
+.shell-search-clear { display:grid;place-items:center;flex:none;width:24px;height:24px;padding:0;border:0;border-radius:5px;background:transparent;color:inherit;cursor:pointer; }
+.shell-search-clear:hover { background:var(--brand-accent-soft,#eef7f8); }
+.shell-search-results { position:absolute;z-index:70;top:calc(100% + 10px);right:0;width:min(440px,calc(100vw - 24px));max-height:min(480px,70vh);overflow-y:auto;overscroll-behavior:contain;border:1px solid var(--brand-border,#d3dde4);border-radius:14px;background:var(--brand-surface,#fff);box-shadow:0 12px 35px rgb(15 35 50 / .14);padding:8px;color:var(--brand-ink,#18334a); }
+.shell-search-results h3 { margin:0; padding:12px 10px 6px; font-size:10px;line-height:1.5;letter-spacing:.1em;text-transform:uppercase;color:var(--brand-muted,#64748b);font-weight:500; }
+.shell-search-results [role=option] { display:block;width:100%;padding:10px;border:0;border-radius:8px;background:transparent;text-align:left;color:inherit;cursor:pointer; }
+.shell-search-results [role=option][aria-selected=true],.shell-search-results [role=option]:hover { background:var(--brand-accent-soft,#eef7f8); }
+.shell-search-results [role=option] strong,.shell-search-results [role=option] small { display:block;line-height:1.5;overflow-wrap:anywhere; }
+.shell-search-results [role=option] strong { font-size:13px;font-weight:600; }
+.shell-search-results [role=option] small { color:var(--brand-muted,#64748b);font-size:12px;margin-top:2px; }
+.shell-search-results>p { margin:12px;font-size:13px; }
+.shell-search-empty { padding:22px 12px;text-align:center;color:var(--brand-muted,#64748b); }
+.shell-search-empty svg { margin:0 auto 10px; }
+.shell-search-empty strong { display:block;font-size:13px;color:var(--brand-ink,#18334a); }
+.shell-search-empty p { margin:6px 0 0;font-size:12px; }
+@media(max-width:900px) {
+ .workspace-shell .workspace-topbar { grid-template-columns:minmax(0,1fr) auto;height:auto;min-height:74px;padding-top:12px;padding-bottom:12px;gap:10px; }
+ .workspace-shell .shell-global-search { grid-row:2;grid-column:1/-1; }
+ .workspace-shell .shell-account-actions { grid-row:1;grid-column:2; }
+ .shell-search-results { width:100%; }
+}

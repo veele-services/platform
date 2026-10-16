@@ -26,7 +26,7 @@ vi.mock("@/lib/work-orders/report-rpc", () => ({
 }));
 vi.mock("@/lib/addresses/form", () => ({ addressFromForm: mocks.address }));
 
-import { saveCustomerProfile } from "@/app/app/klanten/actions";
+import { saveCustomerProfile } from "@/app/(workspace)/app/klanten/actions";
 
 function profile(sameAddress: boolean) {
   const form = new FormData();

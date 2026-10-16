@@ -1,12 +1,12 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
-import type { AuthState } from "@/app/login/actions";
+import type { AuthState } from "@/app/(workspace)/login/actions";
 
 const mocks = vi.hoisted(() => ({ state: {} as AuthState, action: vi.fn() }));
 vi.mock("react", async original => ({ ...await original<typeof import("react")>(), useActionState: () => [mocks.state, mocks.action, false] }));
-vi.mock("@/app/auth/invite/actions", () => ({ acceptPersonnelInvitation: vi.fn() }));
-import { InviteForm } from "@/app/auth/invite/invite-form";
+vi.mock("@/app/(workspace)/auth/invite/actions", () => ({ acceptPersonnelInvitation: vi.fn() }));
+import { InviteForm } from "@/app/(workspace)/auth/invite/invite-form";
 
 beforeEach(() => { mocks.state = {}; });
 

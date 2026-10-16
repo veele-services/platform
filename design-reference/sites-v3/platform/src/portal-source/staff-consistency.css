@@ -1,0 +1,9 @@
+.personnel-app .ps-top-actions .shell-account-button{width:42px;height:42px;min-width:42px;min-height:42px;border-color:var(--brand-border);border-width:1px;border-radius:50%;padding:0}
+.personnel-app .ps-page-heading .page-heading-title{display:flex;align-items:center;gap:10px}
+.personnel-app .ps-page-heading .eyebrow{display:block;margin-bottom:8px;color:var(--brand-muted);font-size:11px;font-weight:400;letter-spacing:.1em;text-transform:uppercase}
+.personnel-app .ps-page-heading .resource-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px}
+.personnel-app .ps-card-list>.fg-empty-state,.personnel-app .ps-planning-main>.fg-empty-state{background:var(--brand-panel,#fff);border:1px solid var(--brand-border);border-radius:var(--fg-radius,16px)}
+.personnel-app .content-tab-panel>.ps-panel:first-child{border-top-left-radius:0}
+.personnel-app .ps-settings-screen .content-tabs{min-width:0}
+.personnel-app .ps-settings-screen .content-tab-panel>.ps-panel{margin:0}
+@media(max-width:620px){.personnel-app .ps-page-heading{flex-wrap:wrap;gap:14px}.personnel-app .ps-page-heading .resource-header-actions{margin-left:auto;max-width:100%}}

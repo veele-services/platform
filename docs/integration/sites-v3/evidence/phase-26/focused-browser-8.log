@@ -1,0 +1,25 @@
+
+Running 8 tests using 1 worker
+
+(node:3725481) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/login-branding.spec.ts:29:5 › hostname tenant identity and colors persist on all login and OTP layouts (5.8s)
+passed:  > chromium > login-branding.spec.ts > hostname tenant identity and colors persist on all login and OTP layouts
+  ✓  2 [chromium] › tests/e2e/planboard.spec.ts:468:7 › status per medewerker › eigen statuskleuren, live voortgang en toegankelijke legenda naast de titel (6.7s)
+passed:  > chromium > planboard.spec.ts > status per medewerker > eigen statuskleuren, live voortgang en toegankelijke legenda naast de titel
+  ✓  3 [chromium] › tests/e2e/travel.spec.ts:363:5 › object arrival marker coordinates stay separate from official address (2.5s)
+passed:  > chromium > travel.spec.ts > object arrival marker coordinates stay separate from official address
+(node:3731978) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [chromium] › tests/e2e/veele-marketing.spec.ts:31:5 › all supplied routes, current-origin SEO, 404 and portal links (3.0s)
+passed:  > chromium > veele-marketing.spec.ts > all supplied routes, current-origin SEO, 404 and portal links
+  ✓  5 [chromium] › tests/e2e/veele-marketing.spec.ts:45:5 › layouts fit mobile, tablet, desktop and 200% text; menu and reduced motion remain usable (2.0s)
+passed:  > chromium > veele-marketing.spec.ts > layouts fit mobile, tablet, desktop and 200% text; menu and reduced motion remain usable
+  ✓  6 [chromium] › tests/e2e/veele-marketing.spec.ts:60:5 › real mixed-service submission, retained failures, retry identity and durable read-back (6.0s)
+passed:  > chromium > veele-marketing.spec.ts > real mixed-service submission, retained failures, retry identity and durable read-back
+  ✓  7 [chromium] › tests/e2e/veele-marketing.spec.ts:82:5 › public intake accepts an unknown location on mobile and is visible to management (1.1s)
+passed:  > chromium > veele-marketing.spec.ts > public intake accepts an unknown location on mobile and is visible to management
+  ✓  8 [chromium] › tests/e2e/workspace-modal-layout.spec.ts:86:5 › tenantmodals houden wizardvelden compact en dossieracties en tabs bereikbaar (17.4s)
+passed:  > chromium > workspace-modal-layout.spec.ts > tenantmodals houden wizardvelden compact en dossieracties en tabs bereikbaar
+
+  8 passed (49.0s)

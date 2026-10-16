@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef,useState,useTransition,type FormEvent } from "react";
-import { CalendarDays,Check,Download,Info,Plus,Ticket } from "lucide-react";
+import { useId,useRef,useState,useTransition,type FormEvent } from "react";
+import { CalendarDays,Check,Download,Info,MapPin,Plus,Ticket } from "lucide-react";
 import type { CustomerObject } from "@/lib/customer-portal/model";
 import { customerDate,customerTime,customerVisitLabel,type CustomerReport } from "@/lib/customer-portal/presentation";
 import { customerVisitRequestLabel,type CustomerVisitDetail } from "@/lib/customer-portal/visit-model";
@@ -11,17 +11,20 @@ import { money } from "@/lib/commercial/model";
 import { CustomerDialog } from "./dialog";
 import { ContentTabs } from "../content-tabs";
 import { EmptyState } from "../empty-state";
+import {useSourcePortal} from "../portals/context";
 
 type Request=CustomerVisitDetail["requests"][number];
 type Editor={kind:"create";visitVersion:number}|{kind:"update"|"withdraw"|"attachment";request:Request};
 export function CustomerVisitDetailDialog({detail,object,report,tenant,timezone,initialNotes=false,close,question,onSaved,downloadAllowed=true,accountId}:{
  detail:CustomerVisitDetail;object:CustomerObject;report?:CustomerReport;tenant:string;timezone:string;initialNotes?:boolean;close:()=>void;question:()=>void;downloadAllowed?:boolean;accountId:string;onSaved:()=>Promise<unknown>;
 }){
+ const source=useSourcePortal(),formId=useId();
+ const [note,setNote]=useState(""),[noteVersion,setNoteVersion]=useState(detail.visit.version),[advancedOpen,setAdvancedOpen]=useState(false);
  const [tab,setTab]=useState(initialNotes?"notes":"overview"),[editor,setEditor]=useState<Editor|null>(null),[dirty,setDirty]=useState(false);
  const [error,setError]=useState(""),[pending,start]=useTransition(),keys=useRef(new Map<string,string>()),{visit}=detail;
  const notes=detail.requests.filter(request=>request.status!=="withdrawn"),validReport=report?.visitId===visit.id&&report.objectId===object.id?report:undefined;
- const leave=(action:()=>void)=>{if(!pending&&(!dirty||window.confirm("Je wijzigingen zijn nog niet opgeslagen. Toch verdergaan?")))action();};
- const begin=(value:Editor)=>leave(()=>{setEditor(value);setDirty(false);setError("");setTab("notes");});
+ const leave=(action:()=>void)=>{if(!pending&&(!(dirty||note.trim())||window.confirm("Je wijzigingen zijn nog niet opgeslagen. Toch verdergaan?")))action();};
+ const begin=(value:Editor)=>leave(()=>{setEditor(value);setDirty(false);setError("");setTab("notes");setAdvancedOpen(true);});
  const run=(action:VisitRequestAction)=>{
   const key=JSON.stringify(action);let id=keys.current.get(key);if(!id){id=crypto.randomUUID();keys.current.set(key,id);}
   start(async()=>{try{const result=await saveCustomerVisitRequest({accountId,visitId:visit.id,commandId:id,action});if(!result.ok){setError(result.error);return;}keys.current.delete(key);setEditor(null);setDirty(false);setError("");await onSaved();}catch{setError("Opslaan kon niet worden bevestigd. Je invoer blijft bewaard; probeer opnieuw.");}});
@@ -74,9 +77,21 @@ export function CustomerVisitDetailDialog({detail,object,report,tenant,timezone,
     <hr className="divider"/><h3>Vaste instructies van dit object</h3>{fixedInstructions.length?fixedInstructions:<p className="section-gap">Er zijn geen vaste instructies.</p>}</>}
    {tab==="report"&&(validReport?<CustomerReportBody report={validReport} object={object.name} tenant={tenant} timezone={timezone}/>:<EmptyState title="Rapport volgt na uitvoering" description="Zodra het rapport is vrijgegeven, vind je het hier."/>)}
  </div>;
+ const advanced=<ContentTabs label="Afspraakgegevens" value={tab} onValueChange={id=>leave(()=>setTab(id))} tabs={[["overview","Overzicht"],["notes",`Instructies${notes.length?` (${notes.length})`:""}`],["report","Rapport"]].map(([id,title])=>({id,title,content:tab===id?panel:null}))}/>;
+ if(source)return <CustomerDialog guideKey="feature.customer-visit" title={object.name} kicker={`${visit.number} · AFSPRAAK`} close={close} busy={pending} dirty={dirty||!!note.trim()}
+  footer={detail.canAddRequest?<button className="primary-button" type="submit" form={formId} disabled={pending||noteVersion!==visit.version}>{pending?"Opslaan…":"Instructie opslaan"}</button>:validReport&&downloadAllowed?<a className="primary-button" href={`/api/customer-portal/files/report/${validReport.id}?account=${accountId}`}><Download/>PDF downloaden</a>:<button className="secondary-button" type="button" onClick={close}>Sluiten</button>}>
+  {error&&<p className="form-error" role="alert">{error}</p>}
+  <div className="portal-demo-visit-address"><MapPin size={17}/>{object.street}, {object.postalCode} {object.city}</div>
+  <div className="portal-demo-two"><div className="portal-demo-soft"><small>Gepland</small><strong>{customerDate(visit.start,timezone)}</strong><span>{customerTime(visit.start,timezone)} – {customerTime(visit.end,timezone)}</span></div><div className="portal-demo-soft"><small>Uitgevoerd door</small><strong>{tenant}</strong><span>{customerVisitLabel(visit)}</span></div></div>
+  {detail.canAddRequest?<form id={formId} className="portal-demo-form" onSubmit={event=>{event.preventDefault();if(pending||noteVersion!==visit.version)return;
+   const action:VisitRequestAction={operation:"create",visitVersion:noteVersion,fields:{title:"Instructie voor deze afspraak",body:note.trim(),nodeId:"",kind:"attention",priority:"normal",feedback:""}},key=JSON.stringify(action);let id=keys.current.get(key);if(!id){id=crypto.randomUUID();keys.current.set(key,id);}
+   start(async()=>{try{const result=await saveCustomerVisitRequest({accountId,visitId:visit.id,commandId:id,action});if(!result.ok){setError(result.error);return;}await onSaved();close();}catch{setError("Opslaan kon niet worden bevestigd. Je invoer blijft bewaard; probeer dezelfde instructie opnieuw.");}});
+  }}><label className="mc-field"><span>Instructie voor deze afspraak</span><textarea rows={5} required minLength={2} maxLength={10000} disabled={pending} autoFocus={initialNotes} value={note} onChange={event=>setNote(event.target.value)} placeholder="Bijvoorbeeld: graag aanbellen bij de zij-ingang."/></label><small>Alleen voor dit bezoek. Vaste instructies beheer je bij het object. Eerdere instructies en hun beoordeling blijven in de historie staan.</small>{noteVersion!==visit.version&&<div className="portal-demo-info"><Info/><div><p>Deze afspraak is gewijzigd. Controleer de actuele gegevens voordat je opslaat.</p><button type="button" className="secondary-button" disabled={pending} onClick={()=>{if(window.confirm("Heb je de actuele afspraak gecontroleerd? Je invoer blijft behouden."))setNoteVersion(visit.version);}}>Actuele afspraak gebruiken</button></div></div>}</form>:<p>Deze afspraak is afgesloten. Je vrijgegeven gegevens blijven hieronder beschikbaar.</p>}
+  <details className="sites-native-controls" open={advancedOpen} onToggle={event=>setAdvancedOpen(event.currentTarget.open)}><summary>Verzoeken, voorstellen en rapporten</summary><div className="row section-gap"><button className="secondary-button" type="button" disabled={pending} onClick={()=>leave(question)}>Vraag over afspraak</button>{detail.canAddRequest&&<button className="secondary-button" type="button" disabled={pending} onClick={()=>begin({kind:"create",visitVersion:visit.version})}>Instructie of verzoek toevoegen</button>}</div>{advanced}</details>
+ </CustomerDialog>;
  return <CustomerDialog guideKey="feature.customer-visit" title={`Afspraak · ${object.name}`} kicker={`${tenant} · Klantportaal`} close={close} busy={pending} dirty={dirty}
   footer={<><button className="button" type="button" disabled={pending} onClick={()=>leave(question)}><Ticket/>Vraag over afspraak</button>{detail.canAddRequest?<button className="button primary" type="button" disabled={pending} onClick={()=>begin({kind:"create",visitVersion:visit.version})}><Plus/>Instructie of verzoek toevoegen</button>:validReport&&downloadAllowed&&<a className="button primary" href={`/api/customer-portal/files/report/${validReport.id}?account=${accountId}`}><Download/>PDF downloaden</a>}</>}>
-  <ContentTabs label="Afspraakgegevens" value={tab} onValueChange={id=>leave(()=>setTab(id))} tabs={[["overview","Overzicht"],["notes",`Instructies${notes.length?` (${notes.length})`:""}`],["report","Rapport"]].map(([id,title])=>({id,title,content:tab===id?panel:null}))}/>
+  {advanced}
  </CustomerDialog>;
 }
 

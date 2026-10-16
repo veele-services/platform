@@ -13,6 +13,12 @@ afterEach(() => {
 });
 
 describe("resolveHostContext", () => {
+  it("reserves the marketing host without changing platform or tenant origins", () => {
+    expect(resolveHostContext("www.fieldgrid.nl", "https://fieldgrid.nl", "production")).toEqual({ kind: "marketing", hostname: "www.fieldgrid.nl" });
+    expect(resolveHostContext("www.staging.fieldgrid.nl", appUrl, "staging").kind).toBe("marketing");
+    expect(resolveHostContext("www.fieldgrid.nl", appUrl, "staging").kind).toBe("invalid");
+    expect(resolveHostContext("www.localhost:3000", "http://127.0.0.1:3000", "local").kind).toBe("marketing");
+  });
   it("keeps production tenant links on the confirmed origin and rejects staging or nested hosts", () => {
     process.env.APP_URL = "https://fieldgrid.nl"; process.env.DEPLOY_TARGET = "production";
     expect(resolveHostContext("fieldgrid.nl", process.env.APP_URL, "production").kind).toBe("platform");

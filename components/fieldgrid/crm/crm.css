@@ -1,0 +1,12 @@
+/* Native bridges after the exact supplied CRM/platform cascade. */
+
+/* Native mutation gate preserves the supplied layout and mounted drafts. */
+.sites-crm .crm-command-fields{display:contents}
+/* Keep the source dialog tab spacing through the transparent mutation gate. */
+.sites-crm .mc-dialog-body>.crm-command-fields>.content-tabs{margin-top:4px}
+/* Grid children may shrink while the original table keeps its own scroll area. */
+.sites-crm .crm-mail-log,.sites-crm .crm-mail-log>.resource-table-panel{min-width:0;max-width:100%}
+.sites-crm .crm-mail-log{grid-template-columns:minmax(0,1fr)}
+/* Pending-state fieldset is transparent visually but remains a DOM parent.
+   Preserve the source's direct-child mobile card padding through that gate. */
+@media(max-width:550px){.sites-crm .crm-settings-grid>.crm-command-fields>.crm-settings-card{padding:17px}}

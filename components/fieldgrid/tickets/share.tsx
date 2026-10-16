@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight, Send } from "lucide-react";
-import { runTicketCommand } from "@/app/tickets/actions";
+import { runTicketCommand } from "@/app/(workspace)/tickets/actions";
 import type { TicketAccess, TicketDetail, TicketOptions } from "@/lib/tickets/model";
 import { TicketDialog } from "./dialog";
 import { ticketBytes } from "./presentation";

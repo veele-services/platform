@@ -1,0 +1,99 @@
+{
+  "runtime": "7116af813c5fd6772a0b67f98844caf6487fea06",
+  "builder": "pnpm build (default Turbopack)",
+  "results": [
+    {
+      "width": 390,
+      "className": "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg personnel-app mc-dialog sites-staff-native-dialog sites-staff-order-sheet wide",
+      "box": {
+        "x": -195,
+        "y": -422,
+        "width": 390,
+        "height": 844
+      },
+      "computed": {
+        "top": "0px",
+        "left": "0px",
+        "transform": "none",
+        "translate": "-50% -50%",
+        "animation": "none"
+      },
+      "rules": [
+        {
+          "selector": ".top-\\[50\\%\\]",
+          "css": "top: 50%;",
+          "sheet": "http://127.0.0.1:3000/_next/static/chunks/2zgg87i1q3cop.css"
+        },
+        {
+          "selector": ".left-\\[50\\%\\]",
+          "css": "left: 50%;",
+          "sheet": "http://127.0.0.1:3000/_next/static/chunks/2zgg87i1q3cop.css"
+        },
+        {
+          "selector": ".translate-x-\\[-50\\%\\]",
+          "css": "--tw-translate-x: -50%; translate: var(--tw-translate-x) var(--tw-translate-y);",
+          "sheet": "http://127.0.0.1:3000/_next/static/chunks/2zgg87i1q3cop.css"
+        },
+        {
+          "selector": ".translate-y-\\[-50\\%\\]",
+          "css": "--tw-translate-y: -50%; translate: var(--tw-translate-x) var(--tw-translate-y);",
+          "sheet": "http://127.0.0.1:3000/_next/static/chunks/2zgg87i1q3cop.css"
+        },
+        {
+          "selector": ".sites-portals .portal-demo .sites-staff-native-dialog",
+          "css": "outline: 0px; gap: 0px; max-width: calc(-32px + 100vw); min-height: 0px; padding: 0px; display: block; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);",
+          "sheet": "http://127.0.0.1:3000/_next/static/chunks/100-ft-4p4v2a.css"
+        },
+        {
+          "selector": ".sites-portals .portal-demo .sites-staff-native-dialog",
+          "css": "border: 0px; border-radius: 0px; width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0px; top: 0px; left: 0px; transform: none;",
+          "sheet": "http://127.0.0.1:3000/_next/static/chunks/100-ft-4p4v2a.css"
+        }
+      ]
+    },
+    {
+      "width": 1440,
+      "className": "fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg duration-200 outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-lg personnel-app mc-dialog sites-staff-native-dialog sites-staff-order-sheet wide",
+      "box": {
+        "x": -140,
+        "y": -337.59375,
+        "width": 860,
+        "height": 759.59375
+      },
+      "computed": {
+        "top": "422px",
+        "left": "720px",
+        "transform": "matrix(1, 0, 0, 1, -430, -379.797)",
+        "translate": "-50% -50%",
+        "animation": "none"
+      },
+      "rules": [
+        {
+          "selector": ".top-\\[50\\%\\]",
+          "css": "top: 50%;",
+          "sheet": "http://127.0.0.1:3000/_next/static/chunks/2zgg87i1q3cop.css"
+        },
+        {
+          "selector": ".left-\\[50\\%\\]",
+          "css": "left: 50%;",
+          "sheet": "http://127.0.0.1:3000/_next/static/chunks/2zgg87i1q3cop.css"
+        },
+        {
+          "selector": ".translate-x-\\[-50\\%\\]",
+          "css": "--tw-translate-x: -50%; translate: var(--tw-translate-x) var(--tw-translate-y);",
+          "sheet": "http://127.0.0.1:3000/_next/static/chunks/2zgg87i1q3cop.css"
+        },
+        {
+          "selector": ".translate-y-\\[-50\\%\\]",
+          "css": "--tw-translate-y: -50%; translate: var(--tw-translate-x) var(--tw-translate-y);",
+          "sheet": "http://127.0.0.1:3000/_next/static/chunks/2zgg87i1q3cop.css"
+        },
+        {
+          "selector": ".sites-portals .portal-demo .sites-staff-native-dialog",
+          "css": "outline: 0px; gap: 0px; max-width: calc(-32px + 100vw); min-height: 0px; padding: 0px; display: block; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);",
+          "sheet": "http://127.0.0.1:3000/_next/static/chunks/100-ft-4p4v2a.css"
+        }
+      ]
+    }
+  ]
+}

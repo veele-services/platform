@@ -4,7 +4,7 @@ vi.mock("server-only", () => ({}));vi.mock("next/cache", () => ({ revalidatePath
 vi.mock("@/lib/management/auth", () => ({ getManagementActor: mocks.actor }));
 vi.mock("@/lib/management/rpc", () => ({ managementRpc: mocks.rpc }));
 vi.mock("@/lib/management/invitations", () => ({ prepareManagementAccount: mocks.prepare, deliverManagementInvitation: mocks.deliver, requireManagementMail: mocks.mail }));
-import { inviteManagementUser, runManagementCommand } from "@/app/app/gebruikers/actions";
+import { inviteManagementUser, runManagementCommand } from "@/app/(workspace)/app/gebruikers/actions";
 const input = { name: "Fictieve manager", email: "manager@example.test", roleId: "11111111-1111-4111-8111-111111111111", requestId: "22222222-2222-4222-8222-222222222222" };
 beforeEach(() => { vi.clearAllMocks();mocks.actor.mockResolvedValue({context:{tenant:{id:"33333333-3333-4333-8333-333333333333"}},db:{}});mocks.rpc.mockResolvedValue({id:"member"});mocks.prepare.mockResolvedValue("account");mocks.deliver.mockResolvedValue({}); });
 it("runs fresh database-owner authorization before Auth account preparation or email", async () => {

@@ -1,0 +1,33 @@
+# Facturen op de bestaande financiële keten
+
+T07 is lokaal geïmplementeerd en getest tegen de daadwerkelijk verpakte productiebuild van runtimecommit `780993b56ce50f710bc8c5d1c4b505263a255750`. Niet gedeployed of live geverifieerd. De overige open matrixrijen en integrale releaseacceptatie blijven open.
+
+| Onderdeel | Keuze | Aansluiting |
+| --- | --- | --- |
+| Facturen | Overnemen | Bronkop, drie financiële kaarten, acht kolommen en het compacte venster met drie feiten. |
+| Factureerbaar werk | Hergebruiken | Native goedgekeurde uitvoeringsbronnen, resterende hoeveelheden, prijsgrondslag en btw; geen tweede factuurmodel. |
+| Lijst | Uitbreiden | Eén afgeschermde, stabiel gepagineerde projectie met letterlijke zoektekst, historische statussen, clamp en afzonderlijke functiebevoegdheid. |
+| Factuurprocessen | Behouden | Native concept, regels, PDF-voorbeeld/download, definitief maken, scannen, verzenden, historische allocaties, deelbetalingen en bundellink. |
+| Mail en betaling | Hergebruiken | Bestaande centrale mailpolicy en transport; native idempotente betalingsregistratie en bestaande betaalroute. |
+
+Migraties 169–171 zijn query-first toegepast en door de CLI vastgelegd/gecontroleerd. De lijst gebruikt een publieke security-invokerwrapper en een private helper met actuele sessie, tenant, rol, module, canonieke financiële rechten, functiebevoegdheid en de oorspronkelijke tabelgrens. De optional conceptbevoegdheid wordt onafhankelijk gecontroleerd: zonder die toegang is het bedrag Nog te factureren onbekend, niet fictief nul. De geselecteerde resource-API gebruikt de bestaande authenticated RLS/RPC's, uitsluitend voor de gevraagde facturen/concepten, en controleert de actuele bevoegdheden opnieuw na het lezen. Zij laadt geen hele HR- of klantworkspace. Bestaande migraties zijn niet herschreven. De databasetypen en gedeelde database-testopdracht zijn bijgewerkt; security-advisors melden geen issues.
+
+## Afzonderlijk gemotiveerde integratieverschillen
+
+- Alle bedragen behouden centen. De prototypeafronding naar hele euro's is ongeschikt voor echte btw, deelbetalingen en openstaande saldi. De drie kaarten en hun geometrie blijven gelijk. Werkelijke factuurdatums, bronregels en status vervangen voorbeeldinhoud.
+- De bron heeft een selectievak per rij. De native selectie op paginaniveau, driepuntsacties en bestaande paginatie blijven daarnaast beschikbaar voor definitief maken, betalen en bundelen. Concepten en betaalde/historische facturen staan achter Factureerbaar werk en de aanvullende filters; bestaande dossierlinks `?record=<id>` blijven werken.
+- De demo-zin over een demo-betaling is verwijderd. De echte betaling vraagt bedrag, datum en referentie, met behoud van invoer bij een netwerkfout. De database bepaalt het saldo en weigert overbetaling. Concepten, creditfacturen, vervallen verklaarde en al betaalde facturen worden niet als incasseerbaar behandeld. De oorspronkelijke factuur-PDF blijft na betalingen byte-identiek.
+- Het compacte bronvenster opent de volledige native factuurinterface voor regels, PDF en historie. Dezelfde interface is geëxtraheerd uit de bestaande factuurpagina, binnen het gedeelde bronvenster; er zijn geen oorspronkelijke bedrijfsvelden of processen verwijderd.
+- Een bundellink blijft leesbaar en te openen wanneer de browser het klembord weigert. Er verschijnt geen onterechte gekopieerd-bevestiging. De bearerlink is niet opgenomen in screenshots of bewijslogs.
+- De bestaande mailrenderer accepteert uitsluitend in expliciete lokale tests de lokale HTTP-appbasis. Staging en productie blijven HTTPS vereisen. De test gebruikt de bestaande policy/transportketen met een lokale provider-capture die alleen `.invalid` accepteert; dit is geen bewijs van externe mailbezorging.
+- Bij intrekking van rechten worden de geopende gegevens en lijst gewist; een eerder geautoriseerd maar vertraagd lijstantwoord kan deze niet terugzetten. Dezelfde verzoekgeneratiecorrectie is toegepast op de werkbon- en rapportlijsten. Actiemenu's sluiten na een keuze; de browsertest wacht ook op het einde van de echte sluitanimatie.
+
+## Controle en bekeken beelden
+
+Tien gerichte databasecontroles slagen: echte rapportgoedkeuring en conceptbedragen inclusief btw, één native definitieve factuur, letterlijke `%`/`_`, ongeldige selectors, 104 kandidaten met stabiele paginatie/clamp en historie, daadwerkelijke overdue-status, allocaties/retry/overbetaling, optional conceptrecht, actuele sessie/tenant/rol/module en iedere afzonderlijke leesbevoegdheid. De gecombineerde native finance-, payment-security- en payment-concurrencyset inclusief deze nieuwe controles slaagt met 36 tests.
+
+De geauthenticeerde browserketen slaagt tegen het eigen `server.js` uit het echte standalone-archief: werkelijk goedgekeurde bron → concept met btw → native PDF-voorbeeldroute → definitieve factuur → gescande afgeschermde PDF → centrale verzending met lokale provider-capture → native deelbetaling → compacte betaling van het resterende saldo. Een na commit verloren antwoord en herhaling leveren precies twee oorspronkelijke allocaties op. De originele PDF verandert niet. Een tweede werkelijk goedgekeurde bron maakt een tweede factuur; selectie bundelt beide voor dezelfde klant. Klembordweigering, bestaande dossierdeeplink, anonieme bestandsweigering, private/no-store, surplus queryvelden, vreemde resource en intrekking tijdens een vertraagd verzoek zijn gecontroleerd. De werkbon-/rapportketen en volledige taken-/categorie-/meerwerk-/checklistketen slagen opnieuw tegen hetzelfde archief na de wijzigingen aan gedeelde menu-, tabel- en formuliercomponenten. Geen browserfouten. De externe betaalprovidercheckout is niet doorlopen; dit bewijs betreft echte native handmatige allocaties en bundelaanmaak.
+
+Alle twaalf vergelijkingsbeelden van lijst en samenvatting zijn bekeken op 1440, 768 en 390 px. Ook het native conceptvenster, de native deelbetaling en de compacte betaling op drie breedtes zijn bekeken. De headless browser rendert de ingebouwde PDF-viewer niet op het screenshot; de echte beveiligde PDF-responses en het opgeslagen PDF-bestand zijn afzonderlijk gecontroleerd. Dit is geen claim van een visueel gerenderde PDF in die viewer. Vergelijkingsgrens is hoofdinhoud/venster; de buitenshell blijft T17.
+
+De volledige unitset slaagt: 1.938 tests in 200 bestanden. ESLint zonder waarschuwingen, TypeScript, koude productiebuild met 104 pagina's, archiefcontrole en lokale healthcheck met exacte runtime-SHA en gereedstaande database/scanner slagen. De finale release krijgt opnieuw haar eigen exacte-SHA-build, attestation en bestaande promotiegates. Zie `evidence/phase-15/verification.json`.

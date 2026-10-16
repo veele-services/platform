@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function NotFound(){return <main className="studio"><div className="container legal-page"><img src="/fieldgrid-site-assets/branding/logo.svg" alt="Fieldgrid" width="155" height="48"/><span className="eyebrow" style={{marginTop:70}}>404 · EVEN TERUG NAAR HET OVERZICHT</span><h1>Deze pagina is niet gevonden.</h1><p>Ga terug naar Fieldgrid en ontdek het platform of de mogelijkheden voor jouw branche.</p><Link className="button button-primary" style={{marginTop:30}} href="/" prefetch={false}>Terug naar Fieldgrid</Link></div></main>}

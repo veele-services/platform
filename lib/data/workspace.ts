@@ -1,4 +1,5 @@
 import "server-only";
+import {personnelDirectoryColumns,personnelDirectoryRow} from "./personnel-directory";
 import { getBrandingLogoUrl } from "@/lib/branding/logo";
 import { getAuthContext } from "@/lib/auth/context";
 import { hasManagementPermission } from "@/lib/management/model";
@@ -111,7 +112,7 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
     supabase.from("quotes").select("*").eq("tenant_id", tenantId).order("created_at", { ascending: false }).limit(250),
     allWorkspaceRows((from, to) => supabase.from("task_catalog").select("*").eq("tenant_id", tenantId).order("code").order("id").range(from, to)),
     taskProjection.then(p=>({data:p.taskRevisions,error:null})),
-    allWorkspaceRows((from, to) => supabase.from("personnel").select("id,tenant_id,user_id,employee_number,full_name,email,phone,status,start_date,end_date,created_at,updated_at,version,standard_vehicle,departure_kind,departure_depot_id,return_to_departure").eq("tenant_id", tenantId).order("full_name").order("id").range(from, to)),
+    allWorkspaceRows((from, to) => supabase.from("personnel").select(personnelDirectoryColumns).eq("tenant_id", tenantId).order("full_name").order("id").range(from, to)),
     allWorkspaceRows((from, to) => supabase.from("function_catalog").select("*").eq("tenant_id", tenantId).order("name").order("id").range(from, to)),
     allWorkspaceRows((from, to) => supabase.from("qualifications").select("*").eq("tenant_id", tenantId).order("id").range(from, to)),
     canRead("work_orders","work_order_operational_rows")?operationalOrderRows(supabase,tenantId,{all:true}):empty,
@@ -154,17 +155,7 @@ export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "
   const workspace: WorkspaceData = {
     customers: rows(results[0]), contacts: rows(results[1]), objects: rows(results[2]),
     requests: rows(results[3]), quotes: rows(results[4]), tasks: rows(results[5]), taskRevisions: rows(results[6]),
-    personnel: rows(results[7]).map(p=>({
-      ...p,
-      emergency_contact: {}, home_address: {}, alternate_departure_address: {},
-      preferred_name: null, mobile_phone: null, birth_date: null,
-      driving_license: false, driving_license_categories: [], carpool_allowed: false,
-      own_transport: false, travel_limitations: null,
-      notification_preferences: {}, availability_preferences: {},
-      availability_self_service_enabled: false,
-      onboarding_draft: {}, onboarding_step: 0,
-      onboarding_completed_at: null, onboarding_version: 1,
-    })), functions: rows(results[8]), qualifications: rows(results[9]),
+    personnel: rows(results[7]).map(personnelDirectoryRow), functions: rows(results[8]), qualifications: rows(results[9]),
     workOrders: rows(results[10]), assignments: rows(results[11]), workOrderTasks: rows(results[12]), dispatches: rows(results[13]),
     reports: rows(results[14]), attachments: rows(results[15]), signatures: rows(results[16]), reviews: rows(results[17]),
     invoices: rows(results[18]), invoiceLines: rows(results[19]), payments: rows(results[20]), allocations: rows(results[21]),

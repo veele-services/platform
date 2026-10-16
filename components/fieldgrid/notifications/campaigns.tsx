@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Eye } from "lucide-react";
-import { loadNotificationRecipients, explainNotification } from "@/app/notifications/actions";
+import { loadNotificationRecipients, explainNotification } from "@/app/(workspace)/notifications/actions";
 import { channelLabels, workspaceLabels, notificationChannels, notificationPaths, recipientCriteriaSchema, type CampaignList, type Choice, type NotificationAccess, type NotificationCampaign, type NotificationExplanation, type NotificationChannel, type RecipientCriteria, type RecipientPreview } from "@/lib/notifications/model";
 import { localDateTime, localToInstant } from "@/lib/planning/time";
 import { ErrorMessage, NotificationDialog, notificationDate, State, useNotificationCommand } from "./shared";

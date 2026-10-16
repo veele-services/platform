@@ -7,11 +7,6 @@ set -euo pipefail
 [[ -f .next/standalone/server.js ]] || { echo "Standalone build ontbreekt" >&2; exit 2; }
 
 standalone_root="$(realpath -e .next/standalone)"
-pnpm_hoist_root="$standalone_root/node_modules/.pnpm/node_modules"
-[[ -d "$pnpm_hoist_root" && -d "$pnpm_hoist_root/@swc/helpers" ]] || {
-  echo "Standalone pnpm-runtime-layout ontbreekt" >&2
-  exit 2
-}
 
 # Next's standalone output contains a pnpm symlink graph. The fixed staging
 # broker deliberately accepts regular files and directories only, so the
@@ -31,11 +26,10 @@ work="$(mktemp -d)"
 trap 'rm -rf -- "$work"' EXIT
 mkdir -p "$work/release/.next"
 rsync -aL --delete .next/standalone/ "$work/release/"
-# Dereferencing the top-level `next` symlink relocates the package out of its
-# pnpm store path. Materialize pnpm's traced hoisted runtime dependencies at
-# the resulting top-level lookup location as well. This keeps the archive
-# link-free without losing packages such as @swc/helpers at runtime.
-rsync -aL "$pnpm_hoist_root/" "$work/release/node_modules/"
+# Materialize the traced module lookup graph after dereferencing. Newer Next
+# traces may omit pnpm's hoist directory; its store still contains the exact
+# transitive dependencies. Conflicting resolutions are never silently merged.
+node scripts/materialize-standalone.mjs "$standalone_root" "$work/release"
 rsync -aL --delete .next/static/ "$work/release/.next/static/"
 rsync -aL --delete public/ "$work/release/public/"
 install -m 0440 scripts/run-worker.mjs "$work/release/worker-client.mjs"

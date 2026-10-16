@@ -1,0 +1,23 @@
+{
+  "checks": [
+    "native-draft-survives-cancelled-sidebar-navigation-and-retained-tabs",
+    "three-character-real-categorised-search-source-preview-and-cancelled-dossier-navigation-retain-draft",
+    "source-account-menu-profile-and-cancelled-signout-preserve-authenticated-draft",
+    "unsaved-role-rights-navigation-and-explicit-current-reload",
+    "source-bell-personal-detail-native-read-ack-archive-and-foreign-inbox-isolation",
+    "inline-native-feedback-real-commit-lost-response-same-request-id-no-second-revision",
+    "inline-concurrent-version-conflict-keeps-feedback-and-explicitly-adopts-current-action",
+    "real-ticket-native-deadline-history-public-reference-without-message-body-leak",
+    "basic-personnel-preview-does-not-offer-private-HR-dossier-or-ungranted-finance-review",
+    "minimal-native-entity-commercial-ticket-projections-independent-followup-rights-and-current-search-source-revocation",
+    "shared-source-ticket-and-campaign-frames-real-native-create-draft-and-discard-protection",
+    "source-inline-feedback-composition-captured-at-three-widths",
+    "native-personal-notification-unarchive-restores-the-real-source-bell-row",
+    "full-source-shell-account-search-bell-captured-at-desktop-tablet-mobile",
+    "real-multi-category-results-stay-bounded-and-keyboard-scroll-to-the-last-result",
+    "late-successful-search-response-cannot-restore-cleared-account",
+    "foreign-source-and-revoked-ticket-read-denied-open-source-cleared"
+  ],
+  "browserErrors": [],
+  "viewed": true
+}

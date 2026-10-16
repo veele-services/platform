@@ -1,0 +1,16 @@
+{
+  "before": true,
+  "headerPolicy": "default-src 'self'; script-src 'self' 'nonce-[omitted]' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://tiles.openfreemap.org; connect-src 'self' https://tiles.openfreemap.org http://127.0.0.1:60321 ws://127.0.0.1:60321; worker-src 'self' blob:; frame-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';",
+  "framePolicy": "DENY",
+  "viewerFrames": [
+    {
+      "type": "own tenant"
+    },
+    {
+      "type": "other"
+    }
+  ],
+  "browserErrors": [],
+  "originalBytes": true,
+  "currentVisibilityDenied": false
+}

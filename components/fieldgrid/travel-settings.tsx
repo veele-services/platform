@@ -25,7 +25,7 @@ import {
   saveArrival,
   loadTravelDaySettings,
   saveTravelDaySettings,
-} from "@/app/app/travel-actions";
+} from "@/app/(workspace)/app/travel-actions";
 import type { Database } from "@/lib/database.types";
 import { useFormChanges } from "./unsaved-form";
 

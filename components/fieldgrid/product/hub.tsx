@@ -1,6 +1,8 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Eye, RefreshCw, Columns3, List, Search } from "lucide-react";
+import {useSourcePortal} from "../portals/context";
+import {PortalInformationList} from "../portals/information-list";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { Plus, Eye, RefreshCw, Columns3, List, Search, ArrowUpRight } from "lucide-react";
 import { PageHeading } from "../page-heading";
 import { ContentTabs } from "../content-tabs";
 import { EmptyState } from "../empty-state";
@@ -9,6 +11,11 @@ import { ListPagination } from "../list-pagination";
 import { CompactFilterMenu } from "../compact-filter-menu";
 import { ProductEditor } from "./editors";
 import { ProductDetail, PublicationDialog, ProductPreview } from "./details";
+import {useDashboardPresentation} from '../presentation';
+import {Table,Badge,Empty} from '../crm/ui';
+import {PlatformProductOverview} from "./platform-overview";
+import {EntityFilter} from '../management-cockpit/entity-filter';
+import '../information/information.css';
 import {
   productListSchema,
   ideaSchema,
@@ -53,6 +60,7 @@ type Modal =
       section: ProductSection;
       id: string;
     };
+function ProductManagementControls({platform,readOnly=false,children}:{platform:boolean;readOnly?:boolean;children:ReactNode}){return platform?<details className="sites-platform-extra"><summary>{readOnly?"Meer productinformatie":"Ideeën, roadmap en releases beheren"}</summary>{children}</details>:<>{children}</>}
 const empty: ProductList = { items: [], total: 0, page: 1, pageSize: 25 };
 async function request(url: string) {
   const r = await fetch(url, {
@@ -78,6 +86,7 @@ export function ProductHub({
 }) {
   const admin = snapshot.access.canManage,
     management = snapshot.workspace === "backoffice";
+  const presentation=useDashboardPresentation(),sites=management&&presentation==='sites', platformSites=snapshot.workspace==='platform'&&presentation==='sites',portalSites=useSourcePortal();
   const tabs = admin
     ? [
         ["ideas", "Ideeën"],
@@ -456,9 +465,12 @@ export function ProductHub({
     </>
   );
   return (
-    <div className="product-hub">
+    <div className={sites?'sites-information':portalSites?'sites-portal-updates':platformSites?'product-hub sites-platform-product':'product-hub'}>
+      {platformSites && <><PageHeading eyebrow="FIELDGRID PLATFORM" title="Productbeheer" help="Beheer modules, ideeën, roadmap en updates zonder publicatie met beschikbaarheid te verwarren."/><PlatformProductOverview roadmap={lists.roadmap.items} open={(section,id)=>{void openDetail(section,id);}}/></>}
+      {portalSites&&<><PageHeading eyebrow={snapshot.workspace==='staff'?'PERSONEEL':'KLANTPORTAAL'} title="Wat is er nieuw?" className="ps-page-heading"/><PortalInformationList staff={snapshot.workspace==='staff'} items={lists.releases.items.map(item=>({id:item.id,title:item.title,detail:'publishedAt' in item&&item.publishedAt?`Update ${new Intl.DateTimeFormat('nl-NL',{timeZone:'Europe/Amsterdam',day:'numeric',month:'long',year:'numeric'}).format(new Date(item.publishedAt))}`:'Productupdate'}))} onOpen={id=>{void openDetail('releases',id);}} emptyTitle="Nog geen updates"/></>}
+      <ProductManagementControls platform={platformSites||portalSites} readOnly={portalSites&&!admin}>
       <PageHeading
-        eyebrow={admin ? "PLATFORMBEHEER" : "FIELDGRID ONTWIKKELING"}
+        eyebrow={sites?'ORGANISATIE':admin ? "PLATFORMBEHEER" : "FIELDGRID ONTWIKKELING"}
         title={
           admin
             ? "Productbeheer"
@@ -466,9 +478,9 @@ export function ProductHub({
               ? "Roadmap & updates"
               : "Wat is er nieuw?"
         }
-        help="Voortgang, publicatie en beschikbaarheid zijn afzonderlijk. Een planning is indicatief. Je ziet uitsluitend informatie voor je huidige organisatie en portaal."
+        help={sites?undefined:"Voortgang, publicatie en beschikbaarheid zijn afzonderlijk. Een planning is indicatief. Je ziet uitsluitend informatie voor je huidige organisatie en portaal."}
         actions={
-          <>
+          sites?<EntityFilter active={Boolean(search||category||status)||tab!=='releases'} preserveKey={snapshot.actorKey+':product'}><label>Zoeken<input type="search" aria-label="Productinformatie zoeken" value={search} maxLength={160} onChange={e=>{setSearch(e.target.value);setPage(1)}}/></label><label>Onderdeel<select aria-label="Onderdeel" value={tab} onChange={e=>{setTab(e.target.value);setPage(1);setStatus('');setCategory('')}}>{tabs.map(([id,title])=><option key={id} value={id}>{title}</option>)}</select></label>{filters}<button className="secondary-button" disabled={busy} onClick={()=>void refresh()}>Vernieuwen</button>{snapshot.access.canSubmit&&<button className="primary-button" data-close-filter onClick={()=>showModal({type:'editor',request:{kind:'ideas'}})}><Plus size={16}/>Idee indienen</button>}</EntityFilter>:<>
             <label className="product-search">
               <Search aria-hidden="true" size={16} />
               <span className="sr-only">Productinformatie zoeken</span>
@@ -543,7 +555,7 @@ export function ProductHub({
           {success}
         </p>
       )}
-      <ContentTabs
+      {sites?<><Table headers={['Bericht','Categorie','Bekijken']}>{list.items.map(item=><tr key={item.id}><td><button className="table-record-link" onClick={()=>void openDetail(section,item.id)}>{item.title}</button><small>{'intro' in item?item.intro:'summary' in item?item.summary:item.problem}</small></td><td><Badge>{'version' in item?'Nieuw':'progress' in item?progressLabels[item.progress]:ideaLabels[item.state]}</Badge></td><td><button className="fg-action-icon" aria-label={item.title} onClick={()=>void openDetail(section,item.id)}><ArrowUpRight size={16}/></button></td></tr>)}{!list.items.length&&<tr><td colSpan={3}><Empty title={section==='ideas'?'Nog geen ideeën':section==='roadmap'?'Nog geen ontwikkelingen':'Nog geen updates'} text="Gepubliceerde informatie voor jouw doelgroep verschijnt hier. Pas eventueel de filters aan."/></td></tr>}</Table><ListPagination total={list.total} page={page} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={size=>{setPageSize(size);setPage(1)}} noun={section==='ideas'?'ideeën':section==='roadmap'?'ontwikkelingen':'updates'} busy={busy} preferenceKey={`product:${snapshot.actorKey}:${section}`}/></>:<ContentTabs
         label="Productonderdelen"
         value={tab}
         onValueChange={(next) => {
@@ -559,7 +571,8 @@ export function ProductHub({
           title,
           content: id === tab ? body : null,
         }))}
-      />
+      />}
+      </ProductManagementControls>
       {modal?.type === "editor" && (
         <ProductEditor
           key={`${modal.request.kind}:${modal.request.item?.id ?? "new"}`}

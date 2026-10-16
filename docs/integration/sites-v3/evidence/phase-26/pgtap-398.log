@@ -1,0 +1,18 @@
+Connecting to local database...
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/booking.sql ....................... ok
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/customer_dossier.sql .............. ok
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/domain_flows.sql .................. ok
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/mail_delivery.sql ................. ok
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/personnel_dossier.sql ............. ok
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/personnel_numbering.sql ........... ok
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/planning.sql ...................... ok
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/platform_backoffice.sql ........... ok
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/rls.sql ........................... ok
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/staff_direct_rpc_guards.sql ....... ok
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/staff_personnel_app.sql ........... ok
+/tmp/fieldgrid-release-migrations.FlfiMa/supabase/tests/database/staff_report_upload_finalize.sql .. ok
+All tests successful.
+Files=12, Tests=398,  4 wallclock secs ( 0.10 usr  0.03 sys +  0.10 cusr  0.09 csys =  0.32 CPU)
+Result: PASS
+A new version of Supabase CLI is available: v2.121.0 (currently installed v2.117.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

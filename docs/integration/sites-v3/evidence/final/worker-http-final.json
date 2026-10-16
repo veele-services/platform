@@ -1,0 +1,55 @@
+{
+  "release": "58363c2e89d376454aefd6db167a6413e187d3b0",
+  "status": 200,
+  "body": {
+    "status": "ok",
+    "claimed": 25,
+    "sent": 25,
+    "failed": 0,
+    "livePlanning": 0,
+    "dossier": {
+      "claimed": 0,
+      "sent": 0,
+      "failed": 0
+    },
+    "objectReminders": 0,
+    "customerReminders": 0,
+    "managementSignals": 0,
+    "expiredSignatureUploads": 0,
+    "ticketDeadlines": {
+      "processed": 0
+    },
+    "ticketDeliveries": {
+      "claimed": 0,
+      "sent": 0,
+      "failed": 0,
+      "uncertain": 0,
+      "cancelled": 0
+    },
+    "crmNotifications": 0,
+    "notificationDeliveries": {
+      "claimed": 1,
+      "sent": 0,
+      "failed": 0,
+      "uncertain": 0,
+      "suppressed": 0,
+      "deferred": 0,
+      "cancelled": 0
+    },
+    "deferredMail": {
+      "claimed": 0,
+      "sent": 0,
+      "failed": 0,
+      "deferred": 0,
+      "suppressed": 0
+    },
+    "ticketScans": {
+      "claimed": 0,
+      "clean": 0,
+      "rejected": 0,
+      "failed": 0
+    },
+    "expiredTicketUploads": 0
+  },
+  "transport": "local .invalid capture; no external delivery claim"
+}

@@ -1,0 +1,20 @@
+{
+  "tenant": "f9644e58-7b25-44f6-bf5c-b38a5047d3d7",
+  "createdTask": "96c949ea-582f-4d56-8f45-69f7cf8212c1",
+  "checks": [
+    "real-auth-native-catalogue",
+    "source-four-columns-detail-three-widths",
+    "real-description-revision",
+    "lost-response-retained-input-idempotent-retry",
+    "full-native-price-proof-edit",
+    "historical-work-order-snapshot-preserved",
+    "real-category-automatic-number",
+    "real-extra-work-rule-and-binding",
+    "original-templates-route",
+    "real-checklist-draft-publish-immutable-successor",
+    "missing-revision-no-fabricated-duration-price",
+    "native-archive-history",
+    "revoked-catalogue-clears-private-ui"
+  ],
+  "browserErrors": []
+}

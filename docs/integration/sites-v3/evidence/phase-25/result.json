@@ -1,0 +1,28 @@
+{
+  "checks": [
+    "actual-fresh-SMTP-OTP-registered-primary-admin-and-private-native-CRM",
+    "overview-eight-real-actions-and-new-lead-committed-response-loss-idempotent-retry-retains-input",
+    "seven-stage-board-list-search-current-owner-filter-and-real-persisted-drag",
+    "real-dossier-phase-owner-value-next-contact-and-audited-note-survive-server-refresh",
+    "native-CRM-mail-switch-reuses-global-service-and-explicit-primary-account",
+    "actual-public-host-three-distinct-intakes-one-lead-immutable-dossier-snapshots-and-request-filter",
+    "source-week-list-date-navigation-real-confirmation-and-protected-telephone-ICS",
+    "actual-competing-reschedule-refuses-conflict-keeps-original-and-explicit-retry-reserves-then-cancels",
+    "real-linked-task-create-edit-complete-reopen-and-persisted-filter",
+    "real-availability-edit-reaches-public-slots-without-rewriting-existing-bookings",
+    "actual-central-CRM-outbox-policy-native-worker-confirmed-failure-preview-historical-recipient-safe-retry-and-frozen-content",
+    "overview-real-initial-error-explicit-retry-focus-background-error-last-data-retained-and-thirty-second-refresh",
+    "actual-registry-revocation-clears-loaded-private-CRM-overview-even-with-a-retained-platform-shell",
+    "overview-appointment-action-submits-a-real-manual-telephone-reservation",
+    "all-five-CRM-action-tiles-four-card-footers-tenant-review-and-support-navigate-to-native-screens",
+    "overview-real-request-appointment-task-and-contact-moment-rows-open-the-correct-native-tab-and-lead",
+    "prototype-data-import-and-deletion-endpoints-remain-absent-without-business-mutation",
+    "actual-overview-statistics-four-CRM-containers-attention-support-and-tenant-actions-order"
+  ],
+  "browserErrors": [],
+  "capture": true,
+  "viewed": false,
+  "remaining": [
+    "final-source-viewing"
+  ]
+}

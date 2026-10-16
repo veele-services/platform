@@ -1,8 +1,8 @@
 import { Children, createElement, isValidElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import WorkOrdersError from "../../app/app/werkbonnen/error";
-import WorkOrdersLoading from "../../app/app/werkbonnen/loading";
+import WorkOrdersError from "../../app/(workspace)/app/werkbonnen/error";
+import WorkOrdersLoading from "../../app/(workspace)/app/werkbonnen/loading";
 import { orderDate, orderHours } from "../../components/fieldgrid/work-orders/presentation";
 import { workOrderQuery, workOrderReturn, workOrderTabs, workOrderViews } from "./model";
 
@@ -21,6 +21,7 @@ describe("work-order navigation and recovery", () => {
     const source = "/app/werkbonnen?q=entree&planning=tentative&page=3";
     expect(workOrderReturn(source)).toBe(source);
     expect(workOrderReturn("/app/planning?day=2033-10-05")).toContain("day=2033-10-05");
+    expect(workOrderReturn("/app/rapporten?stage=open&page=2")).toBe("/app/rapporten?stage=open&page=2");
     for (const path of ["https://example.test", "//example.test", "/app/werkbonnen-elsewhere", "/app/werkbonnen\\example", "/app/werkbonnen\nother", "javascript:alert(1)"])
       expect(workOrderReturn(path)).toBe("/app/werkbonnen");
   });

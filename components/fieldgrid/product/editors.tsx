@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { uploadProductFile } from "@/lib/product/actions";
 import {
   internalAudience,
@@ -66,6 +66,9 @@ export function ProductEditor({
   );
   const [uploading, setUploading] = useState(false),
     submitting = useRef(false);
+  const [dirty,setDirty]=useState(false);
+  useEffect(()=>{if(!dirty)return;const warn=(event:BeforeUnloadEvent)=>event.preventDefault();window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn)},[dirty]);
+  const guardedClose=()=>{if(!command.busy&&!uploading&&(!dirty||confirm('Je wijzigingen zijn nog niet opgeslagen. Wil je ze weggooien?')))close()};
   const created = useRef<string | null>(null),
     fileIntent = useRef<string | null>(null);
   const admin = workspace === "platform";
@@ -186,10 +189,10 @@ export function ProductEditor({
             ? "Schrijf een algemene omschrijving. De oorspronkelijke inzending en bijlagen blijven afzonderlijk."
             : "Sla de inhoud op als voorbereiding. Publiceren is een afzonderlijke beheeractie."
       }
-      close={close}
+      close={guardedClose}
       busy={command.busy || uploading}
     >
-      <form className="wo-form product-form" onSubmit={submit}>
+      <form className="wo-form product-form" onSubmit={submit} onChange={()=>setDirty(true)}>
         <div className="wo-dialog-body product-body">
           <label>
             Titel
@@ -452,7 +455,7 @@ export function ProductEditor({
             className="secondary-button"
             type="button"
             disabled={command.busy || uploading}
-            onClick={close}
+            onClick={guardedClose}
           >
             Annuleren
           </button>

@@ -29,7 +29,7 @@ import {
   type CustomerFilters,
   type Owner,
 } from "@/lib/customers/model";
-import { customerCommand } from "@/app/app/klanten/actions";
+import { customerCommand } from "@/app/(workspace)/app/klanten/actions";
 import { CustomerWizard } from "./forms";
 import { customerScroll, rememberCustomerScroll } from "@/lib/auth/browser-state";
 import { CompactFilterMenu } from "../compact-filter-menu";

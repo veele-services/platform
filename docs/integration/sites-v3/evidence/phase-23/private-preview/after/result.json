@@ -1,0 +1,22 @@
+{
+  "before": false,
+  "headerPolicy": "default-src 'none'; frame-ancestors 'self'",
+  "framePolicy": "SAMEORIGIN",
+  "viewerFrames": [
+    {
+      "type": "own tenant"
+    },
+    {
+      "type": "own tenant"
+    },
+    {
+      "type": "built-in PDF viewer"
+    },
+    {
+      "type": "own tenant"
+    }
+  ],
+  "browserErrors": [],
+  "originalBytes": true,
+  "currentVisibilityDenied": true
+}

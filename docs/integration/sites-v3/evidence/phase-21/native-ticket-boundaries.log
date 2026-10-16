@@ -1,0 +1,62 @@
+▶ customer tickets use the canonical conversation with exact account and public audience boundaries
+  ✔ create is idempotent, stores a canonical tenant ticket, and rejects other-account objects (92.743504ms)
+  ✔ only reporter messages and public authors cross the customer boundary (36.190635ms)
+  ✔ customer status transitions stay within reporter rights (48.898255ms)
+  ✔ customer → tenant → Fieldgrid preserves an explicit response draft and private audiences (206.77511ms)
+  ✔ account, contact and object revocation close reads, commands and file upload contexts (66.890712ms)
+✔ customer tickets use the canonical conversation with exact account and public audience boundaries (5797.608245ms)
+▶ Fieldgrid supportteam: OTP governance, bounded operators and full reporter escalation
+  ✔ requires a current platform owner and real recent OTP before any account preparation (16.89772ms)
+  ✔ invitation materializes only explicit support capabilities and a durable payload-bound receipt (23.92281ms)
+  ✔ existing category-scoped and assigned-only operators can log in without broader content access (11.870403ms)
+  ✔ delivery claim is single-use, exact-recipient bound, and uncertain results cannot silently resend (11.566763ms)
+  ✔ staff → tenant → Fieldgrid uses separate tickets, audience boundaries and an explicit response draft (283.786839ms)
+  ✔ support assignment has a recognizable operator and cannot grant another tenant (101.040809ms)
+  ✔ revocation closes old sessions, provider claims and leftover support grants (29.674916ms)
+  ✔ no direct private-table or service-role governance escape, and owner/session removal applies live (9.830235ms)
+✔ Fieldgrid supportteam: OTP governance, bounded operators and full reporter escalation (1554.200507ms)
+▶ Tickets: private file binding, live audiences and delivery state
+  ✔ short-lived intent is author-bound, quota-bound and immutable on retry (52.912558ms)
+  ✔ discard is own unbound only, idempotent and immediately frees the draft quota (21.73517ms)
+  ✔ raw tables, private storage and scan service RPC cannot be bypassed (11.538471ms)
+  ✔ finalization rechecks session and pending/failed scans never permit binding (67.805947ms)
+  ✔ bound file checks parent audience, live membership/session and redaction (26.166626ms)
+  ✔ a rolled-back worker must opt in before claiming or recovering ticket events (19.229929ms)
+  ✔ fan-out is idempotent, excludes own actor and never snapshots confidential text (18.884678ms)
+  ✔ current preferences and grants are rechecked after queueing (94.244896ms)
+  ✔ ambiguous provider submission never auto-retries while pre-send lease can recover (26.196971ms)
+  ✔ internal-note notifications never target the reporter (9.906981ms)
+  ✔ support copy publication rechecks grants, retains exact version and has independent access (133.053282ms)
+  ✔ platform push registration is grant-bound, private and valid for future authorized organizations (107.592595ms)
+  ✔ legacy ticket choices migrate once and both settings surfaces use the central preference (301.269254ms)
+  ✔ ticket envelopes remember source-time OFF and pending preference OFF without hiding suppressed channels (79.806888ms)
+  ✔ cleanup only selects unattached staging artifacts, then acknowledges deletion (17.191386ms)
+✔ Tickets: private file binding, live audiences and delivery state (2063.997117ms)
+▶ Tickets: current identity, exact scope, audience projections and atomic commands
+  ✔ staff owns its ticket; raw APIs, colleagues and platform admin fail closed (91.9213ms)
+  ✔ hidden tenant note cannot change staff content, revision, activity, search or unread (132.590262ms)
+  ✔ HR needs its separate exact record scope, even next to broad planning (120.194835ms)
+  ✔ assignment cannot grant access and route changes preserve confidentiality (62.565177ms)
+  ✔ session and membership revocation apply to an already issued JWT (10.350503ms)
+  ✔ configuration and personal preferences do not disclose ticket contents (125.990015ms)
+  ✔ sensitive delegation binds exact payload and session; no self-grant (189.023029ms)
+  ✔ controlled transfer shares only selected text and keeps independent histories (364.839672ms)
+  ✔ group labels and effective route timezones are safe in list, detail and category options (132.921713ms)
+  ✔ cancel permission matches own-ticket and close rights, phase, reason and revision (193.82172ms)
+  ✔ redaction masks text and search without editing the immutable source (115.127827ms)
+  ✔ business-time deadlines cross DST and waiting pauses; staff confirms or reopens (172.97873ms)
+  ✔ null contexts, raw entitlements and empty scope flags fail closed (32.951303ms)
+  ✔ critical priority, all list views, exact counters, modules and date-times agree with UI (293.793173ms)
+  ✔ deadline batches skip old non-due records and advance without duplicate events (155.935469ms)
+  ✔ metadata-only fixture cascades preserve real ticket history and private mutation audit (46.995566ms)
+  ✔ configuration-only audit excludes confidential ticket activity metadata (189.173257ms)
+  ✔ delegation without content rights enforces grant and revoke CAS after verification (275.346137ms)
+✔ Tickets: current identity, exact scope, audience projections and atomic commands (3921.724723ms)
+ℹ tests 50
+ℹ suites 0
+ℹ pass 50
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13629.782941

@@ -1,0 +1,23 @@
+{
+  "marker": "39eb44ad-01ec-4e78-870d-222063897dea",
+  "tenant": "ffdd3cfa-f8c9-447a-b154-d0f4c6a6a7af",
+  "decision": "b394732e-07cf-4fee-89d7-6e431ebeb749",
+  "requirement": "43ec31b1-6117-438b-b0da-98845ae46fed",
+  "checks": [
+    "decision-publish",
+    "cancel-read-only",
+    "atomic-revision",
+    "one-linked-action",
+    "persisted-completion",
+    "missing-evidence-signal",
+    "actual-av-upload",
+    "separate-review",
+    "private-byte-download",
+    "idempotent-upload",
+    "real-eicar-denied",
+    "responsive-1440-768-390",
+    "anonymous-origin-revocation"
+  ],
+  "browserErrors": [],
+  "viewed": false
+}

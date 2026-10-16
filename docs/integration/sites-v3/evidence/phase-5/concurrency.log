@@ -1,0 +1,16 @@
+▶ Indexation: independent commits, current authority after waits and one native tariff version
+  ✔ simultaneous submission retries append one proposal version and one approval action (172.26001ms)
+  ✔ concurrent decisions about one revision have exactly one winner (159.054445ms)
+  ✔ a source changed during the native customer lock wait cannot be approved (165.801992ms)
+  ✔ expired sessions cannot decide after waiting on the proposal row (138.356708ms)
+  ✔ losing native contract rights during the evidence FK wait rolls back all native and private writes (229.897502ms)
+  ✔ two processing requests cannot create two native successors (212.306714ms)
+✔ Indexation: independent commits, current authority after waits and one native tariff version (5036.009511ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5113.634657

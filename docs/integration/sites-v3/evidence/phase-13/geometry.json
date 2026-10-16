@@ -1,0 +1,71 @@
+{
+  "target": [
+    {
+      "cls": "page-intro unified-page-heading pb-source-heading",
+      "y": 114,
+      "h": 98.1875
+    },
+    {
+      "cls": "ed-plan-legend",
+      "y": 260.1875,
+      "h": 18
+    },
+    {
+      "cls": "pb-state",
+      "y": 114,
+      "h": 22
+    },
+    {
+      "cls": "pb-board ",
+      "y": 302.1875,
+      "h": 375.3125
+    },
+    {
+      "cls": "pb-separator",
+      "y": 677.5,
+      "h": 14
+    },
+    {
+      "cls": "ed-section-label",
+      "y": 705.5,
+      "h": 24
+    },
+    {
+      "cls": "pb-list ",
+      "y": 753.5,
+      "h": 156
+    }
+  ],
+  "source": [
+    {
+      "cls": "page-intro unified-page-heading ",
+      "y": 162,
+      "h": 98.1875
+    },
+    {
+      "cls": "ed-plan-legend",
+      "y": 308.1875,
+      "h": 18
+    },
+    {
+      "cls": "panel ed-planboard",
+      "y": 350.1875,
+      "h": 359.90625
+    },
+    {
+      "cls": "ed-section-label",
+      "y": 738.09375,
+      "h": 24
+    },
+    {
+      "cls": "panel resource-table-panel",
+      "y": 786.09375,
+      "h": 147.40625
+    },
+    {
+      "cls": "mc-page-footer",
+      "y": 965.5,
+      "h": 34.5
+    }
+  ]
+}

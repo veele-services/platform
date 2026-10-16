@@ -7,7 +7,7 @@ vi.mock("@/lib/auth/context", () => ({ getAuthContext: mocks.auth }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ rpc: mocks.rpc })) }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 
-import { updateStaffContact } from "@/app/staff/actions";
+import { updateStaffContact } from "@/app/(workspace)/staff/actions";
 
 const tenant = { id: "bb000000-0000-4000-8000-000000000001", roles: ["staff"], enabledServices: ["personeel"] };
 const input = { version: 4, fullName: "Robin Test", mobilePhone: "+31612345678" };

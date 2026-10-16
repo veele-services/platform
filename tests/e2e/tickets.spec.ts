@@ -98,10 +98,10 @@ async function login(page: Page, role: string, path: string) {
   await expect(page).toHaveURL(new RegExp(path.replace(/[?]/g, "\\?")));
 }
 async function expectTicketListReady(page: Page, workspace: "staff" | "tenant", subject: string) {
-  await expect(page.getByRole("heading", { name: workspace === "staff" ? "Mijn tickets" : "Personeelsmeldingen", exact: true })).toBeVisible();
-  await expect(page.locator(".ticket-workspace")).toHaveAttribute("aria-busy", "false");
+  await expect(page.getByRole("heading", { name: workspace === "staff" ? "Tickets" : "Personeelsmeldingen", exact: true })).toBeVisible();
+  await expect(page.locator(workspace === "staff" ? ".sites-portal-tickets" : ".ticket-workspace")).toHaveAttribute("aria-busy", "false");
   if (workspace === "tenant") await expect(page.locator(".ticket-table")).toBeVisible();
-  const item = page.locator(workspace === "staff" ? ".ticket-staff-card" : ".ticket-table tbody tr").filter({ hasText: subject });
+  const item = page.locator(workspace === "staff" ? ".portal-demo-listrow" : ".ticket-table tbody tr").filter({ hasText: subject });
   await expect(item).toHaveCount(1);
   await expect(item).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "Meldingen laden…" })).toHaveCount(0);
@@ -142,12 +142,15 @@ test("personeelsmelding met echte scan, private notitie, bewuste escalatie en on
   const subject = `Technische hulp ${fixture.slice(0, 8)}`;
   const note = `TENANT-PRIVATE-${fixture}`, platformNote = `PLATFORM-PRIVATE-${fixture}`;
   await login(page, "worker", `/staff?workOrder=${orderId}`);
-  await page.getByRole("link", { name: "Ticket toevoegen", exact: true }).click();
-  const form = page.getByRole("dialog", { name: "Nieuwe melding", exact: true });
+  await page.getByRole("dialog").getByRole("button",{name:"Sluiten",exact:true}).click();
+  await page.getByRole("navigation",{name:"Hoofdnavigatie"}).getByRole("link",{name:"Tickets",exact:true}).click();
+  await page.getByRole("button",{name:"Nieuw ticket",exact:true}).click();
+  const form = page.getByRole("dialog", { name: "Nieuw ticket", exact: true });
   await form.getByLabel("Onderwerp", { exact: true }).fill(subject);
   await form.getByLabel("Categorie", { exact: true }).selectOption(categoryId);
   await form.getByLabel("Omschrijving", { exact: true }).fill("Het openen van de instructie geeft een fout. Deze fictieve tekst bevat geen geheime codes.");
-  await expect(form.getByLabel("Werkbon of object")).toHaveValue(orderId);
+  await form.getByRole("combobox",{name:/Werkbon of object/}).selectOption(orderId);
+  await expect(form.getByRole("combobox",{name:/Werkbon of object/})).toHaveValue(orderId);
   await form.getByLabel("Bijlagen toevoegen").setInputFiles({ name: "verboden.txt", mimeType: "text/plain", buffer: Buffer.from("Synthetic unsupported fixture") });
   await expect(form.getByRole("alert")).toContainText("Gebruik JPG");
   await expect(form.getByLabel("Onderwerp", { exact: true })).toHaveValue(subject);
@@ -273,7 +276,7 @@ test("personeelsmelding met echte scan, private notitie, bewuste escalatie en on
   await screenshotSizes(manager, "tenant-list", () => expectTicketListReady(manager, "tenant", subject));
   const cachedUrls = await page.evaluate(async () => (await Promise.all((await caches.keys()).map(async name => (await (await caches.open(name)).keys()).map(request => request.url)))).flat());
   expect(cachedUrls.filter(url => /\/(meldingen|support)(?:\/|\?|$)/.test(url))).toEqual([]);
-  await manager.locator(".shell-account-button").click();
+  await manager.getByRole("button",{name:/^Accountmenu van /}).click();
   await manager.getByRole("menuitem", { name: "Uitloggen", exact: true }).click();
   await expect(manager).toHaveURL(/\/login/);
   const signedOut = await manager.request.get(`/app/meldingen/${ticketId}`);
@@ -342,6 +345,7 @@ test("configuratiebevoegdheid geeft geen gesprekstoegang; personeel ziet alleen 
   }
   await page.locator(".unified-page-heading").getByRole("link", { name: "Instellingen", exact: true }).click();
   await expect(page).toHaveURL(/\/platform\/support\/instellingen$/);
+  await page.getByText("Uitgebreide inrichting, notificaties en bevoegdheden",{exact:true}).click();
   await expect(page.getByRole("heading", { name: "Categorieën & routing", exact: true })).toBeVisible();
   await expect(page.getByRole("tablist", { name: "Meldingsinstellingen" })).toBeVisible();
   const staffContext = await browser.newContext({ baseURL: E2E_APP_ORIGIN }), staff = await staffContext.newPage();

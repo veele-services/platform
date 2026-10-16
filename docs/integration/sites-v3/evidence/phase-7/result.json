@@ -1,0 +1,15 @@
+{
+  "tenant": "781b4961-f939-4298-b8d0-424b0ed45779",
+  "checks": [
+    "real-auth-SSR",
+    "single-native-overview",
+    "source-three-views-three-widths",
+    "real-action-server-mutation",
+    "native-work-order-source",
+    "measurement-month-deeplink-reload",
+    "canonical-redirect",
+    "source-module-function-revocation",
+    "anonymous-foreign-source-forged-query"
+  ],
+  "browserErrors": []
+}

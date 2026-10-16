@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { TenantContext } from "@/lib/auth/context";
 import { hasManagementPermission } from "@/lib/management/model";
-import { mutateWorkOrder } from "@/app/app/work-order-actions";
+import { mutateWorkOrder } from "@/app/(workspace)/app/work-order-actions";
 import { WorkOrderDialog } from "./dialog";
 
 export function canReleaseWorkOrder(tenant: TenantContext, order: { status: string; start: string | null; end: string | null }, crew: Array<{ status: string }>) {

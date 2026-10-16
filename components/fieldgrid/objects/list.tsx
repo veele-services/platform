@@ -11,7 +11,7 @@ import {toast} from "sonner";
 import {Popover,PopoverTrigger,PopoverContent} from "@/components/ui/popover";
 import type {TenantContext} from "@/lib/auth/context";
 import {addressLine,objectStates,objectTypes,objectDate,valuesOf,type Row} from "@/lib/objects/model";
-import {archiveObjectDossier} from "@/app/app/objecten/actions";
+import {archiveObjectDossier} from "@/app/(workspace)/app/objecten/actions";
 import {ObjectWizard} from "./forms";
 import {CompactFilterMenu} from "../compact-filter-menu";
 

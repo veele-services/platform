@@ -1,0 +1,14 @@
+$ vitest run
+
+ RUN  v5.0.2 /home/codex/repos/fieldgrid
+
+
+ Test Files  200 passed (200)
+      Tests  1938 passed (1938)
+   Start at  15:42:09
+   Duration  6.92s (tests 37%, import 31%, transform 30%, worker 2%)
+
+  Transform  transforming modules took 14.34s · 30% of tracked time, re-done on every run
+             persist transforms across runs with fsModuleCache: true
+             learn more: https://vitest.dev/guide/improving-performance#caching-between-reruns
+

@@ -1,0 +1,9 @@
+PASS: source role matrix, full native invitation, real account/profile and central invitation transport with local .invalid provider capture
+PASS: native role dependency editor, actual saved capability and lost-response retry without a second role revision
+PASS: concurrent role edit preserves draft, rejects a stale version, and explicitly reloads actual rights after discard confirmation
+PASS: exact source core fields and attached native tabs; actual palette CAS save preserves sender data and retains an unsaved draft across tab changes
+PASS: concurrent branding version rejects stale input, native scanned logo publication and private bytes retain all unrelated sender fields
+PASS: actual native personnel numbering, travel margins and signature defaults save without renumbering existing personnel or mutating the existing released visit
+PASS: invited management account enters through real Next OTP login and local SMTP; accepted membership remains denied owner-only user administration
+PASS: actual two-account OTP ownership transfer is accepted; former owner loses user-administration access and new owner gains it
+PASS: strict/private API, anonymous denial and current read revocation close the opened management form

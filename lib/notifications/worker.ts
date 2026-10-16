@@ -14,10 +14,11 @@ import { freezeEmailLogo } from "./brand-asset";
 
 const claimsSchema=z.array(z.object({id:z.uuid(),lease:z.uuid()}).strict()).max(100);
 const emailSnapshot=z.object({fromEmail:z.email(),fromName:z.string(),subject:z.string(),text:z.string(),html:z.string()});
-const deliverySchema=z.object({id:z.uuid(),tenantId:z.uuid(),type:z.string(),context:z.enum(["platform","backoffice","staff","customer"]),recipientUserId:z.uuid().nullable(),channel:z.enum(["email","push"]),ttl_seconds:z.number().int().min(0).max(2419200),snapshot:z.object({title:z.string(),body:z.string(),pushTitle:z.string().nullable().optional(),pushBody:z.string().nullable().optional(),actionLabel:z.string(),path:z.string(),recipient:z.email(),slug:z.string(),priority:z.string(),brand:z.object({company:z.string(),primary:z.string(),accent:z.string(),logo_path:z.string().nullable().optional()})}),transport:emailSnapshot.nullable(),subscription:z.object({endpoint:z.string(),keys:z.object({p256dh:z.string(),auth:z.string()})}).nullable()});
+const deliverySchema=z.object({id:z.uuid(),tenantId:z.uuid().nullable(),type:z.string(),context:z.enum(["platform","backoffice","staff","customer"]),recipientUserId:z.uuid().nullable(),channel:z.enum(["email","push"]),ttl_seconds:z.number().int().min(0).max(2419200),snapshot:z.object({title:z.string(),body:z.string(),pushTitle:z.string().nullable().optional(),pushBody:z.string().nullable().optional(),actionLabel:z.string(),path:z.string(),recipient:z.email(),slug:z.string(),priority:z.string(),brand:z.object({company:z.string(),primary:z.string(),accent:z.string(),logo_path:z.string().nullable().optional()})}),transport:emailSnapshot.nullable(),subscription:z.object({endpoint:z.string(),keys:z.object({p256dh:z.string(),auth:z.string()})}).nullable()}).refine(d=>d.context==="platform"||(d.tenantId!==null&&d.snapshot.slug.length>0),"Alleen platformmeldingen mogen tenantloos zijn.");
 
 export async function prepareNotificationEvent(outboxId:string){return ticketRpc(createAdminClient(),"notification_outbox_prepare",{target_event:outboxId});}
 export async function prepareDossierNotifications(){return ticketRpc(createAdminClient(),"notification_prepare_dossier",{batch_size:25});}
+export async function prepareCrmNotifications(){return ticketRpc(createAdminClient(),"crm_prepare_notifications",{batch_size:10});}
 export async function processNotificationDeliveries(){
  // Five external sends plus the other worker jobs fit inside the staging
  // systemd deadline even when each provider exhausts its 15-second timeout.
@@ -42,7 +43,7 @@ export async function processNotificationDeliveryClaims(input:Array<{id:string;l
      // they cannot open; the safe email carries the update and links our public
      // tenant website. Authenticated recipients retain their scoped deeplink.
      const target=delivery.context==="platform"?new URL(s.path,env.APP_URL).href:tenantAppUrl(s.slug,externalContact?"/":s.path);
-     const logo=await freezeEmailLogo(db,delivery.tenantId,s.slug,s.brand.logo_path);
+     const logo=delivery.tenantId ? await freezeEmailLogo(db,delivery.tenantId,s.slug,s.brand.logo_path) : null;
      const brand={company:s.brand.company,domain:new URL(target).hostname,primary:s.brand.primary,accent:s.brand.accent,senderEmail:env.SENDGRID_FROM_EMAIL,emailLogoUrl:logo};
      const emailBrand=await withTenantEmailBrand(delivery.context === "platform" ? null : delivery.tenantId,brand);
      const prepared={fromEmail:env.SENDGRID_FROM_EMAIL,fromName:emailBrand.company,subject:s.title,text:`${s.body}\n\n${target}`,html:renderTenantEmailHtml({brand:emailBrand,kind:"notification_event",message:{subject:s.title,body:s.body},targetUrl:target,targetLabel:externalContact?"Website openen":s.actionLabel,allowLocalLinks:env.DEPLOY_TARGET==="local"})};

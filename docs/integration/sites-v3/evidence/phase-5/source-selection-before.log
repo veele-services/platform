@@ -1,0 +1,44 @@
+▶ Indexation: native agreement versions, explicit owner approval and real evidence boundary
+  ✔ only current financial/customer authority can read the register and private storage is inaccessible (35.030207ms)
+  ✔ drafts freeze actual source prices; arbitrary client base amounts and stale fingerprints cannot be saved (80.116002ms)
+  ✔ submission creates one real source action; finance staff cannot act as owner (57.197986ms)
+  ✔ owner approval alone cannot process a tariff; filenames and unscanned files are not evidence (108.901153ms)
+  ✔ processing uses native agreement creation, preserves every non-price attribute and is idempotent (89.60436ms)
+  ✔ stored versions cannot be rewritten and a changed source must be consciously reopened and reassessed (150.514679ms)
+  ✖ new automatic programme tasks use the date-effective line; existing tasks retain frozen source prices (41.166639ms)
+✖ Indexation: native agreement versions, explicit owner approval and real evidence boundary (1726.949489ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 6
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1798.931214
+
+✖ failing tests:
+
+test at scripts/test-management-indexation.mjs:27:11
+✖ new automatic programme tasks use the date-effective line; existing tasks retain frozen source prices (41.166639ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   'The current programme line disappears before the indexed successor starts',
+  +   'An ended indexed successor reactivates its old tariff: 1200'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///home/codex/repos/fieldgrid/scripts/test-management-indexation.mjs:34:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async TestContext.<anonymous> (file:///home/codex/repos/fieldgrid/scripts/test-management-indexation.mjs:27:3)
+      at async Test.run (node:internal/test_runner/test:1332:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'The current programme line disappears before the indexed successor starts', 'An ended indexed successor reactivates its old tariff: 1200' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

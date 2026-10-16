@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, ExternalLink, History, LockKeyhole, RefreshCw, Send, Share2 } from "lucide-react";
-import { loadTicketDetail, prepareTicketResponse, runTicketCommand } from "@/app/tickets/actions";
+import { loadTicketDetail, prepareTicketResponse, runTicketCommand } from "@/app/(workspace)/tickets/actions";
 import { ticketPaths, type TicketAccess, type TicketAudience, type TicketDetail, type TicketOptions, type TicketStatus } from "@/lib/tickets/model";
 import { TicketMessageBody } from "../knowledge/ticket-message";
 import { TicketKnowledgePicker } from "../knowledge/ticket-picker";
@@ -13,6 +13,8 @@ import { TicketFiles, TicketFilePicker, type DraftTicketFile } from "./files";
 import { TicketShare } from "./share";
 import { ticketAssigneeLabel, ticketAudienceLabels, ticketDate, ticketNextActor, ticketPriorityLabels, ticketSafeReturn, ticketStatusLabels, ticketTone } from "./presentation";
 import "./tickets.css";
+import {useUnsavedDraft} from "../unsaved-form";
+import {Field} from "../crm/ui";
 
 type EditAction = { kind: "status"; status: TicketStatus } | { kind: "assign" | "priority" | "transfer" | "archive" } | { kind: "redact"; messageId: string };
 export function TicketDetailPage({ access, data, options, back, initialAction }: { access: TicketAccess; data: TicketDetail; options: TicketOptions; back?: string; initialAction?: string }) {
@@ -78,7 +80,7 @@ export function TicketDetailPage({ access, data, options, back, initialAction }:
   </div>;
 }
 
-function TicketComposer({ access, data, onSaved, initialBody = "", publicOnly = false }: { access: TicketAccess; data: TicketDetail; onSaved: () => void; initialBody?: string; publicOnly?: boolean }) {
+export function TicketComposer({ access, data, onSaved, initialBody = "", publicOnly = false, onStateChange, compact = false }: { access: TicketAccess; data: TicketDetail; onSaved: () => void; initialBody?: string; publicOnly?: boolean; onStateChange?: (state: {dirty: boolean; busy: boolean}) => void; compact?: boolean }) {
   const router = useRouter();
   const [body, setBody] = useState(initialBody), [audience, setAudience] = useState<TicketAudience>(publicOnly ? "reporter" : data.allowedAudiences[0]);
   const [knowledgeSnippets,setKnowledgeSnippets]=useState<string[]>([]);
@@ -87,13 +89,9 @@ function TicketComposer({ access, data, onSaved, initialBody = "", publicOnly = 
   const [pending, start] = useTransition(), [error, setError] = useState("");
   const request = useRef<{ key: string; fingerprint: string } | null>(null);
   const ready = files.every(file => file.status === "clean" && file.id);
+  const dirty = Boolean(body || files.length), draftRef = useUnsavedDraft<HTMLFormElement>(dirty);
+  useEffect(() => {onStateChange?.({dirty, busy: pending});}, [dirty, pending, onStateChange]);
   const audiences = publicOnly ? data.allowedAudiences.filter(value => value === "reporter") : data.allowedAudiences;
-  useEffect(() => {
-    if (!body && !files.length) return;
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [body, files.length]);
   const label = (value: TicketAudience) => value === "tenant" ? `Interne notitie bij ${access.tenant?.name ?? "je organisatie"}` : value === "platform" ? "Interne notitie bij Fieldgrid" : access.workspace === "platform" ? `Antwoord aan ${data.tenantName ?? "de tenant"}` : access.workspace === "support" ? "Antwoord aan Fieldgrid" : access.workspace === "staff" ? `Bericht aan ${access.tenant?.name ?? "je organisatie"}` : "Antwoord aan de melder";
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setError("");
@@ -106,10 +104,20 @@ function TicketComposer({ access, data, onSaved, initialBody = "", publicOnly = 
       catch { setError("De ontvangst is niet bevestigd. Je tekst en bijlagen zijn bewaard; probeer opnieuw."); }
     });
   };
-  return <form className="ticket-form ticket-composer" onSubmit={submit}><h2>{label(audience)}</h2><TicketKnowledgePicker workspace={access.workspace} ticketId={data.id} audience={audience} disabled={pending} onInsert={text=>{setKnowledgeSnippets(previous=>[...previous,text]);setBody(previous=>`${previous}${previous ? "\n\n" : ""}${text}`);}}/>{audiences.length > 1 && <label>Zichtbaarheid<select aria-label="Zichtbaarheid" value={audience} disabled={files.length > 0 || hasKnowledgeLinks || pending} onChange={event => setAudience(event.target.value as TicketAudience)}>{audiences.map(value => <option key={value} value={value}>{label(value)}</option>)}</select>{hasKnowledgeLinks && <small>Verwijder eerst de ingevoegde kennisartikellink uit je tekst om de ontvanger te wijzigen.</small>}{files.length > 0 && <small>Verwijder eerst de bijlagen om de zichtbaarheid te wijzigen.</small>}</label>}{audience !== "reporter" && <p className="ticket-notice"><LockKeyhole size={13}/> {ticketAudienceLabels[audience]}. De andere partij ontvangt hiervan geen nieuw-antwoordmelding.</p>}<label>{audience === "reporter" ? "Bericht" : "Interne notitie"}<textarea aria-label={audience === "reporter" ? "Bericht" : "Interne notitie"} value={body} onChange={event => setBody(event.target.value)} required minLength={1} maxLength={10000} rows={5}/></label><TicketFilePicker workspace={access.workspace} tenantId={data.tenantId} categoryId={data.category.id} ticketId={data.id} audience={audience} draftId={draftId} files={files} setFiles={setFiles} disabled={pending}/>{error && <p className="ticket-error" role="alert">{error}<button type="button" className="text-link" onClick={() => router.refresh()}>Gesprekgegevens vernieuwen</button></p>}<footer className="ticket-form-footer"><p>{audience === "reporter" ? "Je antwoord wordt zichtbaar in het gesprek. Vermeld geen toegangscodes of wachtwoorden." : "Deze notitie blijft binnen de gekozen interne doelgroep."}</p><button className="primary-button" disabled={pending || !ready || !body.trim()}><Send size={15}/>{pending ? "Versturen…" : audience === "reporter" ? "Antwoord versturen" : "Interne notitie plaatsen"}</button></footer></form>;
+  const tools = <><TicketKnowledgePicker workspace={access.workspace} ticketId={data.id} audience={audience} disabled={pending} onInsert={text=>{setKnowledgeSnippets(previous=>[...previous,text]);setBody(previous=>`${previous}${previous ? "\n\n" : ""}${text}`);}}/>{audiences.length > 1 && <label>Zichtbaarheid<select aria-label="Zichtbaarheid" value={audience} disabled={files.length > 0 || hasKnowledgeLinks || pending} onChange={event => setAudience(event.target.value as TicketAudience)}>{audiences.map(value => <option key={value} value={value}>{label(value)}</option>)}</select>{hasKnowledgeLinks && <small>Verwijder eerst de ingevoegde kennisartikellink uit je tekst om de ontvanger te wijzigen.</small>}{files.length > 0 && <small>Verwijder eerst de bijlagen om de zichtbaarheid te wijzigen.</small>}</label>}<TicketFilePicker workspace={access.workspace} tenantId={data.tenantId} categoryId={data.category.id} ticketId={data.id} audience={audience} draftId={draftId} files={files} setFiles={setFiles} disabled={pending}/></>;
+  const editor = <textarea aria-label={compact ? "Reactie" : audience === "reporter" ? "Bericht" : "Interne notitie"} disabled={pending} value={body} onChange={event => setBody(event.target.value)} required minLength={1} maxLength={10000} rows={compact ? 4 : 5}/>;
+  return <form ref={draftRef} className={`ticket-form ticket-composer${compact ? ' sites-support-composer' : ''}`} onSubmit={submit}>
+    {!compact && <h2>{label(audience)}</h2>}
+    {!compact && tools}
+    {audience !== "reporter" && <p className="ticket-notice"><LockKeyhole size={13}/> {ticketAudienceLabels[audience]}. De andere partij ontvangt hiervan geen nieuw-antwoordmelding.</p>}
+    {compact ? <Field label={audience === 'reporter' ? 'Reactie' : 'Interne notitie'}>{editor}</Field> : <label>{audience === "reporter" ? "Bericht" : "Interne notitie"}{editor}</label>}
+    {compact && <details className="sites-platform-extra"><summary>Kennisartikelen, bijlagen en interne notities</summary>{tools}</details>}
+    {error && <p className="ticket-error" role="alert">{error}<button type="button" className="text-link" onClick={() => router.refresh()}>Gesprekgegevens vernieuwen</button></p>}
+    <footer className="ticket-form-footer"><p>{audience === "reporter" ? "Je antwoord wordt zichtbaar in het gesprek. Vermeld geen toegangscodes of wachtwoorden." : "Deze notitie blijft binnen de gekozen interne doelgroep."}</p><button className={compact ? 'secondary-button' : 'primary-button'} disabled={pending || !ready || !body.trim()}>{!compact && <Send size={15}/>} {pending ? "Versturen…" : audience !== 'reporter' ? "Interne notitie plaatsen" : compact ? 'Reactie bewaren' : "Antwoord versturen"}</button></footer>
+  </form>;
 }
 
-function TicketEdit({ access, data, options, edit, onClose, onSaved }: { access: TicketAccess; data: TicketDetail; options: TicketOptions; edit: EditAction; onClose: () => void; onSaved: () => void }) {
+export function TicketEdit({ access, data, options, edit, onClose, onSaved }: { access: TicketAccess; data: TicketDetail; options: TicketOptions; edit: EditAction; onClose: () => void; onSaved: () => void }) {
   const [value, setValue] = useState(edit.kind === "assign" ? data.assignee?.id ?? "" : edit.kind === "priority" ? data.priority : edit.kind === "transfer" ? data.category.id : "");
   const targetCategory = options.categories.find(category => category.id === value);
   const [reason, setReason] = useState(""), [pending, start] = useTransition(), [error, setError] = useState("");

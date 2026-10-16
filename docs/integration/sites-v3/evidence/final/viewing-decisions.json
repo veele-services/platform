@@ -1,0 +1,167 @@
+{
+  "meaning": "Explicit final viewing decisions. Captures/metrics with viewed=false are not human viewing claims. Prior snapshots keep their provenance and are accepted only for unchanged regions.",
+  "accepted": {
+    "staff": {
+      "runtime": "60561a0d",
+      "sheets": [
+        "planning-1440",
+        "leave-390",
+        "availability-768",
+        "documents-390",
+        "settings-1440",
+        "more-768",
+        "knowledge-390",
+        "updates-1440",
+        "news-768",
+        "tickets-390",
+        "hours-1440",
+        "profile-768",
+        "work-order-summary-1440",
+        "work-order-tasks-390",
+        "work-order-report-768",
+        "ticket-create-390",
+        "document-preview-768",
+        "time-correction-1440",
+        "ticket-conversation-768",
+        "pwa-install-390",
+        "header-notifications-1440"
+      ],
+      "limits": "Actual native values, extra business controls and original private-file frame differ as explained in phase-23."
+    },
+    "customer": {
+      "runtime": "60561a0d",
+      "sheets": [
+        "cockpit-1440",
+        "objects-390",
+        "appointments-768",
+        "reports-1440",
+        "invoices-768",
+        "requests-390",
+        "profile-1440",
+        "knowledge-768",
+        "updates-390",
+        "more-1440",
+        "news-768",
+        "tickets-390",
+        "object-details-1440",
+        "visit-details-390",
+        "invoice-details-768",
+        "object-create-768",
+        "visit-request-create-1440",
+        "request-create-390",
+        "object-instructions-390"
+      ],
+      "limits": "Actual native values/rights, structured address form, immutable instructions and provider state differ as explained in phase-24."
+    },
+    "crm": {
+      "runtime": "58363c2e89d376454aefd6db167a6413e187d3b0",
+      "environment": "isolated-local",
+      "widths": [
+        1440,
+        768,
+        390
+      ],
+      "viewedFinalSheets": [
+        "settings-390",
+        "platform-overview-bottom-390",
+        "platform-overview-bottom-1440",
+        "lead-history-390",
+        "lead-intakes-768",
+        "platform-overview-1440"
+      ],
+      "viewedFinalRaw": [
+        "lead-overview-source-1440.png",
+        "lead-overview-target-1440.png"
+      ],
+      "viewedUnchangedRegionsFromEc7aa9ef": [
+        "pipeline-board-1440",
+        "pipeline-list-390",
+        "website-requests-768",
+        "new-lead-390",
+        "agenda-week-1440",
+        "appointment-details-390",
+        "appointment-reschedule-768",
+        "agenda-list-390",
+        "tasks-1440",
+        "new-task-768",
+        "mail-preview-390",
+        "new-appointment-1440",
+        "pipeline-board-768"
+      ],
+      "rejectedPriorRegions": [
+        "native lead tab margin in v48 corrected and viewed in v50",
+        "native mobile cockpit grid and broken logo in v48 corrected and viewed in v50"
+      ],
+      "meaning": "Raw comparisons keep viewed=false; only the explicit viewed lists constitute actual viewing. Prior unchanged regions remain identified by provenance; no pixel equality or hosted acceptance claim."
+    },
+    "marketing": {
+      "runtime": "60561a0d",
+      "priorUnchangedTopRegions": [
+        "home-1440",
+        "branches-768",
+        "platform-planning-390",
+        "branches-schoonmaak-1440",
+        "branches-glasbewassing-768",
+        "branches-facilitair-390",
+        "branches-groenonderhoud-1440",
+        "branches-vastgoedservice-768",
+        "branches-evenementen-768",
+        "platform-1440",
+        "platform-werkbonnen-768",
+        "platform-objecten-1440",
+        "platform-personeelsapp-390",
+        "platform-klantportaal-768",
+        "platform-onboarding-1440",
+        "platform-offertes-facturatie-768",
+        "werkwijze-390"
+      ],
+      "finalTopRegions": [
+        "over-1440",
+        "demo-768",
+        "proberen-390",
+        "afspraak-390",
+        "privacy-1440"
+      ],
+      "additionalFinalRegions": [
+        "home-1440-bottom",
+        "home-390-bottom",
+        "branches-beveiliging-390-top",
+        "branches-beveiliging-320-top",
+        "platform-1440-middle",
+        "afspraak-768-bottom"
+      ],
+      "limits": "Privacy/prototype copy is factual, footer extra login removed, narrow long-word clipping repaired; no claim of full screenshot pixel identity."
+    },
+    "staffPrivatePdf": {
+      "runtime": "10a8b3a0131a515401f807c82861a4691cbc21e3",
+      "environment": "isolated-local",
+      "actualFullChromiumViewer": true,
+      "viewed": [
+        "after/document-viewer-1440.png",
+        "after/document-viewer-768.png",
+        "after/document-viewer-390.png"
+      ],
+      "checks": [
+        "real-local-SMTP-OTP",
+        "scanned-original-bytes",
+        "built-in-PDF-viewer-embed-visible",
+        "closed-self-only-preview-CSP",
+        "preview-only-SAMEORIGIN",
+        "ordinary-attachment-DENY",
+        "real-download-link-visible-at-all-widths",
+        "current-visibility-revoked-404"
+      ],
+      "meaning": "The earlier headless-shell iframe capture proved the surrounding frame and bytes, but did not prove a visible browser PDF. Full Chromium exposed a blocked preview; the exact preview-only policy was corrected, then the actual PDF and all three final captures were viewed."
+    }
+  },
+  "rejectedAndCorrected": [
+    "Earlier native staff footer overlap and ticket field weights; corrected before final staff proof",
+    "Earlier native customer news/ticket branch selected outside provider; corrected before final customer proof",
+    "v43/v44 native CRM cascade and field spacing; corrected by exact generated source order",
+    "v47 native CRM mobile card padding; corrected and viewed in v50",
+    "v48 native dossier margin/cockpit mobile grid and broken tenant logo; corrected, asserted and viewed in v50",
+    "v44 native narrow marketing long heading clipped as in Source; corrected and viewed in v47",
+    "v44 additional footer login link; removed and final footer viewed in v47",
+    "Earlier headless-shell iframe/byte proof did not demonstrate visible PDF rendering. Full Chromium exposed CSP/XFO blocking; the preview-only policy was fixed and original PDF rendering and the source download action were viewed at 1440/768/390."
+  ]
+}

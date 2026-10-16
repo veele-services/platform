@@ -26,10 +26,11 @@ test("platformbeheer nodigt support uit, begrenst toegang en trekt een bestaande
     await expect(page.locator(".fg-sidebar").getByRole("link", { name: "Supportteam", exact: true })).toHaveAttribute("aria-current", "page");
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 900 });
-      for (const title of ["Medewerkers", "Rechten", "Activiteit"]) {
+      await page.getByText("Supportrechten en activiteit",{exact:true}).click();
+      for (const title of ["Rechten", "Activiteit"]) {
         const tab = page.getByRole("tab", { name: title, exact: true });
         await tab.click();
-        const surface = page.getByRole("tabpanel", { name: title, exact: true }).locator("section").first();
+        const surface = page.getByRole("tabpanel", { name: title, exact: true });
         await expect.poll(async () => {
           const t = await tab.boundingBox(), s = await surface.boundingBox();
           return Boolean(t && s && Math.abs(t.y + t.height - s.y) <= 2);
@@ -37,7 +38,7 @@ test("platformbeheer nodigt support uit, begrenst toegang en trekt een bestaande
         await expect.poll(() => surface.evaluate(node => getComputedStyle(node).borderTopLeftRadius)).toBe("0px");
         await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       }
-      await page.getByRole("tab", { name: "Medewerkers", exact: true }).click();
+      await page.getByText("Supportrechten en activiteit",{exact:true}).click();
       await page.getByRole("button", { name: "Supportmedewerker uitnodigen", exact: true }).click();
       const modal = page.getByRole("dialog", { name: "Supportmedewerker uitnodigen", exact: true });
       await expect.poll(() => modal.evaluate(node => node.contains(document.activeElement))).toBe(true);
@@ -57,8 +58,9 @@ test("platformbeheer nodigt support uit, begrenst toegang en trekt een bestaande
     await invite.getByRole("button", { name: "Uitnodiging versturen", exact: true }).click();
     await expect(invite).toBeHidden();
     const row = page.getByRole("row").filter({ hasText: email });
-    await expect(row).toContainText("Actief"); await expect(row).toContainText("Verzonden");
+    await expect(row).toContainText("Uitgenodigd"); await expect(row).toContainText("Verzonden");
     userId = (await db.query("select id from auth.users where email=$1", [email])).rows[0].id;
+    expect((await db.query("select status from private.platform_support_members where user_id=$1",[userId])).rows[0].status).toBe("active");
     expect((await db.query("select count(*) from public.platform_admins where user_id=$1", [userId])).rows[0].count).toBe("0");
     let mails: Array<{ subject: string; content: Array<{ type: string; value: string }>; tracking_settings: { click_tracking: { enable: boolean }; open_tracking: { enable: boolean } } }> = [];
     await expect.poll(async () => { mails = await (await fetch(`http://127.0.0.1:59329/messages?recipient=${encodeURIComponent(email)}`)).json(); return mails.length; }).toBe(1);
@@ -72,13 +74,14 @@ test("platformbeheer nodigt support uit, begrenst toegang en trekt een bestaande
     for (const title of ["Tenants", "Supportteam", "Supportinstellingen", "Nieuwe tenant"]) await expect(coworker.locator(".fg-sidebar").getByRole("link", { name: title, exact: true })).toHaveCount(0);
     expect((await coworker.request.get("/platform/team")).status()).toBe(404);
     await coworker.goto("/app"); await expect(coworker).toHaveURL(/\/platform\/support$/);
-    await row.getByRole("button", { name: `Bewerk ${name}`, exact: true }).click();
+    await row.getByRole("button", { name: `Bekijk ${name}`, exact: true }).click();
     const edit = page.getByRole("dialog", { name: "Supportmedewerker bewerken", exact: true });
     await edit.getByLabel("Naam supportmedewerker", { exact: true }).fill("Alex Bijgewerkt");
     await edit.getByRole("button", { name: "Profiel opslaan", exact: true }).click(); await expect(edit).toBeHidden();
     await expect(row).toContainText("Alex Bijgewerkt");
     await page.setViewportSize({ width: 1440, height: 900 }); await page.screenshot({ path: info.outputPath("support-team-1440.png") });
-    await row.getByRole("button", { name: "Trek toegang van Alex Bijgewerkt in", exact: true }).click();
+    await row.getByRole("button",{name:"Meer acties voor Alex Bijgewerkt",exact:true}).click();
+    await page.getByRole("button",{name:"Toegang intrekken",exact:true}).click();
     const revoke = page.getByRole("dialog", { name: "Supporttoegang intrekken", exact: true });
     await revoke.getByRole("button", { name: "Toegang intrekken", exact: true }).click(); await expect(revoke).toBeHidden();
     await expect(row).toContainText("Ingetrokken");

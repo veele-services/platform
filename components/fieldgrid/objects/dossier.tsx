@@ -15,7 +15,7 @@ import Link from "next/link";
 import {ArrowLeft,Plus,Pencil,CalendarDays,FileText,CheckCircle2,MapPin,History,Building2} from "lucide-react";
 import type {TenantContext} from "@/lib/auth/context";
 import {objectTabs,objectStates,objectTypes,recordStates,nodeKinds,objectDate,addressLine,valuesOf,type ObjectData,type ObjectTab,type RecordKind,type Row} from "@/lib/objects/model";
-import {objectRecordVersions,reviewObjectRequest,saveCustomerObjectBinding,extendObjectAccess,saveObjectRequirement,setObjectReminderRecipient} from "@/app/app/objecten/actions";
+import {objectRecordVersions,reviewObjectRequest,saveCustomerObjectBinding,extendObjectAccess,saveObjectRequirement,setObjectReminderRecipient} from "@/app/(workspace)/app/objecten/actions";
 import type {Json} from "@/lib/database.types";
 import {ObjectDialog,ObjectForm,ObjectWizard,NodeEditor,RecordEditor,DocumentEditor,Choice} from "./forms";
 import {VaultCard} from "./vault-card";

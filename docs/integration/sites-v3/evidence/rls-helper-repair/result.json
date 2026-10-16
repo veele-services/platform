@@ -1,0 +1,12 @@
+{
+  "baseline": "71df59ab0390ffeae482c7edbaf27efe3fa6546d",
+  "originalMigrationsUnchanged": 138,
+  "migration": "20261015083458_report_rls_guard_execution.sql",
+  "nativeChecks": 63,
+  "securityAdvisors": 0,
+  "directPolicyHelpersWithoutAuthenticatedExecute": 0,
+  "fullHRDossierBrowserHeadingAndNavigationVerified": true,
+  "screenshotViewed": true,
+  "deployed": false,
+  "liveVerified": false
+}

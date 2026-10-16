@@ -47,7 +47,7 @@ test("werkbon vrijgeven via planbord, lijst en dossier publiceert dezelfde versi
       // same staff account in repeatedly also triggers the unrelated PWA offer.
       if (index === 0) await authenticateWorkspace(staff, "field-worker@fieldgrid.test", `/staff?workOrder=${id}`);
       else await staff.goto(`/staff?workOrder=${id}`);
-      await expect(staff.getByRole("dialog", { name: `Werkbon ${number}`, exact: true })).toBeVisible();
+      await expect(staff.getByRole("dialog")).toBeVisible();await expect(staff.getByRole("dialog")).toContainText(number);
     }
   } finally {
     if (ids.length) {

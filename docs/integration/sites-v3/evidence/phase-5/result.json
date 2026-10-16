@@ -1,0 +1,21 @@
+{
+  "tenant": "cf476623-695f-4089-85dc-01b279d3a5fd",
+  "proposal": "503d2c78-70ea-4a7b-bf91-2b91b99f1210",
+  "successor": "7a483606-9b45-44b2-bf29-57db9be24508",
+  "evidence": "e750fd9a-eb39-41a5-90d4-2b8b631f2c40",
+  "checks": [
+    "real-auth-SSR",
+    "two-source-register-states-3-widths",
+    "native-source-prices",
+    "explicit-owner-decision",
+    "separate-customer-consent",
+    "real-native-upload-scanner",
+    "private-byte-download",
+    "native-tariff-successor",
+    "immutable-history-reload",
+    "original-contract-source-link",
+    "anonymous-origin-revocation"
+  ],
+  "browserErrors": [],
+  "viewed": true
+}

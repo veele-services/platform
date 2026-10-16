@@ -1,0 +1,5 @@
+PASS: browser trial wizard -> committed request receipt
+PASS: appointment phone booking -> committed reservation
+PASS: demo phone booking -> committed reservation
+PASS: authenticated dossier snapshots, note and stage survive refresh
+PASS: ICS and private API enforce host, current session and registry

@@ -1,0 +1,19 @@
+{
+  "tenant": "5565698e-e505-4ef3-8d48-00390fcd3dc2",
+  "createdPersonnel": "245b198d-50e3-41f0-9926-d4cbf0ca17bd",
+  "document": "cfd6c34a-e33a-4d84-a4a6-0845227acf66",
+  "checks": [
+    "real-auth-safe-directory",
+    "source-list-detail-three-widths",
+    "native-HR-view-audit",
+    "real-scanned-private-HR-file",
+    "native-edit-reload",
+    "real-Auth-account-staff-binding-numbering",
+    "central-policy-transport-local-provider-capture",
+    "native-deactivation",
+    "planner-safe-profile-denied-file-edit",
+    "revoked-source-cleared"
+  ],
+  "providerBoundary": "local captured 202; no external delivery",
+  "browserErrors": []
+}

@@ -1,0 +1,467 @@
+
+Running 134 tests using 1 worker
+
+(node:3299345) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓    1 [chromium] › tests/e2e/account-guides.spec.ts:7:5 › function explanations save account receipts, survive independent devices and fit mobile screens (5.7s)
+passed:  > chromium > account-guides.spec.ts > function explanations save account receipts, survive independent devices and fit mobile screens
+  ✓    2 [chromium] › tests/e2e/account-guides.spec.ts:35:5 › source management keeps contextual heading help without an automatic legacy banner (704ms)
+passed:  > chromium > account-guides.spec.ts > source management keeps contextual heading help without an automatic legacy banner
+  ✓    3 [chromium] › tests/e2e/auth-mail-hook.spec.ts:8:5 › signed Auth hook sends one branded eight-digit OTP without a login link; only the full code logs in and replay is denied (1.7s)
+passed:  > chromium > auth-mail-hook.spec.ts > signed Auth hook sends one branded eight-digit OTP without a login link; only the full code logs in and replay is denied
+  ✓    4 [chromium] › tests/e2e/browser-privacy.spec.ts:15:5 › logout removes legacy searches, fences another tab before logout completes, and blocks old account history (7.4s)
+passed:  > chromium > browser-privacy.spec.ts > logout removes legacy searches, fences another tab before logout completes, and blocks old account history
+  ✓    5 [chromium] › tests/e2e/browser-privacy.spec.ts:89:5 › delayed hydration cannot attach a new account to an old rendered document (3.8s)
+passed:  > chromium > browser-privacy.spec.ts > delayed hydration cannot attach a new account to an old rendered document
+  ✓    6 [chromium] › tests/e2e/browser-privacy.spec.ts:112:57 › staff: two real accounts on one device never share the prior profile, object or document (5.4s)
+passed:  > chromium > browser-privacy.spec.ts > staff: two real accounts on one device never share the prior profile, object or document
+  ✓    7 [chromium] › tests/e2e/browser-privacy.spec.ts:112:57 › customer: two real accounts on one device never share the prior profile, object or document (3.7s)
+passed:  > chromium > browser-privacy.spec.ts > customer: two real accounts on one device never share the prior profile, object or document
+  ✓    8 [chromium] › tests/e2e/customer-management.spec.ts:10:5 › beheer koppelt een nieuw klantaccount zonder wachtwoord en kan de toegang intrekken (5.0s)
+passed:  > chromium > customer-management.spec.ts > beheer koppelt een nieuw klantaccount zonder wachtwoord en kan de toegang intrekken
+  ✓    9 [chromium] › tests/e2e/customer-objectless-intake.spec.ts:9:5 › customer without objects submits a complete request visible in backoffice (3.2s)
+passed:  > chromium > customer-objectless-intake.spec.ts > customer without objects submits a complete request visible in backoffice
+  ✓   10 [chromium] › tests/e2e/customer-portal.spec.ts:11:5 › customer portal: five responsive widths, real persistence, dialogs, downloads and revocation (18.1s)
+passed:  > chromium > customer-portal.spec.ts > customer portal: five responsive widths, real persistence, dialogs, downloads and revocation
+  ✓   11 [chromium] › tests/e2e/dashboard-followup-layout.spec.ts:23:5 › Meerwerk en Templates sluiten zonder dubbele subtitel direct aan op hun tabs (1.4s)
+passed:  > chromium > dashboard-followup-layout.spec.ts > Meerwerk en Templates sluiten zonder dubbele subtitel direct aan op hun tabs
+  ✓   12 [chromium] › tests/e2e/dashboard-followup-layout.spec.ts:40:5 › alle instellingentabs hebben overzichtelijke groepen en een aangesloten kaart (2.7s)
+passed:  > chromium > dashboard-followup-layout.spec.ts > alle instellingentabs hebben overzichtelijke groepen en een aangesloten kaart
+  ✓   13 [chromium] › tests/e2e/dashboard-followup-layout.spec.ts:66:5 › bevoegdhedenkaart blijft zonder afgeronde tussenruimte aangesloten op de notificatietabs (955ms)
+passed:  > chromium > dashboard-followup-layout.spec.ts > bevoegdhedenkaart blijft zonder afgeronde tussenruimte aangesloten op de notificatietabs
+  ✓   14 [chromium] › tests/e2e/dashboard-followup-layout.spec.ts:78:5 › personeelsacties hebben telling en werkende paginatie onder de container (1.5s)
+passed:  > chromium > dashboard-followup-layout.spec.ts > personeelsacties hebben telling en werkende paginatie onder de container
+  ✓   15 [chromium] › tests/e2e/knowledge-base.spec.ts:9:5 › knowledge: platform editing, published reader snapshots, four portaal shells and ticket insertion (15.7s)
+passed:  > chromium > knowledge-base.spec.ts > knowledge: platform editing, published reader snapshots, four portaal shells and ticket insertion
+  ✘   16 [chromium] › tests/e2e/login-branding.spec.ts:29:5 › hostname tenant identity and colors persist on all login and OTP layouts (1.6s)
+failed:  > chromium > login-branding.spec.ts > hostname tenant identity and colors persist on all login and OTP layouts
+Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m"rgb([7m176, 90, 41[27m)"[39m
+Received: [31m"rgb([7m239, 239, 239[27m)"[39m
+(node:3338852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   17 [chromium] › tests/e2e/management-roles.spec.ts:76:5 › managementpagina behoudt de bronmatrix, werkende weergavekeuze en toegankelijke dialogen op desktop en mobiel (2.4s)
+passed:  > chromium > management-roles.spec.ts > managementpagina behoudt de bronmatrix, werkende weergavekeuze en toegankelijke dialogen op desktop en mobiel
+  ✓   18 [chromium] › tests/e2e/management-roles.spec.ts:82:5 › managementrollen bewaren mailuitnodiging, actuele rechten en bevestigde eigendomsoverdracht (17.3s)
+passed:  > chromium > management-roles.spec.ts > managementrollen bewaren mailuitnodiging, actuele rechten en bevestigde eigendomsoverdracht
+  ✓   19 [chromium] › tests/e2e/module-boundaries.spec.ts:10:5 › module switches preserve own personnel access and label unavailable report views (9.3s)
+passed:  > chromium > module-boundaries.spec.ts > module switches preserve own personnel access and label unavailable report views
+  ✓   20 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:16:5 › paid option submits its own form and skips a hidden duplicate (751ms)
+passed:  > chromium > mollie-test-checkout.spec.ts > paid option submits its own form and skips a hidden duplicate
+  ✓   21 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:26:5 › Paid choice still requires Continue after delayed simulator loading (2.4s)
+passed:  > chromium > mollie-test-checkout.spec.ts > Paid choice still requires Continue after delayed simulator loading
+  ✓   22 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:35:5 › Paid radio submits its native default button without relying on its label (741ms)
+passed:  > chromium > mollie-test-checkout.spec.ts > Paid radio submits its native default button without relying on its label
+  ✓   23 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:49:5 › native POST waits for a slow provider redirect without submitting twice (9.1s)
+passed:  > chromium > mollie-test-checkout.spec.ts > native POST waits for a slow provider redirect without submitting twice
+  ✓   24 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:72:5 › an intercepted submit stays blocked and emits only a fixed reason (5.5s)
+passed:  > chromium > mollie-test-checkout.spec.ts > an intercepted submit stays blocked and emits only a fixed reason
+  ✓   25 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:83:5 › failure reasons follow completed action markers without exposing call logs (1ms)
+passed:  > chromium > mollie-test-checkout.spec.ts > failure reasons follow completed action markers without exposing call logs
+  ✓   26 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:92:5 › current iDEAL Wero name opens a labelled radio simulator (1.3s)
+passed:  > chromium > mollie-test-checkout.spec.ts > current iDEAL Wero name opens a labelled radio simulator
+  ✓   27 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:103:5 › Mollie frame status is followed through provider return (799ms)
+passed:  > chromium > mollie-test-checkout.spec.ts > Mollie frame status is followed through provider return
+  ✓   28 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:112:5 › an unchanged loading button is clicked once and diagnosis contains no page data (2.0s)
+passed:  > chromium > mollie-test-checkout.spec.ts > an unchanged loading button is clicked once and diagnosis contains no page data
+  ✓   29 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:120:5 › a new provider document at the same URL can use Continue again (1.1s)
+passed:  > chromium > mollie-test-checkout.spec.ts > a new provider document at the same URL can use Continue again
+  ✓   30 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:135:5 › a merchant return without explicitly selecting Paid never passes (384ms)
+passed:  > chromium > mollie-test-checkout.spec.ts > a merchant return without explicitly selecting Paid never passes
+  ✓   31 [chromium] › tests/e2e/mollie-test-checkout.spec.ts:140:5 › a lookalike provider hostname is rejected before any interaction (67ms)
+passed:  > chromium > mollie-test-checkout.spec.ts > a lookalike provider hostname is rejected before any interaction
+  ✓   32 [chromium] › tests/e2e/notification-tenant-policies.spec.ts:11:5 › config-only platform user selects an authorized tenant, saves, reloads and re-edits its exact policy (4.0s)
+passed:  > chromium > notification-tenant-policies.spec.ts > config-only platform user selects an authorized tenant, saves, reloads and re-edits its exact policy
+  ✓   33 [chromium] › tests/e2e/notifications.spec.ts:99:5 › notificatiewizard publiceert exacte selectie; personeel leest, bevestigt en archiveert los van bronstatus (12.9s)
+passed:  > chromium > notifications.spec.ts > notificatiewizard publiceert exacte selectie; personeel leest, bevestigt en archiveert los van bronstatus
+  ✓   34 [chromium] › tests/e2e/notifications.spec.ts:141:5 › klant- en platforminbox tonen uitsluitend eigen context, met blijvende centrale voorkeuren (5.0s)
+passed:  > chromium > notifications.spec.ts > klant- en platforminbox tonen uitsluitend eigen context, met blijvende centrale voorkeuren
+  ✓   35 [chromium] › tests/e2e/notifications.spec.ts:163:5 › beleid, tenanttemplate en expliciete notificatiebevoegdheid gebruiken echte versiecontrole en OTP (7.4s)
+passed:  > chromium > notifications.spec.ts > beleid, tenanttemplate en expliciete notificatiebevoegdheid gebruiken echte versiecontrole en OTP
+  ✓   36 [chromium] › tests/e2e/notifications.spec.ts:190:5 › gekozen kanalen blokkeren nulbereik en bevestigen uitsluitend het actuele gedeeltelijke bereik (6.1s)
+passed:  > chromium > notifications.spec.ts > gekozen kanalen blokkeren nulbereik en bevestigen uitsluitend het actuele gedeeltelijke bereik
+  ✓   37 [chromium] › tests/e2e/notifications.spec.ts:244:5 › een notificatie opent compact boven de inbox en behoudt de lijst bij sluiten (3.8s)
+passed:  > chromium > notifications.spec.ts > een notificatie opent compact boven de inbox en behoudt de lijst bij sluiten
+  ✓   38 [chromium] › tests/e2e/object360.spec.ts:44:5 › Object 360: full page tabs, structure, versioned instructions and responsive layout (7.7s)
+passed:  > chromium > object360.spec.ts > Object 360: full page tabs, structure, versioned instructions and responsive layout
+  ✓   39 [chromium] › tests/e2e/object360.spec.ts:73:5 › Object 360: customer request applies to exactly one visit and reaches backoffice (7.9s)
+passed:  > chromium > object360.spec.ts > Object 360: customer request applies to exactly one visit and reaches backoffice
+  ✓   40 [chromium] › tests/e2e/object360.spec.ts:85:5 › Object 360: branded OTP mail, no-store secure value, blur and revocation (4.9s)
+passed:  > chromium > object360.spec.ts > Object 360: branded OTP mail, no-store secure value, blur and revocation
+  ✓   41 [chromium] › tests/e2e/object360.spec.ts:102:5 › customer and personnel dossiers keep mobile tabs and grouped actions inside the viewport (5.0s)
+passed:  > chromium > object360.spec.ts > customer and personnel dossiers keep mobile tabs and grouped actions inside the viewport
+  ✓   42 [chromium] › tests/e2e/personnel-invitation.spec.ts:82:5 › branded personnel invitation activates once and opens the personnel portal (6.6s)
+passed:  > chromium > personnel-invitation.spec.ts > branded personnel invitation activates once and opens the personnel portal
+  ✓   43 [chromium] › tests/e2e/personnel-invitation.spec.ts:151:5 › existing accounts keep their password and roles when invited to the personnel portal (5.2s)
+passed:  > chromium > personnel-invitation.spec.ts > existing accounts keep their password and roles when invited to the personnel portal
+  ✓   44 [chromium] › tests/e2e/personnel-invitation.spec.ts:185:5 › failed invitation can be resent without duplicating personnel and revoked access cannot activate (6.0s)
+passed:  > chromium > personnel-invitation.spec.ts > failed invitation can be resent without duplicating personnel and revoked access cannot activate
+  ✓   45 [chromium] › tests/e2e/planboard.spec.ts:124:5 › een handmatig gekozen dag blijft geselecteerd bij focus en realtime wijzigingen (5.8s)
+passed:  > chromium > planboard.spec.ts > een handmatig gekozen dag blijft geselecteerd bij focus en realtime wijzigingen
+  ✓   46 [chromium] › tests/e2e/planboard.spec.ts:157:5 › eerste uitleg houdt een planbord met veel medewerkers en de bonnenlijst bereikbaar (1.0s)
+passed:  > chromium > planboard.spec.ts > eerste uitleg houdt een planbord met veel medewerkers en de bonnenlijst bereikbaar
+  ✓   47 [chromium] › tests/e2e/planboard.spec.ts:183:5 › planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bonacties (2.2s)
+passed:  > chromium > planboard.spec.ts > planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bonacties
+  ✓   48 [chromium] › tests/e2e/planboard.spec.ts:249:5 › bonnenweergave en filters zijn onafhankelijk en tellen de juiste resultaten (5.2s)
+passed:  > chromium > planboard.spec.ts > bonnenweergave en filters zijn onafhankelijk en tellen de juiste resultaten
+  ✓   49 [chromium] › tests/e2e/planboard.spec.ts:278:5 › kolomnamen blijven staan bij scrollen en een lege bonnenbak heeft geen scrollbalk (3.1s)
+passed:  > chromium > planboard.spec.ts > kolomnamen blijven staan bij scrollen en een lege bonnenbak heeft geen scrollbalk
+  ✓   50 [chromium] › tests/e2e/planboard.spec.ts:316:5 › minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebruiken dezelfde uitvoering (4.9s)
+passed:  > chromium > planboard.spec.ts > minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebruiken dezelfde uitvoering
+  ✓   51 [chromium] › tests/e2e/planboard.spec.ts:385:5 › bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw worden ingepland (6.6s)
+passed:  > chromium > planboard.spec.ts > bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw worden ingepland
+  ✘   52 [chromium] › tests/e2e/planboard.spec.ts:468:7 › status per medewerker › eigen statuskleuren, live voortgang en toegankelijke legenda naast de titel (14.7s)
+failed:  > chromium > planboard.spec.ts > status per medewerker > eigen statuskleuren, live voortgang en toegankelijke legenda naast de titel
+Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+Locator: getByRole('dialog', { name: 'Legenda statuskleuren' })
+Expected: visible
+Timeout: 8000ms
+Error: element(s) not found
+
+Call log:
+[2m  - Expect "toBeVisible" getByRole('dialog', { name: 'Legenda statuskleuren' }) with timeout 8000ms[22m
+[2m  - waiting for getByRole('dialog', { name: 'Legenda statuskleuren' })[22m
+
+(node:3422685) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   53 [chromium] › tests/e2e/platform-team.spec.ts:12:5 › platformbeheer nodigt support uit, begrenst toegang en trekt een bestaande OTP-sessie live in (6.1s)
+passed:  > chromium > platform-team.spec.ts > platformbeheer nodigt support uit, begrenst toegang en trekt een bestaande OTP-sessie live in
+  ✓   54 [chromium] › tests/e2e/product-management.spec.ts:61:5 › idee → interne beoordeling → roadmap → gerichte release, veilige bestanden en vier responsive portalen (22.5s)
+passed:  > chromium > product-management.spec.ts > idee → interne beoordeling → roadmap → gerichte release, veilige bestanden en vier responsive portalen
+  ✓   55 [chromium] › tests/e2e/session-loading.spec.ts:6:5 › overlapping focus events share one check, and navigation remains protected (1.6s)
+passed:  > chromium > session-loading.spec.ts > overlapping focus events share one check, and navigation remains protected
+  ✓   56 [chromium] › tests/e2e/session-loading.spec.ts:38:5 › a failed check keeps content covered and offers a working retry (870ms)
+passed:  > chromium > session-loading.spec.ts > a failed check keeps content covered and offers a working retry
+  ✓   57 [chromium] › tests/e2e/staff-dossier-access.spec.ts:8:5 › dossier opens inline only after email confirmation and locks on loss of focus (2.2s)
+passed:  > chromium > staff-dossier-access.spec.ts > dossier opens inline only after email confirmation and locks on loss of focus
+  ✓   58 [chromium] › tests/e2e/staff-login.spec.ts:9:5 › alle werkruimtes gebruiken hetzelfde OTP-formulier; personeel logt in met een echte achtcijferige e-mailcode (2.1s)
+passed:  > chromium > staff-login.spec.ts > alle werkruimtes gebruiken hetzelfde OTP-formulier; personeel logt in met een echte achtcijferige e-mailcode
+  ✓   59 [chromium] › tests/e2e/travel.spec.ts:139:5 › PDOK address selection, exact suffixes, stale response protection and mobile persistence (4.9s)
+passed:  > chromium > travel.spec.ts > PDOK address selection, exact suffixes, stale response protection and mobile persistence
+  ✓   60 [chromium] › tests/e2e/travel.spec.ts:264:5 › planboard basic travel, exact shortage, daily bicycle override, manual fallback and staff privacy (4.3s)
+passed:  > chromium > travel.spec.ts > planboard basic travel, exact shortage, daily bicycle override, manual fallback and staff privacy
+  ✘   61 [chromium] › tests/e2e/travel.spec.ts:363:5 › object arrival marker coordinates stay separate from official address (702ms)
+failed:  > chromium > travel.spec.ts > object arrival marker coordinates stay separate from official address
+Error: locator.fill: Error: strict mode violation: getByLabel('Breedtegraad aankomst') resolved to 2 elements:
+    1) <input max="90" min="-90" step="any" type="number" value="52.079" name="latitude"/> aka getByLabel('Breedtegraad aankomst').first()
+    2) <input max="90" min="-90" step="any" required="" type="number" value="52.079" name="latitude"/> aka getByRole('spinbutton', { name: 'Breedtegraad aankomst' })
+
+Call log:
+[2m  - waiting for getByLabel('Breedtegraad aankomst')[22m
+
+(node:3444190) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   62 [chromium] › tests/e2e/travel.spec.ts:401:5 › MapLibre worker and draggable arrival marker work without changing the official address (1.8s)
+passed:  > chromium > travel.spec.ts > MapLibre worker and draggable arrival marker work without changing the official address
+  ✓   63 [chromium] › tests/e2e/travel.spec.ts:455:5 › address suggestions stay clickable outside an object wizard scroll container (2.1s)
+passed:  > chromium > travel.spec.ts > address suggestions stay clickable outside an object wizard scroll container
+  ✓   64 [chromium] › tests/e2e/travel.spec.ts:480:5 › reisinformatie starts collapsed and shows one employee's route at a time (2.9s)
+passed:  > chromium > travel.spec.ts > reisinformatie starts collapsed and shows one employee's route at a time
+  ✓   65 [chromium] › tests/e2e/universal-otp.spec.ts:71:5 › management zonder platformrol logt met een echte achtcijferige e-mailcode in op de backoffice (1.3s)
+passed:  > chromium > universal-otp.spec.ts > management zonder platformrol logt met een echte achtcijferige e-mailcode in op de backoffice
+  ✓   66 [chromium] › tests/e2e/universal-otp.spec.ts:78:5 › platformbeheerder zonder tenantlidmaatschap logt met een echte achtcijferige e-mailcode in op het platform (1.2s)
+passed:  > chromium > universal-otp.spec.ts > platformbeheerder zonder tenantlidmaatschap logt met een echte achtcijferige e-mailcode in op het platform
+  ✓   67 [chromium] › tests/e2e/universal-otp.spec.ts:83:5 › klant zonder personeelslidmaatschap logt met een echte achtcijferige e-mailcode in op uitsluitend het eigen klantportaal (1.1s)
+passed:  > chromium > universal-otp.spec.ts > klant zonder personeelslidmaatschap logt met een echte achtcijferige e-mailcode in op uitsluitend het eigen klantportaal
+  ✓   68 [chromium] › tests/e2e/work-order-release.spec.ts:10:5 › werkbon vrijgeven via planbord, lijst en dossier publiceert dezelfde versievaste planning (8.5s)
+passed:  > chromium > work-order-release.spec.ts > werkbon vrijgeven via planbord, lijst en dossier publiceert dezelfde versievaste planning
+(node:3455714) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   69 [chromium] › tests/e2e/commercial.spec.ts:9:5 › commerciële lijst, aanvraag, bevroren PDF-mail, expliciet akkoord en één operationele opdracht (17.4s)
+passed:  > chromium > commercial.spec.ts > commerciële lijst, aanvraag, bevroren PDF-mail, expliciet akkoord en één operationele opdracht
+  ✓   70 [chromium] › tests/e2e/dashboard-consistency.spec.ts:8:5 › dashboardlijsten houden hun header, tabbladen en bediening binnen desktop en mobiel (13.8s)
+passed:  > chromium > dashboard-consistency.spec.ts > dashboardlijsten houden hun header, tabbladen en bediening binnen desktop en mobiel
+  ✓   71 [chromium] › tests/e2e/dashboard-consistency.spec.ts:41:5 › slim zoeken begint bij drie tekens en opent gegroepeerde resultaten met het toetsenbord (3.7s)
+passed:  > chromium > dashboard-consistency.spec.ts > slim zoeken begint bij drie tekens en opent gegroepeerde resultaten met het toetsenbord
+  ✓   72 [chromium] › tests/e2e/dashboard-consistency.spec.ts:62:5 › account en notificaties hebben dezelfde maat en thema als de zoekbalk (2.9s)
+passed:  > chromium > dashboard-consistency.spec.ts > account en notificaties hebben dezelfde maat en thema als de zoekbalk
+  ✓   73 [chromium] › tests/e2e/dossier-alignment.spec.ts:60:5 › Dossier 360: customer agreement, object programme, partial execution and linked invoice (26.0s)
+passed:  > chromium > dossier-alignment.spec.ts > Dossier 360: customer agreement, object programme, partial execution and linked invoice
+  ✓   74 [chromium] › tests/e2e/fieldgrid.spec.ts:35:5 › beschermde routes vereisen een sessie en foutieve login lekt geen accountstatus (448ms)
+passed:  > chromium > fieldgrid.spec.ts > beschermde routes vereisen een sessie en foutieve login lekt geen accountstatus
+  ✓   75 [chromium] › tests/e2e/fieldgrid.spec.ts:48:5 › platform backoffice beheert tenants, huisstijl en berichttemplates professioneel (11.6s)
+passed:  > chromium > fieldgrid.spec.ts > platform backoffice beheert tenants, huisstijl en berichttemplates professioneel
+  ✓   76 [chromium] › tests/e2e/fieldgrid.spec.ts:116:5 › backoffice toont echte tenantdata en blijft bruikbaar over alle doelbreedtes (2.7s)
+passed:  > chromium > fieldgrid.spec.ts > backoffice toont echte tenantdata en blijft bruikbaar over alle doelbreedtes
+  ✓   77 [chromium] › tests/e2e/fieldgrid.spec.ts:143:5 › afgeleide kleurenpaletten zijn rustig, consistent en live zichtbaar zonder opslaan (11.1s)
+passed:  > chromium > fieldgrid.spec.ts > afgeleide kleurenpaletten zijn rustig, consistent en live zichtbaar zonder opslaan
+  ✓   78 [chromium] › tests/e2e/fieldgrid.spec.ts:195:5 › resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare viewport (9.5s)
+passed:  > chromium > fieldgrid.spec.ts > resourcepagina's zijn aparte lijsten en het planbord vult de beschikbare viewport
+  ✓   79 [chromium] › tests/e2e/fieldgrid.spec.ts:311:5 › Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel (11.9s)
+passed:  > chromium > fieldgrid.spec.ts > Meer-overlays blijven buiten tabellen zichtbaar op desktop en mobiel
+  ✓   80 [chromium] › tests/e2e/fieldgrid.spec.ts:340:5 › klantdossier opent elf volledige paginaonderdelen en bewaart contacten, notities en private documenten (19.8s)
+passed:  > chromium > fieldgrid.spec.ts > klantdossier opent elf volledige paginaonderdelen en bewaart contacten, notities en private documenten
+  ✓   81 [chromium] › tests/e2e/fieldgrid.spec.ts:408:5 › personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, uren en personeelszaken (4.4s)
+passed:  > chromium > fieldgrid.spec.ts > personeels-PWA blijft responsief en ontsluit planning, werkbon, nieuws, uren en personeelszaken
+  ✓   82 [chromium] › tests/e2e/fieldgrid.spec.ts:529:5 › nieuwe medewerker hervat en voltooit de volledige personeels-onboarding (14.5s)
+passed:  > chromium > fieldgrid.spec.ts > nieuwe medewerker hervat en voltooit de volledige personeels-onboarding
+  ✓   83 [chromium] › tests/e2e/fieldgrid.spec.ts:646:5 › planningwijziging verschijnt realtime bij personeel zonder paginareload (7.1s)
+passed:  > chromium > fieldgrid.spec.ts > planningwijziging verschijnt realtime bij personeel zonder paginareload
+  ✓   84 [chromium] › tests/e2e/fieldgrid.spec.ts:715:5 › login heeft geen horizontale overflow op smalle doelbreedtes (354ms)
+passed:  > chromium > fieldgrid.spec.ts > login heeft geen horizontale overflow op smalle doelbreedtes
+  ✓   85 [chromium] › tests/e2e/fieldgrid.spec.ts:724:5 › Klant 360 wizard bewaart een particulier zonder bedrijfsnummers en behoudt lijstcontext (6.3s)
+passed:  > chromium > fieldgrid.spec.ts > Klant 360 wizard bewaart een particulier zonder bedrijfsnummers en behoudt lijstcontext
+  ✓   86 [chromium] › tests/e2e/list-consistency.spec.ts:17:5 › tenant lists share title origins, header filters and pagination below their surfaces (13.7s)
+passed:  > chromium > list-consistency.spec.ts > tenant lists share title origins, header filters and pagination below their surfaces
+  ✓   87 [chromium] › tests/e2e/list-consistency.spec.ts:43:5 › selected list size requests actual server pages and survives a fresh route (5.4s)
+passed:  > chromium > list-consistency.spec.ts > selected list size requests actual server pages and survives a fresh route
+  ✓   88 [chromium] › tests/e2e/personnel-dossier.spec.ts:32:5 › dossier 360: tabs, profile, contracts, private document versions, reviews, assets and checklists (34.7s)
+passed:  > chromium > personnel-dossier.spec.ts > dossier 360: tabs, profile, contracts, private document versions, reviews, assets and checklists
+  ✓   89 [chromium] › tests/e2e/personnel-dossier.spec.ts:71:5 › certificate verification, renewal and HR privacy are separate from personnel portal access (11.1s)
+passed:  > chromium > personnel-dossier.spec.ts > certificate verification, renewal and HR privacy are separate from personnel portal access
+  ✓   90 [chromium] › tests/e2e/personnel-dossier.spec.ts:83:5 › server worker sends branded generic reminders exactly once and retries confirmed failures (1.1s)
+passed:  > chromium > personnel-dossier.spec.ts > server worker sends branded generic reminders exactly once and retries confirmed failures
+  ✓   91 [chromium] › tests/e2e/personnel-numbering.spec.ts:8:5 › personeelsnummering is instelbaar, automatisch en per medewerker aanpasbaar (9.9s)
+passed:  > chromium > personnel-numbering.spec.ts > personeelsnummering is instelbaar, automatisch en per medewerker aanpasbaar
+  ✓   92 [chromium] › tests/e2e/scanner-readiness.spec.ts:3:5 › built application proves real scanner readiness through its own runtime (66ms)
+passed:  > chromium > scanner-readiness.spec.ts > built application proves real scanner readiness through its own runtime
+  ✓   93 [chromium] › tests/e2e/staff-appearance.spec.ts:7:5 › Tickets blijft zichtbaar met uitleg als de module uitstaat (1.4s)
+passed:  > chromium > staff-appearance.spec.ts > Tickets blijft zichtbaar met uitleg als de module uitstaat
+  ✓   94 [chromium] › tests/e2e/staff-appearance.spec.ts:34:5 › actieve Tickets opent de bestaande engine in dezelfde personeelsopmaak (3.8s)
+passed:  > chromium > staff-appearance.spec.ts > actieve Tickets opent de bestaande engine in dezelfde personeelsopmaak
+  ✓   95 [chromium] › tests/e2e/staff-appearance.spec.ts:71:5 › Meer houdt alle personeelsacties bereikbaar op mobiel en desktop (6.8s)
+passed:  > chromium > staff-appearance.spec.ts > Meer houdt alle personeelsacties bereikbaar op mobiel en desktop
+  ✓   96 [chromium] › tests/e2e/staff-availability.spec.ts:29:5 › Beschikbaarheid volgt het prototype wanneer planning de week beheert (2.0s)
+passed:  > chromium > staff-availability.spec.ts > Beschikbaarheid volgt het prototype wanneer planning de week beheert
+  ✓   97 [chromium] › tests/e2e/staff-availability.spec.ts:62:5 › Vrijgegeven beschikbaarheid bewaart tijdvakken, lege dagen en voorkeuren zonder een nieuwere versie te overschrijven (3.6s)
+passed:  > chromium > staff-availability.spec.ts > Vrijgegeven beschikbaarheid bewaart tijdvakken, lege dagen en voorkeuren zonder een nieuwere versie te overschrijven
+  ✓   98 [chromium] › tests/e2e/staff-hours.spec.ts:16:5 › Mijn uren toont dagtotalen en weeknavigatie zonder fictieve registraties (1.4s)
+passed:  > chromium > staff-hours.spec.ts > Mijn uren toont dagtotalen en weeknavigatie zonder fictieve registraties
+  ✓   99 [chromium] › tests/e2e/staff-hours.spec.ts:42:5 › dagtotalen, afsluiten, akkoord en correctie gebruiken echte eigen registraties (4.6s)
+passed:  > chromium > staff-hours.spec.ts > dagtotalen, afsluiten, akkoord en correctie gebruiken echte eigen registraties
+  ✓  100 [chromium] › tests/e2e/staff-leave.spec.ts:7:5 › Verlof volgt het prototype en behoudt aanvragen en intrekken (3.0s)
+passed:  > chromium > staff-leave.spec.ts > Verlof volgt het prototype en behoudt aanvragen en intrekken
+  ✓  101 [chromium] › tests/e2e/staff-popups.spec.ts:54:5 › werkbonvensters blijven binnen het scherm en bewaren terugkeer naar de bon (11.5s)
+passed:  > chromium > staff-popups.spec.ts > werkbonvensters blijven binnen het scherm en bewaren terugkeer naar de bon
+  ✓  102 [chromium] › tests/e2e/staff-popups.spec.ts:96:5 › nieuws, verlof, account en apparaat gebruiken toegankelijke mobiele vensters (2.7s)
+passed:  > chromium > staff-popups.spec.ts > nieuws, verlof, account en apparaat gebruiken toegankelijke mobiele vensters
+  ✓  103 [chromium] › tests/e2e/staff-popups.spec.ts:158:5 › ticketinvoer en filterpopovers behouden de eigen engine zonder mobiele overflow (2.3s)
+passed:  > chromium > staff-popups.spec.ts > ticketinvoer en filterpopovers behouden de eigen engine zonder mobiele overflow
+  ✓  104 [chromium] › tests/e2e/staff-popups.spec.ts:186:5 › actieve uitvoering toont meerwerk en afrondingscontrole zonder rapport of meerwerk te versturen (2.0s)
+passed:  > chromium > staff-popups.spec.ts > actieve uitvoering toont meerwerk en afrondingscontrole zonder rapport of meerwerk te versturen
+  ✓  105 [chromium] › tests/e2e/staff-popups.spec.ts:221:5 › gereedgemelde werkbon toont geen hervatten of uitvoeringsacties (1.3s)
+passed:  > chromium > staff-popups.spec.ts > gereedgemelde werkbon toont geen hervatten of uitvoeringsacties
+  ✓  106 [chromium] › tests/e2e/staff-pwa.spec.ts:50:5 › bestaande medewerker krijgt na de volgende echte login precies één herinnering, met installeren daarna via instellingen (4.5s)
+passed:  > chromium > staff-pwa.spec.ts > bestaande medewerker krijgt na de volgende echte login precies één herinnering, met installeren daarna via instellingen
+  ✓  107 [chromium] › tests/e2e/staff-pwa.spec.ts:97:5 › native Android-installatie vraagt pas na de klik, behandelt annuleren en herkent appinstalled (2.3s)
+passed:  > chromium > staff-pwa.spec.ts > native Android-installatie vraagt pas na de klik, behandelt annuleren en herkent appinstalled
+  ✓  108 [chromium] › tests/e2e/staff-pwa.spec.ts:131:5 › iPhone-installatie geeft echte Deel-instructies en geen nagebootste native installatieknop (1.4s)
+passed:  > chromium > staff-pwa.spec.ts > iPhone-installatie geeft echte Deel-instructies en geen nagebootste native installatieknop
+  ✓  109 [chromium] › tests/e2e/staff-pwa.spec.ts:158:5 › een reeds geïnstalleerde standalone-app toont geen automatische installatieherinneringen (1.8s)
+passed:  > chromium > staff-pwa.spec.ts > een reeds geïnstalleerde standalone-app toont geen automatische installatieherinneringen
+  ✓  110 [chromium] › tests/e2e/staff-pwa.spec.ts:184:5 › installatievoorkeuren blijven per account gescheiden op hetzelfde apparaat (3.9s)
+passed:  > chromium > staff-pwa.spec.ts > installatievoorkeuren blijven per account gescheiden op hetzelfde apparaat
+  ✓  111 [chromium] › tests/e2e/staff-pwa.spec.ts:221:5 › echte serviceworker bewaart alleen openbare assets, toont offline geen werkgegevens en herstelt via opnieuw proberen (1.6s)
+passed:  > chromium > staff-pwa.spec.ts > echte serviceworker bewaart alleen openbare assets, toont offline geen werkgegevens en herstelt via opnieuw proberen
+  ✓  112 [chromium] › tests/e2e/staff-pwa.spec.ts:265:5 › anonieme personeelslogin publiceert een installeerbaar manifest, rastericonen en Apple-startschermmetadata (368ms)
+passed:  > chromium > staff-pwa.spec.ts > anonieme personeelslogin publiceert een installeerbaar manifest, rastericonen en Apple-startschermmetadata
+  ✓  113 [chromium] › tests/e2e/staff-settings.spec.ts:21:5 › Instellingen toont de prototypeonderdelen en bewaart alleen naam en mobiel met versiecontrole (5.3s)
+passed:  > chromium > staff-settings.spec.ts > Instellingen toont de prototypeonderdelen en bewaart alleen naam en mobiel met versiecontrole
+  ✓  114 [chromium] › tests/e2e/staff-settings.spec.ts:73:5 › Meldingsschakelaars bewaren echte voorkeuren en accountacties gebruiken de bestaande sessiegrenzen (5.5s)
+passed:  > chromium > staff-settings.spec.ts > Meldingsschakelaars bewaren echte voorkeuren en accountacties gebruiken de bestaande sessiegrenzen
+  ✓  115 [chromium] › tests/e2e/staff-settings.spec.ts:141:5 › Persoonlijke notificatievoorkeuren blijven bereikbaar zonder inboxrecht en lege open diensten blijven verborgen (4.0s)
+passed:  > chromium > staff-settings.spec.ts > Persoonlijke notificatievoorkeuren blijven bereikbaar zonder inboxrecht en lege open diensten blijven verborgen
+  ✓  116 [chromium] › tests/e2e/task-catalogue.spec.ts:15:5 › categorieën nummeren taken; wizard bewaart invoer en acties werken zonder mobiele overlap (5.3s)
+passed:  > chromium > task-catalogue.spec.ts > categorieën nummeren taken; wizard bewaart invoer en acties werken zonder mobiele overlap
+  ✓  117 [chromium] › tests/e2e/task-catalogue.spec.ts:26:5 › instellingentabs bewaren huisstijlconcepten en velden blijven compact (1.3s)
+passed:  > chromium > task-catalogue.spec.ts > instellingentabs bewaren huisstijlconcepten en velden blijven compact
+  ✓  118 [chromium] › tests/e2e/tenant-branding.spec.ts:10:5 › tenantlogo toont de organisatienaam als het afbeeldingsbestand niet laadt (655ms)
+passed:  > chromium > tenant-branding.spec.ts > tenantlogo toont de organisatienaam als het afbeeldingsbestand niet laadt
+  ✓  119 [chromium] › tests/e2e/tenant-branding.spec.ts:35:5 › centrale huisstijl bewaart concepten, publiceert kleuren en weigert gelijktijdig overschrijven (6.5s)
+passed:  > chromium > tenant-branding.spec.ts > centrale huisstijl bewaart concepten, publiceert kleuren en weigert gelijktijdig overschrijven
+  ✓  120 [chromium] › tests/e2e/tenant-branding.spec.ts:96:5 › tenantbackoffice blijft bruikbaar op smalle schermen en bewaart het dialogthema (1.9s)
+passed:  > chromium > tenant-branding.spec.ts > tenantbackoffice blijft bruikbaar op smalle schermen en bewaart het dialogthema
+  ✓  121 [chromium] › tests/e2e/tickets.spec.ts:140:5 › personeelsmelding met echte scan, private notitie, bewuste escalatie en onafhankelijk platformgesprek (40.1s)
+passed:  > chromium > tickets.spec.ts > personeelsmelding met echte scan, private notitie, bewuste escalatie en onafhankelijk platformgesprek
+  ✓  122 [chromium] › tests/e2e/tickets.spec.ts:290:5 › categorieconfiguratie en expliciete begrensde grant vereisen payloadgebonden verificatie (5.3s)
+passed:  > chromium > tickets.spec.ts > categorieconfiguratie en expliciete begrensde grant vereisen payloadgebonden verificatie
+  ✓  123 [chromium] › tests/e2e/tickets.spec.ts:332:5 › configuratiebevoegdheid geeft geen gesprekstoegang; personeel ziet alleen eigen notificatievoorkeuren (4.2s)
+passed:  > chromium > tickets.spec.ts > configuratiebevoegdheid geeft geen gesprekstoegang; personeel ziet alleen eigen notificatievoorkeuren
+  ✓  124 [chromium] › tests/e2e/tickets.spec.ts:365:5 › ticketbezorging gebruikt de echte worker en alleen de lokale testmailbox (1.8s)
+passed:  > chromium > tickets.spec.ts > ticketbezorging gebruikt de echte worker en alleen de lokale testmailbox
+  ✘  125 [chromium] › tests/e2e/veele-marketing.spec.ts:31:5 › all supplied routes, current-origin SEO, 404 and portal links (1.8s)
+failed:  > chromium > veele-marketing.spec.ts > all supplied routes, current-origin SEO, 404 and portal links
+Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveCount[2m([22m[32mexpected[39m[2m)[22m failed
+
+Locator:  locator('h1')
+Expected: [32m1[39m
+Received: [31mundefined[39m
+
+Call log:
+[2m  - Expect "toHaveCount" locator('h1') with timeout 8000ms[22m
+[2m  - waiting for locator('h1')[22m
+[2m  - [22m
+
+Error: browserContext._wrapApiCall: ENOSPC: no space left on device, write
+Error: apiRequestContext._wrapApiCall: Target page, context or browser has been closed
+(node:3651906) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  126 [chromium] › tests/e2e/veele-marketing.spec.ts:45:5 › layouts fit mobile, tablet, desktop and 200% text; menu and reduced motion remain usable (0ms)
+failed:  > chromium > veele-marketing.spec.ts > layouts fit mobile, tablet, desktop and 200% text; menu and reduced motion remain usable
+Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m0[39m
+Received: [31m1[39m
+  -  127 [chromium] › tests/e2e/veele-marketing.spec.ts:60:5 › real mixed-service submission, retained failures, retry identity and durable read-back
+skipped:  > chromium > veele-marketing.spec.ts > real mixed-service submission, retained failures, retry identity and durable read-back
+  -  128 [chromium] › tests/e2e/veele-marketing.spec.ts:82:5 › public intake accepts an unknown location on mobile and is visible to management
+skipped:  > chromium > veele-marketing.spec.ts > public intake accepts an unknown location on mobile and is visible to management
+(node:3652069) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  129 [chromium] › tests/e2e/work-order-preferences.spec.ts:24:5 › nieuwe werkbon vraagt alleen een dag en twee-uursvenster en houdt taakduur los van planning (6.0s)
+passed:  > chromium > work-order-preferences.spec.ts > nieuwe werkbon vraagt alleen een dag en twee-uursvenster en houdt taakduur los van planning
+  ✓  130 [chromium] › tests/e2e/work-order-preferences.spec.ts:97:5 › bewerken behoudt bestaande nietstandaard klantafspraak, planner en exacte personeelsinzet (2.3s)
+passed:  > chromium > work-order-preferences.spec.ts > bewerken behoudt bestaande nietstandaard klantafspraak, planner en exacte personeelsinzet
+  ✓  131 [chromium] › tests/e2e/work-orders.spec.ts:77:5 › werkbonwizard bewaart een aankomstvenster en plant twee individuele inzetten later via het planbord (23.4s)
+passed:  > chromium > work-orders.spec.ts > werkbonwizard bewaart een aankomstvenster en plant twee individuele inzetten later via het planbord
+  ✓  132 [chromium] › tests/e2e/work-orders.spec.ts:278:5 › checklistbeheer bewaart zes antwoordtypes en maakt een nieuwe versie na publicatie (5.9s)
+passed:  > chromium > work-orders.spec.ts > checklistbeheer bewaart zes antwoordtypes en maakt een nieuwe versie na publicatie
+  ✓  133 [chromium] › tests/e2e/workspace-modal-layout.spec.ts:86:5 › tenantmodals houden wizardvelden compact en dossieracties en tabs bereikbaar (24.6s)
+passed:  > chromium > workspace-modal-layout.spec.ts > tenantmodals houden wizardvelden compact en dossieracties en tabs bereikbaar
+  ✓  134 [chromium] › tests/e2e/workspace-modal-layout.spec.ts:132:5 › klantmodals behouden compacte velden, tabnavigatie en mobiele acties (4.1s)
+passed:  > chromium > workspace-modal-layout.spec.ts > klantmodals behouden compacte velden, tabnavigatie en mobiele acties
+
+
+  1) [chromium] › tests/e2e/login-branding.spec.ts:29:5 › hostname tenant identity and colors persist on all login and OTP layouts
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "rgb(176, 90, 41)"
+    Received: "rgb(239, 239, 239)"
+
+       95 |     expect((await card.evaluate(node=>getComputedStyle(node).getPropertyValue("--brand-accent").trim())).toLowerCase()).toBe("#c65d21");
+       96 |     const expectedColor=await card.evaluate((node,color)=>{const sample=document.createElement("span");sample.style.color=color;node.append(sample);const value=getComputedStyle(sample).color;sample.remove();return value;},createBrandPalette("#223D53","#C65D21").action);
+    >  97 |     const button=card.getByRole("button",{name:"Inlogcode versturen"});expect(await button.evaluate(node=>getComputedStyle(node).backgroundColor)).toBe(expectedColor);
+          |                                                                                                                                                    ^
+       98 |     const email=card.getByLabel("E-mailadres",{exact:true});await expectSubtleAuthFocus(email);
+       99 |     await email.fill("fictitious-no-account@example.invalid");await button.click();
+      100 |     await expect(card.getByLabel("Inlogcode",{exact:true})).toBeVisible();await expect(card.locator(".brand-name-fallback, .brand-tenant-name")).toHaveCount(0);await expect(image).toBeVisible();
+        at /home/codex/repos/fieldgrid/tests/e2e/login-branding.spec.ts:97:148
+
+    Error Context: ../../../../tmp/fieldgrid-standard-e2e-final-v61/login-branding-hostname-te-41f33-n-all-login-and-OTP-layouts-chromium/error-context.md
+
+  2) [chromium] › tests/e2e/planboard.spec.ts:468:7 › status per medewerker › eigen statuskleuren, live voortgang en toegankelijke legenda naast de titel
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('dialog', { name: 'Legenda statuskleuren' })
+    Expected: visible
+    Timeout: 8000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('dialog', { name: 'Legenda statuskleuren' }) with timeout 8000ms
+      - waiting for getByRole('dialog', { name: 'Legenda statuskleuren' })
+
+
+      525 |       await page.setViewportSize({ width, height: 900 });
+      526 |       await trigger.click();
+    > 527 |       await expect(legend).toBeVisible();
+          |                            ^
+      528 |       const rect = (await legend.boundingBox())!;
+      529 |       expect(rect.x).toBeGreaterThanOrEqual(0);
+      530 |       expect(rect.x + rect.width).toBeLessThanOrEqual(width);
+        at /home/codex/repos/fieldgrid/tests/e2e/planboard.spec.ts:527:28
+
+    Error Context: ../../../../tmp/fieldgrid-standard-e2e-final-v61/planboard-status-per-medew-af7ea-ijke-legenda-naast-de-titel-chromium/error-context.md
+
+    Error Context: ../../../../tmp/fieldgrid-standard-e2e-final-v61/planboard-status-per-medew-af7ea-ijke-legenda-naast-de-titel-chromium/error-context.md
+
+  3) [chromium] › tests/e2e/travel.spec.ts:363:5 › object arrival marker coordinates stay separate from official address
+
+    Error: locator.fill: Error: strict mode violation: getByLabel('Breedtegraad aankomst') resolved to 2 elements:
+        1) <input max="90" min="-90" step="any" type="number" value="52.079" name="latitude"/> aka getByLabel('Breedtegraad aankomst').first()
+        2) <input max="90" min="-90" step="any" required="" type="number" value="52.079" name="latitude"/> aka getByRole('spinbutton', { name: 'Breedtegraad aankomst' })
+
+    Call log:
+      - waiting for getByLabel('Breedtegraad aankomst')
+
+
+      366 |   await login(page, `/app/objecten/${objects[0]}`);
+      367 |   await page.getByRole("checkbox",{name:"Gebruik adreslocatie",exact:true}).uncheck();
+    > 368 |   await page.getByLabel("Breedtegraad aankomst").fill("52.081");
+          |                                                  ^
+      369 |   await page.getByLabel("Lengtegraad aankomst").fill("4.415");
+      370 |   await page
+      371 |     .getByRole("button", { name: "Aankomstinstellingen opslaan" })
+        at /home/codex/repos/fieldgrid/tests/e2e/travel.spec.ts:368:50
+
+    Error Context: ../../../../tmp/fieldgrid-standard-e2e-final-v61/travel-object-arrival-mark-1518d-arate-from-official-address-chromium/error-context.md
+
+    Error Context: ../../../../tmp/fieldgrid-standard-e2e-final-v61/travel-object-arrival-mark-1518d-arate-from-official-address-chromium/error-context.md
+
+  4) [chromium] › tests/e2e/veele-marketing.spec.ts:31:5 › all supplied routes, current-origin SEO, 404 and portal links
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('h1')
+    Expected: 1
+    Received: undefined
+
+    Call log:
+      - Expect "toHaveCount" locator('h1') with timeout 8000ms
+      - waiting for locator('h1')
+      -
+
+
+      34 |  for(const path of Object.keys(pages).filter(p=>p!=="404")){
+      35 |   const response=await page.goto(origin+path);expect(response!.status()).toBe(200);
+    > 36 |   await expect(page.locator('h1')).toHaveCount(1);await expect(page.locator('meta[name=robots]')).toHaveAttribute("content","noindex,follow");
+         |                                    ^
+      37 |   await expect(page.locator('link[rel=canonical]')).toHaveAttribute("href",origin+path);
+      38 |   expect(await page.locator("img").evaluateAll(images=>images.every(img=>!(img as HTMLImageElement).complete||(img as HTMLImageElement).naturalWidth>0))).toBe(true);
+      39 |   expect(await page.locator('footer a[href="/login?next=%2Fklant"]').count()).toBe(1);
+        at /home/codex/repos/fieldgrid/tests/e2e/veele-marketing.spec.ts:36:36
+
+    Error: browserContext._wrapApiCall: ENOSPC: no space left on device, write
+
+    Error: apiRequestContext._wrapApiCall: Target page, context or browser has been closed
+
+    Error Context: ../../../../tmp/fieldgrid-standard-e2e-final-v61/veele-marketing-all-suppli-cb879-in-SEO-404-and-portal-links-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../tmp/fieldgrid-standard-e2e-final-v61/veele-marketing-all-suppli-cb879-in-SEO-404-and-portal-links-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../tmp/fieldgrid-standard-e2e-final-v61/veele-marketing-all-suppli-cb879-in-SEO-404-and-portal-links-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › tests/e2e/veele-marketing.spec.ts:45:5 › layouts fit mobile, tablet, desktop and 200% text; menu and reduced motion remain usable
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      10 |  const db=new pg.Client({connectionString:requireLocalDatabaseUrl().href});await db.connect();
+      11 |  try{
+    > 12 |   expect((await db.query("select id from public.tenants where slug='veele-services'")).rowCount).toBe(0);
+         |                                                                                                  ^
+      13 |   tenant=randomUUID();const owner=(await db.query("select id from auth.users where email='platform-admin@fieldgrid.test'")).rows[0].id;
+      14 |   await db.query("insert into public.tenants(id,slug,name) values($1,'veele-services','FICTITIOUS marketing E2E')",[tenant]);
+      15 |   await db.query("insert into public.tenant_settings(tenant_id,enabled_services) values($1,array['planning'])",[tenant]);
+        at /home/codex/repos/fieldgrid/tests/e2e/veele-marketing.spec.ts:12:98
+
+    Error Context: ../../../../tmp/fieldgrid-standard-e2e-final-v61/veele-marketing-layouts-fi-7064b-educed-motion-remain-usable-chromium/error-context.md
+
+    Error Context: ../../../../tmp/fieldgrid-standard-e2e-final-v61/veele-marketing-layouts-fi-7064b-educed-motion-remain-usable-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../../../tmp/fieldgrid-standard-e2e-final-v61/veele-marketing-layouts-fi-7064b-educed-motion-remain-usable-chromium/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../../../tmp/fieldgrid-standard-e2e-final-v61/veele-marketing-layouts-fi-7064b-educed-motion-remain-usable-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    [chromium] › tests/e2e/login-branding.spec.ts:29:5 › hostname tenant identity and colors persist on all login and OTP layouts
+    [chromium] › tests/e2e/planboard.spec.ts:468:7 › status per medewerker › eigen statuskleuren, live voortgang en toegankelijke legenda naast de titel
+    [chromium] › tests/e2e/travel.spec.ts:363:5 › object arrival marker coordinates stay separate from official address
+    [chromium] › tests/e2e/veele-marketing.spec.ts:31:5 › all supplied routes, current-origin SEO, 404 and portal links
+    [chromium] › tests/e2e/veele-marketing.spec.ts:45:5 › layouts fit mobile, tablet, desktop and 200% text; menu and reduced motion remain usable
+  2 did not run
+  127 passed (13.2m)

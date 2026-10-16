@@ -8,7 +8,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { explainNotification } from "@/app/notifications/actions";
+import { explainNotification } from "@/app/(workspace)/notifications/actions";
 import { channelLabels, notificationPaths, notificationWorkspaces, workspaceLabels, type DeliveryList, type NotificationAccess, type NotificationExplanation, type NotificationPolicy, type NotificationPreferences, type NotificationSettings } from "@/lib/notifications/model";
 import { Explanation } from "./campaigns";
 import { notificationPolicyImpact } from "@/lib/notifications/presentation";

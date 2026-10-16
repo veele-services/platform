@@ -20,9 +20,9 @@ export function requireManagementMail() {
 }
 /** Owner authorization must already have succeeded through the authenticated
  * prepare_invite command. No password/link/reset is created for existing users. */
-export async function prepareManagementAccount(email: string): Promise<string> {
+export async function prepareManagementAccount(email: string, displayName?: string): Promise<string> {
   const db = createAdminClient();
-  const created = await db.auth.admin.createUser({ email, email_confirm: true });
+  const created = await db.auth.admin.createUser({ email, email_confirm: true, ...(displayName ? {user_metadata:{full_name:displayName}} : {}) });
   if (!created.error && created.data.user) return created.data.user.id;
   if (created.error && ["email_exists", "user_already_exists"].includes(created.error.code ?? "")) {
     for (let page = 1; page <= 100; page += 1) {

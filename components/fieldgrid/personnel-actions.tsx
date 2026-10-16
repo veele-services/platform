@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { brandThemeStyle } from "@/lib/branding/palette";
 import { businessToday, dossierDefinitions, type RecordKind } from "@/lib/personnel/dossier";
 import { useUnsaved } from "./personnel-dossier-forms";
-import { updateDossierTaskState } from "@/app/app/personeel/dossier-actions";
+import { updateDossierTaskState } from "@/app/(workspace)/app/personeel/dossier-actions";
 import { CompactFilterMenu } from "./compact-filter-menu";
 import { ListPagination, useListPagination } from "./list-pagination";
 

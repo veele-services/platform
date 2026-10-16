@@ -13,6 +13,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {useDashboardPresentation} from "./presentation";
+import {SourceNativeDialog} from "./source-native-dialog";
+import type {ReactNode} from "react";
 import { LocationMap } from "./location-map";
 import { DayMobilityForm } from "./travel-settings";
 import {
@@ -509,23 +512,8 @@ export function TravelDialog({
   theme: CSSProperties;
   onSaved: () => void;
 }) {
-  return (
-    <Dialog
-      open
-      onOpenChange={(v) => {
-        if (!v) onClose();
-      }}
-    >
-      <DialogContent className="travel-dialog" style={theme}>
-        <DialogTitle>
-          {personnelId
-            ? "Vervoer en vertrek voor deze dag"
-            : "Reistijd & route"}
-        </DialogTitle>
-        <DialogDescription>
-          Basisreistijden en aankomstmarges; de overige werkbonnen worden niet
-          automatisch verschoven.
-        </DialogDescription>
+  const sites=useDashboardPresentation()==="sites";
+  return <TravelDialogFrame sites={sites} theme={theme} onClose={onClose} personnel={Boolean(personnelId)}>
         {personnelId ? (
           <DayMobilityForm
             personnelId={personnelId}
@@ -555,7 +543,10 @@ export function TravelDialog({
             )}
           </>
         )}
-      </DialogContent>
-    </Dialog>
-  );
+  </TravelDialogFrame>;
+}
+function TravelDialogFrame({sites,theme,onClose,personnel,children}:{sites:boolean;theme:CSSProperties;onClose:()=>void;personnel:boolean;children:ReactNode}){
+ const title=personnel?"Vervoer en vertrek voor deze dag":"Reistijd & route",description="Basisreistijden en aankomstmarges; de overige werkbonnen worden niet automatisch verschoven.";
+ if(sites)return <SourceNativeDialog title={title} eyebrow="REIZEN" description={description} onClose={onClose}>{children}</SourceNativeDialog>;
+ return <Dialog open onOpenChange={open=>{if(!open)onClose()}}><DialogContent className="travel-dialog" style={theme}><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription>{children}</DialogContent></Dialog>;
 }

@@ -1,0 +1,506 @@
+[
+  {
+    "width": 1440,
+    "target": {
+      "width": 1208,
+      "heading": [
+        {
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "size": 29.125
+        }
+      ],
+      "headers": [
+        {
+          "text": "Actie / bron",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Type",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Deadline",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Verantwoordelijke",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Status",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Acties",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "width": 1152,
+          "height": 64
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-filter-tabs",
+          "width": 1152,
+          "height": 47.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-list-toolbar",
+          "width": 1152,
+          "height": 42
+        },
+        {
+          "tag": "DIV",
+          "cls": "panel resource-table-panel",
+          "width": 1152,
+          "height": 46.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-empty",
+          "width": 1152,
+          "height": 171.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-pagination",
+          "width": 1152,
+          "height": 42
+        }
+      ]
+    },
+    "source": {
+      "width": 1208,
+      "heading": [
+        {
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "size": 29.125
+        }
+      ],
+      "headers": [
+        {
+          "text": "Actie / bron",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Type",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Deadline",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Verantwoordelijke",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Status",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Acties",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "width": 1152,
+          "height": 64
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-filter-tabs",
+          "width": 1152,
+          "height": 47.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-list-toolbar",
+          "width": 1152,
+          "height": 42
+        },
+        {
+          "tag": "DIV",
+          "cls": "panel resource-table-panel",
+          "width": 1152,
+          "height": 46.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-empty",
+          "width": 1152,
+          "height": 171.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-pagination",
+          "width": 1152,
+          "height": 42
+        },
+        {
+          "tag": "FOOTER",
+          "cls": "mc-page-footer",
+          "width": 1152,
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": true
+  },
+  {
+    "width": 768,
+    "target": {
+      "width": 684,
+      "heading": [
+        {
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "size": 29.125
+        }
+      ],
+      "headers": [
+        {
+          "text": "Actie / bron",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Type",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Deadline",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Verantwoordelijke",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Status",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Acties",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "width": 628,
+          "height": 64
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-filter-tabs",
+          "width": 628,
+          "height": 47.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-list-toolbar",
+          "width": 628,
+          "height": 42
+        },
+        {
+          "tag": "DIV",
+          "cls": "panel resource-table-panel",
+          "width": 628,
+          "height": 46.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-empty",
+          "width": 628,
+          "height": 171.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-pagination",
+          "width": 628,
+          "height": 42
+        }
+      ]
+    },
+    "source": {
+      "width": 684,
+      "heading": [
+        {
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "size": 29.125
+        }
+      ],
+      "headers": [
+        {
+          "text": "Actie / bron",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Type",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Deadline",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Verantwoordelijke",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Status",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Acties",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "width": 628,
+          "height": 64
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-filter-tabs",
+          "width": 628,
+          "height": 47.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-list-toolbar",
+          "width": 628,
+          "height": 42
+        },
+        {
+          "tag": "DIV",
+          "cls": "panel resource-table-panel",
+          "width": 628,
+          "height": 46.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-empty",
+          "width": 628,
+          "height": 171.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-pagination",
+          "width": 628,
+          "height": 42
+        },
+        {
+          "tag": "FOOTER",
+          "cls": "mc-page-footer",
+          "width": 628,
+          "height": 34.5
+        }
+      ]
+    },
+    "viewed": false
+  },
+  {
+    "width": 390,
+    "target": {
+      "width": 390,
+      "heading": [
+        {
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "size": 29.125
+        }
+      ],
+      "headers": [
+        {
+          "text": "Actie / bron",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Type",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Deadline",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Verantwoordelijke",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Status",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Acties",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "width": 358,
+          "height": 114.3125
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-filter-tabs",
+          "width": 373,
+          "height": 47.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-list-toolbar",
+          "width": 358,
+          "height": 71.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "panel resource-table-panel",
+          "width": 358,
+          "height": 46.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-empty",
+          "width": 358,
+          "height": 171.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-pagination",
+          "width": 358,
+          "height": 44
+        }
+      ]
+    },
+    "source": {
+      "width": 390,
+      "heading": [
+        {
+          "font": "700 22.4px / 29.12px Poppins, Inter, sans-serif",
+          "size": 29.125
+        }
+      ],
+      "headers": [
+        {
+          "text": "Actie / bron",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Type",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Deadline",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Verantwoordelijke",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Status",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        },
+        {
+          "text": "Acties",
+          "font": "600 9px / 13.5px Inter, Arial, sans-serif",
+          "padding": "15px 17px"
+        }
+      ],
+      "children": [
+        {
+          "tag": "HEADER",
+          "cls": "page-intro unified-page-heading ",
+          "width": 358,
+          "height": 114.3125
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-filter-tabs",
+          "width": 373,
+          "height": 47.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-list-toolbar",
+          "width": 358,
+          "height": 71.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "panel resource-table-panel",
+          "width": 358,
+          "height": 46.5
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-empty",
+          "width": 358,
+          "height": 171.1875
+        },
+        {
+          "tag": "DIV",
+          "cls": "mc-pagination",
+          "width": 358,
+          "height": 44
+        },
+        {
+          "tag": "FOOTER",
+          "cls": "mc-page-footer",
+          "width": 358,
+          "height": 33
+        }
+      ]
+    },
+    "viewed": true
+  }
+]

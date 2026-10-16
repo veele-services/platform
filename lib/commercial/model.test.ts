@@ -1,6 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {previewPrices,filtersSchema} from './model';
 describe('commercial price contract',()=>{
+ it('selects the source all-dossier tab while preserving explicit native request and quote links',()=>{expect(filtersSchema.parse({}).tab).toBe('all');for(const tab of['all','requests','quotes'])expect(filtersSchema.parse({tab}).tab).toBe(tab);expect(filtersSchema.parse({tab:'unknown'}).tab).toBe('all')});
  it('rounds discounts per line and VAT per rate using decimals',()=>{
   const l={id:'fixture',description:'Test',quantity:'3.125',unit:'uur',price_cents:1299,discount_basis_points:750,vat_basis_points:900,duration_minutes:60};
   expect(previewPrices([l,{...l,quantity:'2',vat_basis_points:2100}])).toMatchObject({subtotal_cents:6158,vat_cents:843,total_cents:7001});

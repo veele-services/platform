@@ -3,18 +3,18 @@
 import Link from "next/link";
 import Image from "next/image";
 
-export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
     <html lang="nl">
       <body style={{ margin: 0, fontFamily: "Inter, Arial, sans-serif" }}>
         <main style={styles.page}>
           <section style={styles.card}>
-            <Image src="/branding/fieldgrid-logo.svg" alt="Fieldgrid" width={462} height={146} unoptimized style={styles.logo}/>
+            <Image src="/fieldgrid-site-assets/branding/logo.svg" alt="Fieldgrid" width={462} height={146} unoptimized style={styles.logo}/>
             <p style={styles.eyebrow}>Er ging iets mis</p>
             <h1 style={styles.title}>Fieldgrid kan niet worden geladen.</h1>
             <p style={styles.copy}>Probeer het opnieuw. Je opgeslagen gegevens blijven behouden.</p>
             <div style={styles.actions}>
-              <button onClick={reset} style={styles.primary} type="button">
+              <button onClick={retry} style={styles.primary} type="button">
                 Opnieuw proberen
               </button>
               <Link href="/" style={styles.secondary}>

@@ -1,0 +1,43 @@
+/* Attached index-card tabs; the scroll belongs to this row, never the page. */
+.content-tabs,.fg-tabbed-content{min-width:0;display:grid;grid-template-columns:minmax(0,1fr);gap:0;align-content:start}
+.content-tabs{--content-tab-padding:20px;--content-tab-gap:20px}
+.content-tab-list,.fg-tabbed-content>.nt-tabs,.fg-tabbed-content>.ticket-views{display:flex;align-items:stretch;gap:4px;width:100%;max-width:100%;min-width:0;margin:0 0 -1px;padding:6px 0 0;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scroll-padding-inline:6px;scrollbar-width:none;border:0;isolation:isolate;position:relative;z-index:1}
+.content-tab-list::-webkit-scrollbar{display:none}
+.content-tab-list :is(a,button),.fg-tabbed-content>.nt-tabs>a,.fg-tabbed-content>.ticket-views>a{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:7px;flex-shrink:0;min-height:44px;margin:0;padding:12px 18px;border:1px solid var(--brand-border,#dce4e8);border-radius:11px 11px 0 0;background:var(--brand-surface,#eff3f5);color:var(--brand-muted,#657887);font-family:Inter,Arial,sans-serif;font-size:calc(.875rem * var(--dashboard-font-scale,1));font-weight:500;line-height:1.4;white-space:nowrap;text-decoration:none;cursor:pointer}
+.content-tab-list :is(a,button):is([aria-selected=true],[aria-current=page]),.fg-tabbed-content>.nt-tabs>a[aria-current=page],.fg-tabbed-content>.ticket-views>a[aria-current=page]{z-index:2;border-bottom-color:var(--brand-card,#fff);background:var(--brand-card,#fff);color:var(--brand-accent-text,#327b80);font-weight:600;box-shadow:0 -2px 0 var(--brand-action,#43898d)}
+.content-tab-list :is(a,button):focus-visible,.fg-tabbed-content>.nt-tabs>a:focus-visible,.fg-tabbed-content>.ticket-views>a:focus-visible{outline:2px solid var(--brand-focus,#43898d);outline-offset:-4px}
+/* The panel owns the frame, so filters and tables always join the active tab. */
+.content-tabs>.content-tab-panel{
+  min-width:0;
+  max-width:100%;
+  margin:0;
+  padding:var(--content-tab-padding);
+  border:1px solid var(--brand-border,#dce4e8);
+  border-radius:0 14px 14px 14px;
+  background:var(--brand-card,#fff);
+  box-shadow:0 4px 20px rgb(20 35 45 / 2%);
+}
+.content-tab-panel:not([hidden]){display:grid;grid-template-columns:minmax(0,1fr);gap:var(--content-tab-gap);align-content:start}
+.content-tab-panel>*{min-width:0}
+.content-tab-panel[hidden]{display:none}
+.content-tab-panel>:is(.panel,.fg-section,.ticket-panel,.nt-panel):first-child,.fg-tabbed-content>:is(.panel,.fg-section,.ticket-panel,.nt-panel){margin-top:0}
+.fg-tabbed-content>:is(.panel,.ticket-panel,.nt-panel),.fg-tabbed-content>.fg-section>.fg-section-body{border-top-left-radius:0}
+.fg-tabbed-content>.list-pagination{margin-top:20px}
+.fg-tabbed-content>.fg-section+.fg-section{margin-top:24px}
+.fg-tabbed-content>.ticket-chips{padding:12px;border:1px solid var(--brand-border,#dce4e8);background:var(--brand-card,#fff)}
+.dossier-navigation{width:100%}
+.dossier-tab-count{padding:2px 6px;border-radius:20px;background:var(--brand-accent-soft,#eaf3f3);font-size:.85em}
+@media(max-width:620px){.content-tabs{--content-tab-padding:14px;--content-tab-gap:16px}.content-tab-list :is(a,button),.fg-tabbed-content>.nt-tabs>a,.fg-tabbed-content>.ticket-views>a{min-height:48px;padding:12px 14px}}
+.dossier-header-actions{display:flex;flex-direction:row-reverse;align-items:center;gap:10px;max-width:100%;min-width:0;flex-wrap:wrap}
+.dossier-primary-action,.dossier-secondary-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0;max-width:100%}
+.dossier-header-actions svg{flex-shrink:0}
+.unified-page-heading .page-heading-copy{min-width:0;overflow-wrap:anywhere}
+@media(max-width:620px){
+ .unified-page-heading{flex-wrap:wrap;gap:18px}
+ .dossier-header-actions{display:grid;grid-template-columns:minmax(0,1fr);width:100%;gap:12px}
+ .dossier-primary-action{display:grid;grid-template-columns:minmax(0,1fr)}
+ .dossier-secondary-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .workspace-shell .dossier-header-actions button,.workspace-shell .dossier-header-actions a{width:100%;min-width:0;min-height:48px;white-space:normal;text-align:center;overflow-wrap:anywhere;padding:12px}
+ .object-dossier .resource-actions{flex-wrap:wrap}
+ .object-dossier .resource-action,.object-record footer a,.object-record footer button,.dossier-card>footer button{min-height:44px;max-width:100%;white-space:normal;overflow-wrap:anywhere}
+}

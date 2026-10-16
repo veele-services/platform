@@ -22,6 +22,9 @@ import {
 export const PERSONNEL_WIDTH = 230,
   ROW_HEIGHT = 96,
   HEADER_HEIGHT = 40;
+export type BoardGeometry={personnelWidth:number;rowHeight:number;headerHeight:number};
+export const DEFAULT_BOARD_GEOMETRY:BoardGeometry={personnelWidth:PERSONNEL_WIDTH,rowHeight:ROW_HEIGHT,headerHeight:HEADER_HEIGHT};
+export const SOURCE_BOARD_GEOMETRY:BoardGeometry={personnelWidth:195,rowHeight:103,headerHeight:51};
 type Drag = {
   captureElement: Element;
   order: PlanningOrder;
@@ -57,6 +60,7 @@ export function useBoardDrag({
   onOpen,
   onStart,
   onChooseScope,
+  geometry=DEFAULT_BOARD_GEOMETRY,
 }: {
   board: RefObject<HTMLDivElement | null>;
   list: RefObject<HTMLDivElement | null>;
@@ -67,6 +71,7 @@ export function useBoardDrag({
   onOpen: (order: PlanningOrder) => void;
   onStart: () => void;
   onChooseScope: (choice: PlanningScopeChoice) => void;
+  geometry?:BoardGeometry;
 }) {
   const state = useRef<Drag | null>(null);
   const [preview, setPreview] = useState<DragPreview | null>(null);
@@ -78,10 +83,11 @@ export function useBoardDrag({
     onOpen,
     onStart,
     onChooseScope,
+    geometry,
   });
   useEffect(() => {
-    callbacks.current = { data, start, pxPerMinute, onSave, onOpen, onStart, onChooseScope };
-  }, [data, start, pxPerMinute, onSave, onOpen, onStart, onChooseScope]);
+    callbacks.current = { data, start, pxPerMinute, onSave, onOpen, onStart, onChooseScope,geometry };
+  }, [data, start, pxPerMinute, onSave, onOpen, onStart, onChooseScope,geometry]);
   useEffect(() => {
     let frame = 0;
     const calculate = () => {
@@ -90,6 +96,7 @@ export function useBoardDrag({
       if (!drag || !el || !drag.active) return;
       const props = callbacks.current,
         r = el.getBoundingClientRect();
+      const {personnelWidth:PERSONNEL_WIDTH,rowHeight:ROW_HEIGHT,headerHeight:HEADER_HEIGHT}=props.geometry;
       const lr = list.current?.getBoundingClientRect();
       drag.list = Boolean(
         lr &&
@@ -341,7 +348,7 @@ export function useBoardDrag({
           ? event.clientX -
             (r.left +
               el.clientLeft +
-              PERSONNEL_WIDTH +
+              geometry.personnelWidth +
               logicalLeft -
               el.scrollLeft)
           : 0,

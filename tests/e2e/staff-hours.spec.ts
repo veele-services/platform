@@ -6,7 +6,7 @@ import { authenticateStaff } from "./staff-auth";
 
 async function capture(page: Page, info: TestInfo, name: string) {
   await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked", "true");
-  await expect(page.locator(".ps-top-actions .icon-button").first()).toBeVisible();
+  await expect(page.getByRole("button",{name:/^Profielmenu van /})).toBeVisible();
   await expect(page.locator(".ps-topbar-leading .ps-sync.current")).toBeVisible();
   await page.evaluate(async () => { await document.fonts.ready; });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -17,14 +17,16 @@ test("Mijn uren toont dagtotalen en weeknavigatie zonder fictieve registraties",
   await authenticateStaff(page, "field-worker@fieldgrid.test", "/staff?tab=uren");
   await expect(page.getByRole("heading", { name: "Mijn uren", exact: true })).toBeVisible();
   const metrics = page.getByLabel("Geregistreerde dagtotalen");
-  await expect(metrics.locator("strong")).toHaveText(["0 min", "0 min", "0 min"]);
-  await expect(page.getByRole("button", { name: "Werkdag afsluiten", exact: true })).toBeDisabled();
+  await expect(metrics.locator("strong")).toHaveText(["0u 00m", "0u 00m", "0"]);
+  await expect(page.getByRole("button", { name: "Werkdag starten", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button",{name:"Correctie aanvragen",exact:true})).toBeDisabled();
+  await page.getByText("Registraties en urenbeoordeling",{exact:true}).click();
   await expect(page.getByRole("button", { name: "Correctie doorgeven", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Uren akkoord geven", exact: true })).toBeDisabled();
   const week = page.locator(".ps-hours-week-panel");
   const current = week.getByRole("button", { name: "Terug naar huidige week", exact: true });
   await expect(current).toBeDisabled();
-  await week.getByRole("button", { name: "Vorige week", exact: true }).click();
+  await week.getByRole("button", { name: "Vorige week in registraties", exact: true }).click();
   await expect(current).toBeEnabled();
   await expect(week.getByRole("heading", { name: "Weekoverzicht", exact: true })).toBeVisible();
   await current.click();
@@ -54,7 +56,9 @@ test("dagtotalen, afsluiten, akkoord en correctie gebruiken echte eigen registra
       await db.query("insert into public.time_entries(id,tenant_id,personnel_id,kind,starts_at,ends_at) values($1,$2,$3,$4,($5::date+$6::time) at time zone 'Europe/Amsterdam',($5::date+$7::time) at time zone 'Europe/Amsterdam')", [ids[index], tenant, id, kind, day, start, end]);
     }
     await authenticateStaff(page, "field-worker@fieldgrid.test", "/staff?tab=uren");
-    await expect(page.getByLabel("Geregistreerde dagtotalen").locator("strong")).toHaveText(["2 u 42 min", "1 u 30 min", "30 min"]);
+    await expect(page.getByLabel("Geregistreerde dagtotalen").locator("strong")).toHaveText(["2u 42m", "2u 42m", "0"]);
+    await expect(page.locator(".portal-demo-hours")).toContainText("0u 15m");
+    await page.getByText("Registraties en urenbeoordeling",{exact:true}).click();
     await expect(page.locator(".ps-hours-break")).toContainText("15 min");
     await expect(page.locator(".ps-hours-week-total strong")).toHaveText("2 u 42 min");
     await expect(page.getByRole("button", { name: "Uren akkoord geven", exact: true })).toBeDisabled();
@@ -74,7 +78,7 @@ test("dagtotalen, afsluiten, akkoord en correctie gebruiken echte eigen registra
     await dialog.getByRole("button", { name: "Correctieverzoek indienen", exact: true }).click();
     await expect(dialog).toBeHidden();
     await expect(page.locator(".ps-hours-day .ps-status")).toHaveText("Correctie in behandeling");
-    await expect(page.getByLabel("Geregistreerde dagtotalen").locator("strong")).toHaveText(["2 u 42 min", "1 u 30 min", "30 min"]);
+    await expect(page.getByLabel("Geregistreerde dagtotalen").locator("strong")).toHaveText(["2u 42m", "2u 42m", "1"]);
     const stored = await db.query("select round(extract(epoch from (ends_at-starts_at))/60)::int minutes from public.time_entries where id=$1", [ids[0]]);
     expect(stored.rows[0].minutes).toBe(90);
     expect((await db.query("select state from public.staff_day_reviews where tenant_id=$1 and personnel_id=$2 and day=$3", [tenant, id, day])).rows[0].state).toBe("confirmed");

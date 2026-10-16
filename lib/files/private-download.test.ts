@@ -51,11 +51,11 @@ vi.mock("@/lib/work-orders/report-rpc", () => ({ reportRpc: async (_db: unknown,
 } }));
 vi.mock("@/lib/work-orders/report-pdf", () => ({ renderWorkOrderReportPdf: async () => { await Promise.resolve(); state.onRender(); return bytes; } }));
 import { downloadDossierDocument } from "@/lib/dossiers/download";
-import { GET as customerFile } from "@/app/api/customer-files/[kind]/[id]/route";
-import { GET as objectFile } from "@/app/api/files/object-document/[id]/route";
-import { GET as attachmentFile } from "@/app/api/files/attachment/[id]/route";
-import { GET as commercialFile } from "@/app/api/files/commercial/[id]/route";
-import { GET as reportFile } from "@/app/api/files/work-order-report/[id]/route";
+import { GET as customerFile } from "@/app/(workspace)/api/customer-files/[kind]/[id]/route";
+import { GET as objectFile } from "@/app/(workspace)/api/files/object-document/[id]/route";
+import { GET as attachmentFile } from "@/app/(workspace)/api/files/attachment/[id]/route";
+import { GET as commercialFile } from "@/app/(workspace)/api/files/commercial/[id]/route";
+import { GET as reportFile } from "@/app/(workspace)/api/files/work-order-report/[id]/route";
 import { assertPrivateFile } from "./private-download";
 
 const request = (query = "") => new Request(`https://tenant.staging.fieldgrid.nl/api/files/${id}${query}`);

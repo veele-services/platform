@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell } from "lucide-react";
-import { loadNotificationAccess } from "@/app/notifications/actions";
+import { loadNotificationAccess } from "@/app/(workspace)/notifications/actions";
 import { notificationPaths, type NotificationWorkspace } from "@/lib/notifications/model";
 
 export function NotificationNavigation({ workspace, actorKey, className }: { workspace: NotificationWorkspace; actorKey: string; className?: string }) {

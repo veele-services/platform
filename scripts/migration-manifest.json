@@ -691,6 +691,206 @@
       "version": "20261010100100",
       "name": "knowledge_base_articles",
       "sha256": "03d307cde03347afcf44bd41162950ff8f6c41c23a8c5df1fe2ce371a7498d0b"
+    },
+    {
+      "version": "20261014223057",
+      "name": "platform_crm",
+      "sha256": "70713f92473a2df955965679f598512d1c83af590a134ddf24aa372851f59910"
+    },
+    {
+      "version": "20261014230819",
+      "name": "platform_crm_projections",
+      "sha256": "4cee6d993009ed644cd64d11ea3a575209c74a58a5475a2b3cbd157180485de8"
+    },
+    {
+      "version": "20261014232508",
+      "name": "platform_crm_concurrency_guards",
+      "sha256": "e65e068e1493afb09fa6365195e356ae4c6f136917df3ab5119afea01f064f31"
+    },
+    {
+      "version": "20261014233637",
+      "name": "platform_crm_notification_identity",
+      "sha256": "d99b980f56cd93660082963acc121592c1660ada7ece20c4b8d8a3df6e3a6ce4"
+    },
+    {
+      "version": "20261014234244",
+      "name": "management_cockpit_followup",
+      "sha256": "b14c6ff5139a22e981ff5b89ec8b7dcf07cc9aa6bf27e18534464d11e8e4a0f0"
+    },
+    {
+      "version": "20261015001038",
+      "name": "platform_primary_administrator",
+      "sha256": "7adb7a16ee1d01a514f3a96a7c9aafcc5c877280c1e571067086ec7de2ac7319"
+    },
+    {
+      "version": "20261015002001",
+      "name": "management_governance",
+      "sha256": "545714bea8d9a61109ba8b83f2d2efb110545e0348b2509cbcb60b93f29a590c"
+    },
+    {
+      "version": "20261015005238",
+      "name": "management_history_scope_guards",
+      "sha256": "049e344430f76e040db698a9d3181de2f50ecd3616194afa48a06acf30d0deb6"
+    },
+    {
+      "version": "20261015010921",
+      "name": "management_atomic_revisions",
+      "sha256": "84f507aaee781a965d84407887a9b45cbe622bee2be514bf641f3af9b7f35625"
+    },
+    {
+      "version": "20261015012307",
+      "name": "management_linked_action_history",
+      "sha256": "25825cd83aec4438b1afd9ca83d5045c7b76dd6e2edd59de82f1c8a547643996"
+    },
+    {
+      "version": "20261015014148",
+      "name": "management_service_levels",
+      "sha256": "e4720a2736cdb0a73aa14338a7f92fd8427d4f683a8be99cb6d953bdb44f8a3d"
+    },
+    {
+      "version": "20261015024957",
+      "name": "management_service_contract_revalidation",
+      "sha256": "40a6935b8e2198386f737b8d9f7ed86476d7633d0e35bc2b694e419f1e5fc030"
+    },
+    {
+      "version": "20261015033925",
+      "name": "management_source_cursor_lock_order",
+      "sha256": "a7d98a6eaf4ea20e750134f4b3512a598e44d24e156e059dd62c17f118b66b0c"
+    },
+    {
+      "version": "20261015033956",
+      "name": "management_finance_control",
+      "sha256": "8e911f96336833d365749a8fca22144d066729312ef3a3b2e1900c3359a9a429"
+    },
+    {
+      "version": "20261015042634",
+      "name": "management_price_indexation",
+      "sha256": "e31220e4813e8b67cf5bf3156c51a58621b8265e8dce8f3ee08e92026beff602"
+    },
+    {
+      "version": "20261015042842",
+      "name": "management_indexation_permissions",
+      "sha256": "789e0c44fef8b158ff819df35bdf11c8d3011f0221433d5bc9843da4a4698289"
+    },
+    {
+      "version": "20261015043536",
+      "name": "management_indexation_source_selection",
+      "sha256": "98ee506514fad344aedfe5ef077f551001b7da37f59243eac83f03e1dc9ba1b4"
+    },
+    {
+      "version": "20261015043741",
+      "name": "management_indexation_source_qualification",
+      "sha256": "bc34393481af3bcebb0a67ee9bbdb67a6c756e1825ede589340d7fe400bf5e1d"
+    },
+    {
+      "version": "20261015052242",
+      "name": "management_report_snapshots",
+      "sha256": "b0c6ec2e300e48799535d9502faa4bee1031a39e34cda5f23077c4cfc7dc11df"
+    },
+    {
+      "version": "20261015052311",
+      "name": "management_report_permissions",
+      "sha256": "e27ea8280b26cc61bf6249bbad89d3603ddac6a6b9745c05c7cea183ee97c2b0"
+    },
+    {
+      "version": "20261015052540",
+      "name": "management_report_actor_identity",
+      "sha256": "31d9a7e5044c44253b7154ebdb108a91807d08e383861c38297f5f37cd7270e0"
+    },
+    {
+      "version": "20261015052558",
+      "name": "management_report_actor_provenance",
+      "sha256": "d236ffc884558b3a5fe510556a55aab412983eef8b896652b8c211fcb08d73c8"
+    },
+    {
+      "version": "20261015063416",
+      "name": "management_overview",
+      "sha256": "d4b516b4054f132b681dbbc2bdd8ca1f58c724f3afadf2487430fe6818833132"
+    },
+    {
+      "version": "20261015063448",
+      "name": "management_overview_permissions",
+      "sha256": "5295baa0f69a1293797aa2cea027e3be6b88a17e797603fdaa6f1acdaf59dc2e"
+    },
+    {
+      "version": "20261015071506",
+      "name": "management_entity_sources",
+      "sha256": "87d8f8e0e1ef821e83359e3a78c0c194754d007179e5b6f1811443dbfe3251cf"
+    },
+    {
+      "version": "20261015071733",
+      "name": "management_entity_permissions",
+      "sha256": "f2738ca9e4f13a3acf6813895e8b5a44580e256e685458e42697451aeb00f76b"
+    },
+    {
+      "version": "20261015083458",
+      "name": "report_rls_guard_execution",
+      "sha256": "e1191c8c4fbe8e3b958af6d7155dfc541256598a2d3d4c335a5af62e0abcb2ed"
+    },
+    {
+      "version": "20261015094130",
+      "name": "source_commercial_all_dossiers",
+      "sha256": "f9969e6e13eb4ddf4610bc7244a5801caff2c3bec4603e18ef704dc34d1fea5a"
+    },
+    {
+      "version": "20261015114859",
+      "name": "source_report_review_list",
+      "sha256": "2565d9f1bd6fb37494e2ad4253c4cdc35e8332e6c268118360df814081e61c82"
+    },
+    {
+      "version": "20261015115023",
+      "name": "source_report_review_permissions",
+      "sha256": "c283e5cdddd33928cb01402d55f082adb119b2690f38d883a539b8fa90a1f756"
+    },
+    {
+      "version": "20261015124733",
+      "name": "source_invoice_list",
+      "sha256": "51fec1fa1f6baab13b7b95337604502c4d99ee6e9dbd23f41482d9c4215339db"
+    },
+    {
+      "version": "20261015125054",
+      "name": "source_invoice_permissions",
+      "sha256": "092c7944e21305e5ff5287fab96e782273695d564029e33d73d9bbabb5f294d5"
+    },
+    {
+      "version": "20261015131558",
+      "name": "source_invoice_overdue_state",
+      "sha256": "d09dc481e296cf930c19f124727da567de51cd1b95b4ad21f621071fae2e3876"
+    },
+    {
+      "version": "20261015152015",
+      "name": "source_management_seed_entity_access",
+      "sha256": "ec0d1cfc515924c03739ba2a719418143bcd69d7d0f82e1009e1aa33d622f6d7"
+    },
+    {
+      "version": "20261015181959",
+      "name": "platform_tenant_lifecycle",
+      "sha256": "5232e897969fcc44da434f5c6ca8260d59cb1250b015b4d802b10f0a785ef5be"
+    },
+    {
+      "version": "20261015185629",
+      "name": "platform_tenant_onboarding_source",
+      "sha256": "faf5829f7b8a87aa3671a1f89de1a48a67c174ba40858d55fd7efd3715cbc5a7"
+    },
+    {
+      "version": "20261015190549",
+      "name": "platform_source_template_revisions",
+      "sha256": "30d1197a6ca7bf32b145fbc859c9b760ad18204217c1be546ac42a19177961fa"
+    },
+    {
+      "version": "20261015220720",
+      "name": "customer_profile_optional_company_number",
+      "sha256": "d099c735c8eaec9a1c0350809fbee250a6cd894f3a3970517cfddb978fc48b3e"
+    },
+    {
+      "version": "20261015230842",
+      "name": "portal_information_guides",
+      "sha256": "966937937764c7f5be14ea56661db8e815cc69ca2f4948a819dfc95e698f4ec8"
+    },
+    {
+      "version": "20261016001315",
+      "name": "crm_notification_retry_parameter",
+      "sha256": "449f1015478c0abfe732aaff98cf1ad5ec24124ddf698cab73c266925b6d6d30"
     }
   ]
 }

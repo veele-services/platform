@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "six-supplied-wizard-stages-real-validation-slug-generation-module-dependencies-and-review",
+    "real-provision-auth-invitation-and-lost-response-retry-create-one-tenant-owner-binding-and-email",
+    "source-template-layout-current-tenant-tokens-preview-native-publish-and-draft-navigation-guard",
+    "native-template-revision-conflict-keeps-draft-explicit-current-reload-and-default-reset",
+    "actual-mail-invitation-confirmation-then-real-OTP-gives-only-the-new-tenant-owner-workspace"
+  ],
+  "browserErrors": [],
+  "capture": true,
+  "viewed": true
+}

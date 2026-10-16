@@ -32,3 +32,9 @@
 .nt-detail-close { position:absolute; top:12px; right:12px; width:32px; height:32px; min-height:32px; padding:0; }
 /* Keep the permissions card joined to its index-card tabs after frame theming. */
 body .fg-tabbed-content > .nt-panel.nt-permissions { border-top-left-radius:0; }
+
+/* Preserve the source inbox order; additional native administration follows it. */
+.sites-cockpit .nt-platform{display:block}
+.sites-cockpit .nt-platform>.page-intro{margin-bottom:24px}
+.sites-cockpit .nt-platform>.panel{margin:0}
+.sites-cockpit .nt-platform>.sites-platform-extra{margin-top:24px}

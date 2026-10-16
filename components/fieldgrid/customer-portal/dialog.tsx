@@ -4,13 +4,15 @@ import { GuideBanner, GuideForTitle } from "@/components/fieldgrid/guides/guide"
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { ActionIcon } from "../action-icon";
+import {useSourcePortal} from "../portals/context";
+import {SourceNativeDialog} from "../source-native-dialog";
 
 /** Native top-layer dialog keeps the rest of the page inert, including keyboard
  * focus. Its dimensions/scrolling mirror the supplied fixed-frame prototype. */
 export function CustomerDialog({ title, kicker, description, children, footer, close, dirty=false, busy=false, guideKey }: {
  guideKey?:string;title:string;kicker:string;description?:string;children:ReactNode;footer?:ReactNode;close:()=>void;dirty?:boolean;busy?:boolean;
 }) {
- const dialog=useRef<HTMLDialogElement>(null),titleId=useId(),descriptionId=useId();
+ const source=useSourcePortal(),dialog=useRef<HTMLDialogElement>(null),titleId=useId(),descriptionId=useId();
  const dismiss=()=>{if(!busy&&(!dirty||window.confirm("Je wijzigingen zijn nog niet opgeslagen. Wil je het venster toch sluiten?")))close();};
  useEffect(()=>{
   const element=dialog.current;if(!element)return;
@@ -24,6 +26,7 @@ export function CustomerDialog({ title, kicker, description, children, footer, c
   const warn=(event:BeforeUnloadEvent)=>event.preventDefault();window.addEventListener("beforeunload",warn);
   return()=>window.removeEventListener("beforeunload",warn);
  },[dirty]);
+ if(source)return <SourceNativeDialog title={title} eyebrow={kicker} description={description??''} onClose={close} dirty={dirty} busy={busy} sourceForm footer={footer}>{children}</SourceNativeDialog>;
  return <dialog ref={dialog} data-customer-dialog aria-labelledby={titleId} aria-describedby={description?descriptionId:undefined}
   onCancel={event=>{event.preventDefault();dismiss();}}
   onClick={event=>{if(event.target!==event.currentTarget)return;const bounds=event.currentTarget.getBoundingClientRect();

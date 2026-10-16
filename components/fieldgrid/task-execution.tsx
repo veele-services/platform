@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import type { Row } from "@/lib/objects/model";
-import { assignWorkOrderTask, getTaskCollaboration, recordTaskExecution, type TaskCollaboration } from "@/app/app/dossier-actions";
+import { assignWorkOrderTask, getTaskCollaboration, recordTaskExecution, type TaskCollaboration } from "@/app/(workspace)/app/dossier-actions";
 import { billingStatus, executionLabels } from "@/lib/dossiers/status";
 import { ObjectForm } from "./objects/forms";
 type ExecutionTask = Pick<Row<"work_order_tasks">,

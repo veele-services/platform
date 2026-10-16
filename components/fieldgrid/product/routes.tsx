@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { productSnapshot, getProductActor } from "@/lib/product/data";
@@ -9,12 +8,10 @@ import { getPlanningShellData } from "@/lib/planning/data";
 import { getCustomerPortal } from "@/lib/customer-portal/data";
 import { BackofficeShell } from "../backoffice-shell";
 import { StaffRouteShell } from "../staff/route-shell";
-import { FieldgridBrand } from "../brand";
-import { TenantThemeProvider } from "../tenant-theme";
-import { AccountMenu } from "../account-menu";
-import { brandThemeStyle } from "@/lib/branding/palette";
 import { createClient } from "@/lib/supabase/server";
 import { ProductHub } from "./hub";
+import {customerContentHref} from "@/lib/customer-portal/content-href";
+import {CustomerInformationShell} from "../customer-portal/shell";
 import type { ProductWorkspace } from "@/lib/product/model";
 import "./product.css";
 export async function ProductPage({
@@ -25,6 +22,8 @@ export async function ProductPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const raw = await searchParams;
+  const account=workspace==="customer"?z.uuid().optional().safeParse(raw.account):{success:true as const,data:undefined};
+  if(!account.success)notFound();
   let selection:
     | {
         section: ProductSection;
@@ -48,7 +47,7 @@ export async function ProductPage({
   } = await db.auth.getUser();
   if (!user)
     redirect(
-      `/login?next=${encodeURIComponent(workspace === "platform" ? "/platform/productbeheer" : workspace === "backoffice" ? "/app/updates" : workspace === "staff" ? "/staff/updates" : "/klant/updates")}`,
+      `/login?next=${encodeURIComponent(workspace === "platform" ? "/platform/productbeheer" : workspace === "backoffice" ? "/app/updates" : workspace === "staff" ? "/staff/updates" : customerContentHref("/klant/updates",account.data))}`,
     );
   let snapshot: Awaited<ReturnType<typeof productSnapshot>>;
   try {
@@ -82,50 +81,16 @@ export async function ProductPage({
         context={{ ...context, tenant: context.tenant }}
         data={await getPlanningShellData(context.tenant.id)}
         initialView="updates"
+        presentation="sites-management"
       >
         {content}
       </BackofficeShell>
     );
   }
-  return <CustomerProductFrame>{content}</CustomerProductFrame>;
+  return <CustomerProductFrame account={account.data}>{content}</CustomerProductFrame>;
 }
-export async function CustomerProductFrame({ children }: { children: ReactNode }) {
-  const [identity, actor] = await Promise.all([
-    getCustomerPortal(),
-    getProductActor("customer"),
-  ]);
-  const workspace = identity.workspace;
-  if (!workspace) redirect("/klant");
-  const tenant = workspace.tenant;
-  return (
-    <TenantThemeProvider
-      primary={tenant.primaryColor}
-      accent={tenant.accentColor}
-    >
-      <div style={brandThemeStyle(tenant.primaryColor, tenant.accentColor)}>
-        <header className="product-customer-header">
-          <FieldgridBrand
-            tenantName={tenant.name}
-            logoUrl={
-              tenant.hasLogo
-                ? `/api/branding/${actor.tenantId}/email-logo`
-                : null
-            }
-          />
-          <nav>
-            <Link href="/klant">Mijn klantomgeving</Link>
-            <Link href="/klant/kennisbank">Kennisbank</Link>
-            <Link href="/klant/notificaties">Notificaties</Link>
-            <AccountMenu
-              name={workspace.profile.fullName}
-              email={workspace.profile.email}
-              role="Klant"
-              profileHref="/klant?view=profile"
-            />
-          </nav>
-        </header>
-        <main className="product-customer-shell">{children}</main>
-      </div>
-    </TenantThemeProvider>
-  );
+export async function CustomerProductFrame({children,active="updates",account}:{children:ReactNode;active?:"knowledge"|"updates";account?:string}) {
+ const [identity,actor]=await Promise.all([getCustomerPortal(account),getProductActor("customer")]);
+ const workspace=identity.workspace;if(!workspace||!actor.tenantId)redirect("/klant");
+ return <CustomerInformationShell workspace={workspace} tenantId={actor.tenantId} active={active}>{children}</CustomerInformationShell>;
 }

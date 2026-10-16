@@ -1,0 +1,28 @@
+{
+  "checks": [
+    "actual-platform-module-command-enables-customer-portal-with-existing-entitlement-guard",
+    "native-report-approval-actual-invoice-finalization-scanned-private-PDF-and-central-mail-claim",
+    "real-local-SMTP-OTP-explicit-customer-object-binding-and-management-denial",
+    "supplied-object-form-real-contact-save-and-appended-instruction-history-with-native-CAS",
+    "supplied-visit-form-commits-one-audited-instruction-without-overwriting-visit-history",
+    "source-object-list-and-real-account-bound-planned-visit-details",
+    "source-reports-real-approved-summary-and-protected-native-PDF",
+    "source-invoice-summary-selection-real-scanned-PDF-and-no-fabricated-payment",
+    "source-service-request-saves-in-native-tenant-pipeline",
+    "source-profile-keeps-native-contact-version-and-real-save",
+    "source-customer-knowledge-and-releases-use-actual-published-audience-and-account-links",
+    "source-information-guide-dismissal-persists-for-the-real-customer-account",
+    "actual-customer-object-create-exact-binding-edit-and-audited-fixed-instruction",
+    "real-customer-visit-request-one-concrete-visit-native-management-projection-no-implied-work-or-price-consent",
+    "real-customer-tenant-platform-reviewed-escalation-and-explicit-public-return-with-private-notes-isolated",
+    "central-native-campaign-preview-publication-real-worker-in-app-materialization-own-news-read-and-acknowledgement",
+    "native-email-preferences-reload-explicit-multiple-account-selection-content-navigation-and-revoked-account-no-fallback",
+    "actual-account-menu-profile-navigation-notification-overlay-and-unclipped-mobile-tenant-logo"
+  ],
+  "browserErrors": [],
+  "capture": true,
+  "viewed": false,
+  "remaining": [
+    "live-provider-payment"
+  ]
+}

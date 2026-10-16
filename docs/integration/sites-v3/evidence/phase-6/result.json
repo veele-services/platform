@@ -1,0 +1,17 @@
+{
+  "tenant": "66626a9d-4252-4bae-81e4-6f0a511169cf",
+  "report": "16b6aaa9-4aa5-4bfc-b2a5-b84fab4ee775",
+  "scheduledReport": "08b4fe27-a607-46a3-93dc-20b203035cb8",
+  "checks": [
+    "real-auth-SSR",
+    "source-overview-and-archive-3-widths",
+    "immutable-snapshot",
+    "deterministic-PDF",
+    "browser-download",
+    "reload",
+    "owner-schedule",
+    "real-worker-central-request",
+    "anonymous-origin-revocation"
+  ],
+  "browserErrors": []
+}

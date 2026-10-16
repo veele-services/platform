@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition, type ComponentProps } from "react";
 import Link from "next/link";
 import { RefreshCw, FileText, History, ExternalLink, ArrowDownAZ, ArrowUpAZ } from "lucide-react";
-import { getDossierChain, saveCustomerAgreement } from "@/app/app/dossier-actions";
+import { getDossierChain, saveCustomerAgreement } from "@/app/(workspace)/app/dossier-actions";
 import { actionLabels, executionLabels, requestStatus, commercialStatus, isClosedAction } from "@/lib/dossiers/status";
 import type { ChainScope, DossierChain, Agreement, ChainAction } from "@/lib/dossiers/model";
 import type { WorkspaceData } from "@/lib/data/workspace";

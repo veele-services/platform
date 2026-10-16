@@ -1,0 +1,76 @@
+{
+  "runtimeCommit": "d4278440a9adc477ee35e32f595696bb2a13d9e6",
+  "implemented": true,
+  "locallyTested": true,
+  "deployed": false,
+  "liveVerified": false,
+  "nativeDatabase": {
+    "passed": 53,
+    "failed": 0,
+    "scripts": [
+      "test-knowledge-base.mjs",
+      "test-product-management.mjs",
+      "test-notification-delivery.mjs"
+    ]
+  },
+  "wholeUnitSuite": {
+    "passed": 1938,
+    "filesPassed": 200,
+    "failed": 0
+  },
+  "coldProductionBuild": {
+    "compiled": true,
+    "typescript": true,
+    "generatedPages": 106
+  },
+  "actualStandalonePackaging": {
+    "ownServerJs": true,
+    "browserChainPassed": true,
+    "sharedFilterRegressionPassed": true,
+    "deploymentAttestation": false
+  },
+  "schemaChanges": false,
+  "viewedComparisons": [
+    "news-source-1440.png",
+    "news-source-768.png",
+    "news-source-390.png",
+    "news-target-1440.png",
+    "news-target-768.png",
+    "news-target-390.png",
+    "knowledge-source-1440.png",
+    "knowledge-source-768.png",
+    "knowledge-source-390.png",
+    "knowledge-target-1440.png",
+    "knowledge-target-768.png",
+    "knowledge-target-390.png",
+    "updates-source-1440.png",
+    "updates-source-768.png",
+    "updates-source-390.png",
+    "updates-target-1440.png",
+    "updates-target-768.png",
+    "updates-target-390.png",
+    "news-dialog-source-1440.png",
+    "news-dialog-source-768.png",
+    "news-dialog-source-390.png",
+    "news-dialog-target-1440.png",
+    "news-dialog-target-768.png",
+    "news-dialog-target-390.png",
+    "knowledge-dialog-source-1440.png",
+    "knowledge-dialog-source-768.png",
+    "knowledge-dialog-source-390.png",
+    "knowledge-dialog-target-1440.png",
+    "knowledge-dialog-target-768.png",
+    "knowledge-dialog-target-390.png",
+    "updates-dialog-source-1440.png",
+    "updates-dialog-source-768.png",
+    "updates-dialog-source-390.png",
+    "updates-dialog-target-1440.png",
+    "updates-dialog-target-768.png",
+    "updates-dialog-target-390.png",
+    "native-full-article-1440.png",
+    "native-update-expanded-390.png"
+  ],
+  "comparisonBoundary": "main.backoffice-content and dialog; shell remains T17",
+  "necessaryIntegrationDifferences": "See phase-16.md",
+  "externalMailDelivery": "Not exercised or claimed"
+}

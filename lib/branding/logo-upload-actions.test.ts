@@ -17,8 +17,8 @@ vi.mock("@/lib/files/scanned-storage", () => ({ uploadScannedFile: mocks.upload 
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => database() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => database() }));
 
-import { uploadPlatformTenantLogo } from "@/app/platform/actions";
-import { uploadTenantLogo } from "@/app/app/operations-actions";
+import { uploadPlatformTenantLogo } from "@/app/(workspace)/platform/actions";
+import { uploadTenantLogo } from "@/app/(workspace)/app/operations-actions";
 
 const tenantId = "10000000-0000-4000-8000-000000000001";
 const actorId = "10000000-0000-4000-8000-000000000002";

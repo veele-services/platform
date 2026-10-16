@@ -4,6 +4,38 @@ Alle relevante wijzigingen aan Fieldgrid worden in dit bestand vastgelegd.
 
 ## Nog niet uitgebracht
 
+## 1.2.0-rc.1 — kandidaat
+
+- Signature Grid-presentatie uit overdracht v3 voor de publieke Fieldgrid-site,
+  platformbeheer, tenantmanagement en de personeels- en klantportalen.
+- Expliciete marketinghostroutering voor `www.fieldgrid.nl`, met gescheiden
+  publieke productuitleg en privéplatformbeheer; de bestaande APP_URL en
+  tenantdomeinen blijven leidend voor hun eigen werkruimte.
+- Werkelijk platform-CRM: pipeline, blijvende websiteaanvragen, dossiers,
+  opvolgtaken, telefonische afspraken en instelbare beschikbaarheid.
+  Beheerdersmeldingen gebruiken de bestaande primaire beheerregistratie en
+  centrale notificatiepolicy, outbox, worker en SendGrid-service.
+- Managementoverzicht en bronvensters voor opvolging, compliance, besluiten,
+  SLA, facturatie, indexatie en weekrapporten, op bestaande native registraties
+  en actuele, afzonderlijke toegangsrechten.
+- Bronvensters en responsive portalweergaven met behoud van toegewezen werk,
+  urencontrole, privébestanden, rapportversies, facturen, klantbinding en de
+  beoordeelde ticketoverdracht van medewerker/klant via tenant naar Fieldgrid.
+- Herstel van verloren/onzekere responses, de CRM-filterrace, optionele lege
+  KvK-opslag, mobiele dialoogbediening en de expliciet geautoriseerde CRM-mailretry.
+- Tenantgebonden inlogredirects en PWA-branding, werkende private PDF-voorbeelden,
+  vaste formulieracties en aangesloten dossiertabbladen in de bronvensters.
+  Ticketuploads behouden hun exacte origincontrole; de lokale tenant-testhost
+  wordt afzonderlijk van HTTPS op staging en productie behandeld.
+- De statuslegenda op het planbord blijft open bij klikken na aanwijzen en
+  behoudt de bestaande bediening met Escape en buiten klikken.
+
+Dit is een releasekandidaat. Lokale implementatie en tests betekenen geen
+productiepublicatie, externe bezorging of liveacceptatie. De volledige
+[scopecheck](docs/integration/sites-v3/screen-register.json) houdt die statussen
+afzonderlijk bij. Definitieve publieke bedrijfs-/privacygegevens en de normale
+review-, staging- en productieacceptatie blijven afzonderlijke stappen.
+
 ## 1.1.0 - 2026-10-14
 
 Deze release bundelt de op staging gecontroleerde kandidaten `1.1.0-rc.1`

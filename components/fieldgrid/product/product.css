@@ -472,3 +472,10 @@
     font-size: 16px;
   }
 }
+
+/* The supplied platform page owns its heading-to-panel rhythm. The native
+   management accordion remains below the two source panels. */
+.sites-cockpit .sites-platform-product{display:block}
+.sites-cockpit .sites-platform-product>.page-intro{margin-bottom:24px}
+.sites-cockpit .sites-platform-product>.panel{margin:0 0 24px}
+.sites-cockpit .sites-platform-product .ed-record{font-weight:600}

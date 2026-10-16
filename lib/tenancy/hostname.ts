@@ -4,6 +4,7 @@ export const REQUEST_PATH_HEADER = "x-fieldgrid-pathname";
 
 export type HostContext =
   | { kind: "platform"; hostname: string }
+  | { kind: "marketing"; hostname: string }
   | { kind: "tenant"; hostname: string; slug: string }
   | { kind: "invalid"; hostname: string | null };
 
@@ -25,6 +26,12 @@ export function resolveHostContext(rawHost: string | null, appUrl: string, deplo
   const platformHostname = new URL(appUrl).hostname.toLowerCase();
   if (hostname === platformHostname) return { kind: "platform", hostname };
 
+  // Reserved before tenant resolution: www product pages and private platform
+  // administration share paths, but never their host or authorization scope.
+  if (hostname === `www.${platformHostname}` || (deployTarget === "local" && hostname === "www.localhost")) {
+    return { kind: "marketing", hostname };
+  }
+
   if (deployTarget === "local" && (hostname === "localhost" || hostname === "127.0.0.1")) {
     return { kind: "platform", hostname };
   }
@@ -38,7 +45,7 @@ export function resolveHostContext(rawHost: string | null, appUrl: string, deplo
 }
 
 export function tenantAppUrl(slug: string, pathname = "/app"): string {
-  if (!tenantSlugPattern.test(slug)) throw new Error("Ongeldige tenantslug");
+  if (!tenantSlugPattern.test(slug) || slug === "www") throw new Error("Ongeldige tenantslug");
   const appUrl = new URL(process.env.APP_URL!);
   if ((process.env.DEPLOY_TARGET ?? "local") !== "local") appUrl.hostname = `${slug}.${appUrl.hostname}`;
   if (!pathname.startsWith("/") || pathname.startsWith("//") || pathname.includes("\\")) throw new Error("Ongeldig tenantpad");

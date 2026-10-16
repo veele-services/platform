@@ -1,0 +1,20 @@
+▶ Platform CRM: real transactions, snapshots, calendar, rights, policy and central delivery
+  ✔ only live registered platform administrators can read or command, never support-only (106.148007ms)
+  ✔ trial records one lead, immutable request, task, history and tenantless outbox atomically; retries are idempotent (62.05429ms)
+  ✔ forged owner/provider fields, missing phone and invalid slots fail without partial records (17.470139ms)
+  ✔ calendar slots, overlap and failed rescheduling preserve the original booking; cancellation reopens the slot (43.035205ms)
+  ✔ Amsterdam spring gap and autumn overlap round-trip to unambiguous UTC instants (3.08696ms)
+  ✔ revision conflicts and duplicate commands are tested at the database boundary (36.534592ms)
+  ✔ server pages keep full-selection counts, snapshot search and independently paged dossiers (65.673083ms)
+  ✔ calendar wall-clock stepping and closing boundary agree with booking validation (7.511334ms)
+  ✔ central queue prepares a platform delivery, respects opt-out and freezes the primary registered recipient (18.506477ms)
+  ✔ CRM notification body and mutations disappear after registry revocation even when general inbox rights remain (127.317583ms)
+✔ Platform CRM: real transactions, snapshots, calendar, rights, policy and central delivery (1576.593162ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1650.786564

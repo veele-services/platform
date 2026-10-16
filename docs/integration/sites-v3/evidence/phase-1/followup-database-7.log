@@ -1,0 +1,16 @@
+▶ Management cockpit preserves source authority, deadlines and tenant/HR boundaries
+  ✔ fresh management only, no portal/cross-tenant access or direct private-table grants (177.503619ms)
+  ✔ new action is committed once and points to an authorized real source (143.893396ms)
+  ✔ assign, snooze, complete and reopen preserve the original deadline and immutable events (322.027168ms)
+  ✔ source assignments update the actual dossier owner without faking execution or changing its deadline (300.179796ms)
+  ✔ HR action metadata stays protected independently of general follow-up access (346.101903ms)
+  ✔ source, function and session revocation remove the same existing action (87.638552ms)
+✔ Management cockpit preserves source authority, deadlines and tenant/HR boundaries (2516.326036ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2590.686483

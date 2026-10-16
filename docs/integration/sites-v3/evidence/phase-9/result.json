@@ -1,0 +1,15 @@
+{
+  "tenant": "d1697307-fb18-4201-9c5e-55b1cff82a8e",
+  "createdObject": "063766c2-3eea-44b1-8bab-4425637bfa32",
+  "document": "a283cb83-b067-46bd-acde-fbb041a6c817",
+  "checks": [
+    "real-auth-native-records",
+    "source-list-detail-three-widths",
+    "real-scanned-object-file",
+    "native-object-edit-reload",
+    "native-eight-step-create-location-nodes",
+    "filters-native-archive-history",
+    "revoked-work-scope"
+  ],
+  "browserErrors": []
+}

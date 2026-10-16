@@ -1,0 +1,21 @@
+{
+  "tenant": "efbc82e2-8cf7-405f-91cb-a328e1643918",
+  "service": "eb39d00d-bb86-4a38-8135-29a6bb7c514d",
+  "ticket": "1723422b-563d-4a4a-bf34-706ba347c9b3",
+  "checks": [
+    "real-auth-SSR",
+    "two-tabs-3-widths",
+    "contract-norm-create-revise",
+    "native-response",
+    "native-pause-resume",
+    "native-resolution",
+    "native-ticket-source",
+    "anonymous-origin-revocation"
+  ],
+  "browserErrors": [],
+  "viewed": true,
+  "viewedFiles": [
+    "service-editor-1440.png",
+    "ticket-clock-resolved-1440.png"
+  ]
+}

@@ -1,0 +1,45 @@
+▶ platform onboarding and derived capabilities respect original identity and revocation
+  ✔ new provisioning and identical retries return exactly one tenant without silent actor membership (22.919113ms)
+  ✔ same key with changed owner, name or tenant identity is rejected before membership or Auth side effects (17.787756ms)
+  ✔ canonical retries survive reordered modules, case normalization and later branding changes (8.004608ms)
+  ✔ one atomic recipient binding, completed retry never restores revoked or deleted membership (183.244427ms)
+  ✔ bootstrap support and notification capabilities cease when the platform role is removed (71.445837ms)
+  ✔ raw platform-role lookup honors the live session boundary (9.915129ms)
+✔ platform onboarding and derived capabilities respect original identity and revocation (1587.35511ms)
+✔ concurrent local onboarding retries bind once and a late failure cannot undo completion (3301.217342ms)
+✔ platform support operator presets expose shared support only and stop on explicit or role revocation (1429.264369ms)
+▶ platform tenant lifecycle keeps native versions, receipts, current authority and atomic audit
+  ✔ password-only, portal, support and anonymous callers cannot change tenant availability (22.978392ms)
+  ✔ a recent real-session OTP changes the native version and writes one atomic audit (10.302686ms)
+  ✔ lost responses replay exactly, changed input conflicts and stale revisions never overwrite (32.738537ms)
+  ✔ no-op requests preserve version and audit; archive cannot become active (12.051182ms)
+  ✔ current account, session and role revoke even exact receipt replays (19.931781ms)
+✔ platform tenant lifecycle keeps native versions, receipts, current authority and atomic audit (1334.17536ms)
+▶ concurrent local lifecycle requests serialize receipts and recheck stale or revoked access after waiting
+  ✔ identical concurrent requests commit one transition, audit and receipt (72.40507ms)
+  ✔ different concurrent requests using the same revision cannot both mutate (61.488446ms)
+  ✔ an unrelated tenant change while waiting rejects the older configuration version (60.759283ms)
+  ✔ revoking the platform role during a tenant lock wait denies the waiting mutation (60.697437ms)
+✔ concurrent local lifecycle requests serialize receipts and recheck stale or revoked access after waiting (3444.368552ms)
+▶ workspace hosts require platform authority, DNS state, exact environment and an active tenant
+  ✔ authenticated callers, non-admin service actors and reserved hosts cannot register (27.11221ms)
+  ✔ pending hosts remain closed and cannot bind twice or activate before verification (19.686368ms)
+  ✔ verified DNS alone is not routing, active mapping uses exact environment and loses inactive tenant (13.248954ms)
+  ✔ activating replacement keeps one primary, removal immediately closes resolution and creates audit (17.977843ms)
+  ✔ bootstrap platform revocation prevents later service command (3.906582ms)
+✔ workspace hosts require platform authority, DNS state, exact environment and an active tenant (1321.979862ms)
+▶ portal migration backfill preserves entitlement guards and caller context on populated data
+  ✔ old direct-postgres CTE fails 42501; exact repaired block enables only its target once (17.05041ms)
+  ✔ empty prior role and JSON claims are restored after success and retry (11.998002ms)
+  ✔ nonempty prior role and JSON claims survive temporary service context (9.436744ms)
+  ✔ failed audit rolls back the entitlement, audit and temporary role override (19.684417ms)
+  ✔ ordinary authenticated owner still cannot alter platform entitlements (11.210049ms)
+✔ portal migration backfill preserves entitlement guards and caller context on populated data (1222.387607ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6396.594026

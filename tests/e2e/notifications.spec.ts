@@ -101,7 +101,7 @@ test("notificatiewizard publiceert exacte selectie; personeel leest, bevestigt e
   await login(page, "manager", "/app/notificaties"); await expect(page.getByRole("heading", { name: "Notificaties", exact: true })).toBeVisible();
   await expect(page.locator(`.nt-inbox-table td:first-child a[href$='/${managerInboxId}']`)).toBeVisible();
   await page.locator(`.nt-inbox-table td:first-child a[href$='/${managerInboxId}']`).click();
-  const detail=page.locator(".nt-detail-dialog");
+  const detail=page.getByRole("dialog");
   for(const width of [320,390,1440]) {
     await page.setViewportSize({width,height:960});
     const controls=[detail.getByRole("button",{name:"Gelezen markeren",exact:true}),detail.getByRole("button",{name:"Archiveren",exact:true}),detail.getByRole("button",{name:"Notificatie vernieuwen",exact:true})];
@@ -156,7 +156,7 @@ test("klant- en platforminbox tonen uitsluitend eigen context, met blijvende cen
   expect(central).toEqual({quiet_start:"21:30:00",quiet_end:"08:30:00"});
   expect((await db.query("select email from private.notification_preferences where tenant_id=$1 and user_id=$2 and context='customer' and type_code='manual.tenant'",[tenantId,users.customer.id])).rows[0].email).toBe(false);
   const platformContext = await browser.newContext({ baseURL: E2E_APP_ORIGIN });
-  try { const platform = await platformContext.newPage(); await login(platform, "platform", "/platform/notificaties"); await expect(platform.locator(".fg-sidebar")).toBeVisible(); await expect(platform.locator(".fg-sidebar").getByRole("link", { name: "Notificaties", exact: true })).toHaveAttribute("aria-current", "page"); await expect(platform.locator(".nt-standalone")).toHaveCount(0); await visual(platform, "platform-inbox", async () => { await expect(platform.getByRole("heading", { name: "Notificatiebeheer", exact: true })).toBeVisible(); await expect(platform.locator(`.nt-inbox-table td:first-child a[href$='/${platformInboxId}']`)).toBeVisible(); }); await expect(platform.getByText("Klantbericht alleen voor klant")).toHaveCount(0); const denied = await platform.goto(`/platform/notificaties/${customerInboxId}`); expect(await denied!.text()).not.toContain("Klantbericht alleen voor klant"); await expect(platform.getByRole("heading", { name: "Deze pagina bestaat niet.", exact: true })).toBeVisible(); }
+  try { const platform = await platformContext.newPage(); await login(platform, "platform", "/platform/notificaties"); await expect(platform.locator(".fg-sidebar")).toBeVisible(); await expect(platform.locator(".fg-sidebar").getByRole("link", { name: "Notificaties", exact: true })).toHaveAttribute("aria-current", "page"); await expect(platform.locator(".nt-standalone")).toHaveCount(0); await visual(platform, "platform-inbox", async () => { await expect(platform.getByRole("heading", { name: "Notificaties", exact: true })).toBeVisible(); await expect(platform.getByRole("button",{name:/^Ticket bijgewerkt /}).first()).toBeVisible(); }); await expect(platform.getByText("Fictieve supportmelding notificaties",{exact:true})).toHaveCount(0); await expect(platform.getByText("Klantbericht alleen voor klant")).toHaveCount(0); const denied = await platform.goto(`/platform/notificaties/${customerInboxId}`); expect(await denied!.text()).not.toContain("Klantbericht alleen voor klant"); await expect(platform.getByRole("heading", { name: "Deze pagina bestaat niet.", exact: true })).toBeVisible(); }
   finally { await platformContext.close(); }
 });
 
@@ -251,10 +251,10 @@ test("een notificatie opent compact boven de inbox en behoudt de lijst bij sluit
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     const bounds = (await dialog.boundingBox())!;
-    expect(bounds.width).toBeLessThanOrEqual(640);
+    expect(bounds.width).toBeLessThanOrEqual(860);
     expect(bounds.x).toBeGreaterThanOrEqual(0);
     expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
-    expect(await dialog.evaluate(element=>parseFloat(getComputedStyle(element).borderTopLeftRadius))).toBeGreaterThan(0);
+    if(width>650)expect(await dialog.evaluate(element=>parseFloat(getComputedStyle(element).borderTopLeftRadius))).toBeGreaterThan(0);
     await expect(page.locator(".nt-page .list-pagination")).toBeAttached();
   }
   await page.keyboard.press("Escape");

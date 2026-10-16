@@ -1,0 +1,24 @@
+{
+  "runtimeCommit": "3dfa7723f9b427198f1ab19201eda1e7d282d9de",
+  "artifactSha256": "b8f5f10818ff841cf2f656e30c019cfe8a46e4278d5709d79a2cf7c51fd31e3a",
+  "environment": "isolated local Supabase 60321/60322; actual extracted server.js",
+  "viewedImages": [
+    "board-target-1440.png",
+    "board-target-768.png",
+    "board-target-390.png",
+    "board-source-1440.png",
+    "board-source-768.png",
+    "board-source-390.png",
+    "planning-editor-1440.png",
+    "planning-editor-768.png",
+    "planning-editor-390.png",
+    "crew-choice-1440.png",
+    "manual-travel-1440.png",
+    "release-1440.png",
+    "coupled-travel-1440.png",
+    "empty-backlog-1440.png"
+  ],
+  "releaseAttestation": false,
+  "deployed": false,
+  "liveVerified": false
+}

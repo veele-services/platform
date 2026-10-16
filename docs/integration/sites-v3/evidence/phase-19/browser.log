@@ -1,0 +1,8 @@
+PASS: actual-platform-tenants-source-seven-columns-owner-search-and-current-configuration
+PASS: stable-tenant-deep-links-and-all-five-source-detail-tabs-with-native-controls
+PASS: source-domain-frame-retains-local-target-guard-and-unsaved-input-without-DNS-or-proxy-mutation
+PASS: platform-sidebar-cancel-and-attached-tabs-keep-unsaved-tenant-branding
+PASS: real-native-platform-colours-whitelabel-module-dependencies-and-sender-settings-persist
+PASS: unknown-explicit-tenant-never-falls-back-to-another-organisation
+PASS: real-local-SMTP-OTP-tenant-pause-reactivation-current-version-and-two-audit-events
+PASS: real-twelve-tenant-page-size-page-jump-next-page-and-stable-name-sort
