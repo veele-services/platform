@@ -14,7 +14,7 @@ for(const file of['app/globals.css','portal-source/staff.css','portal-source/cus
  const faces=[];tree.walkAtRules('font-face',rule=>faces.push(rule.toString()));
  parts.push('/* Source font cascade: '+file+' */\n'+faces.join('\n'));
 }
-for(const file of['components/fieldgrid/content-tabs.css','prototype.css','existing-dashboards.css','finance-sla.css','governance.css']){
+for(const file of['components/fieldgrid/content-tabs.css','prototype.css','crm.css','existing-dashboards.css','finance-sla.css','governance.css']){
  const tree=postcss.parse(await readFile(new URL('../design-reference/sites-v3/platform/src/'+file,import.meta.url),'utf8'));
  tree.walkRules(rule=>{
   let parent=rule.parent;while(parent){if(parent.type==='atrule'&&/keyframes$/i.test(parent.name))return;parent=parent.parent}

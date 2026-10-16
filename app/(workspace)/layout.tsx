@@ -20,11 +20,9 @@ import "@/components/fieldgrid/shell-chrome.css";
 import "@/components/fieldgrid/content-tabs.css";
 import "@/components/fieldgrid/heading-help-tip.css";
 import "./dashboard-system.css";
-// Match the source cascade: CRM precedes the shared platform declarations.
-// Route-local imports otherwise win after navigation and change field spacing.
-import "@/components/fieldgrid/crm/shared-presentation.css";
-import "@/components/fieldgrid/crm/crm.css";
+// The generated source cascade includes CRM before existing platform styles.
 import "@/components/fieldgrid/management-cockpit/presentation.css";
+import "@/components/fieldgrid/crm/crm.css";
 import "@/components/fieldgrid/management-cockpit/presentation-adapters.css";
 // Portal presentation has one cascade: native integrations first, immutable
 // supplied declarations next, then the small native component bridges.
