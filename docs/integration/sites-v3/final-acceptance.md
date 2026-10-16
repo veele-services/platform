@@ -2,7 +2,7 @@
 
 ## Resultaat en herkomst
 
-De 105 regels uit de meegeleverde schermen-/actiematrix zijn geïmplementeerd en lokaal getest. De [matrix per regel](acceptance-matrix.md), het [machineleesbare register](screen-register.json) en de 25 faseverslagen koppelen iedere regel aan concrete implementatie en bewijs. Dit is geen verklaring dat alle onderdelen al gedeployed of live geaccepteerd zijn. Die statussen staan afzonderlijk in [release-status.json](release-status.json).
+De 105 regels uit de meegeleverde schermen-/actiematrix zijn geïmplementeerd en lokaal getest. De [matrix per regel](acceptance-matrix.md), het [machineleesbare register](screen-register.json) en de 26 faseverslagen koppelen iedere regel aan concrete implementatie en bewijs. Dit is geen verklaring dat alle onderdelen al gedeployed of live geaccepteerd zijn. Die statussen staan afzonderlijk in [release-status.json](release-status.json).
 
 Uitgangspunt is main `71df59ab0390ffeae482c7edbaf27efe3fa6546d`. Later lokaal werk is behouden op `codex/sites-v3-integration`; er is geen baseline-reset, migratievervanging of force-push gebruikt. Alle 344 pakketchecksums zijn geverifieerd. De 279 geregistreerde bronbestanden, inclusief afbeeldingen, fonts, componenten en teksten, zijn ongewijzigd als ontwerpreferentie opgenomen. Sites-hosting, D1, hashrouter en ownerheader-fallback zijn geen productiearchitectuur geworden.
 

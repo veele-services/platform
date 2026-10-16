@@ -46,6 +46,10 @@ bekeken nieuwe regressiereferenties aan hun hashes. Magenta maskers dekken allee
 benoemde variabele testgegevens; de ongemaskeerde bronvergelijkingen uit eerdere
 fasen blijven de presentatieacceptatie. De [meerwerkfooter](evidence/phase-26/extra-work-320.png)
 en [afrondingscontrole](evidence/phase-26/completion-320.png) zijn aanvullend bekeken.
+De definitieve [native werkbonwizard](evidence/phase-26/viewed-native-wizard.json)
+is daarna daadwerkelijk bekeken op 320, 390 en 1440 px. De eerdere opname met een
+samengedrukte stapcirkel is verworpen; stapcirkels en echte formulieracties blijven
+zichtbaar. Lange native stapnamen breken op 320 px af binnen hun eigen kolom.
 
 De [brede 134-case run](evidence/phase-26/native-browser-regression.json) bewaart
 127 geslaagde, vijf mislukte en twee niet uitgevoerde gevallen. Alle betrokken

@@ -1,0 +1,29 @@
+{
+  "runtime": "02b5acf09c536263b16bc1b492ec5a08a06e662a",
+  "test": "workspace-modal-layout: tenant native modal actions and tabs reachable",
+  "review": "Actual visual inspection of all three stored images. The earlier squeezed step-circle capture is rejected and is not used as the final reference.",
+  "decision": "Step circles remain visible; content stays within the viewport; native submit actions retain their Source footer and real form association. At 320 px long native step labels wrap to retain the existing six-step business flow.",
+  "files": [
+    {
+      "file": "work-order-wizard-320.png",
+      "sha256": "5cdde8d38978d410b6b12e5db518b8b19dc0fa3b9e2673c17ca15d966c2adfe0",
+      "viewportWidth": 320,
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "work-order-wizard-390.png",
+      "sha256": "0266b7326308a07b7bc0978d4c01e8b6f66853472fd2819f425e02257452b87e",
+      "viewportWidth": 390,
+      "viewed": true,
+      "accepted": true
+    },
+    {
+      "file": "work-order-wizard-1440.png",
+      "sha256": "37f5dbf9916b4f0be4ffed5380c05b1d1915585f746d6825a0312d4d973532d7",
+      "viewportWidth": 1440,
+      "viewed": true,
+      "accepted": true
+    }
+  ]
+}
