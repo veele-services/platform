@@ -31,6 +31,7 @@ try{
  await expect(page.locator('.personnel-app')).toBeVisible({timeout:30000});await expect(page.getByRole('dialog')).toHaveCount(0);
  await page.goto(origin+'/staff?tab=meer&section=documenten',{waitUntil:'networkidle'});await page.getByRole('button',{name:/FICTITIOUS private preview/}).click();
  const response=await context.request.get(url);assert.equal(response.status(),200);assert.deepEqual(await response.body(),bytes);
+ if(!before){const attachment=await context.request.get(url.split('?')[0]);assert.equal(attachment.status(),200);assert.equal(attachment.headers()['x-frame-options'],'DENY');assert.match(attachment.headers()['content-disposition'],/^attachment/)}
  const headers=response.headers(),iframe=page.getByRole('dialog').locator('iframe');await expect(iframe).toHaveAttribute('src',new URL(url).pathname+'?preview=1');
  if(before){assert.match(headers['content-security-policy'],/frame-ancestors 'none'/);assert.equal(headers['x-frame-options'],'DENY');await page.waitForTimeout(1000)}
  else{

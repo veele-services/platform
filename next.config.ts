@@ -45,6 +45,13 @@ const nextConfig: NextConfig = {
           { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
         ],
       })),
+      // Only the explicit, MIME-checked staff preview may use its own origin's
+      // viewer. Normal downloads and every application page retain DENY.
+      {
+        source: "/api/files/personnel-document/:id",
+        has: [{ type: "query", key: "preview", value: "1" }],
+        headers: [{ key: "X-Frame-Options", value: "SAMEORIGIN" }],
+      },
       ...["/quote/:path*", "/booking/:path*", "/pay/:path*"].map(source => ({source,headers:[{key:"Referrer-Policy",value:"no-referrer"},{key:"Cache-Control",value:"private, no-store"}]})),
     ];
   },
