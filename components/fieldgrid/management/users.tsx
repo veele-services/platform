@@ -8,7 +8,7 @@ import type { TenantContext } from "@/lib/auth/context";
 import { managementModuleNames, type ManagementRole, type ManagementSnapshot } from "@/lib/management/model";
 import {rolePermissionSummary,sourceManagementSnapshotSchema} from '@/lib/management/source-view';
 import { managementPermissionLabel } from "@/lib/management/labels";
-import { completeManagementDependencies } from '@/lib/management/permissions';
+import { completeManagementDependencies,registeredManagementDependencies } from '@/lib/management/permissions';
 import { useUnsavedDraft } from '../unsaved-form';
 import { inviteManagementUser, runManagementCommand } from "@/app/(workspace)/app/gebruikers/actions";
 import { PageHeading } from "../page-heading";
@@ -108,7 +108,7 @@ function RolePermissions({ role, catalog, query, canManage, onSaved,onDirtyChang
         for (const value of completeManagementDependencies([...next], catalog)) next.add(value);
       } else {
         next.delete(key); let removed = true;
-        while (removed) { removed = false; for (const capability of catalog) if (next.has(capability.key) && (capability.dependencies.some(value => !next.has(value)) || /^backoffice\.[^.]+\.write$/.test(capability.key) && !next.has(capability.key.replace(".write", ".read")))) { next.delete(capability.key); removed = true; } }
+        while (removed) { removed = false; for (const capability of catalog) if (next.has(capability.key) && (registeredManagementDependencies(capability,catalog).some(value => !next.has(value)) || /^backoffice\.[^.]+\.write$/.test(capability.key) && !next.has(capability.key.replace(".write", ".read")))) { next.delete(capability.key); removed = true; } }
       }
       next.add("backoffice.access"); return [...next];
     });

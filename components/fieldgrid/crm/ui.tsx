@@ -12,7 +12,11 @@ export function Modal({title,subtitle,children,onClose,footer,wide=false,closeDi
  const ref=useRef<HTMLDialogElement>(null),id=useId(),blocked=closeDisabled||commandBusy===true;
  useEffect(()=>{const previous=document.activeElement as HTMLElement;ref.current?.showModal();return()=>{previous?.focus()}},[]);
  const dismiss=()=>{if(!blocked)onClose()};
- return <dialog ref={ref} aria-labelledby={id} className={`mc-dialog ${wide?'wide':''}`} onCancel={e=>{e.preventDefault();dismiss()}} onClick={e=>{if(e.target===e.currentTarget)dismiss()}}><div className="mc-dialog-frame"><header><div><span className="eyebrow">{subtitle||'FIELDGRID'}</span><h2 id={id}>{title}</h2></div><button className="fg-action-icon" disabled={blocked} onClick={dismiss} aria-label="Sluiten"><X size={20}/></button></header><div className="mc-dialog-body">{commandBusy===undefined?children:<fieldset className="crm-command-fields" disabled={commandBusy} aria-busy={commandBusy}>{children}</fieldset>}</div>{footer&&<footer>{footer}</footer>}</div></dialog>;
+ return <dialog ref={ref} aria-labelledby={id} className={`mc-dialog ${wide?'wide':''}`} onCancel={e=>{e.preventDefault();dismiss()}} onKeyDown={e=>{
+  if(e.key!=='Tab'||e.defaultPrevented)return;
+  const controls=[...e.currentTarget.querySelectorAll<HTMLElement>('button,input:not([type=hidden]),select,textarea,a[href],summary,iframe,[tabindex]:not([tabindex="-1"])')].filter(el=>!el.matches(':disabled')&&!el.closest('[hidden],[inert]')&&el.getClientRects().length>0),first=controls[0],last=controls.at(-1);
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}
+ }} onClick={e=>{if(e.target===e.currentTarget)dismiss()}}><div className="mc-dialog-frame"><header><div><span className="eyebrow">{subtitle||'FIELDGRID'}</span><h2 id={id}>{title}</h2></div><button className="fg-action-icon" disabled={blocked} onClick={dismiss} aria-label="Sluiten"><X size={20}/></button></header><div className="mc-dialog-body">{commandBusy===undefined?children:<fieldset className="crm-command-fields" disabled={commandBusy} aria-busy={commandBusy}>{children}</fieldset>}</div>{footer&&<footer>{footer}</footer>}</div></dialog>;
 }
 export function Field({label,children,group=false}:{label:ReactNode;children:ReactNode;group?:boolean}){
  const id=useId(),native=isValidElement(children)&&typeof children.type==='string';

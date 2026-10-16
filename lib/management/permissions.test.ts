@@ -10,4 +10,8 @@ describe('registered management dependencies', () => {
     const catalog = [cap('backoffice.news.read'), cap('backoffice.news.write'), cap('backoffice.personnel.sensitive')];
     expect(completeManagementDependencies(['backoffice.news.write', 'existing.selection'], catalog)).toEqual(['backoffice.news.write', 'existing.selection', 'backoffice.news.read']);
   });
+  it('retains legacy native page/action dependencies without inventing access.read or overriding explicit cross-module dependencies',()=>{
+    const catalog=[cap('backoffice.planning.read',[],'planning'),cap('backoffice.functions.get_planboard',[],'planning'),cap('backoffice.functions.entity',['backoffice.access'],'access'),cap('backoffice.access')];
+    expect(completeManagementDependencies(['backoffice.functions.get_planboard','backoffice.functions.entity'],catalog)).toEqual(['backoffice.functions.get_planboard','backoffice.functions.entity','backoffice.planning.read','backoffice.access']);
+  });
 });
