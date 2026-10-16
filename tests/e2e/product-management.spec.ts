@@ -162,6 +162,7 @@ test("idee → interne beoordeling → roadmap → gerichte release, veilige bes
     ).toBeVisible();
     for (const width of [1440, 768, 390]) {
       await page.setViewportSize({ width, height: 900 });
+      await page.locator('summary[aria-label="Filters"]:visible').click();
       await page
         .getByRole("button", { name: "Idee indienen", exact: true })
         .click();
@@ -177,6 +178,7 @@ test("idee → interne beoordeling → roadmap → gerichte release, veilige bes
         .getByRole("button", { name: "Annuleren", exact: true })
         .click();
     }
+    await page.locator('summary[aria-label="Filters"]:visible').click();
     await page
       .getByRole("button", { name: "Idee indienen", exact: true })
       .click();
@@ -228,7 +230,9 @@ test("idee → interne beoordeling → roadmap → gerichte release, veilige bes
       management.getByRole("dialog", { name: ideaTitle, exact: true }),
     ).toContainText("PRIVATE INPUT");
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/platform/productbeheer");
+    await authenticateWorkspace(page,"platform-admin@fieldgrid.test","/platform/productbeheer");
+    await page.getByText("Ideeën, roadmap en releases beheren",{exact:true}).click();
+    await page.getByRole("tab",{name:"Ideeën",exact:true}).click();
     await expect(
       page
         .locator(".fg-sidebar")

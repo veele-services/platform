@@ -42,7 +42,7 @@ test("slim zoeken begint bij drie tekens en opent gegroepeerde resultaten met he
   await authenticateWorkspace(page, "platform-admin@fieldgrid.test");
   const searches: string[] = [];
   page.on("request", request => { if (new URL(request.url()).pathname === "/api/search") searches.push(request.postData() ?? ""); });
-  const search = page.getByRole("combobox", { name: "Zoek in je organisatie" });
+  const search = page.getByRole("combobox", { name: "Zoeken in Fieldgrid" });
   await search.fill("No");
   await page.waitForTimeout(400);
   expect(searches).toHaveLength(0);
@@ -54,14 +54,15 @@ test("slim zoeken begint bij drie tekens en opent gegroepeerde resultaten met he
   await search.press("ArrowDown");
   await expect(results.getByRole("option").first()).toHaveAttribute("aria-selected", "true");
   await search.press("Enter");
-  await expect(page).toHaveURL(/\/app\/klanten\?record=/);
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page).toHaveURL(/\/app$/);
   await expect(page.getByRole("heading", { name: "Noordhaven Vastgoed", exact: true }).first()).toBeVisible();
 });
 
 test("account en notificaties hebben dezelfde maat en thema als de zoekbalk", async ({ page }) => {
   await authenticateWorkspace(page, "platform-admin@fieldgrid.test");
-  const account = page.locator(".workspace-topbar .shell-account-button");
-  const bell = page.locator(".workspace-topbar .nt-bell-button");
+  const account = page.getByRole("button",{name:/^Accountmenu van /});
+  const bell = page.getByRole("button",{name:/^Notificaties,/});
   await expect(account).toBeVisible();
   await expect(bell).toBeVisible();
   const controls = await page.locator(".workspace-topbar .shell-search-field, .workspace-topbar .shell-account-button, .workspace-topbar .nt-bell-button").evaluateAll(nodes => nodes.map(node => {

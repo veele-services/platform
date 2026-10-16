@@ -111,7 +111,17 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
       - name: Run required browser flows
-        run: pnpm test:e2e
+        # Stop a failing run before the job timeout so every encountered failure
+        # has a complete report. A successful run must still execute all flows.
+        run: pnpm test:e2e --max-failures=10
+      - name: Preserve synthetic browser failure screenshots
+        if: ${{ always() && job.status != 'success' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: browser-failure-screenshots
+          path: test-results/**/*.png
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Stop this job's isolated scanner
         if: always()
         run: |

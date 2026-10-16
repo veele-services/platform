@@ -49,7 +49,7 @@ test("module switches preserve own personnel access and label unavailable report
   await enter(staffPage,1,'/staff');
   await expect(staffPage.getByRole('heading',{name:'Planning niet ingeschakeld',exact:true})).toBeVisible();
   await staffPage.getByRole('button',{name:'Meer',exact:true}).click();
-  await expect(staffPage.getByRole('heading',{name:'FICTITIOUS own employee',exact:true})).toBeVisible();
+  await expect(staffPage.getByRole('button',{name:'Profielmenu van FICTITIOUS own employee',exact:true})).toBeVisible();
   expect((await db.query('select body from public.report_entries where id=$1',[report])).rows[0].body).toBe('FICTITIOUS module report canary');
   await checked(await admin.from('tenant_settings').update({enabled_services:['planning','personeel','rapportage','finance']}).eq('tenant_id',tenant));
   await page.goto(`/app/werkbonnen/${order}?tab=communicatie`);await expect(page.getByText('FICTITIOUS module report canary',{exact:true})).toBeVisible();

@@ -45,6 +45,7 @@ test("centrale huisstijl bewaart concepten, publiceert kleuren en weigert gelijk
   const second = await context.newPage();
   try {
     await authenticateWorkspace(page, "platform-admin@fieldgrid.test", "/app/instellingen");
+    await page.getByText("Logo, afzender en huisstijlvoorbeeld",{exact:true}).click();
     const primary = page.getByLabel("Primaire kleur hexcode", { exact: true });
     const accent = page.getByLabel("Secundaire kleur hexcode", { exact: true });
     await primary.fill("#315794");
@@ -55,7 +56,7 @@ test("centrale huisstijl bewaart concepten, publiceert kleuren en weigert gelijk
     await page.getByRole("button", { name: "Wijzigingen annuleren" }).click();
     await expect(primary).toHaveValue(original.primary_color.toLowerCase());
 
-    await second.goto("/app/instellingen");
+    await second.goto("/app/instellingen");await second.getByText("Logo, afzender en huisstijlvoorbeeld",{exact:true}).click();
     const secondPrimary = second.getByLabel("Primaire kleur hexcode", { exact: true });
     await secondPrimary.fill("#123456");
     await primary.fill("#315794");
@@ -95,23 +96,24 @@ test("centrale huisstijl bewaart concepten, publiceert kleuren en weigert gelijk
 test("tenantbackoffice blijft bruikbaar op smalle schermen en bewaart het dialogthema", async ({ page }) => {
   test.setTimeout(90_000);
   await authenticateWorkspace(page, "platform-admin@fieldgrid.test", "/app/instellingen");
+    await page.getByText("Logo, afzender en huisstijlvoorbeeld",{exact:true}).click();
   for (const width of [1440, 1024, 768, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   }
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("button", { name: "Menu openen", exact: true }).click();
   const navigation = page.getByRole("dialog", { name: "Hoofdnavigatie" });
   await expect(navigation).toBeVisible();
   await expect(page.locator(".workspace-main")).toHaveAttribute("inert", "");
   await page.keyboard.press("Escape");
   await expect(navigation).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Menu", exact: true })).toBeFocused();
+  await expect(page.getByRole("button", { name: "Menu openen", exact: true })).toBeFocused();
 
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/app/klanten");
   await page.getByRole("button", { name: "Nieuwe klant", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog).toHaveAttribute("data-tenant-theme", "");
+  expect(await dialog.evaluate(el=>el.matches(":modal"))).toBe(true);
   const shellColor = await page.locator(".workspace-shell").evaluate(element => getComputedStyle(element).getPropertyValue("--brand-action").trim());
   await expect(dialog).toHaveCSS("--brand-action", shellColor);
   await expect(dialog).toHaveCSS("height", "810px");

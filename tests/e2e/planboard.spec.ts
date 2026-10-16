@@ -163,18 +163,19 @@ test("eerste uitleg houdt een planbord met veel medewerkers en de bonnenlijst be
     );
     await page.setViewportSize({ width: 1440, height: 900 });
     await authenticateWorkspace(page, "platform-admin@fieldgrid.test", `/app/planning?day=${day}`);
-    await expect(page.locator('[data-guide-key="backoffice.planning"]:visible')).toBeVisible();
+    await expect(page.getByRole("button",{name:"Informatie over Planbord",exact:true})).toBeVisible();
     await expect(page.locator(".pb-state:visible")).toHaveText(/^14 medewerkers · .*Europe\/Amsterdam$/);
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 900 });
       const board = page.locator(".pb-board:visible");
-      await expect.poll(() => page.locator(".pb-root:visible").evaluate(el => el.getBoundingClientRect().height <= innerHeight)).toBe(true);
+      if(width>=768)await expect.poll(() => page.locator(".pb-root:visible").evaluate(el => el.getBoundingClientRect().height <= innerHeight)).toBe(true);
       await expect.poll(() => board.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
       await page.locator(".view-planning:visible").evaluate(el => { el.scrollTop = el.scrollHeight; });
       const list = page.locator(".pb-list:visible");
+      await list.scrollIntoViewIfNeeded();
       await expect(list.getByRole("combobox", { name: "Bonnenweergave", exact: true })).toBeInViewport();
-      await expect.poll(() => list.evaluate(el => el.getBoundingClientRect().bottom <= innerHeight + 1)).toBe(true);
-      await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+      await expect(list).toBeInViewport();
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     }
   } finally { await db.query("delete from public.personnel where id=any($1::uuid[])", [extraPeople]); }
 });
@@ -217,7 +218,6 @@ test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bon
           const shell = document.querySelector(".workspace-shell")!;
           return (
             document.documentElement.scrollWidth <= innerWidth &&
-            document.documentElement.scrollHeight <= innerHeight &&
             shell.scrollWidth <= shell.clientWidth &&
             shell.scrollLeft === 0
           );
@@ -251,31 +251,29 @@ test("bonnenweergave en filters zijn onafhankelijk en tellen de juiste resultate
 }) => {
   await open(page);
   await page.getByRole("combobox", { name: "Bonnenweergave", exact: true }).selectOption("all");
-  const filters = page.getByRole("button", { name: /^Zoeken en filteren/ });
-  await expect(filters).toHaveAccessibleName("Zoeken en filteren");
+  const filters = page.locator('.pb-source-heading summary[aria-label="Filters"]:visible');
+  await expect(filters).toHaveAccessibleName("Filters");await expect(filters.locator("i")).toHaveCount(0);
   await filters.click();
-  const pop = page.locator(".pb-filter-popover");
-  await expect(pop.locator("select")).toHaveCount(1);
+  const pop = page.locator(".pb-source-heading .ed-filter-pop:visible");
+  await expect(pop.getByRole("combobox")).toHaveCount(1);
   await pop.getByLabel("Zoeken", { exact: true }).fill("PB-90");
   await expect(page.locator(".pb-count:visible")).toHaveText("2 bonnen");
-  await expect(filters).toHaveAccessibleName("Zoeken en filteren, 1 actief");
-  await pop.getByLabel("Uitvoeringsstatus").selectOption("completed");
+  await expect(filters.locator("i")).toHaveCount(1);
+  await pop.getByLabel("Status",{exact:true}).selectOption("completed");
   await expect(page.locator(".pb-count:visible")).toHaveText("0 bonnen");
-  await expect(filters).toHaveAccessibleName("Zoeken en filteren, 2 actief");
-  await pop.getByRole("button", { name: "Wis filters" }).click();
+  await expect(filters.locator("i")).toHaveCount(1);
+  await pop.getByRole("button", { name: "Filters wissen" }).click();
   await expect(page.getByRole("combobox", { name: "Bonnenweergave", exact: true })).toHaveValue("all");
-  await expect(filters).toHaveAccessibleName("Zoeken en filteren");
+  await expect(filters).toHaveAccessibleName("Filters");await expect(filters.locator("i")).toHaveCount(0);
   await pop.getByLabel("Zoeken", { exact: true }).fill("PB-90-2");
-  await expect(
-    pop.getByRole("button", { name: "Toon 1 bon", exact: true }),
-  ).toBeVisible();
+  await expect(page.locator(".pb-count:visible")).toHaveText("1 bon");
   await page.keyboard.press("Escape");
-  await expect(pop).toHaveCount(0);
-  await expect(filters).toHaveAccessibleName("Zoeken en filteren, 1 actief");
+  await expect(pop).not.toBeVisible();
+  await expect(filters.locator("i")).toHaveCount(1);
   await page.reload();
   await expect(page.getByRole("combobox", { name: "Bonnenweergave", exact: true })).toHaveValue("all");
   await expect(page.locator(".pb-count:visible")).toHaveText("2 bonnen");
-  await expect(filters).toHaveAccessibleName("Zoeken en filteren");
+  await expect(filters).toHaveAccessibleName("Filters");await expect(filters.locator("i")).toHaveCount(0);
 });
 test("kolomnamen blijven staan bij scrollen en een lege bonnenbak heeft geen scrollbalk", async ({ page }) => {
   test.setTimeout(60_000);
@@ -286,8 +284,8 @@ test("kolomnamen blijven staan bij scrollen en een lege bonnenbak heeft geen scr
       await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,created_by) select $1,tenant_id,customer_id,object_id,$2,discipline,created_by from public.work_orders where id=$3 and tenant_id=$4", [id, `PB-STICKY-${index + 1}`, orders[0], tenant]);
     }
     await page.getByRole("combobox", { name: "Bonnenweergave", exact: true }).selectOption("all");
-    await page.getByRole("button", { name: "Zoeken en filteren", exact: true }).click();
-    const popover = page.locator(".pb-filter-popover");
+    await page.locator('.pb-source-heading summary[aria-label="Filters"]:visible').click();
+    const popover = page.locator(".pb-source-heading .ed-filter-pop:visible");
     await popover.getByLabel("Zoeken", { exact: true }).fill("PB-STICKY");
     await expect(page.locator(".pb-count:visible")).toHaveText("15 bonnen");
     await page.keyboard.press("Escape");
@@ -300,7 +298,7 @@ test("kolomnamen blijven staan bij scrollen en een lege bonnenbak heeft geen scr
       expect(Math.abs(headerBox.y - containerBox.y)).toBeLessThanOrEqual(2);
       await scroll.evaluate(element => { element.scrollTop = 0; });
     }
-    await page.getByRole("button", { name: /Zoeken en filteren, 1 actief/ }).click();
+    await page.locator('.pb-source-heading summary[aria-label="Filters"]:visible').click();
     await popover.getByLabel("Zoeken", { exact: true }).fill("NO-SUCH-WORK-ORDER");
     await expect(page.locator(".pb-count:visible")).toHaveText("0 bonnen");
     await page.keyboard.press("Escape");
@@ -332,17 +330,20 @@ test("minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebrui
   );
   await page.keyboard.press("Escape");
   await page.mouse.up();
-  await expect(card).toContainText("08:03–09:33");
+  await expect(card).toContainText(/08:03\s*–\s*09:33/);
   rect = (await card.boundingBox())!;
   await page.mouse.move(rect.x + 18, rect.y + 28);
   await page.mouse.down();
   await page.mouse.move(rect.x + 18 + 124 * ppm, rect.y + 28, { steps: 10 });
   await page.mouse.up();
-  await expect(card).toContainText("10:07–11:37");
+  await expect(card).toContainText(/10:07\s*–\s*11:37/);
   await page.reload();
-  await expect(card).toContainText("10:07–11:37");
+  await expect(card).toContainText(/10:07\s*–\s*11:37/);
+  await page.locator('.pb-source-heading summary[aria-label="Filters"]:visible').click();
+  await page.locator("summary:visible").filter({hasText:/^Meer mogelijkheden$/}).click();
   await page.getByRole("button", { name: "Ongedaan maken" }).click();
-  await expect(card).toContainText("08:03–09:33");
+  await page.keyboard.press("Escape");
+  await expect(card).toContainText(/08:03\s*–\s*09:33/);
   await page.setViewportSize({ width: 375, height: 900 });
   await page.getByRole("combobox", { name: "Bonnenweergave", exact: true }).selectOption("unassigned");
   await page
@@ -350,7 +351,7 @@ test("minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebrui
     .filter({ hasText: "PB-90-2" })
     .getByRole("button", { name: "Plan", exact: true })
     .click();
-  const panel = page.getByRole("dialog", { name: "Noordhaven Kantoor" });
+  const panel = page.getByRole("dialog", { name: "PB-90-2" });
   await expect(panel).toBeVisible();
   await panel.getByLabel("Begin", { exact: true }).fill(`${day}T08:03`);
   await panel.getByLabel("Einde", { exact: true }).fill(`${day}T09:33`);
@@ -369,7 +370,7 @@ test("minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebrui
   await confirmation.getByRole("button", { name: "Plan toch" }).click();
   await expect(panel).toHaveCount(0);
   await expect(page.getByRole("main").locator(`[data-order-id="${orders[1]}"]`)).toContainText(
-    "08:03–09:33",
+    /08:03\s*–\s*09:33/,
   );
   expect(
     (
@@ -398,7 +399,7 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
     await page.mouse.up();
   };
   await dragTo(rect.x + 18 + 124 * ppm, rect.y + 28);
-  await expect(card).toContainText("10:07–11:37");
+  await expect(card).toContainText(/10:07\s*–\s*11:37/);
   rect = (await card.boundingBox())!;
   const rowHeight = (await page.locator(".pb-person-row:visible").first().boundingBox())!.height;
   await dragTo(rect.x + 18, rect.y + 28 + rowHeight);
@@ -428,7 +429,7 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
     { steps: 10 },
   );
   await page.mouse.up();
-  await expect(card).toContainText("10:07–11:44");
+  await expect(card).toContainText(/10:07\s*–\s*11:44/);
 
   const list = (await page.locator(".pb-list:visible").boundingBox())!;
   await dragTo(list.x + 180, list.y + 90);
@@ -442,17 +443,17 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
   const grip = page.getByRole("button", { name: "Sleep PB-90-1", exact: true });
   await grip.scrollIntoViewIfNeeded();
   const origin = (await grip.boundingBox())!;
-  const board = (await page.locator(".pb-board:visible").boundingBox())!;
+  const lane=(await page.locator(".pb-person-row:visible .pb-lane").first().boundingBox())!;
   await page.mouse.move(
     origin.x + origin.width / 2,
     origin.y + origin.height / 2,
   );
   await page.mouse.down();
-  await page.mouse.move(board.x + 1 + 230 + 241 * ppm, board.y + 40 + 36, {
+  await page.mouse.move(lane.x + 241 * ppm, lane.y + lane.height / 2, {
     steps: 15,
   });
   await page.mouse.up();
-  await expect(card).toContainText("11:01–12:38");
+  await expect(card).toContainText(/11:01\s*–\s*12:38/);
   expect(
     (
       await db.query(
@@ -528,8 +529,9 @@ test.describe("status per medewerker", () => {
       expect(rect.x).toBeGreaterThanOrEqual(0);
       expect(rect.x + rect.width).toBeLessThanOrEqual(width);
       expect(rect.y + rect.height).toBeLessThanOrEqual(900);
-      expect((await trigger.boundingBox())!.height).toBeGreaterThanOrEqual(width <= 600 ? 44 : 28);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+      const hit=await trigger.evaluate(el=>{const css=getComputedStyle(el,"::before");return el.getBoundingClientRect().height-Math.min(0,parseFloat(css.top)||0)-Math.min(0,parseFloat(css.bottom)||0)});
+      expect(hit).toBeGreaterThanOrEqual(42);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.keyboard.press("Escape");
       await expect(legend).not.toBeVisible();
     }

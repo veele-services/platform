@@ -27,7 +27,7 @@ test("commerciële lijst, aanvraag, bevroren PDF-mail, expliciet akkoord en éé
   await page.getByRole("button",{name:"Nieuwe aanvraag",exact:true}).click();let dialog=page.getByRole("dialog");
   await dialog.getByRole("combobox",{name:"Klant",exact:true}).selectOption(customer);await expect(dialog.getByRole("combobox",{name:"Object",exact:true}).locator("option",{hasText:"Fictieve werklocatie"})).toHaveCount(1);await dialog.getByRole("combobox",{name:"Object",exact:true}).selectOption(object);
   await dialog.getByRole("button",{name:"Volgende"}).click();await dialog.getByLabel("Onderwerp",{exact:true}).fill("Fictieve controle aanvraag");await dialog.getByLabel("Oorspronkelijke klantvraag").fill("Controleer de afgesproken onderdelen. Dit is herkenbare testinformatie.");await dialog.getByLabel("Dienst / discipline").fill("Onderhoud");await dialog.getByRole("button",{name:"Volgende"}).click();await dialog.getByRole("button",{name:"Aanvraag opslaan",exact:true}).click();
-  await expect(dialog.getByRole("heading",{name:"Fictieve controle aanvraag",exact:true})).toBeVisible();await expect(dialog.getByText("Oorspronkelijke klantvraag",{exact:true})).toBeVisible();
+  await expect(dialog.getByRole("textbox",{name:"Onderwerp",exact:true})).toHaveValue("Fictieve controle aanvraag");await dialog.getByRole("button",{name:/^Meer acties voor /}).click();await page.getByRole("button",{name:"Dossier en historie",exact:true}).click();await expect(dialog.getByRole("heading",{name:"Fictieve controle aanvraag",exact:true})).toBeVisible();await expect(dialog.getByText("Oorspronkelijke klantvraag",{exact:true})).toBeVisible();
   const savedRequest=(await db.query('select id from public.requests where tenant_id=$1',[tenant])).rows[0];expect(savedRequest).toBeTruthy();
   await expect.poll(async()=>{const messages=await(await request.get(`http://127.0.0.1:59329/messages?recipient=${email}`)).json();return messages.filter((m:{subject:string})=>m.subject==="Aanvraag ontvangen · Fictieve commerciële testorganisatie").length;}).toBe(1);
   await dialog.getByRole("button",{name:"Offerte opstellen",exact:true}).click();dialog=page.getByRole("dialog");await expect(dialog.getByRole("heading",{name:"Nieuwe offerte"})).toBeVisible();await dialog.getByRole("button",{name:"Volgende"}).click();
@@ -35,7 +35,7 @@ test("commerciële lijst, aanvraag, bevroren PDF-mail, expliciet akkoord en éé
   await expect(dialog.getByRole("article",{name:"Offertevoorbeeld"})).toContainText("Teststraat 12");await expect(dialog.getByRole("article",{name:"Offertevoorbeeld"})).not.toContainText("PRIVATE TEST ACCESS");
   await request.post("http://127.0.0.1:59329/reject-next");
   await dialog.getByRole("button",{name:"Verzenden",exact:true}).click();await expect(dialog.getByRole("button",{name:"PDF downloaden"})).toHaveCount(0); // PDF is a link, not a fake button.
-  await expect(dialog.getByRole("link",{name:"PDF downloaden"})).toBeVisible({timeout:20000});
+  await dialog.getByRole("button",{name:/^Meer acties voor /}).click();await page.getByRole("button",{name:"Dossier en historie",exact:true}).click();await expect(dialog.getByRole("link",{name:"PDF downloaden"})).toBeVisible({timeout:20000});
   expect((await db.query("select status from public.mail_deliveries where tenant_id=$1 and template='quote'",[tenant])).rows[0].status).toBe("failed");
   await dialog.getByRole("button",{name:"Verzenden / opnieuw proberen",exact:true}).click();
   await expect(dialog.getByRole("button",{name:"Herinnering sturen",exact:true})).toBeVisible();
@@ -63,12 +63,12 @@ test("commerciële lijst, aanvraag, bevroren PDF-mail, expliciet akkoord en éé
   await dialog.getByRole("button",{name:"Sluiten",exact:true}).click();await expect(page.getByRole("dialog")).toHaveCount(0);await page.getByRole("tab",{name:"Offertes",exact:true}).click();
   await expect(page).toHaveURL(/tab=quotes/);
   await expect(page.getByRole("table").getByText(quote.quote_number,{exact:true})).toBeVisible();
-  await expect(page.getByRole("main").locator(".resource-table-panel")).toHaveAttribute("aria-busy","false");
-  const filterTrigger=page.getByRole("button",{name:/^Zoeken en filteren/});
-  await filterTrigger.click();await page.getByLabel("Aanvragen en offertes zoeken").fill("Fictieve controle");await page.keyboard.press("Escape");
-  await expect(page.getByRole("table").getByRole("row")).toHaveCount(2);await page.getByRole("button",{name:"Bekijk",exact:true}).click();await page.getByRole("dialog").getByRole("button",{name:"Sluiten",exact:true}).click();await expect(page.getByRole("dialog")).toHaveCount(0);
-  await filterTrigger.click();await expect(page.getByLabel("Aanvragen en offertes zoeken")).toHaveValue("Fictieve controle");await page.keyboard.press("Escape");
-  for(const width of [1440,768,390]){await page.setViewportSize({width,height:900});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);await expect(page.getByRole("table")).toBeVisible();await page.locator(".table-scroll").first().evaluate(e=>{e.scrollLeft=e.scrollWidth;});await expect(page.getByRole("button",{name:"Bekijk",exact:true})).toBeVisible();}
+  await expect(page.getByRole("status").filter({hasText:"Lijst bijwerken"})).toHaveCount(0);
+  const filterTrigger=page.locator('summary[aria-label="Filters"]');
+  await filterTrigger.click();await page.getByRole("textbox",{name:"Zoeken",exact:true}).fill("Fictieve controle");await page.keyboard.press("Escape");
+  await expect(page.getByRole("table").getByRole("row")).toHaveCount(2);await page.getByRole("button",{name:/^Open OFF-/}).click();await page.getByRole("dialog").getByRole("button",{name:"Sluiten",exact:true}).click();await expect(page.getByRole("dialog")).toHaveCount(0);
+  await filterTrigger.click();await expect(page.getByRole("textbox",{name:"Zoeken",exact:true})).toHaveValue("Fictieve controle");await page.keyboard.press("Escape");
+  for(const width of [1440,768,390]){await page.setViewportSize({width,height:900});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth)).toBe(true);await expect(page.getByRole("table")).toBeVisible();await page.locator(".table-scroll").first().evaluate(e=>{e.scrollLeft=e.scrollWidth;});await expect(page.getByRole("button",{name:/^Open OFF-/})).toBeVisible();}
   await page.screenshot({path:"test-results/commercial-mobile.png",fullPage:true});await page.setViewportSize({width:1440,height:1000});await page.locator(".table-scroll").first().evaluate(e=>{e.scrollLeft=0;});await page.screenshot({path:"test-results/commercial-desktop.png",fullPage:true});
   await page.goto(`/app/objecten/${object}?tab=commercieel`);await expect(page.getByRole("heading",{name:"Aanvragen & Offertes",exact:true})).toBeVisible();await expect(page.getByText("Fictieve controle aanvraag").first()).toBeVisible();
  }finally{

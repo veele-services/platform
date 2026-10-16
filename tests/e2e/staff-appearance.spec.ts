@@ -39,7 +39,7 @@ test("actieve Tickets opent de bestaande engine in dezelfde personeelsopmaak", a
     await authenticateStaff(page, "field-worker@fieldgrid.test");
     const capture = async (name: string) => {
       await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked", "true");
-      await expect(page.locator(".ps-top-actions .icon-button").first()).toBeVisible();
+      await expect(page.getByRole("button",{name:/^Profielmenu van /})).toBeVisible();
       await expect(page.locator(".ps-topbar-leading .ps-sync.current")).toBeVisible();
       await page.evaluate(async () => { await document.fonts.ready; });
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -47,23 +47,23 @@ test("actieve Tickets opent de bestaande engine in dezelfde personeelsopmaak", a
     };
     for (const width of [1920, 1440, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 944 });
-      await expect(page.locator(".ps-week-day.active")).toHaveCSS("background-color", `rgb(${[1,3,5].map(i=>Number.parseInt(createBrandPalette("#214E72","#C65D21").action.slice(i,i+2),16)).join(", ")})`);
+      await expect(page.locator(".portal-demo-weekstrip button.active")).toHaveCSS("background-color", `rgb(${[1,3,5].map(i=>Number.parseInt(createBrandPalette("#214E72","#C65D21").action.slice(i,i+2),16)).join(", ")})`);
       await expect(page.locator(".ps-order-card").first()).toHaveCSS("background-color", `rgb(${[1,3,5].map(i=>Number.parseInt(createBrandPalette("#214E72","#C65D21").surface.slice(i,i+2),16)).join(", ")})`);
       await capture(`planning-${width}`);
     }
     await page.setViewportSize({ width: 1920, height: 944 });
     await expect(page.getByRole("navigation", { name: "Hoofdnavigatie" }).getByRole("link", { name: "Tickets", exact: true })).toBeVisible();
-    const bell = page.locator(".ps-top-actions .icon-button").first();
+    const bell = page.getByRole("button",{name:/^Profielmenu van /});
     await expect(bell).toBeVisible();
     await expect(bell).toHaveCSS("border-top-width", "1px");
-    await expect(bell).toHaveCSS("border-radius", "12px");
+    await expect(bell).toHaveCSS("border-radius", "50%");
     await page.getByRole("navigation", { name: "Hoofdnavigatie" }).getByRole("link", { name: "Tickets", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Mijn tickets", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tickets", exact: true })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Hoofdnavigatie" }).getByRole("link", { name: "Tickets", exact: true })).toHaveAttribute("aria-current", "page");
     await capture("tickets-1920");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("link", { name: "Tickets", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Mijn tickets", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Tickets", exact: true })).toBeVisible();
     await capture("tickets-390");
   } finally { await restore(); }
 });
@@ -76,9 +76,9 @@ test("Meer houdt alle personeelsacties bereikbaar op mobiel en desktop", async (
     for (const width of [320, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: 844 });
       await expect(page.getByRole("heading", { name: "Meer", exact: true })).toBeVisible();
-      await expect(page.getByRole("region", { name: "Mijn profiel", exact: true })).toContainText("Robin de Vries");
+      await expect(page.getByRole("button",{name:/^Profielmenu van Robin de Vries/})).toBeVisible();
       for (const title of ["Verlof", "Beschikbaarheid", "Documenten", "Instellingen", "Profiel", "Notificaties", "Tickets"]) {
-        const tile = page.locator(".ps-more-card").filter({ has: page.getByText(title, { exact: true }) });
+        const tile = page.locator(".portal-demo-more .portal-demo-help").filter({ has: page.getByText(title, { exact: true }) });
         await expect(tile).toHaveCount(1);
         await tile.scrollIntoViewIfNeeded();
         const bounds = await tile.boundingBox();
@@ -106,14 +106,14 @@ test("Meer houdt alle personeelsacties bereikbaar op mobiel en desktop", async (
     await expect(menu).toHaveCount(0);
     await expect(page.getByRole("button", { name: /^Profielmenu van/ })).toBeFocused();
     for (const [tile, heading] of [["Verlof", "Verlof"], ["Beschikbaarheid", "Beschikbaarheid"], ["Documenten", "Documenten"], ["Profiel", "Profiel"], ["Instellingen", "Instellingen"]]) {
-      await page.locator(".ps-more-card").filter({ has: page.getByText(tile, { exact: true }) }).click();
+      await page.locator(".portal-demo-more .portal-demo-help").filter({ has: page.getByText(tile, { exact: true }) }).click();
       await expect(page.getByRole("heading", { name: heading, exact: true, level: 1 })).toBeVisible();
       await nav.getByRole("button", { name: "Meer", exact: true }).click();
     }
-    await page.locator(".ps-more-card").filter({ has: page.getByText("Notificaties", { exact: true }) }).click();
+    await page.locator(".portal-demo-more .portal-demo-help").filter({ has: page.getByText("Notificaties", { exact: true }) }).click();
     await expect(page).toHaveURL(/\/staff\/notificaties$/);
     await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("link", { name: "Meer", exact: true }).click();
-    await page.locator(".ps-more-card").filter({ has: page.getByText("Tickets", { exact: true }) }).click();
+    await page.locator(".portal-demo-more .portal-demo-help").filter({ has: page.getByText("Tickets", { exact: true }) }).click();
     await expect(page).toHaveURL(/\/staff\/meldingen$/);
     await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("link", { name: "Meer", exact: true }).click();
     const signout = page.locator(".ps-more-signout");

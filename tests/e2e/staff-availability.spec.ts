@@ -40,12 +40,13 @@ test("Beschikbaarheid volgt het prototype wanneer planning de week beheert", asy
     await expect(screen.getByLabel("Zaterdag vanaf", { exact: true })).toHaveValue("");
     await expect(screen.getByLabel("Zondag tot", { exact: true })).toHaveValue("");
     await expect(screen.getByRole("button", { name: "Beschikbaarheid opslaan", exact: true })).toBeDisabled();
+    await screen.getByText("Over beschikbaarheid",{exact:true}).click();
     await expect(screen.getByRole("heading", { name: "Goed om te weten", exact: true })).toBeVisible();
     await expect(screen.getByRole("heading", { name: "Tijdelijk afwezig?", exact: true })).toBeVisible();
     for (const width of [1920, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 944 });
       await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked", "true");
-      await expect(page.locator(".ps-top-actions .icon-button").first()).toBeVisible();
+      await expect(page.getByRole("button",{name:/^Profielmenu van /})).toBeVisible();
       await expect(page.locator(".ps-topbar-leading .ps-sync.current")).toBeVisible();
       await page.evaluate(async () => { await document.fonts.ready; });
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -67,12 +68,14 @@ test("Vrijgegeven beschikbaarheid bewaart tijdvakken, lege dagen en voorkeuren z
     const screen = page.locator(".ps-availability-screen");
     const save = screen.getByRole("button", { name: "Beschikbaarheid opslaan", exact: true });
     await expect(save).toBeEnabled();
-    await expect(screen.getByText("Bewerken toegestaan", { exact: true })).toBeVisible();
+    await expect(screen.getByText("Vrijgegeven voor bewerken", { exact: true })).toBeVisible();
+    await screen.getByRole("checkbox",{name:"Zaterdag",exact:true}).check();
+    await screen.getByLabel("Zaterdag tot",{exact:true}).fill("");
     await screen.getByLabel("Zaterdag vanaf", { exact: true }).fill("09:00");
     await save.click();
     await expect.poll(() => screen.getByLabel("Zaterdag tot", { exact: true }).evaluate((element: HTMLInputElement) => element.validity.valueMissing)).toBe(true);
     expect((await saved()).version).toBe(initial.version);
-    await screen.getByLabel("Zaterdag vanaf", { exact: true }).fill("");
+    await screen.getByRole("checkbox",{name:"Zaterdag",exact:true}).uncheck();
     await screen.getByLabel("Maandag tot", { exact: true }).fill("07:00");
     await save.click();
     await expect(screen.getByRole("alert")).toContainText("de eindtijd moet na de begintijd liggen");

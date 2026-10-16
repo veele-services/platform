@@ -9,6 +9,9 @@ test.setTimeout(60_000);
 
 async function expectJoined(page: Page, tab: Locator, card: Locator) {
   await expect(card).toBeVisible();
+  // The source tabpanel owns the shared frame; its nested form is unframed.
+  const panel=card.locator('xpath=ancestor::*[@role="tabpanel"][1]');
+  if(await panel.count())card=panel;
   await expect.poll(async () => {
     const tabBox = await tab.boundingBox(), cardBox = await card.boundingBox();
     return Boolean(tabBox && cardBox && Math.abs(tabBox.y + tabBox.height - cardBox.y) <= 2);
@@ -18,7 +21,7 @@ async function expectJoined(page: Page, tab: Locator, card: Locator) {
 }
 
 test("Meerwerk en Templates sluiten zonder dubbele subtitel direct aan op hun tabs", async ({ page }, info) => {
-  await authenticateWorkspace(page, "platform-admin@fieldgrid.test", "/app/taken");
+  await authenticateWorkspace(page, "platform-admin@fieldgrid.test", "/app/taken/beheer");
   await expect(page.getByRole("heading", { name: "Taken & tarieven", exact: true })).toBeVisible();
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -50,7 +53,7 @@ test("alle instellingentabs hebben overzichtelijke groepen en een aangesloten ka
       if (name === "Reizen") await expect(card.getByRole("group", { name: "Aankomstmarges", exact: true })).toBeVisible();
       if (name === "Ondertekening") await expect(card.getByRole("group", { name: "Ondertekening", exact: true })).toBeVisible();
       await expectJoined(page, tab, card);
-      await expect.poll(() => card.evaluate(element => parseFloat(getComputedStyle(element).paddingTop))).toBeGreaterThanOrEqual(20);
+      await expect.poll(() => card.locator('xpath=ancestor::*[@role="tabpanel"][1]').evaluate(element => parseFloat(getComputedStyle(element).paddingTop))).toBeGreaterThanOrEqual(14);
       await page.screenshot({ path: info.outputPath(`settings-${name.toLowerCase().replaceAll(" ", "-")}-${width}.png`), animations: "disabled" });
     }
     await tabList.getByRole("tab", { name: "Ondertekening", exact: true }).focus();

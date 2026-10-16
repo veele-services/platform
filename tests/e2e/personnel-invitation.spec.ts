@@ -32,7 +32,7 @@ async function loginAdmin(page: Page) {
 async function invite(page: Page, email: string) {
   await page.getByRole("button", { name: "Nieuwe medewerker" }).click();
   const wizard = page.getByRole("dialog", { name: "Nieuwe medewerker" });
-  await wizard.getByLabel("Volledige naam").fill("Robin de Vries");
+  await wizard.getByLabel("Volledige naam").fill("Fictieve Uitnodiging");
   await wizard.getByLabel("E-mailadres").fill(email);
   await wizard.getByRole("button", { name: "Volgende" }).click();
   await wizard.getByRole("button", { name: "Volgende" }).click();
@@ -68,7 +68,13 @@ async function openInvitation(page: Page, url: URL) {
 async function cleanup(admin: Awaited<ReturnType<typeof fixture>>["admin"], tenantId: string, email: string, extraUserId?: string) {
   const { data: people } = await admin.from("personnel").select("id,user_id").eq("tenant_id", tenantId).eq("email", email);
   const users = new Set([...(people ?? []).flatMap((person) => person.user_id ? [person.user_id] : []), ...(extraUserId ? [extraUserId] : [])]);
-  await admin.from("personnel").delete().eq("tenant_id", tenantId).eq("email", email);
+  const removed=await admin.from("personnel").delete().eq("tenant_id",tenantId).eq("email",email);
+  if(removed.error){
+    // Immutable invitation history can retain its synthetic personnel source.
+    // Retire that source so future planner fixtures cannot select it.
+    const retired=await admin.from("personnel").update({status:"inactive"}).eq("tenant_id",tenantId).eq("email",email);
+    if(retired.error)throw new Error("Could not retire isolated invitation personnel");
+  }
   await admin.from("mail_deliveries").delete().eq("tenant_id", tenantId).eq("recipient", email);
   for (const userId of users) await admin.auth.admin.deleteUser(userId);
 }
@@ -125,7 +131,8 @@ test("branded personnel invitation activates once and opens the personnel portal
     await expect(employee).toHaveURL(/\/login/);
     await signInWithEmailOtp(employee, email, "/staff");
     await expect(employee.locator(".personnel-app")).toBeVisible();
-    await recipient.request.post("/auth/signout");
+    await employee.goto("about:blank");
+    await recipient.request.post("/auth/signout",{maxRedirects:0});
     // Leave the revoked app document before opening the one-use link again:
     // its account fence may otherwise supersede the explicit test navigation.
     await employee.goto("about:blank");
@@ -135,7 +142,7 @@ test("branded personnel invitation activates once and opens the personnel portal
     await employee.goto("/staff");
     await expect(employee.getByRole("button", { name: "Inlogcode versturen", exact: true })).toBeVisible();
   } finally {
-    await recipient.request.post("/auth/signout");
+    await recipient.request.post("/auth/signout",{maxRedirects:0,timeout:15000});
     await recipient.close();
     await cleanup(admin, tenant.id, email);
   }
@@ -169,7 +176,7 @@ test("existing accounts keep their password and roles when invited to the person
     await signInWithEmailOtp(employee, email, "/staff");
     await expect(employee.getByRole("heading", { name: "Planning", exact: true })).toBeVisible();
   } finally {
-    await recipient.request.post("/auth/signout");
+    await recipient.request.post("/auth/signout",{maxRedirects:0,timeout:15000});
     await recipient.close();
     await cleanup(admin, tenant.id, email, account.user.id);
   }
@@ -189,7 +196,8 @@ test("failed invitation can be resent without duplicating personnel and revoked 
     await expect(page.getByText("De medewerker is aangemaakt. De e-mailprovider heeft de verzending geweigerd. Controleer de verzendregistratie voordat je opnieuw probeert.", { exact: true })).toBeVisible();
     const row = page.getByRole("row").filter({ hasText: email });
     await expect(row).toBeVisible();
-    await row.getByRole("button", { name: "Meer", exact: true }).click();
+    await row.getByRole("button",{name:/^Bekijk /}).click();
+    await page.getByRole("dialog").getByRole("button",{name:/^Meer acties voor /}).click();
     await page.getByRole("button", { name: "Uitnodiging opnieuw versturen" }).click();
     await expect(page.getByText("Uitnodiging opnieuw verstuurd", { exact: true })).toBeVisible();
     const url = activationUrl(await latestMail(email));
@@ -206,7 +214,7 @@ test("failed invitation can be resent without duplicating personnel and revoked 
     await employee.goto("/staff");
     await expect(employee.getByRole("button", { name: "Inlogcode versturen", exact: true })).toBeVisible();
   } finally {
-    await recipient.request.post("/auth/signout");
+    await recipient.request.post("/auth/signout",{maxRedirects:0,timeout:15000});
     await recipient.close();
     await cleanup(admin, tenant.id, email);
   }

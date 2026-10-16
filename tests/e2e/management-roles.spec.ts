@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 import { Client } from "pg";
@@ -15,14 +15,16 @@ type Mail = { subject: string; content: Array<{ type: string; value: string }>; 
 const origin = "http://127.0.0.1:3000";
 const mailbox = "http://127.0.0.1:59329";
 
-async function joined(page: Page, tab: Locator, card: Locator) {
-  await expect(card).toBeVisible();
-  await expect.poll(async () => {
-    const tabBox = await tab.boundingBox(), cardBox = await card.boundingBox();
-    return Boolean(tabBox && cardBox && Math.abs(tabBox.y + tabBox.height - cardBox.y) <= 2);
-  }).toBe(true);
-  await expect.poll(() => card.evaluate(element => getComputedStyle(element).borderTopLeftRadius)).toBe("0px");
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+async function chooseManagementView(page:Page,name:string){
+  const picker=page.getByLabel("Weergave gebruikersbeheer",{exact:true});
+  if(!await picker.isVisible())await page.locator('summary[aria-label="Filters"]').click();
+  await picker.selectOption({label:name});await page.keyboard.press("Escape");
+}
+async function searchUsers(page:Page,value:string){
+  await chooseManagementView(page,"Gebruikers");
+  await page.locator('summary[aria-label="Filters"]').click();
+  await page.getByLabel("Gebruikers zoeken",{exact:true}).fill(value);
+  await page.keyboard.press("Escape");
 }
 
 async function latestMail(email: string) {
@@ -35,30 +37,28 @@ async function latestMail(email: string) {
 }
 
 async function managementLayout(page: Page, info: TestInfo) {
-  const regions = [["Gebruikers", "Managementgebruikers"], ["Rollen", "Managementrollen"], ["Rechten", "Rolrechten"]];
-  for (const width of [1440, 390]) {
-    await page.setViewportSize({ width, height: 900 });
-    for (const [name, region] of regions) {
-      const tab = page.getByRole("tab", { name, exact: true });
-      await tab.click();
-      await joined(page, tab, page.getByRole("region", { name: region, exact: true }));
-      if (name === "Rollen") {
-        for (const role of ["Eigenaar", "Management", "Planning", "Administratie", "Support"]) await expect(page.getByRole("heading", { name: role, exact: true })).toBeVisible();
+  for (const width of [1440,390]){
+    await page.setViewportSize({width,height:900});
+    for(const name of ["Gebruikers","Rollen","Rechten"]){
+      await chooseManagementView(page,name);
+      if(name==="Gebruikers")await expect(page.getByRole("region",{name:"Managementgebruikers",exact:true})).toBeVisible();
+      if(name==="Rollen")for(const role of ["Eigenaar","Management","Planning","Administratie","Support"])await expect(page.getByRole("button",{name:role,exact:true})).toBeVisible();
+      if(name==="Rechten"){
+        await page.getByLabel("Rol voor rechten",{exact:true}).selectOption({label:"Eigenaar"});
+        await expect(page.getByRole("region",{name:"Rolrechten",exact:true}).getByRole("checkbox").first()).toBeDisabled();
+        await page.getByLabel("Rol voor rechten",{exact:true}).selectOption({label:"Planning"});
+        await expect(page.getByRole("button",{name:"Rechten opslaan",exact:true})).toBeDisabled();
+        await expect(page.getByRole("region",{name:"Rolrechten",exact:true})).not.toContainText("get_planboard");
+        await page.screenshot({path:info.outputPath(`management-rights-${width}.png`),animations:"disabled"});
       }
-      if (name === "Rechten") {
-        await page.getByLabel("Rol voor rechten", { exact: true }).selectOption({ label: "Eigenaar" });
-        await expect(page.getByRole("region", { name: "Rolrechten", exact: true }).getByRole("checkbox").first()).toBeDisabled();
-        await page.getByLabel("Rol voor rechten", { exact: true }).selectOption({ label: "Planning" });
-        await expect(page.getByRole("button", { name: "Rechten opslaan", exact: true })).toBeDisabled();
-        await expect(page.getByRole("region", { name: "Rolrechten", exact: true })).not.toContainText("get_planboard");
-        await page.screenshot({ path: info.outputPath(`management-rights-${width}.png`), animations: "disabled" });
-      }
+      await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     }
-    await page.getByRole("tab", { name: "Rechten", exact: true }).focus();
-    await page.keyboard.press("Home");
-    await expect(page.getByRole("tab", { name: "Gebruikers", exact: true })).toBeFocused();
+    await chooseManagementView(page,"Gebruikers");
     await page.getByRole("button", { name: "Managementgebruiker uitnodigen", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Managementgebruiker uitnodigen", exact: true });
+    const footer=dialog.locator('.mc-dialog-frame > footer');
+    await expect(footer).toBeVisible();
+    await expect.poll(async()=>{const frame=(await dialog.boundingBox())!,actions=(await footer.boundingBox())!;return Math.abs(frame.y+frame.height-actions.y-actions.height)}).toBeLessThanOrEqual(2);
     await expect.poll(() => dialog.evaluate(element => element.contains(document.activeElement))).toBe(true);
     await dialog.getByRole("button", { name: "Sluiten", exact: true }).focus();
     await page.keyboard.press("Shift+Tab");
@@ -73,7 +73,7 @@ async function managementLayout(page: Page, info: TestInfo) {
 
 }
 
-test("managementpagina heeft aangesloten tabs en toegankelijke dialogen op desktop en mobiel", async ({ page }, info) => {
+test("managementpagina behoudt de bronmatrix, werkende weergavekeuze en toegankelijke dialogen op desktop en mobiel", async ({ page }, info) => {
   await authenticateWorkspace(page, "platform-admin@fieldgrid.test", "/app/gebruikers");
   await expect(page.getByRole("heading", { name: "Gebruikers en rollen", exact: true })).toBeVisible();
   await managementLayout(page, info);
@@ -119,7 +119,7 @@ test("managementrollen bewaren mailuitnodiging, actuele rechten en bevestigde ei
     const loginLink = new URL(text.match(/http:\/\/127\.0\.0\.1:3000\/login[^\s]+/)?.[0] ?? "");
     expect(loginLink.origin).toBe(origin); expect(loginLink.searchParams.get("next")).toBe("/app");
     expect(mail.tracking_settings.click_tracking.enable).toBe(false); expect(mail.tracking_settings.open_tracking.enable).toBe(false);
-    await page.getByLabel("Gebruikers zoeken", { exact: true }).fill(invitedEmail);
+    await searchUsers(page, invitedEmail);
     const memberRow = page.getByRole("row").filter({ hasText: invitedEmail });
     await expect(memberRow).toContainText("Uitgenodigd");
 
@@ -132,7 +132,7 @@ test("managementrollen bewaren mailuitnodiging, actuele rechten en bevestigde ei
 
     // A role edit removes its dependent operations. The member keeps the same
     // real session, so this checks live page authorization rather than login.
-    await page.getByRole("tab", { name: "Rechten", exact: true }).click();
+    await chooseManagementView(page,"Rechten");
     await page.getByLabel("Rol voor rechten", { exact: true }).selectOption({ label: "Planning" });
     const planningRead = page.locator('input[type="checkbox"][value="backoffice.planning.read"]');
     await planningRead.uncheck();
@@ -153,9 +153,9 @@ test("managementrollen bewaren mailuitnodiging, actuele rechten en bevestigde ei
     await expect(memberPage.getByRole("heading", { name: "Planbord", exact: true })).toBeVisible();
 
     // Assignment changes page access for the existing session as well.
-    await page.getByRole("tab", { name: "Gebruikers", exact: true }).click();
+    await chooseManagementView(page,"Gebruikers");
     await page.reload();
-    await page.getByLabel("Gebruikers zoeken", { exact: true }).fill(invitedEmail);
+    await searchUsers(page, invitedEmail);
     await memberRow.getByRole("button", { name: `Rol van ${invitedName} wijzigen`, exact: true }).click();
     const roleDialog = page.getByRole("dialog", { name: `Managementrol van ${invitedName}`, exact: true });
     await roleDialog.getByRole("combobox", { name: "Managementrol", exact: true }).selectOption({ label: "Administratie" });
@@ -191,7 +191,7 @@ test("managementrollen bewaren mailuitnodiging, actuele rechten en bevestigde ei
     await page.reload();
     await expect(page.getByRole("button", { name: "Managementgebruiker uitnodigen", exact: true })).toHaveCount(0);
     await page.goto("/app");
-    await expect(page.getByRole("heading", { name: "Goedendag, Demo Organisatie", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Overzicht", exact: true })).toBeVisible();
     await memberPage.goto("/platform");
     await expect(memberPage.getByRole("complementary", { name: "Platformnavigatie", exact: true })).toHaveCount(0);
   } finally {

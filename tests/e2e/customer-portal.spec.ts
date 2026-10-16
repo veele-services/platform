@@ -37,7 +37,7 @@ test("customer portal: five responsive widths, real persistence, dialogs, downlo
   await onboarding.getByLabel("Organisatie *",{exact:true}).fill("Fictieve portaalorganisatie");await onboarding.getByLabel("Telefoonnummer *",{exact:true}).fill("0301234567");
   await onboarding.getByRole("button",{name:"Opslaan en verder",exact:true}).click();
   await expect(onboarding.getByRole("heading",{name:"Waar kunnen we je helpen?"})).toBeVisible();
-  await onboarding.getByLabel("Naam object",{exact:true}).fill("Fictief eerste object");
+  await onboarding.getByLabel("Naam van het object",{exact:true}).fill("Fictief eerste object");
   await onboarding.getByLabel("Straatnaam",{exact:true}).fill("FICTIEF Testplein");
   const addressOption=onboarding.getByRole("option",{name:"FICTIEF Testplein 12A bis, 1234AB Testplaats"});
   await expect(addressOption).toBeVisible();await addressOption.click();
@@ -64,8 +64,8 @@ test("customer portal: five responsive widths, real persistence, dialogs, downlo
    await page.screenshot({path:`test-results/customer-portal-${width}.png`,fullPage:true});
    await page.getByRole("button",{name:"Object toevoegen",exact:true}).first().click();const dialog=page.getByRole("dialog");await expect(dialog).toBeVisible();
    const box=await dialog.boundingBox();expect(box!.width).toBeLessThanOrEqual(width<=600?width:860);expect(box!.height).toBeLessThanOrEqual(width<=600?960:865);
-   await dialog.getByLabel("Naam object",{exact:true}).fill("Niet opgeslagen fictief object");
-   await page.evaluate(()=>window.dispatchEvent(new Event("focus")));await expect(dialog.getByLabel("Naam object",{exact:true})).toHaveValue("Niet opgeslagen fictief object");
+   await dialog.getByLabel("Naam van het object",{exact:true}).fill("Niet opgeslagen fictief object");
+   await page.evaluate(()=>window.dispatchEvent(new Event("focus")));await expect(dialog.getByLabel("Naam van het object",{exact:true})).toHaveValue("Niet opgeslagen fictief object");
    page.once("dialog",confirmation=>confirmation.accept());await page.keyboard.press("Escape");await expect(dialog).toBeHidden();
   }
   await page.setViewportSize({width:1440,height:1000});
@@ -79,7 +79,7 @@ test("customer portal: five responsive widths, real persistence, dialogs, downlo
   await page.goto(`/klant?account=${account}&view=reports`);
   for(const width of [1440,390]){await page.setViewportSize({width,height:960});const downloadPromise=page.waitForEvent("download");await page.getByRole("link",{name:"Opslaan",exact:true}).click();const download=await downloadPromise;expect(download.suggestedFilename()).toBe("gedeeld-document.pdf");const stream=await download.createReadStream();const chunks=[];for await(const chunk of stream!)chunks.push(chunk);expect(Buffer.concat(chunks)).toEqual(Buffer.from(bytes));}
   await page.setViewportSize({width:1440,height:1000});await page.goto(`/klant?account=${account}&view=tickets`);
-  await page.getByRole("button",{name:/Jouw accountmanager/}).click();const dialog=page.getByRole("dialog");await dialog.getByLabel("Onderwerp",{exact:false}).fill("Fictieve klantvraag");await dialog.getByLabel("Bericht",{exact:false}).fill("Dit is een fictieve testvraag voor de accountmanager.");await dialog.getByRole("button",{name:"Ticket versturen"}).click();await expect(dialog.getByRole("heading",{name:"Fictieve klantvraag"})).toBeVisible();
+  await page.getByRole("button",{name:/Jouw organisatie/}).click();const dialog=page.getByRole("dialog");await dialog.getByLabel("Onderwerp",{exact:false}).fill("Fictieve klantvraag");await dialog.getByLabel("Bericht",{exact:false}).fill("Dit is een fictieve testvraag voor de accountmanager.");await dialog.getByRole("button",{name:"Ticket versturen"}).click();await expect(dialog.getByRole("heading",{name:"Fictieve klantvraag"})).toBeVisible();
   await dialog.getByLabel("Jouw reactie",{exact:false}).fill("Fictieve aanvullende informatie.");await dialog.getByRole("button",{name:"Reactie versturen"}).click();await expect(dialog.getByText("Fictieve aanvullende informatie.",{exact:true})).toBeVisible();await dialog.getByRole("button",{name:"Sluiten",exact:true}).last().click();
   await page.reload();await expect(page.getByRole("button",{name:/Fictieve klantvraag/})).toBeVisible();
   const invoiceId=randomUUID(),orderId=randomUUID(),taskId=randomUUID();
@@ -90,7 +90,7 @@ test("customer portal: five responsive widths, real persistence, dialogs, downlo
   await db.query("update public.invoices set status='sent',finalized_at=now(),customer_snapshot='{}',branding_snapshot='{}',lines_snapshot='[]' where id=$1",[invoiceId]);
   await page.goto(`/klant?account=${account}&view=invoices&payment=return`);await expect(page.getByRole("heading",{name:"Je betaalstatus wordt gecontroleerd"})).toBeVisible();await page.getByRole("button",{name:"Actuele facturen bekijken"}).click();
   await expect(page.getByText("Je organisatie heeft online betalen nog niet aangesloten. Neem bij vragen contact op.")).toBeVisible();
-  await expect(page.getByRole("button",{name:"Betalen",exact:true})).toBeDisabled();
+  await expect(page.getByRole("button",{name:"Geselecteerd betalen (0)",exact:true})).toBeDisabled();
   await page.goto(`/klant?account=${account}&view=invoices&invoice=${invoiceId}`);
   await expect(dialog.getByRole("heading",{name:"PORTAL-INVOICE",exact:true})).toBeVisible();
   await expect(dialog.getByText("Je organisatie heeft online betalen nog niet aangesloten. Neem bij vragen contact op.")).toBeVisible();

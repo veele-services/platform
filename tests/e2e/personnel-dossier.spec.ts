@@ -33,7 +33,7 @@ test("dossier 360: tabs, profile, contracts, private document versions, reviews,
  test.setTimeout(180000);const f=await fixture();
  try{
   await page.setViewportSize({width:1440,height:1000});await login(page);
-  await page.getByRole("row").filter({hasText:"Lisa Dossierdemo"}).getByRole("button",{name:"Bekijk",exact:true}).click();
+  await page.getByRole("row").filter({hasText:"Lisa Dossierdemo"}).getByRole("button",{name:/^Bekijk /}).click();await page.getByRole("dialog").getByRole("link",{name:"Volledig dossier",exact:false}).click();
   await expect(page).toHaveURL(new RegExp(`/app/personeel/${f.id}$`));
   await expect(page.getByRole("heading",{name:"Lisa Dossierdemo",exact:true})).toBeVisible();
   await expectPixelAlignedScreenshot(page.locator(".personnel-dossier"),"dossier-empty-1440.png",{stylePath:"./tests/e2e/dossier-screenshot.css",mask:[page.locator(".personnel-dossier .unified-page-heading .eyebrow")]});

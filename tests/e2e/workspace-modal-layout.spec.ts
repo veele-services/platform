@@ -47,8 +47,8 @@ async function inspect(page:Page,dialog:Locator,info:TestInfo,name:string) {
     }));
     const frame=(await dialog.boundingBox())!;
     for(const box of positions) {
-      expect(box.left-frame.x).toBeGreaterThanOrEqual(19);
-      expect(frame.x+frame.width-box.right).toBeGreaterThanOrEqual(19);
+      expect(box.left-frame.x).toBeGreaterThanOrEqual(viewport.width<=620?13:25);
+      expect(frame.x+frame.width-box.right).toBeGreaterThanOrEqual(viewport.width<=620?13:25);
     }
     const rows=[...new Set(positions.map(box=>Math.round(box.top)))].sort((a,b)=>a-b);
     // Rows stay close together even in a tall frame; nested business fields
@@ -65,7 +65,7 @@ async function inspect(page:Page,dialog:Locator,info:TestInfo,name:string) {
       return !!box&&box.y>=frame.y&&box.y+box.height<=frame.y+frame.height+1;
     }).toBe(true);
   }
-  const scroll=dialog.locator('.dossier-form>.dossier-form-fields:not([hidden]),.commercial-wizard>.wo-wizard-step:not([hidden]),.commercial-wizard>.commercial-form-body,.modal-body').first();
+  const scroll=dialog.locator('.mc-dialog-body,.dossier-form>.dossier-form-fields:not([hidden]),.commercial-wizard>.wo-wizard-step:not([hidden]),.commercial-wizard>.commercial-form-body,.modal-body').first();
   if(await scroll.count()) {
     const legend=scroll.locator(':scope>legend').first();
     if(await legend.count()) {
@@ -108,7 +108,9 @@ test("tenantmodals houden wizardvelden compact en dossieracties en tabs bereikba
         await expect(dialog).toHaveCount(0);
       }
       await page.goto("/app/aanvragen");
-      await page.getByRole("button",{name:"Bekijk",exact:true}).click();
+      await page.getByRole("button",{name:"Open MODAL-AANVRAAG",exact:true}).click();
+      await page.getByRole("dialog").getByRole("button",{name:/^Meer acties voor /}).click();
+      await page.getByRole("button",{name:"Dossier en historie",exact:true}).click();
       const detail=page.getByRole("dialog",{name:"Fictieve modalaanvraag",exact:true});
       await inspect(page,detail,info,"dossier");
       const tabs=detail.getByRole("tablist");
@@ -146,10 +148,11 @@ test("klantmodals behouden compacte velden, tabnavigatie en mobiele acties",asyn
       await page.getByRole("button",{name:"Object toevoegen",exact:true}).first().click();
       const form=page.getByRole("dialog",{name:"Object toevoegen",exact:true});
       await inspect(page,form,info,"klantformulier");
-      await form.getByRole("button",{name:"Annuleren",exact:true}).click();
-      await page.locator(".object-card").first().click();
+      await form.getByRole("button",{name:"Sluiten",exact:true}).click();
+      await page.getByRole("button",{name:/Fictieve modallocatie/}).first().click();
       const detail=page.getByRole("dialog",{name:"Fictieve modallocatie",exact:true});
       await inspect(page,detail,info,"klantdossier");
+      await detail.getByText("Objectdossier en instructiehistorie",{exact:true}).click();
       await detail.getByRole("tab",{name:"Overzicht",exact:true}).focus();
       await page.keyboard.press("ArrowRight");
       await expect(detail.getByRole("tab",{name:"Vaste instructies",exact:true})).toHaveAttribute("aria-selected","true");

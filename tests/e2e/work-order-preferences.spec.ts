@@ -87,7 +87,7 @@ test("nieuwe werkbon vraagt alleen een dag en twee-uursvenster en houdt taakduur
     await expect(planning).toContainText("180 minuten");
     await planning.getByLabel("Begin", { exact: true }).fill("2033-12-05T14:00");
     await planning.getByLabel("Einde", { exact: true }).fill("2033-12-05T17:00");
-    await planning.getByLabel("Robin de Vries", { exact: false }).check();
+    await planning.getByRole("checkbox",{name:"Robin de Vries",exact:true}).check();
     await planning.getByRole("button", { name: "Planning opslaan", exact: true }).click();
     await expect(planning).toHaveCount(0);
     expect(await stored()).toMatchObject({ planning_state: "tentative", crew: 1, budget_labor_minutes: 180, task_minutes: 180, customer_window_kind: "arrival", projected_start_at: new Date("2033-12-05T13:00:00Z"), projected_end_at: new Date("2033-12-05T16:00:00Z"), starts_at: new Date("2033-12-05T13:00:00Z"), ends_at: new Date("2033-12-05T15:00:00Z") });

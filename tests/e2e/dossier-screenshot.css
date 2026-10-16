@@ -1,2 +1,5 @@
 /* Transient toast/dev UI is not part of the dossier visual contract. */
 [data-sonner-toaster], nextjs-portal { visibility: hidden !important; }
+/* An element crop scrolls a tall dossier below the sticky shell. Keep that
+   unrelated shell from painting across the dossier title in the capture. */
+.workspace-topbar { position: static !important; }

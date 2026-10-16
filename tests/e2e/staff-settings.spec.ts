@@ -11,7 +11,7 @@ async function fixture(db: Client) {
 }
 async function capture(page: Page, info: TestInfo, name: string) {
   await expect(page.locator("html")).not.toHaveAttribute("data-account-blocked", "true");
-  await expect(page.locator(".ps-top-actions .icon-button").first()).toBeVisible();
+  await expect(page.getByRole("button",{name:/^Profielmenu van /})).toBeVisible();
   await expect(page.locator(".ps-topbar-leading .ps-sync.current")).toBeVisible();
   await page.evaluate(async () => { await document.fonts.ready; });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -31,8 +31,8 @@ test("Instellingen toont de prototypeonderdelen en bewaart alleen naam en mobiel
     const screen = page.locator(".ps-settings-screen");
     const nav = screen.getByRole("tablist", { name: "Instellingenonderdelen", exact: true });
     await expect(nav.getByRole("tab")).toHaveText(["Mijn profiel", "Meldingen", "Account & toegang"]);
-    await expect(screen.getByLabel("E-mailadres", { exact: true })).toHaveValue("field-worker@fieldgrid.test");
-    await expect(screen.getByLabel("E-mailadres", { exact: true })).toHaveAttribute("readonly", "");
+    await expect(screen.getByRole("textbox",{name:/^E-mailadres voor inloggen/})).toHaveValue("field-worker@fieldgrid.test");
+    await expect(screen.getByRole("textbox",{name:/^E-mailadres voor inloggen/})).toHaveAttribute("readonly", "");
     for (const width of [1920, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 944 });
       for (const [name, image] of [["Mijn profiel", "profile"], ["Meldingen", "notifications"], ["Account & toegang", "account"]]) {
@@ -41,8 +41,8 @@ test("Instellingen toont de prototypeonderdelen en bewaart alleen naam en mobiel
       }
     }
     await nav.getByRole("tab", { name: "Mijn profiel", exact: true }).click();
-    const save = screen.getByRole("button", { name: "Gegevens opslaan", exact: true });
-    await screen.getByLabel("Naam", { exact: true }).fill("Robin Fictieve profielcontrole");
+    const save = screen.getByRole("button", { name: "Profiel opslaan", exact: true });
+    await screen.getByLabel("Voornaam",{exact:true}).fill("Robin");await screen.getByLabel("Achternaam",{exact:true}).fill("Fictieve profielcontrole");
     await screen.getByLabel("Telefoonnummer", { exact: true }).fill("+31612345678");
     await save.click();
     await expect.poll(async () => (await profile()).version).toBeGreaterThan(initial.version);
@@ -56,9 +56,9 @@ test("Instellingen toont de prototypeonderdelen en bewaart alleen naam en mobiel
     await expect.poll(async () => (await profile()).version).toBeGreaterThan(first.version);
     await expect(save).toBeEnabled();
     await page.reload();
-    await expect(screen.getByLabel("Naam", { exact: true })).toHaveValue("Robin Fictieve profielcontrole");
+    await expect(screen.getByLabel("Voornaam", { exact: true })).toHaveValue("Robin");
     await expect(screen.getByLabel("Telefoonnummer", { exact: true })).toHaveValue("+31687654321");
-    await screen.getByLabel("Naam", { exact: true }).fill("Fictieve verouderde invoer");
+    await screen.getByLabel("Voornaam", { exact: true }).fill("Fictieve verouderde invoer");
     await db.query("update public.personnel set full_name='Fictieve gelijktijdige HR-wijziging' where tenant_id=$1 and id=$2", [person.tenant_id, person.id]);
     await save.click();
     await expect(page.getByText("Je profiel is intussen gewijzigd. Laad het opnieuw.", { exact: true })).toBeVisible();
@@ -156,7 +156,7 @@ test("Persoonlijke notificatievoorkeuren blijven bereikbaar zonder inboxrecht en
     await authenticateStaff(page, "field-worker@fieldgrid.test", "/staff?tab=meer");
     await expect(page.locator(".ps-more-screen")).toBeVisible();
     await expect(page.getByRole("region", { name: "Open diensten", exact: true })).toHaveCount(0);
-    await page.locator(".ps-more-grid").getByRole("button", { name: "Instellingen Profiel en meldingen", exact: true }).click();
+    await page.locator(".portal-demo-more").getByRole("button", { name: /^Instellingen / }).click();
     const screen = page.locator(".ps-settings-screen");
     await screen.getByRole("tab", { name: "Meldingen", exact: true }).click();
     await screen.getByRole("link", { name: "Per onderwerp", exact: true }).click();

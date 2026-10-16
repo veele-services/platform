@@ -18,7 +18,7 @@ async function openFixtureOrder(page:Page){
 
 async function inspectDialog(page: Page, dialog: Locator, info: TestInfo, name: string) {
   await expect(dialog).toBeVisible();
-  await expect(dialog).toHaveAttribute("aria-modal", "true");
+  expect(await dialog.evaluate(el=>el instanceof HTMLDialogElement?el.matches(":modal"):el.getAttribute("aria-modal")==="true")).toBe(true);
   await page.evaluate(() => document.fonts.ready);
   const viewport = page.viewportSize()!;
   await expect.poll(async () => {
@@ -27,32 +27,38 @@ async function inspectDialog(page: Page, dialog: Locator, info: TestInfo, name: 
   }).toBe(true);
   await expect.poll(() => dialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
   const input = dialog.locator('input:not([type="checkbox"]), select, textarea').first();
-  if (await input.count()) await expect(input).toHaveCSS("font-size", viewport.width <= 600 ? "16px" : "12.8px");
+  if (await input.count()) await expect(input).toHaveCSS("font-size", viewport.width <= 600 ? "16px" : "13px");
   const scroll = dialog.locator(".staff-dialog-scroll").first();
-  if (await scroll.count()) await expect(scroll).toHaveCSS("padding-left", viewport.width <= 600 ? "20px" : "28px");
-  const footer = dialog.locator(".ps-modal-footer, [data-slot=dialog-footer], .ticket-form-footer").last();
+  if (await scroll.count()) {
+    // The source frame owns spacing; the preserved inner scroll body is unpadded.
+    await expect(scroll).toHaveCSS("padding-left", "0px");
+    const outer=dialog.locator(".mc-dialog-body");await expect(outer).toHaveCSS("padding-left",viewport.width<=600?"17px":"25px");
+  }
+  const footer = dialog.locator(".mc-dialog-frame > footer,.ps-modal-footer, [data-slot=dialog-footer], .ticket-form-footer").last();
   if (await footer.count()) {
-    const body = dialog.locator(".ps-modal-body, .staff-dialog-scroll, .ticket-dialog-body, form").first();
+    const body = dialog.locator(".mc-dialog-body,.ps-modal-body, .staff-dialog-scroll, .ticket-dialog-body, form").first();
     if (await body.count()) await body.evaluate(el => { el.scrollTop = el.scrollHeight; });
     await expect(footer).toBeVisible();
     // Opening animations must not compare the footer's final frame with an
     // earlier, still-scaled dialog frame. Read both in the same layout pass.
     await expect.poll(() => footer.evaluate(element => {
-      const dialog = element.closest('[role="dialog"]')!;
+      const dialog = element.closest('dialog,[role="dialog"]')!;
       const outer = dialog.getBoundingClientRect(), inner = element.getBoundingClientRect();
       return inner.top >= outer.top && inner.bottom <= outer.bottom + 1;
     })).toBe(true);
   }
+  await dialog.locator(".mc-dialog-body").evaluateAll(nodes=>nodes.forEach(el=>{el.scrollTop=0;}));
   await page.screenshot({ path: info.outputPath(`${name}.png`), animations: "disabled", style: "nextjs-portal,[data-sonner-toaster]{visibility:hidden}" });
 }
 
 test("werkbonvensters blijven binnen het scherm en bewaren terugkeer naar de bon", async ({ page }, info) => {
   test.setTimeout(90_000);
   await openFixtureOrder(page);
-  const sheet = page.getByRole("dialog", { name: "Werkbon WB-2030-001", exact: true });
+  const sheet = page.getByRole("dialog").filter({hasText:"WB-2030-001"});
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     await inspectDialog(page, sheet, info, `work-order-${width}`);
+    const contact=sheet.locator("details").filter({has:page.getByText("Contact, route en objectdossier",{exact:true})});if(!(await contact.evaluate(el=>(el as HTMLDetailsElement).open)))await contact.locator("summary").click();
     for (const [trigger, title] of [["Route bekijken", "Route naar locatie"], ["Beveiligde objecttoegang", "Beveiligde objecttoegang"]]) {
       await sheet.getByRole("button", { name: trigger, exact: true }).click();
       const dialog = page.getByRole("dialog", { name: title, exact: true });
@@ -66,6 +72,7 @@ test("werkbonvensters blijven binnen het scherm en bewaren terugkeer naar de bon
     await inspectDialog(page, returnDialog, info, `return-${width}`);
     await returnDialog.getByRole("button", { name: "Annuleren", exact: true }).click();
     await sheet.getByRole("tab", { name: "Werkzaamheden", exact: true }).click();
+    await sheet.getByText("Tijd, meerwerk en kosten",{exact:true}).click();
     const extraHelp=sheet.locator(".fg-section").filter({has:page.getByRole("heading",{name:"Meerwerk",exact:true})}).getByRole("button",{name:"Informatie over Meerwerk",exact:true});
     await extraHelp.click();
     const help=page.getByRole("note").filter({hasText:"Extra werkzaamheden"});
@@ -96,7 +103,7 @@ test("nieuws, verlof, account en apparaat gebruiken toegankelijke mobiele venste
   await page.keyboard.press("Escape");
   await expect(article).toHaveCount(0);
   await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("button", { name: "Meer", exact: true }).click();
-  await page.locator(".ps-more-card").filter({ hasText: "Verlof" }).click();
+  await page.locator(".portal-demo-more .portal-demo-help").filter({ hasText: "Verlof" }).click();
   await page.getByRole("button", { name: "Verlof aanvragen", exact: true }).click();
   const leave = page.getByRole("dialog", { name: "Verlof aanvragen", exact: true });
   await expect(leave).toBeVisible();
@@ -135,7 +142,7 @@ test("nieuws, verlof, account en apparaat gebruiken toegankelijke mobiele venste
   await inspectDialog(page, leave, info, "leave-320");
   await leave.getByRole("button", { name: "Annuleren", exact: true }).click();
   await page.getByRole("navigation", { name: "Mobiele navigatie" }).getByRole("button", { name: "Meer", exact: true }).click();
-  await page.locator(".ps-more-card").filter({ hasText: "Instellingen" }).click();
+  await page.locator(".portal-demo-more .portal-demo-help").filter({ hasText: "Instellingen" }).click();
   await page.getByRole("tablist", { name: "Instellingenonderdelen" }).getByRole("tab", { name: "Meldingen", exact: true }).click();
   await page.getByRole("button", { name: "Apparaat instellen", exact: true }).click();
   const push = page.getByRole("dialog", { name: "Pushmeldingen instellen", exact: true });
@@ -159,7 +166,7 @@ test("ticketinvoer en filterpopovers behouden de eigen engine zonder mobiele ove
   for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     await create.click();
-    const dialog = page.getByRole("dialog", { name: "Nieuwe melding", exact: true });
+    const dialog = page.getByRole("dialog", { name: "Nieuw ticket", exact: true });
     await inspectDialog(page, dialog, info, `ticket-${width}`);
     await dialog.getByRole("button", { name: "Sluiten", exact: true }).click();
     await expect(create).toBeFocused();
@@ -190,8 +197,9 @@ test("actieve uitvoering toont meerwerk en afrondingscontrole zonder rapport of 
     await db.query("update public.work_order_assignments set status='in_progress',actual_start_at=clock_timestamp() where id=$1", [assignmentId]);
     await page.setViewportSize({ width: 320, height: 740 });
     await openFixtureOrder(page);
-    const sheet = page.getByRole("dialog", { name: "Werkbon WB-2030-001", exact: true });
+    const sheet = page.getByRole("dialog").filter({hasText:"WB-2030-001"});
     await sheet.getByRole("tab", { name: "Werkzaamheden", exact: true }).click();
+    await sheet.getByText("Tijd, meerwerk en kosten",{exact:true}).click();
     const extra = sheet.locator(".fg-section").filter({ has: page.getByRole("heading", { name: "Meerwerk", exact: true }) });
     await extra.getByRole("button", { name: "Toevoegen", exact: true }).click();
     const extraDialog = page.getByRole("dialog", { name: "Meerwerk toevoegen", exact: true });
@@ -224,7 +232,7 @@ test("gereedgemelde werkbon toont geen hervatten of uitvoeringsacties",async({pa
   await db.query("update public.work_orders set status='completed',report_state='review',report_version=report_version+1 where id=$1",[orderId]);
   expect((await db.query("select status from public.work_orders where id=$1",[orderId])).rows[0].status).toBe("completed");
   await openFixtureOrder(page);
-  const sheet=page.getByRole("dialog",{name:"Werkbon WB-2030-001",exact:true});
+  const sheet=page.getByRole("dialog").filter({hasText:"WB-2030-001"});
   await expect(sheet.getByRole("button",{name:/Hervatten|Gereedmelden hervatten|Oplevering afronden|Werk afronden|Pauzeren|Werkbon terugmelden/})).toHaveCount(0);
   await sheet.getByRole("tab",{name:"Werkzaamheden",exact:true}).click();
   for(const checkbox of await sheet.getByRole("checkbox").all())await expect(checkbox).toBeDisabled();
