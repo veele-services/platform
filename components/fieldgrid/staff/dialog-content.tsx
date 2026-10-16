@@ -25,9 +25,10 @@ export function StaffDialogContent({sourceFrame=true,nativeFrame=false,...props}
       }
       return cloneElement(child,{id},fields.filter(field=>!isValidElement(field)||field.type!==DialogFooter));
     });
+    const actions=footer.flatMap(node=>isValidElement<{children?:ReactNode}>(node)&&node.type===DialogFooter?Children.toArray(node.props.children):[node]);
     // PWA/onboarding own their native device-specific frame and controls.
     if(sourceFrame&&!header.length)return <DialogContent {...props} aria-modal="true" {...focus}/>;
-    return <DialogContent {...props} className={`personnel-app mc-dialog sites-staff-native-dialog ${props.className??''}`} aria-modal="true" {...focus}>{sourceFrame?<div className="mc-dialog-frame"><header><div>{header}</div><DialogClose asChild><button className="fg-action-icon" aria-label="Sluiten"><X size={20}/></button></DialogClose></header><div className="mc-dialog-body sites-native-editor">{body}</div>{footer.length>0&&<footer>{footer}</footer>}</div>:props.children}</DialogContent>;
+    return <DialogContent {...props} className={`personnel-app mc-dialog sites-staff-native-dialog ${props.className??''}`} aria-modal="true" {...focus}>{sourceFrame?<div className="mc-dialog-frame"><header><div>{header}</div><DialogClose asChild><button className="fg-action-icon" aria-label="Sluiten"><X size={20}/></button></DialogClose></header><div className="mc-dialog-body sites-native-editor">{body}</div>{actions.length>0&&<footer>{actions}</footer>}</div>:props.children}</DialogContent>;
   }
   return <DialogContent {...props} aria-modal="true" {...focus}/>;
 }
