@@ -3,6 +3,7 @@
 .sites-platform .fg-console{font-family:FieldgridSitesInter,Arial,sans-serif}
 .sites-platform .fg-console :is(h1,h2,h3,h4){font-family:FieldgridSitesPoppins,FieldgridSitesInter,sans-serif}
 .sites-platform .fg-console .fg-cockpit-facts dd{font-family:FieldgridSitesPoppins,FieldgridSitesInter,sans-serif}
+.sites-platform .fg-console .fg-cockpit-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
 .sites-platform .fg-console .shell-account-button{font-family:FieldgridSitesInter,Arial,sans-serif}
 .sites-platform .ed-platform .fg-panel h2{font-family:FieldgridSitesInter,Arial,sans-serif}
 .sites-platform .fg-console .fg-eyebrow{color:var(--brand-muted);font-weight:450;letter-spacing:.12em;line-height:1.6}
