@@ -16,7 +16,7 @@
     "covers": "All five failed cases and both not-run cases, plus the narrow wizard geometry test"
   },
   "caseCoverage": 134,
-  "exactCommitFullCIGate": "pending",
+  "exactCommitFullCIGate": "PASSED subsequently: PR 38865034609, main 38869033340 and staging 38872995106, each 134/134 with zero retries/skips. Historical failed and focused results remain unchanged.",
   "diagnosis": {
     "loginBranding": "A concurrently rebuilt secondary local test server lacked copied static assets; complete standalone assets were restored.",
     "statusLegend": "Pointer hover opened the popup and its click then closed it; click now pins the popup without changing presentation.",
@@ -28,5 +28,6 @@
     "proof": "private-preview-effective-http.json",
     "meaning": "Query-level SAMEORIGIN is not approval. A denied response contains fixed 404 text and an effective CSP frame-ancestors none."
   },
-  "latestStandardBundlerRecovery": "standard-bundler/result.json"
+  "latestStandardBundlerRecovery": "standard-bundler/result.json",
+  "finalAcceptance": "../phase-27/release-result.json"
 }

@@ -1,0 +1,346 @@
+{
+  "release": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+  "reviewedAt": "2026-10-16T09:10:47.904Z",
+  "captureCount": 12,
+  "actuallyViewedRegions": 24,
+  "reference": "../final/marketing/comparison.json",
+  "reviewGranularity": "Only these 24 extracted regions were explicitly inspected. Original images stay generated, not blanket fully viewed.",
+  "regions": [
+    {
+      "file": "viewed-crops/home-1440-top.png",
+      "original": "public-captures/home-1440.png",
+      "originalSha256": "046e0cf6d8c57dfb723f34cc7a994c523aa2afffcc3f00c237786046dea863ce",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 1440,
+        "height": 1100
+      },
+      "sha256": "22fd93d8e40281ffda3fc8c2cd88ef881572cc6f96f82c6293316fcfc321578a",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/home-1440-middle.png",
+      "original": "public-captures/home-1440.png",
+      "originalSha256": "046e0cf6d8c57dfb723f34cc7a994c523aa2afffcc3f00c237786046dea863ce",
+      "crop": {
+        "left": 0,
+        "top": 4441,
+        "width": 1440,
+        "height": 1000
+      },
+      "sha256": "9ccdf70f47db4f16bac0d9dba00fcfe58dfea96e8d6dff96b07817e1457f5360",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/home-1440-footer.png",
+      "original": "public-captures/home-1440.png",
+      "originalSha256": "046e0cf6d8c57dfb723f34cc7a994c523aa2afffcc3f00c237786046dea863ce",
+      "crop": {
+        "left": 0,
+        "top": 8871,
+        "width": 1440,
+        "height": 1000
+      },
+      "sha256": "7e78a8f0b2e1f75eb17dcb90337c350a24c6641331b20fc80362210e4425a974",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/home-768-top.png",
+      "original": "public-captures/home-768.png",
+      "originalSha256": "b798aea2fa511bb2c1f342c8ad5121015bbbd21a317067781def20b77094ca3c",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 768,
+        "height": 1100
+      },
+      "sha256": "5491427d5e55841e5c7b064563f784df0cc9ac7e4c32e7afddfae8ed968a6cf9",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/home-768-middle.png",
+      "original": "public-captures/home-768.png",
+      "originalSha256": "b798aea2fa511bb2c1f342c8ad5121015bbbd21a317067781def20b77094ca3c",
+      "crop": {
+        "left": 0,
+        "top": 5889,
+        "width": 768,
+        "height": 1000
+      },
+      "sha256": "cda21f3a935278a34b4fc7f9352d5c466eea7999bc5b00f05f2347470e1b6194",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/home-768-footer.png",
+      "original": "public-captures/home-768.png",
+      "originalSha256": "b798aea2fa511bb2c1f342c8ad5121015bbbd21a317067781def20b77094ca3c",
+      "crop": {
+        "left": 0,
+        "top": 12088,
+        "width": 768,
+        "height": 1000
+      },
+      "sha256": "1e369a3993956383243cb661248094b4b7155032a3695384036aa381635105f0",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/home-390-top.png",
+      "original": "public-captures/home-390.png",
+      "originalSha256": "0fed086a1a4eb792f8bfd05d3a3865e56ab7f8e4b9a2a67675cb9f202e6ad2c0",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 390,
+        "height": 1000
+      },
+      "sha256": "8608daf4cf014e991a6645662bf1916c2e2a022a7bc3e26406d0feec2a71b006",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/home-390-middle.png",
+      "original": "public-captures/home-390.png",
+      "originalSha256": "0fed086a1a4eb792f8bfd05d3a3865e56ab7f8e4b9a2a67675cb9f202e6ad2c0",
+      "crop": {
+        "left": 0,
+        "top": 6516,
+        "width": 390,
+        "height": 1000
+      },
+      "sha256": "cbc688ccaf177da536ef6c48f6478d8a02a70f94f9a0caec1f1996d59b61a495",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/home-390-footer.png",
+      "original": "public-captures/home-390.png",
+      "originalSha256": "0fed086a1a4eb792f8bfd05d3a3865e56ab7f8e4b9a2a67675cb9f202e6ad2c0",
+      "crop": {
+        "left": 0,
+        "top": 13482,
+        "width": 390,
+        "height": 1000
+      },
+      "sha256": "2840149cee08eefe83d0f4a50b4506fbc7339075fd370bf25ada0fdbac05c8f5",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/platform-1440-top.png",
+      "original": "public-captures/platform-1440.png",
+      "originalSha256": "5cd48077483ae5c0dd2159ed7ec58d459a1678a84b92af0ba2f4231656adba1f",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 1440,
+        "height": 1100
+      },
+      "sha256": "e877b7386d19804565f3b0fefaf182439ff599a1ed62893e4a832c2a268cc796",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/platform-1440-middle.png",
+      "original": "public-captures/platform-1440.png",
+      "originalSha256": "5cd48077483ae5c0dd2159ed7ec58d459a1678a84b92af0ba2f4231656adba1f",
+      "crop": {
+        "left": 0,
+        "top": 2394,
+        "width": 1440,
+        "height": 1000
+      },
+      "sha256": "46014852112d480ecf3f2bb93fbc67a4fe5a7a38fab4481afebb568e2c820f38",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/platform-1440-footer.png",
+      "original": "public-captures/platform-1440.png",
+      "originalSha256": "5cd48077483ae5c0dd2159ed7ec58d459a1678a84b92af0ba2f4231656adba1f",
+      "crop": {
+        "left": 0,
+        "top": 4320,
+        "width": 1440,
+        "height": 1000
+      },
+      "sha256": "9a6cea772989b27a6f6874c755109b9893d870cbdff80666084a4d4f1317e71a",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/platform-768-top.png",
+      "original": "public-captures/platform-768.png",
+      "originalSha256": "b422c772a75177fa874103382486d3c6fc14701a2114c3ab90fee8671c067d61",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 768,
+        "height": 1100
+      },
+      "sha256": "831311b8ac4ae1244f1b8e226383aef2cb4a24a38ebd01937be52634ae8fffc6",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/platform-768-middle.png",
+      "original": "public-captures/platform-768.png",
+      "originalSha256": "b422c772a75177fa874103382486d3c6fc14701a2114c3ab90fee8671c067d61",
+      "crop": {
+        "left": 0,
+        "top": 2947,
+        "width": 768,
+        "height": 1000
+      },
+      "sha256": "2b42ce09175c21c171e71dbc048395e683fa943298ead2690d76423425f40afc",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/platform-768-footer.png",
+      "original": "public-captures/platform-768.png",
+      "originalSha256": "b422c772a75177fa874103382486d3c6fc14701a2114c3ab90fee8671c067d61",
+      "crop": {
+        "left": 0,
+        "top": 5549,
+        "width": 768,
+        "height": 1000
+      },
+      "sha256": "517f7023b65ca4c3bb8b71e5e24b336d220964da665f3a9ef142799f4b028d23",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/platform-390-top.png",
+      "original": "public-captures/platform-390.png",
+      "originalSha256": "ebfb3b0c8a81901931a3dd85b537ba126d09ae5e38cc8d7ef82c4620b6204460",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 390,
+        "height": 1000
+      },
+      "sha256": "7f1bf51a56906528b54554cc225aee7efa3e0ad794867467822fae29f3d1509e",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/platform-390-middle.png",
+      "original": "public-captures/platform-390.png",
+      "originalSha256": "ebfb3b0c8a81901931a3dd85b537ba126d09ae5e38cc8d7ef82c4620b6204460",
+      "crop": {
+        "left": 0,
+        "top": 3699,
+        "width": 390,
+        "height": 1000
+      },
+      "sha256": "051074e83266f51bd78564afa175b25a93a490d2dfb952cce091727476a8e065",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/platform-390-footer.png",
+      "original": "public-captures/platform-390.png",
+      "originalSha256": "ebfb3b0c8a81901931a3dd85b537ba126d09ae5e38cc8d7ef82c4620b6204460",
+      "crop": {
+        "left": 0,
+        "top": 7220,
+        "width": 390,
+        "height": 1000
+      },
+      "sha256": "f2a88fe9152e11758d71027b464e260642053d20d25f7966a86573f7e7933cb2",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/proberen-1440-top.png",
+      "original": "public-captures/proberen-1440.png",
+      "originalSha256": "384e57f5955c0d3b0d02cba741b8fbd0c415031e4f5bb95245bf472b5e814312",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 1440,
+        "height": 1100
+      },
+      "sha256": "56447875f13ece9962bf284ef21b667b26f639f4405adcd51bf251c4c39c3c62",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/proberen-768-top.png",
+      "original": "public-captures/proberen-768.png",
+      "originalSha256": "6991dfc3d77afdce5ff3b10af13cabdb98503de625aa08a12af35f8052dc38a7",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 768,
+        "height": 1100
+      },
+      "sha256": "4393882f9ab1728a11027cf1dc55627e2c4696031e3cda4ead9093d1a16455aa",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/proberen-390-top.png",
+      "original": "public-captures/proberen-390.png",
+      "originalSha256": "db55d1e3a9a6beeb6336dcb4693254a23e9b28e5c253297514db1cb24b15b5e8",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 390,
+        "height": 1000
+      },
+      "sha256": "741009479a7e5d56251570972e19f8d8bb4cbb973b5fa04d16d305198e08b7ea",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/afspraak-1440-top.png",
+      "original": "public-captures/afspraak-1440.png",
+      "originalSha256": "a566a543ce0ff096408a2b914d8b140883dd66bf39447cd166e1d2776b8b8356",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 1440,
+        "height": 1100
+      },
+      "sha256": "8096c3328b0594f575e84a27c52e6a713e8b9a3447f5530ad54369064ce8adbb",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/afspraak-768-top.png",
+      "original": "public-captures/afspraak-768.png",
+      "originalSha256": "cae7df624c6d26949032069058f806094c90ef93b8b233602df159ab1085d17c",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 768,
+        "height": 1100
+      },
+      "sha256": "96bdc41bbddb2c5392eff53be2b1055ce3db9f534c10aa3f591a2f3cb84f462c",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    },
+    {
+      "file": "viewed-crops/afspraak-390-top.png",
+      "original": "public-captures/afspraak-390.png",
+      "originalSha256": "d929f65d8ead3c83e026fae6b2d3b8570f7905b8b0a47e9f4efdc014da22bbca",
+      "crop": {
+        "left": 0,
+        "top": 0,
+        "width": 390,
+        "height": 1000
+      },
+      "sha256": "3953078c550fc2176d3a14c694d4bd3c91f044c4ab85c972e532c84305333e97",
+      "viewed": true,
+      "review": "Actually viewed pixel crop; complete original is retained but not claimed as fully viewed."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+Selected test-result lines; no environment blocks. Full run is linked in workflow metadata.
+2026-10-16T08:22:42.8739015Z  Test Files  208 passed (208)
+2026-10-16T08:22:42.8753446Z       Tests  1998 passed (1998)
+2026-10-16T08:28:48.7849402Z Files=12, Tests=398,  4 wallclock secs ( 0.08 usr  0.03 sys +  0.12 cusr  0.09 csys =  0.32 CPU)
+2026-10-16T08:33:14.6875270Z ℹ tests 723
+2026-10-16T08:33:14.6876029Z ℹ pass 723
+2026-10-16T08:33:20.4330099Z 1418 entrypoint/resource classifications unchanged. Full review status remains in docs/security/release-security-inventory.md.
+2026-10-16T08:33:20.9960900Z 1418 authorization surfaces have an explicit completed review status and evidence reference.
+2026-10-16T08:55:55.4859474Z   134 passed (20.4m)

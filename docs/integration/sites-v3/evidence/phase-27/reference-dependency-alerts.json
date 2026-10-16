@@ -1,0 +1,853 @@
+{
+  "observedAt": "2026-10-16T09:10:47.905Z",
+  "open": 94,
+  "classification": "All alerts belong to frozen reference manifests, not installed release dependencies. They remain open; no alert dismissal or scanner disablement.",
+  "alerts": [
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-3w37-wq28-93x7",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 163,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-4jqv-mc3x-m676",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 162,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-39w2-rjm5-chcv",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 161,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-f87g-xv8r-7p7x",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 160,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-mcj8-r9mp-w47p",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 159,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-cjq9-62q9-8jv4",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 158,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-wq5f-xc86-pv6w",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 157,
+      "package": "sharp",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-vcvr-r3jv-pc5j",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 155,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "critical"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-pmjh-fq2x-6v4x",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 154,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-r53p-7pc4-xj5r",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 153,
+      "package": "undici",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-2jfj-6hjv-fm6j",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 150,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-2gqq-gqf2-x968",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 149,
+      "package": "undici",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-w293-vg96-wgc3",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 148,
+      "package": "undici",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-8436-99hf-9mmv",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 147,
+      "package": "undici",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-rgj7-g3m4-5g8c",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 143,
+      "package": "sharp",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-m8rv-5g2x-5cg5",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 142,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-jr45-8vmc-qm54",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 141,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-v3r7-h72x-cjcm",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 140,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-8xcm-r25x-g524",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 139,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-4cwx-7wf7-3272",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 138,
+      "package": "undici",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-f88m-g3jw-g9cj",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 136,
+      "package": "sharp",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-g8m3-5g58-fq7m",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 135,
+      "package": "undici",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-p88m-4jfj-68fv",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 134,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-hm92-r4w5-c3mj",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 132,
+      "package": "undici",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-35p6-xmwp-9g52",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 131,
+      "package": "undici",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-vmh5-mc38-953g",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 130,
+      "package": "undici",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-pr7r-676h-xcf6",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 129,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-v6wh-96g9-6wx3",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 128,
+      "package": "vite",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-fx2h-pf6j-xcff",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 127,
+      "package": "vite",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-96hv-2xvq-fx4p",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 126,
+      "package": "ws",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-g7r4-m6w7-qqqr",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 125,
+      "package": "esbuild",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-67mh-4wv8-2f99",
+      "manifest": "design-reference/sites-v3/platform/pnpm-lock.yaml",
+      "number": 123,
+      "package": "esbuild",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-3w37-wq28-93x7",
+      "manifest": "design-reference/sites-v3/platform/package.json",
+      "number": 122,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-4jqv-mc3x-m676",
+      "manifest": "design-reference/sites-v3/platform/package.json",
+      "number": 121,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-39w2-rjm5-chcv",
+      "manifest": "design-reference/sites-v3/platform/package.json",
+      "number": 120,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-f87g-xv8r-7p7x",
+      "manifest": "design-reference/sites-v3/platform/package.json",
+      "number": 119,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-mcj8-r9mp-w47p",
+      "manifest": "design-reference/sites-v3/platform/package.json",
+      "number": 118,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-cjq9-62q9-8jv4",
+      "manifest": "design-reference/sites-v3/platform/package.json",
+      "number": 117,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-vcvr-r3jv-pc5j",
+      "manifest": "design-reference/sites-v3/platform/package.json",
+      "number": 116,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "critical"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-v6wh-96g9-6wx3",
+      "manifest": "design-reference/sites-v3/platform/package.json",
+      "number": 114,
+      "package": "vite",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-fx2h-pf6j-xcff",
+      "manifest": "design-reference/sites-v3/platform/package.json",
+      "number": 113,
+      "package": "vite",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-3w37-wq28-93x7",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 112,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-4jqv-mc3x-m676",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 111,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-39w2-rjm5-chcv",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 110,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-f87g-xv8r-7p7x",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 109,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-mcj8-r9mp-w47p",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 108,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-cjq9-62q9-8jv4",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 107,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-wq5f-xc86-pv6w",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 106,
+      "package": "sharp",
+      "scope": "runtime",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-68fv-2mgg-jv7q",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 105,
+      "package": "source-map-js",
+      "scope": "runtime",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-vcvr-r3jv-pc5j",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 103,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "critical"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-hrr3-gc8f-f4qj",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 102,
+      "package": "fast-uri",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-q2hr-2g5m-vwhr",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 101,
+      "package": "brace-expansion",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-q2hr-2g5m-vwhr",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 100,
+      "package": "brace-expansion",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-pmjh-fq2x-6v4x",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 95,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-r53p-7pc4-xj5r",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 94,
+      "package": "undici",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-2jfj-6hjv-fm6j",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 91,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-2gqq-gqf2-x968",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 90,
+      "package": "undici",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-w293-vg96-wgc3",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 89,
+      "package": "undici",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-8436-99hf-9mmv",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 88,
+      "package": "undici",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-2883-xcg3-v3hh",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 84,
+      "package": "js-yaml",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-w5vr-8v7q-w6rv",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 83,
+      "package": "baseline-browser-mapping",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-c83g-rgw3-j3cx",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 81,
+      "package": "browserslist",
+      "scope": "runtime",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-73wf-gq98-2v4g",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 80,
+      "package": "browserslist",
+      "scope": "runtime",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-5p4m-2wfm-xmqj",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 79,
+      "package": "js-yaml",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-m8rv-5g2x-5cg5",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 78,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-jr45-8vmc-qm54",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 77,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-v3r7-h72x-cjcm",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 76,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-8xcm-r25x-g524",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 75,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-4cwx-7wf7-3272",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 74,
+      "package": "undici",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-52cp-r559-cp3m",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 68,
+      "package": "js-yaml",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-3jxr-9vmj-r5cp",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 67,
+      "package": "brace-expansion",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-3jxr-9vmj-r5cp",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 66,
+      "package": "brace-expansion",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-h67p-54hq-rp68",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 65,
+      "package": "js-yaml",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-g8m3-5g58-fq7m",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 64,
+      "package": "undici",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-p88m-4jfj-68fv",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 63,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-hm92-r4w5-c3mj",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 61,
+      "package": "undici",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-35p6-xmwp-9g52",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 60,
+      "package": "undici",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-vmh5-mc38-953g",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 59,
+      "package": "undici",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-pr7r-676h-xcf6",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 58,
+      "package": "undici",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-v6wh-96g9-6wx3",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 57,
+      "package": "vite",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-fx2h-pf6j-xcff",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 56,
+      "package": "vite",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-4x5r-pxfx-6jf8",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 55,
+      "package": "@babel/core",
+      "scope": "runtime",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-96hv-2xvq-fx4p",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 54,
+      "package": "ws",
+      "scope": "development",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-g7r4-m6w7-qqqr",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 53,
+      "package": "esbuild",
+      "scope": "development",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-67mh-4wv8-2f99",
+      "manifest": "design-reference/sites-v3/marketing/pnpm-lock.yaml",
+      "number": 51,
+      "package": "esbuild",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-3w37-wq28-93x7",
+      "manifest": "design-reference/sites-v3/marketing/package.json",
+      "number": 50,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-4jqv-mc3x-m676",
+      "manifest": "design-reference/sites-v3/marketing/package.json",
+      "number": 49,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-39w2-rjm5-chcv",
+      "manifest": "design-reference/sites-v3/marketing/package.json",
+      "number": 48,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "low"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-f87g-xv8r-7p7x",
+      "manifest": "design-reference/sites-v3/marketing/package.json",
+      "number": 47,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-mcj8-r9mp-w47p",
+      "manifest": "design-reference/sites-v3/marketing/package.json",
+      "number": 46,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-cjq9-62q9-8jv4",
+      "manifest": "design-reference/sites-v3/marketing/package.json",
+      "number": 45,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "high"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-vcvr-r3jv-pc5j",
+      "manifest": "design-reference/sites-v3/marketing/package.json",
+      "number": 44,
+      "package": "next",
+      "scope": "runtime",
+      "severity": "critical"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-v6wh-96g9-6wx3",
+      "manifest": "design-reference/sites-v3/marketing/package.json",
+      "number": 42,
+      "package": "vite",
+      "scope": "development",
+      "severity": "medium"
+    },
+    {
+      "ecosystem": "npm",
+      "ghsa": "GHSA-fx2h-pf6j-xcff",
+      "manifest": "design-reference/sites-v3/marketing/package.json",
+      "number": 41,
+      "package": "vite",
+      "scope": "development",
+      "severity": "high"
+    }
+  ]
+}

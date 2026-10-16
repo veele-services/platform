@@ -18,14 +18,33 @@
       "route": "https://www.fieldgrid.nl/",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/"
     },
     {
       "id": "W02",
@@ -38,14 +57,33 @@
       "route": "https://www.fieldgrid.nl/branches",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/branches"
     },
     {
       "id": "W03",
@@ -58,14 +96,33 @@
       "route": "https://www.fieldgrid.nl/branches/schoonmaak",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/branches/schoonmaak"
     },
     {
       "id": "W04",
@@ -78,14 +135,33 @@
       "route": "https://www.fieldgrid.nl/branches/glasbewassing",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/branches/glasbewassing"
     },
     {
       "id": "W05",
@@ -98,14 +174,33 @@
       "route": "https://www.fieldgrid.nl/branches/facilitair",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/branches/facilitair"
     },
     {
       "id": "W06",
@@ -118,14 +213,33 @@
       "route": "https://www.fieldgrid.nl/branches/groenonderhoud",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/branches/groenonderhoud"
     },
     {
       "id": "W07",
@@ -138,14 +252,33 @@
       "route": "https://www.fieldgrid.nl/branches/vastgoedservice",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/branches/vastgoedservice"
     },
     {
       "id": "W08",
@@ -158,14 +291,33 @@
       "route": "https://www.fieldgrid.nl/branches/beveiliging",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/branches/beveiliging"
     },
     {
       "id": "W09",
@@ -178,14 +330,33 @@
       "route": "https://www.fieldgrid.nl/branches/evenementen",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/branches/evenementen"
     },
     {
       "id": "W10",
@@ -198,14 +369,33 @@
       "route": "https://www.fieldgrid.nl/platform",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/platform"
     },
     {
       "id": "W11",
@@ -218,14 +408,33 @@
       "route": "https://www.fieldgrid.nl/platform/planning",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/platform/planning"
     },
     {
       "id": "W12",
@@ -238,14 +447,33 @@
       "route": "https://www.fieldgrid.nl/platform/werkbonnen",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/platform/werkbonnen"
     },
     {
       "id": "W13",
@@ -258,14 +486,33 @@
       "route": "https://www.fieldgrid.nl/platform/objecten",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/platform/objecten"
     },
     {
       "id": "W14",
@@ -278,14 +525,33 @@
       "route": "https://www.fieldgrid.nl/platform/personeelsapp",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/platform/personeelsapp"
     },
     {
       "id": "W15",
@@ -298,14 +564,33 @@
       "route": "https://www.fieldgrid.nl/platform/klantportaal",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/platform/klantportaal"
     },
     {
       "id": "W16",
@@ -318,14 +603,33 @@
       "route": "https://www.fieldgrid.nl/platform/onboarding",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/platform/onboarding"
     },
     {
       "id": "W17",
@@ -338,14 +642,33 @@
       "route": "https://www.fieldgrid.nl/platform/offertes-facturatie",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/platform/offertes-facturatie"
     },
     {
       "id": "W18",
@@ -358,14 +681,33 @@
       "route": "https://www.fieldgrid.nl/werkwijze",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/werkwijze"
     },
     {
       "id": "W19",
@@ -378,14 +720,33 @@
       "route": "https://www.fieldgrid.nl/over",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/over"
     },
     {
       "id": "W20",
@@ -398,14 +759,33 @@
       "route": "https://www.fieldgrid.nl/demo",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/demo"
     },
     {
       "id": "W21",
@@ -418,15 +798,34 @@
       "route": "https://www.fieldgrid.nl/proberen",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
         "evidence/final/viewed-checkpoint.json",
-        "evidence/final/public-forms.json"
-      ]
+        "evidence/final/public-forms.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/proberen"
     },
     {
       "id": "W22",
@@ -439,15 +838,34 @@
       "route": "https://www.fieldgrid.nl/afspraak",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
         "evidence/final/viewed-checkpoint.json",
-        "evidence/final/public-forms.json"
-      ]
+        "evidence/final/public-forms.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/afspraak"
     },
     {
       "id": "W23",
@@ -460,14 +878,33 @@
       "route": "https://www.fieldgrid.nl/privacy",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      },
+      "hostedReadOnly": {
+        "staging": true,
+        "scope": "Rendered page at 1440, 768 and 390 px, canonical/noindex/font/overflow; no full interactive or submission claim.",
+        "evidence": "evidence/phase-27/public-readonly-result.json"
+      },
+      "stagingRoute": "https://www.staging.fieldgrid.nl/privacy"
     },
     {
       "id": "W24",
@@ -479,14 +916,27 @@
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "W25",
@@ -498,14 +948,27 @@
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "W26",
@@ -517,14 +980,27 @@
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "W27",
@@ -536,14 +1012,27 @@
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "W28",
@@ -555,14 +1044,27 @@
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "W29",
@@ -574,14 +1076,27 @@
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "W30",
@@ -593,14 +1108,27 @@
       "route": "https://www.fieldgrid.nl (gedeelde presentatie)",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/marketing-crawl.json",
         "evidence/phase-1/marketing-interactions.json",
         "evidence/final/marketing/comparison.json",
-        "evidence/final/viewed-checkpoint.json"
-      ]
+        "evidence/final/viewed-checkpoint.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "I01",
@@ -612,17 +1140,30 @@
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/crm-browser.json",
         "evidence/phase-1/crm-database-11.log",
         "evidence/phase-1/crm-concurrency-7.log",
-        "evidence/phase-1/primary-admin-6.log"
+        "evidence/phase-1/primary-admin-6.log",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
       ],
       "limitations": [
         "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
-      ]
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "I02",
@@ -634,17 +1175,30 @@
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/crm-browser.json",
         "evidence/phase-1/crm-database-11.log",
         "evidence/phase-1/crm-concurrency-7.log",
-        "evidence/phase-1/primary-admin-6.log"
+        "evidence/phase-1/primary-admin-6.log",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
       ],
       "limitations": [
         "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
-      ]
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "I03",
@@ -656,17 +1210,30 @@
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/crm-browser.json",
         "evidence/phase-1/crm-database-11.log",
         "evidence/phase-1/crm-concurrency-7.log",
-        "evidence/phase-1/primary-admin-6.log"
+        "evidence/phase-1/primary-admin-6.log",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
       ],
       "limitations": [
         "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
-      ]
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "I04",
@@ -678,17 +1245,30 @@
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/crm-browser.json",
         "evidence/phase-1/crm-database-11.log",
         "evidence/phase-1/crm-concurrency-7.log",
-        "evidence/phase-1/primary-admin-6.log"
+        "evidence/phase-1/primary-admin-6.log",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
       ],
       "limitations": [
         "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
-      ]
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "I05",
@@ -700,17 +1280,30 @@
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/crm-browser.json",
         "evidence/phase-1/crm-database-11.log",
         "evidence/phase-1/crm-concurrency-7.log",
-        "evidence/phase-1/primary-admin-6.log"
+        "evidence/phase-1/primary-admin-6.log",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
       ],
       "limitations": [
         "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
-      ]
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "I06",
@@ -722,17 +1315,30 @@
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/crm-browser.json",
         "evidence/phase-1/crm-database-11.log",
         "evidence/phase-1/crm-concurrency-7.log",
-        "evidence/phase-1/primary-admin-6.log"
+        "evidence/phase-1/primary-admin-6.log",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
       ],
       "limitations": [
         "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
-      ]
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "I07",
@@ -744,17 +1350,30 @@
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/crm-browser.json",
         "evidence/phase-1/crm-database-11.log",
         "evidence/phase-1/crm-concurrency-7.log",
-        "evidence/phase-1/primary-admin-6.log"
+        "evidence/phase-1/primary-admin-6.log",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
       ],
       "limitations": [
         "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
-      ]
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "I08",
@@ -766,17 +1385,30 @@
       "route": "www: /proberen, /afspraak → platform: /platform/crm",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/crm-browser.json",
         "evidence/phase-1/crm-database-11.log",
         "evidence/phase-1/crm-concurrency-7.log",
-        "evidence/phase-1/primary-admin-6.log"
+        "evidence/phase-1/primary-admin-6.log",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
       ],
       "limitations": [
         "Local real Auth/database/browser; external provider acceptance/delivery and live host verification remain unverified."
-      ]
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "C01",
@@ -788,13 +1420,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "C02",
@@ -806,13 +1451,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "C03",
@@ -824,13 +1482,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "C04",
@@ -842,13 +1513,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "C05",
@@ -860,13 +1544,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "C06",
@@ -878,13 +1575,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "C07",
@@ -896,13 +1606,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "C08",
@@ -914,13 +1637,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "A01",
@@ -932,14 +1668,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-25.md",
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "A02",
@@ -951,14 +1699,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-25.md",
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "A03",
@@ -970,14 +1730,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-25.md",
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "A04",
@@ -989,14 +1761,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-25.md",
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "A05",
@@ -1008,14 +1792,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-25.md",
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "A06",
@@ -1027,16 +1823,28 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-25.md",
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md",
         "evidence/phase-20/result.json",
-        "phase-20.md"
-      ]
+        "phase-20.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "A07",
@@ -1048,16 +1856,28 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-25.md",
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md",
         "evidence/phase-20/result.json",
-        "phase-20.md"
-      ]
+        "phase-20.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "A08",
@@ -1069,16 +1889,28 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-25.md",
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md",
         "evidence/phase-20/result.json",
-        "phase-20.md"
-      ]
+        "phase-20.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "R01",
@@ -1090,13 +1922,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "R02",
@@ -1108,13 +1953,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "R03",
@@ -1126,13 +1984,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "R04",
@@ -1144,13 +2015,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "R05",
@@ -1162,13 +2046,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "R06",
@@ -1180,13 +2077,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "R07",
@@ -1198,13 +2108,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "R08",
@@ -1216,13 +2139,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "R09",
@@ -1234,13 +2170,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "R10",
@@ -1252,13 +2201,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "R11",
@@ -1270,13 +2232,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-25/result.json",
         "evidence/phase-25/acceptance.json",
-        "phase-25.md"
-      ]
+        "phase-25.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "P01",
@@ -1288,14 +2263,27 @@
       "route": "/platform?view=tenants",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-19.md",
         "evidence/phase-19/verification.json",
         "evidence/phase-19/result.json",
-        "evidence/phase-19/comparison.json"
-      ]
+        "evidence/phase-19/comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "P02",
@@ -1307,14 +2295,27 @@
       "route": "/platform?view=detail&tenant=<stable UUID>&tab=<tab>",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-19.md",
         "evidence/phase-19/verification.json",
         "evidence/phase-19/result.json",
-        "evidence/phase-19/comparison.json"
-      ]
+        "evidence/phase-19/comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "P03",
@@ -1326,13 +2327,26 @@
       "route": "/platform?view=onboarding",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-20/verification.json",
         "evidence/phase-20/comparison.json",
-        "phase-20.md"
-      ]
+        "phase-20.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "P04",
@@ -1344,13 +2358,26 @@
       "route": "/platform?view=templates&tenant={uuid}",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-20/verification.json",
         "evidence/phase-20/comparison.json",
-        "phase-20.md"
-      ]
+        "phase-20.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "P05",
@@ -1362,13 +2389,26 @@
       "route": "/platform/support",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-21/verification.json",
         "evidence/phase-21/comparison.json",
-        "phase-21.md"
-      ]
+        "phase-21.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "P06",
@@ -1380,13 +2420,26 @@
       "route": "/platform/support/instellingen",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-21/verification.json",
         "evidence/phase-21/comparison.json",
-        "phase-21.md"
-      ]
+        "phase-21.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "P07",
@@ -1398,13 +2451,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-22/result.json",
         "evidence/phase-22/comparison.json",
-        "phase-22.md"
-      ]
+        "phase-22.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "P08",
@@ -1416,14 +2482,27 @@
       "route": "platform: /platform/team",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/primary-admin-6.log",
         "evidence/phase-22/result.json",
         "evidence/phase-22/comparison.json",
-        "phase-22.md"
-      ]
+        "phase-22.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "P09",
@@ -1435,13 +2514,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-22/result.json",
         "evidence/phase-22/comparison.json",
-        "phase-22.md"
-      ]
+        "phase-22.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T01",
@@ -1453,14 +2545,27 @@
       "route": "/app (canoniek); /app/overzicht → /app; /api/management-overview",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-7.md",
         "evidence/phase-7/native-regression.log",
         "evidence/phase-7/real-browser-chain.log",
-        "evidence/phase-7/comparison.json"
-      ]
+        "evidence/phase-7/comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T02",
@@ -1472,7 +2577,7 @@
       "route": "/app/aanvragen",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-12.md",
@@ -1481,8 +2586,21 @@
         "evidence/phase-12/real-standalone-filter-chain.log",
         "evidence/phase-12/comparison.json",
         "evidence/phase-12/cold-production-build.log",
-        "evidence/phase-12/shared-filter-task-regression.log"
-      ]
+        "evidence/phase-12/shared-filter-task-regression.log",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T03",
@@ -1494,14 +2612,27 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-13/browser.log",
         "evidence/phase-13/native-database.log",
         "evidence/phase-13/comparison.json",
-        "evidence/phase-13/local-artifact.json"
-      ]
+        "evidence/phase-13/local-artifact.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T04",
@@ -1513,14 +2644,27 @@
       "route": "/app/werkbonnen; /app/rapporten",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-14.md",
         "evidence/phase-14/verification.json",
         "evidence/phase-14/browser-result.json",
-        "evidence/phase-14/comparison.json"
-      ]
+        "evidence/phase-14/comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T05",
@@ -1532,15 +2676,28 @@
       "route": "/app/taken; /app/taken/beheer; /app/taken/templates",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-11.md",
         "evidence/phase-11/native-regression.log",
         "evidence/phase-11/real-standalone-browser-chain.log",
         "evidence/phase-11/comparison.json",
-        "standalone-packaging.md"
-      ]
+        "standalone-packaging.md",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T06",
@@ -1552,7 +2709,7 @@
       "route": "/app/klanten, /app/objecten, /app/personeel; /api/management-entities",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-8.md",
@@ -1570,8 +2727,21 @@
         "rls-helper-repair.md",
         "evidence/rls-helper-repair/native-regression.log",
         "evidence/rls-helper-repair/full-personnel-browser-chain.log",
-        "evidence/rls-helper-repair/real-full-HR-dossier-1440.png"
-      ]
+        "evidence/rls-helper-repair/real-full-HR-dossier-1440.png",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T07",
@@ -1583,14 +2753,27 @@
       "route": "/app/facturen",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-15.md",
         "evidence/phase-15/verification.json",
         "evidence/phase-15/result.json",
-        "evidence/phase-15/comparison.json"
-      ]
+        "evidence/phase-15/comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T08",
@@ -1602,14 +2785,27 @@
       "route": "tenant: /app/opvolging",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-1/followup-browser.json",
         "evidence/phase-1/followup-comparison.json",
         "evidence/phase-1/followup-database-7.log",
-        "evidence/phase-1/followup-concurrency-5.log"
-      ]
+        "evidence/phase-1/followup-concurrency-5.log",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T09",
@@ -1621,14 +2817,27 @@
       "route": "/app/sla",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-3.md",
         "evidence/phase-3/database-and-concurrency.log",
         "evidence/phase-3/real-browser-chain.log",
-        "evidence/phase-3/source-comparison.json"
-      ]
+        "evidence/phase-3/source-comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T10",
@@ -1640,14 +2849,27 @@
       "route": "/app/omzet",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-4/concurrency.log",
         "evidence/phase-4/native-regression.log",
         "evidence/phase-4/real-browser-chain.log",
-        "evidence/phase-4/comparison.json"
-      ]
+        "evidence/phase-4/comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T11",
@@ -1659,14 +2881,27 @@
       "route": "/app/indexatie",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-5/native-regression.log",
         "evidence/phase-5/concurrency.log",
         "evidence/phase-5/real-browser-source-chain.log",
-        "evidence/phase-5/comparison.json"
-      ]
+        "evidence/phase-5/comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T12",
@@ -1678,15 +2913,28 @@
       "route": "/app/besluiten",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-2.md",
         "evidence/phase-2/governance-db.log",
         "evidence/phase-2/governance-concurrency.log",
         "evidence/phase-2/result.json",
-        "evidence/phase-2/source-comparison.json"
-      ]
+        "evidence/phase-2/source-comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T13",
@@ -1698,15 +2946,28 @@
       "route": "/app/compliance",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-2.md",
         "evidence/phase-2/governance-db.log",
         "evidence/phase-2/governance-concurrency.log",
         "evidence/phase-2/result.json",
-        "evidence/phase-2/source-comparison.json"
-      ]
+        "evidence/phase-2/source-comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T14",
@@ -1718,13 +2979,26 @@
       "route": "/app/weekrapport",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "evidence/phase-6/native-regression.log",
         "evidence/phase-6/real-browser-chain.log",
-        "evidence/phase-6/comparison.json"
-      ]
+        "evidence/phase-6/comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T15",
@@ -1736,14 +3010,27 @@
       "route": "/app/nieuws; /app/kennisbank; /app/updates",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-16.md",
         "evidence/phase-16/verification.json",
         "evidence/phase-16/result.json",
-        "evidence/phase-16/comparison.json"
-      ]
+        "evidence/phase-16/comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T16",
@@ -1755,14 +3042,27 @@
       "route": "/app/gebruikers; /app/instellingen",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-17.md",
         "evidence/phase-17/verification.json",
         "evidence/phase-17/result.json",
-        "evidence/phase-17/comparison.json"
-      ]
+        "evidence/phase-17/comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "T17",
@@ -1774,14 +3074,27 @@
       "route": "All /app backoffice shell; /api/search; /api/management-cockpit; native notification and ticket commands",
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-18.md",
         "evidence/phase-18/verification.json",
         "evidence/phase-18/result.json",
-        "evidence/phase-18/comparison.json"
-      ]
+        "evidence/phase-18/comparison.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "S01",
@@ -1793,14 +3106,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-23.md",
         "evidence/phase-23/result.json",
         "evidence/phase-23/acceptance.json",
-        "phase-23.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "S02",
@@ -1812,14 +3137,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-23.md",
         "evidence/phase-23/result.json",
         "evidence/phase-23/acceptance.json",
-        "phase-23.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "S03",
@@ -1831,14 +3168,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-23.md",
         "evidence/phase-23/result.json",
         "evidence/phase-23/acceptance.json",
-        "phase-23.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "S04",
@@ -1850,14 +3199,27 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-23.md",
         "evidence/phase-23/result.json",
         "evidence/phase-23/acceptance.json",
-        "evidence/phase-23/private-preview/acceptance.json"
-      ]
+        "evidence/phase-23/private-preview/acceptance.json",
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "S05",
@@ -1869,14 +3231,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-23.md",
         "evidence/phase-23/result.json",
         "evidence/phase-23/acceptance.json",
-        "phase-23.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "S06",
@@ -1888,14 +3262,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-23.md",
         "evidence/phase-23/result.json",
         "evidence/phase-23/acceptance.json",
-        "phase-23.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "K01",
@@ -1907,14 +3293,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-24.md",
         "evidence/phase-24/result.json",
         "evidence/phase-24/acceptance.json",
-        "phase-24.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "K02",
@@ -1926,14 +3324,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-24.md",
         "evidence/phase-24/result.json",
         "evidence/phase-24/acceptance.json",
-        "phase-24.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "K03",
@@ -1945,14 +3355,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-24.md",
         "evidence/phase-24/result.json",
         "evidence/phase-24/acceptance.json",
-        "phase-24.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "K04",
@@ -1964,14 +3386,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-24.md",
         "evidence/phase-24/result.json",
         "evidence/phase-24/acceptance.json",
-        "phase-24.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "K05",
@@ -1983,14 +3417,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-24.md",
         "evidence/phase-24/result.json",
         "evidence/phase-24/acceptance.json",
-        "phase-24.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "K06",
@@ -2002,14 +3448,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-24.md",
         "evidence/phase-24/result.json",
         "evidence/phase-24/acceptance.json",
-        "phase-24.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "K07",
@@ -2021,14 +3479,26 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-24.md",
         "evidence/phase-24/result.json",
         "evidence/phase-24/acceptance.json",
-        "phase-24.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     },
     {
       "id": "K08",
@@ -2040,16 +3510,34 @@
       "route": null,
       "implementation": "implemented; locally accepted with documented native/security adaptations",
       "tested": true,
-      "deployed": false,
+      "deployed": true,
       "liveVerified": false,
       "evidence": [
         "phase-24.md",
         "evidence/phase-24/result.json",
         "evidence/phase-24/acceptance.json",
-        "phase-24.md"
-      ]
+        "phase-27.md",
+        "evidence/phase-27/release-result.json"
+      ],
+      "deploymentTargets": {
+        "staging": {
+          "deployed": true,
+          "applicationCommit": "5480df58a052fa795c76d1beb7172291f7e9ef1f",
+          "evidence": "evidence/phase-27/release-result.json"
+        },
+        "production": {
+          "deployed": false,
+          "liveVerified": false
+        }
+      }
     }
   ],
   "acceptanceReport": "final-acceptance.md",
-  "releaseStatus": "release-status.json"
+  "releaseStatus": "release-status.json",
+  "statusSemantics": {
+    "implemented": "All 105 package scope rows implemented with evidence and minimal documented native/security adaptations.",
+    "tested": "True means the complete row has local functional and visual evidence; later full exact-commit CI is in phase 27.",
+    "deployed": "True means the row is included in the deployed staging application artifact. See deploymentTargets; it does not mean production.",
+    "liveVerified": "True would mean the complete functional row was accepted on the hosted environment. It remains false; separate read-only or rollback-fixture evidence is narrower."
+  }
 }

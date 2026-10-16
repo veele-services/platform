@@ -1,0 +1,112 @@
+Selected result/assertion lines only; rollback-only hosted fixtures. No environment or provider values.
+acceptance	Verify public health, exact SHA and deployed scanner readiness	2026-10-16T09:01:48.7072692Z Healthcheck geslaagd voor release 5480df58a052.
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:01:57.6308175Z ▶ Work-order lineage conserves scope, historical evidence and occurrence identity
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:01:57.6309644Z   ✔ scope transfer is atomic, exact-once and preserves the original task (4259.655573ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:00.7169471Z   ✔ split depth, tenant access and direct transfer bypasses fail closed (3087.102529ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:02.8461981Z   ✔ duplicate and warranty have fresh execution and no copied price entitlement (2129.004457ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:06.0397309Z   ✔ material usage is retry-safe and unavailable through direct table APIs (3193.184302ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:13.9217243Z   ✔ execution after transfer uses only own scope, supports N/A, and records exact crew contributions (7882.028828ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:15.4418229Z   ✔ split performances share the original fixed-price entitlement and preserve allocated history (1519.632019ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:24.1428232Z   ✔ a partially invoiced source transfers only its unperformed remainder and cannot bill the root twice (8700.797632ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:28.6838187Z   ✔ six-week generator is repeatable and preserves skipped and manually moved visits (4541.19828ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:28.8429483Z ✔ Work-order lineage conserves scope, historical evidence and occurrence identity (39561.941211ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:34.4405683Z ▶ Work-order reports: individual time, immutable versions, signing and direct API isolation
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:34.4406639Z   ✔ only the first planned employee owns combined delivery and signing (1671.639089ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:35.9426186Z   ✔ the primary draft combines shared colleague notes and expenses without exposing private contributions or identities (1502.4651ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:39.9134929Z   ✔ published signature policy changes require explicit authority, reason and current version (3970.816164ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:40.7517455Z   ✔ own stop closes only own timer despite missing task and signature (837.795677ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:42.2373106Z   ✔ completed employees cannot change contributions while a colleague continues (1485.376457ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:44.9778859Z   ✔ pause/resume are own idempotent time segments (2740.466605ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:46.4426030Z   ✔ unassigned and management cannot enter execution/signing context (1464.150422ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:49.2195010Z   ✔ staff projection omits financial values and direct table read is denied (2776.845586ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:51.9163878Z   ✔ planner uses operational fields without raw-order or task financial bypass (2696.428679ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:57.7145481Z   ✔ unanswered task blocks report, then report waits independently of stopped time (5798.327095ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:02:58.2743686Z   ✔ snapshot defaults branding and excludes private/inactive checklist/material data (559.319297ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:03:09.8543386Z   ✔ signature binds current hash and server-authorized actor, retries once (11580.007729ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:03:13.9308458Z   ✔ review permits new private files but freezes customer-visible additions and referenced private proof (4076.36232ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:03:21.2937585Z   ✔ correction retains immutable evidence and requires signature on new version (7362.334023ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:03:26.7736410Z   ✔ approved execution appears automatically as a read-only invoice concept with live finance guards (5479.941173ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:03:31.3372767Z   ✔ approved report notifies its frozen customer audience once through the central worker (4563.30958ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:03:35.4000412Z   ✔ approval still permits private follow-up files without changing immutable report evidence (4063.008323ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:03:40.7326380Z   ✔ only scoped users can download the exact snapshot/assets (5332.354015ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:03:44.4750156Z   ✔ approved report file rechecks live account and contact without changing staff evidence access (3742.327297ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:03:46.3493657Z   ✔ legacy report lists close after customer identity revocation (1874.071845ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:03:49.2882905Z   ✔ new customer report summary exposes approved exact-bound results only (2938.744785ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:03:52.2666119Z   ✔ customer report download forces a customer copy even for a hybrid manager (2978.049634ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:01.0928910Z   ✔ customer invoices project real remaining cents and separate pending provider evidence (8826.551397ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:01.3309103Z ✔ Work-order reports: individual time, immutable versions, signing and direct API isolation (92414.657928ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:07.9295996Z ▶ work-order dossier, immutable templates, checklist validation and list isolation
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:07.9299828Z   ✔ templates validate conditions, publish immutable versions, copy definitions only (3747.65728ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:10.8338264Z   ✔ creation persists one work order, tasks, contact roles and frozen empty checklist with strict retry (2904.474607ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:16.4731023Z   ✔ additional checklists bind a published snapshot with CAS, retry and live tenant/role guards (5638.647913ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:34.7076182Z   ✔ server list searches all source data with stable pagination and scoped financial projections (18234.423739ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:35.8385985Z   ✔ planning warnings roll back entire creation and can be explicitly confirmed (1131.079704ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:37.6990108Z   ✔ template draft concurrency rejects stale saves and publication (1860.156068ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:44.8319065Z   ✔ signature settings are tenant/object scoped; exception handling and notes are persistent and retry safe (7132.518628ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:48.7807507Z   ✔ published work is dispatched per employee; checklist required/conditional answers and CAS are enforced (3948.664028ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:04:56.0187265Z   ✔ management removes one employee after a colleague has started, with history and revocation (7237.827471ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:05:01.2423402Z   ✔ management status commands publish and return without fabricating work or report approval (5223.683529ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:05:01.4024948Z ✔ work-order dossier, immutable templates, checklist validation and list isolation (60004.440945ms)
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:05:01.4118206Z ℹ tests 44
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:05:01.4119176Z ℹ pass 44
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:05:01.4119602Z ℹ fail 0
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:05:01.4120032Z ℹ cancelled 0
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:05:01.4120502Z ℹ skipped 0
+acceptance	Verify work-order persistence and access with rollback-only staging fixtures	2026-10-16T09:05:01.4120980Z ℹ todo 0
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:08.8812287Z ▶ Tickets: private file binding, live audiences and delivery state
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:08.8813266Z   ✔ short-lived intent is author-bound, quota-bound and immutable on retry (5132.587939ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:12.4958658Z   ✔ discard is own unbound only, idempotent and immediately frees the draft quota (3615.859608ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:14.4396889Z   ✔ raw tables, private storage and scan service RPC cannot be bypassed (1943.334573ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:20.4149619Z   ✔ finalization rechecks session and pending/failed scans never permit binding (5975.238994ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:24.3437840Z   ✔ bound file checks parent audience, live membership/session and redaction (3928.551299ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:27.2597471Z   ✔ a rolled-back worker must opt in before claiming or recovering ticket events (2915.476965ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:28.5095193Z   ✔ fan-out is idempotent, excludes own actor and never snapshots confidential text (1249.663438ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:32.1276255Z   ✔ current preferences and grants are rechecked after queueing (3617.796821ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:34.7582371Z   ✔ ambiguous provider submission never auto-retries while pre-send lease can recover (2630.312726ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:35.5311280Z   ✔ internal-note notifications never target the reporter (772.564641ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:43.5723647Z   ✔ support copy publication rechecks grants, retains exact version and has independent access (8040.892192ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:53.8822095Z   ✔ platform push registration is grant-bound, private and valid for future authorized organizations (10309.998301ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:05:57.6033211Z   ✔ legacy ticket choices migrate once and both settings surfaces use the central preference (3721.119511ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:02.4651988Z   ✔ ticket envelopes remember source-time OFF and pending preference OFF without hiding suppressed channels (4861.587215ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:05.7915070Z   ✔ cleanup only selects unattached staging artifacts, then acknowledges deletion (3326.621ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:05.9495409Z ✔ Tickets: private file binding, live audiences and delivery state (64414.095781ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:15.8847528Z ▶ Tickets: current identity, exact scope, audience projections and atomic commands
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:15.8849537Z   ✔ staff owns its ticket; raw APIs, colleagues and platform admin fail closed (5408.802825ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:20.7452191Z   ✔ hidden tenant note cannot change staff content, revision, activity, search or unread (4860.47391ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:25.2601426Z   ✔ HR needs its separate exact record scope, even next to broad planning (4514.751149ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:27.3061020Z   ✔ assignment cannot grant access and route changes preserve confidentiality (2045.712669ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:28.5312726Z   ✔ session and membership revocation apply to an already issued JWT (1224.731707ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:33.8173243Z   ✔ configuration and personal preferences do not disclose ticket contents (5285.831006ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:39.9859233Z   ✔ sensitive delegation binds exact payload and session; no self-grant (6168.058824ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:49.3392589Z   ✔ controlled transfer shares only selected text and keeps independent histories (9353.428726ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:06:53.8509125Z   ✔ group labels and effective route timezones are safe in list, detail and category options (4511.468407ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:00.5493012Z   ✔ cancel permission matches own-ticket and close rights, phase, reason and revision (6698.24671ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:03.4985632Z   ✔ redaction masks text and search without editing the immutable source (2949.095063ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:09.5121440Z   ✔ business-time deadlines cross DST and waiting pauses; staff confirms or reopens (6013.494812ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:13.6409808Z   ✔ null contexts, raw entitlements and empty scope flags fail closed (4128.484621ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:29.9577724Z   ✔ critical priority, all list views, exact counters, modules and date-times agree with UI (16316.664612ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:34.0346054Z   ✔ deadline batches skip old non-due records and advance without duplicate events (4076.579863ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:36.7068374Z   ✔ metadata-only fixture cascades preserve real ticket history and private mutation audit (2671.984199ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:41.3017234Z   ✔ configuration-only audit excludes confidential ticket activity metadata (4594.877117ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:48.9602459Z   ✔ delegation without content rights enforces grant and revoke CAS after verification (7658.662501ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:49.1214035Z ✔ Tickets: current identity, exact scope, audience projections and atomic commands (103102.261149ms)
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:49.1314879Z ℹ tests 35
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:49.1315413Z ℹ pass 35
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:49.1315639Z ℹ fail 0
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:49.1315856Z ℹ cancelled 0
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:49.1316095Z ℹ skipped 0
+acceptance	Verify ticket boundaries and delivery state with rollback-only staging fixtures	2026-10-16T09:07:49.1316313Z ℹ todo 0
+acceptance	Verify public marketing and existing portal entry points	2026-10-16T09:07:55.7264820Z 28 public marketing routes, 404, staging robots, sitemap and three portal logins verified.
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:07:57.9777574Z ▶ website intake persists native fields and all notes; retries, scope and rate boundaries
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:07:57.9779422Z   ✔ a combined request is one lead/contact and no object, booking or login account (847.277583ms)
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:07:59.5877882Z   ✔ lost-response retry reuses the receipt without overwriting later management work (1610.559179ms)
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:08:00.8508996Z   ✔ phone-only contact and long Unicode notes read back without clipping or duplicate events (1263.146345ms)
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:08:03.4633794Z   ✔ caller roles, other/inactive tenant and incomplete notes fail closed (2612.126164ms)
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:08:05.3257043Z   ✔ existing public rate limits also apply to the new adapter (1862.529352ms)
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:08:05.4792753Z ✔ website intake persists native fields and all notes; retries, scope and rate boundaries (9629.64371ms)
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:08:05.4896366Z ℹ tests 6
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:08:05.4897300Z ℹ pass 6
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:08:05.4897580Z ℹ fail 0
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:08:05.4897860Z ℹ cancelled 0
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:08:05.4898152Z ℹ skipped 0
+acceptance	Verify website request read-back with rollback-only staging fixtures	2026-10-16T09:08:05.4898426Z ℹ todo 0
