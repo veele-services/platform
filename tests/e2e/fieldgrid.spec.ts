@@ -59,13 +59,17 @@ test("platform backoffice beheert tenants, huisstijl en berichttemplates profess
   await expect(page.locator(".crm-overview .co-card-grid")).toBeVisible();
   await expect(page.locator(".crm-overview .co-loading")).toHaveCount(0);
   // Immutable synthetic SQL fixtures retain random IDs, server timestamps and
-  // different row counts. Their reserved regions stay stable while headings,
-  // actions and the surrounding layout remain visible to the visual check.
+  // different row counts. Keep one recent tenant visible in this visual
+  // fixture; the complete tenant list and its pagination are exercised below.
+  // The reserved regions stay stable while headings, actions and surrounding
+  // layout remain visible to the visual check.
+  const overviewFixtureStyle = await page.addStyleTag({ content: ".fg-tenant-list>button:nth-child(n+2){display:none!important}" });
   const overviewMasks=[page.locator(".fg-metric strong,.co-pipeline-total strong,.co-stages b,.co-card-intro strong,.co-card-footer>span,.crm-overview .co-list,.crm-overview .co-data-note,.fg-cockpit-facts dd,.fg-tenant-list button")];
   await expect(page).toHaveScreenshot("platform-overview-1440.png", { fullPage: true,mask:overviewMasks });
   await page.setViewportSize({ width: 390, height: 844 });
   await expectNoHorizontalOverflow(page);
   await expect(page).toHaveScreenshot("platform-overview-390.png", { fullPage: true,mask:overviewMasks });
+  await overviewFixtureStyle.evaluate(element => element.parentNode?.removeChild(element));
   await page.getByRole("button", { name: "Open menu", exact: true }).click();
   await expect(page.getByRole("link", { name: "Supportdesk", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Sluit menu", exact: true }).click();
