@@ -3864,13 +3864,13 @@
     },
     {
       "id": "code:lib/travel/provider.ts",
-      "surfaceFingerprint": "227d3f8573b1db979c8b1a62c3be9ca928982d9044d6f415d9e799c40b6091e6",
-      "status": "controlled",
+      "surfaceFingerprint": "336beb94d129d48d161ef3a1128aac633dea352b5ccd1126203021bb94d60a18",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs"
+        "docs/architecture/addresses-and-travel.md",
+        "docs/security/routing-preflight-resilience-2026-10-18.md",
+        "lib/travel/provider.test.ts",
+        "scripts/test-travel.mjs"
       ]
     },
     {
@@ -7604,7 +7604,7 @@
     },
     {
       "id": "operation:lib/travel/provider-smoke.ts",
-      "surfaceFingerprint": "285004cab9f614f497fcc15983717341343542cdaa22ebaeedc1d894b3c2706a",
+      "surfaceFingerprint": "2d8a60ac720f745fa42599ca959dc006d5939fbf1ef87b27df61fb29b7ff0594",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/routing-preflight-resilience-2026-10-18.md",

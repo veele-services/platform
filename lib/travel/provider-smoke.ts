@@ -57,11 +57,12 @@ export async function checkRoutingProvider(
   for (const profile of new Set(
     Object.values(profiles).filter((value): value is string => value !== null),
   )) {
+    const directionsSummary = profile === "foot-walking";
     let response: Response | undefined;
     for (let attempt = 1; attempt <= routingCheckAttempts; attempt += 1) {
       try {
         response = await fetcher(
-          `${base.replace(/\/$/, "")}/matrix/${profile}`,
+          `${base.replace(/\/$/, "")}/${directionsSummary ? "directions" : "matrix"}/${profile}`,
           {
             method: "POST",
             redirect: "error",
@@ -70,14 +71,22 @@ export async function checkRoutingProvider(
               Authorization: key,
               "content-type": "application/json",
             },
-            body: JSON.stringify({
-              locations: routingCheckRoutes[attempt - 1],
-              sources: ["0"],
-              destinations: ["1"],
-              metrics: ["duration", "distance"],
-              units: "m",
-              resolve_locations: false,
-            }),
+            body: JSON.stringify(
+              directionsSummary
+                ? {
+                    coordinates: routingCheckRoutes[attempt - 1],
+                    instructions: false,
+                    geometry: false,
+                  }
+                : {
+                    locations: routingCheckRoutes[attempt - 1],
+                    sources: ["0"],
+                    destinations: ["1"],
+                    metrics: ["duration", "distance"],
+                    units: "m",
+                    resolve_locations: false,
+                  },
+            ),
           },
         );
         break;
@@ -98,13 +107,22 @@ export async function checkRoutingProvider(
       throw new Error(
         `Routingcontrole ${profile}: HTTP ${response.status}; controleer providersleutel, toegang en limiet.`,
       );
-    let data: { durations?: unknown[][]; distances?: unknown[][] };
+    let data: {
+      durations?: unknown[][];
+      distances?: unknown[][];
+      routes?: Array<{ summary?: { duration?: unknown; distance?: unknown } }>;
+    };
     try {
       data = await response.json();
     } catch {
       throw new Error(`Routingcontrole ${profile}: ongeldig antwoord.`);
     }
-    const values = [data.durations?.[0]?.[0], data.distances?.[0]?.[0]];
+    const values = directionsSummary
+      ? [
+          data.routes?.[0]?.summary?.duration,
+          data.routes?.[0]?.summary?.distance,
+        ]
+      : [data.durations?.[0]?.[0], data.distances?.[0]?.[0]];
     if (
       !values.every(
         (value) =>

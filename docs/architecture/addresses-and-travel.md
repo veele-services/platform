@@ -63,7 +63,10 @@ Werkbondetails en de eigen bon in het personeelsportaal tonen dezelfde reisbron.
 De backend gebruikt de actuele PDOK OGC-search met `adres[version]=1` en BAG-detail,
 beide expliciet CRS84. ORS-aanvragen gebruiken **longitude, latitude**. De Matrix
 API bundelt alleen daadwerkelijk benodigde bestemmingen met hetzelfde vertrekpunt
-en profiel. Geometrie via Directions wordt pas bij een kaartverzoek opgehaald.
+en profiel. `foot-walking` gebruikt per traject de geometry-vrije Directions-
+samenvatting en het aparte Directions-budget, omdat de gehoste ORS Matrix-service
+voor dit profiel aantoonbaar terugkerende storingen kent. Geometrie via Directions
+wordt pas bij een kaartverzoek opgehaald.
 
 De technische cache is privé en bevat geen tenant-, klant- of medewerker-ID.
 Sleutels onderscheiden richting, coördinaten, providerbasis, profiel, opties en
@@ -138,12 +141,14 @@ forward-only migratie na backup uit.
 
 Vóór stagingmigraties controleert de deployworkflow met de ingestelde sleutel alle
 vier profielen op een vast traject uit de openbare OpenRouteService Matrix-
-referentie. Bij een tijdelijke netwerkfout volgt één poging met een tweede
-gepubliceerd referentietraject. Deze controle schrijft geen tenantdata en logt geen
-sleutel, coördinaten of providerantwoord. Een fout blokkeert activatie;
+referentie. De drie voertuig-/fietsprofielen gebruiken Matrix; `foot-walking`
+gebruikt dezelfde geometry-vrije Directions-samenvatting als runtime. Bij een
+tijdelijke netwerkfout volgt één poging met een tweede gepubliceerd
+referentietraject. Deze controle schrijft geen tenantdata en logt geen sleutel,
+coördinaten of providerantwoord. Een fout blokkeert activatie;
 `ROUTING_PROVIDER=disabled` is de expliciete handmatige modus. Reserveer naast
-runtimeverbruik vier Matrix-aanvragen per deployment, plus maximaal één herhaling
-per profiel bij een tijdelijke netwerkfout.
+runtimeverbruik drie Matrix-aanvragen en één Directions-aanvraag per deployment,
+plus maximaal één herhaling per profiel bij een tijdelijke netwerkfout.
 
 ## Verificatie en acceptatie
 
@@ -166,6 +171,8 @@ automatische onzekere adresverrijking in deze versie.
 
 Bronnen: [PDOK Location API](https://api.pdok.nl/kadaster/location-api/v1/),
 [ORS Matrix](https://giscience.github.io/openrouteservice/api-reference/endpoints/matrix/),
+[ORS Directions](https://giscience.github.io/openrouteservice/api-reference/endpoints/directions/),
+[ORS foot-walking incident](https://status.heigit.org/incidents/7969b364-f67b-4f9c-a7af-0b68463fa577),
 [ORS-profielen](https://giscience.github.io/openrouteservice/run-instance/configuration/engine/profiles/),
 [MapLibre Next.js-instructies](https://maplibre.org/maplibre-gl-js/docs/),
 [OpenFreeMap](https://openfreemap.org/quick_start/).

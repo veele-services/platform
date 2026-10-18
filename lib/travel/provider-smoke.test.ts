@@ -5,17 +5,15 @@ const env = {
   DEPLOY_TARGET: "staging",
   OPENROUTESERVICE_API_KEY: "fictional-smoke-test-only",
 };
+const successfulResponse = (url: string | URL | Request) =>
+  String(url).includes("/directions/")
+    ? Response.json({
+        routes: [{ summary: { duration: 600, distance: 1500 } }],
+      })
+    : Response.json({ durations: [[600]], distances: [[1500]] });
 describe("credential-safe live deployment routing check", () => {
   it("checks all four supported profiles, sending only public coordinates in longitude/latitude order", async () => {
-    const fetcher = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(
-        Response.json({ durations: [[600]], distances: [[1500]] }),
-      );
-    // Each response needs an unread body.
-    fetcher.mockImplementation(async () =>
-      Response.json({ durations: [[600]], distances: [[1500]] }),
-    );
+    const fetcher = vi.fn<typeof fetch>(async (url) => successfulResponse(url));
     const log = vi.fn();
     await checkRoutingProvider(env, fetcher, log);
     expect(
@@ -26,6 +24,17 @@ describe("credential-safe live deployment routing check", () => {
       "cycling-electric",
       "foot-walking",
     ]);
+    expect(String(fetcher.mock.calls[3][0])).toContain(
+      "/directions/foot-walking",
+    );
+    expect(JSON.parse(String(fetcher.mock.calls[3][1]?.body))).toMatchObject({
+      coordinates: [
+        [8.66044, 49.41571],
+        [8.67842, 49.40664],
+      ],
+      instructions: false,
+      geometry: false,
+    });
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({
       locations: [
         [8.66044, 49.41571],
@@ -70,7 +79,7 @@ describe("credential-safe live deployment routing check", () => {
     expect(log).toHaveBeenCalledWith(expect.stringContaining("handmatige"));
   });
   it("permits production profiles only at the canonical production origin", async () => {
-    const fetcher = vi.fn(async () => Response.json({ durations: [[600]], distances: [[1500]] }));
+    const fetcher = vi.fn<typeof fetch>(async (url) => successfulResponse(url));
     await checkRoutingProvider({ ...env, DEPLOY_TARGET: "production", APP_URL: "https://fieldgrid.nl" }, fetcher, vi.fn());
     expect(fetcher).toHaveBeenCalledTimes(4);
     await expect(checkRoutingProvider({ ...env, DEPLOY_TARGET: "production", APP_URL: "https://staging.fieldgrid.nl" }, fetcher)).rejects.toThrow("deploymentomgeving");
@@ -108,9 +117,7 @@ describe("credential-safe live deployment routing check", () => {
     const fetcher = vi
       .fn<typeof fetch>()
       .mockRejectedValueOnce(new Error("temporary timeout"))
-      .mockImplementation(async () =>
-        Response.json({ durations: [[600]], distances: [[1500]] }),
-      );
+      .mockImplementation(async (url) => successfulResponse(url));
     const log = vi.fn();
     await checkRoutingProvider(env, fetcher, log);
     expect(fetcher).toHaveBeenCalledTimes(5);
