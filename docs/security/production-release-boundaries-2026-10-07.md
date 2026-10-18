@@ -137,7 +137,7 @@ scoped operational scripts are added to the existing no-hardcoded-tenant check's
 allowlist. All other application code keeps that check.
 
 `lib/travel/provider-smoke.ts` permits production only at its canonical APP_URL,
-uses public station coordinates, no tenant data, HTTPS without embedded credentials,
+uses published public Matrix-reference coordinates, no tenant data, HTTPS without embedded credentials,
 redirect refusal and sanitized output. Profile coverage includes a production case.
 `scripts/check-security-surface.mjs` includes every new production operational
 file and explicitly tracks environment, worker, routing and scanner helpers.

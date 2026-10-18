@@ -28,8 +28,8 @@ describe("credential-safe live deployment routing check", () => {
     ]);
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body))).toMatchObject({
       locations: [
-        [4.3244, 52.0808],
-        [4.322, 52.0695],
+        [8.66044, 49.41571],
+        [8.67842, 49.40664],
       ],
       sources: ["0"],
       destinations: ["1"],
@@ -116,14 +116,14 @@ describe("credential-safe live deployment routing check", () => {
     expect(fetcher).toHaveBeenCalledTimes(5);
     expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body)).locations).toEqual(
       [
-        [4.3244, 52.0808],
-        [4.322, 52.0695],
+        [8.66044, 49.41571],
+        [8.67842, 49.40664],
       ],
     );
     expect(JSON.parse(String(fetcher.mock.calls[1][1]?.body)).locations).toEqual(
       [
-        [5.1102, 52.0893],
-        [5.1217, 52.0787],
+        [8.6837, 49.40854],
+        [8.69014, 49.40778],
       ],
     );
     expect(log).toHaveBeenCalledWith(

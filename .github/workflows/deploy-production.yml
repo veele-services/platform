@@ -151,7 +151,7 @@ jobs:
           GOOGLE_MAPS_SERVER_API_KEY: ${{ secrets.GOOGLE_MAPS_SERVER_API_KEY }}
           NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${{ secrets.NEXT_SERVER_ACTIONS_ENCRYPTION_KEY }}
         run: pnpm exec tsx scripts/preflight-production.ts
-      - name: Verify live routing profiles using public station locations
+      - name: Verify live routing profiles using public reference locations
         env:
           OPENROUTESERVICE_API_KEY: ${{ secrets.OPENROUTESERVICE_API_KEY }}
         run: pnpm exec tsx scripts/check-routing-provider.ts

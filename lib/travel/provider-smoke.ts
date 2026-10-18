@@ -3,20 +3,22 @@ import { profiles } from "./model";
 const routingCheckAttempts = 2;
 const routingCheckTimeoutMs = 20_000;
 const routingCheckRoutes = [
-  // Den Haag Centraal → Den Haag HS.
+  // Canonical public coordinates from the openrouteservice Matrix reference.
+  // These points avoid station platforms, which can snap to disconnected
+  // pedestrian graph components even while the profile itself is healthy.
   [
-    [4.3244, 52.0808],
-    [4.322, 52.0695],
+    [8.66044, 49.41571],
+    [8.67842, 49.40664],
   ],
-  // Utrecht Centraal → Utrecht Vaartsche Rijn. A second public route keeps a
-  // local graph/snap issue from being mistaken for total provider failure.
+  // A second pair from the same published reference keeps a local graph/snap
+  // issue from being mistaken for total provider failure.
   [
-    [5.1102, 52.0893],
-    [5.1217, 52.0787],
+    [8.6837, 49.40854],
+    [8.69014, 49.40778],
   ],
 ] as const;
 
-/** Deployment-only smoke check using public railway stations, never tenant data. */
+/** Deployment-only smoke check using published public coordinates, never tenant data. */
 export async function checkRoutingProvider(
   env: Record<string, string | undefined>,
   fetcher: typeof fetch = fetch,
