@@ -56,8 +56,10 @@ test('Operational chain: contract concepts and qualification re-evaluation share
 
   await t.test('qualification expiry opens and valid inclusive evidence closes a linked follow-up action',async()=>{
    const code='FICT-QUAL';
-   await db.query("insert into public.qualification_types(tenant_id,code,name,evidence_kind) values($1,$2,'FICTITIOUS qualification','certificate')",[f.tenant,code]);
-   await db.query("insert into public.qualification_requirements(tenant_id,code,scope,subject_id,hard_requirement) values($1,$2,'work_order',$3,true)",[f.tenant,code,f.workOrder]);
+   const qualificationRequest=randomUUID(),qualificationInput={code,name:'FICTITIOUS qualification',evidenceKind:'certificate',reminderDays:[30],scope:'work_order',subjectId:f.workOrder,hard:true};
+   const qualification=await call('select public.qualification_catalogue_command($1,$2,$3) data',[f.tenant,qualificationRequest,JSON.stringify(qualificationInput)]);
+   assert.ok(qualification.id);assert.ok(qualification.requirementId);
+   assert.deepEqual(qualification,await call('select public.qualification_catalogue_command($1,$2,$3) data',[f.tenant,qualificationRequest,JSON.stringify(qualificationInput)]));
    let run=await service('select public.process_qualification_followup(50) data');assert.ok(run.processed>=1);assert.ok(run.changed>=1);
    const qualificationActions=(await db.query("select id,state,source_id,trigger_key from private.cockpit_actions where tenant_id=$1 and trigger_key like 'qualification:%' order by created_at,id",[f.tenant])).rows;
    let action=qualificationActions.find(row=>row.trigger_key.endsWith(`:${code}`));

@@ -8082,7 +8082,7 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "3c0bbcb5a7aa4b8c09d6c68e7f22a22c0f7758832ad707801941417497b5c363",
+      "surfaceFingerprint": "6a2a3b999efee76042824601984856e5622fe4c9be70eef64411a6a708bd9f66",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/operational-chain-review-2026-10-18.md#code-ingangen-en-operationele-bestanden",
@@ -16836,13 +16836,13 @@
     },
     {
       "id": "rpc:public.qualification_catalogue_command(target_tenant uuid, request_id uuid, input jsonb)",
-      "surfaceFingerprint": "4f0e1e251d3ae4141bc78c43fc9f66ce37fc3f460d3b52e215ecf396041ad70b",
+      "surfaceFingerprint": "a1d40f280a11af45362209fef334321aeb93bf98d16ddc48f31b8c6d918fcc72",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
         "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-planboard.mjs",
         "scripts/test-operational-chain.mjs",
+        "scripts/test-planboard.mjs",
         "tests/e2e/work-order-release.spec.ts"
       ]
     },

@@ -330,7 +330,7 @@ on conflict do nothing;
 
 create function public.qualification_catalogue_command(target_tenant uuid,request_id uuid,input jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare receipt private.cockpit_receipts;fingerprint text;qualification public.qualification_types;requirement public.qualification_requirements;scope text:=nullif(input->>'scope','');result jsonb;
+declare receipt private.cockpit_receipts;fingerprint text;qualification public.qualification_types;requirement public.qualification_requirements;target_scope text:=nullif(input->>'scope','');result jsonb;
 begin
   perform private.management_assert(target_tenant,'backoffice.personnel.write');
   perform private.management_assert(target_tenant,'backoffice.functions.qualification_catalogue_command');
@@ -346,15 +346,15 @@ begin
       input->>'evidenceKind',nullif(btrim(input->>'levelLabel'),''))
   on conflict(tenant_id,code) do update set name=excluded.name,reminder_days=excluded.reminder_days,active=excluded.active,
     evidence_kind=excluded.evidence_kind,level_label=excluded.level_label returning * into qualification;
-  if scope is not null then
-    if scope not in('function','customer','object','work_order','service','task_revision') then raise exception 'Kies een geldige eiscontext.' using errcode='22023';end if;
+  if target_scope is not null then
+    if target_scope not in('function','customer','object','work_order','service','task_revision') then raise exception 'Kies een geldige eiscontext.' using errcode='22023';end if;
     select * into requirement from public.qualification_requirements q where q.tenant_id=target_tenant and q.code=qualification.code
-      and q.scope=scope and q.subject_id is not distinct from nullif(input->>'subjectId','')::uuid
+      and q.scope=target_scope and q.subject_id is not distinct from nullif(input->>'subjectId','')::uuid
       and q.service_name is not distinct from nullif(btrim(input->>'service'),'') for update;
     if found then update public.qualification_requirements set hard_requirement=coalesce((input->>'hard')::boolean,true),active=true
       where id=requirement.id returning * into requirement;
     else insert into public.qualification_requirements(tenant_id,code,scope,subject_id,service_name,hard_requirement)
-      values(target_tenant,qualification.code,scope,nullif(input->>'subjectId','')::uuid,nullif(btrim(input->>'service'),''),coalesce((input->>'hard')::boolean,true)) returning * into requirement;end if;
+      values(target_tenant,qualification.code,target_scope,nullif(input->>'subjectId','')::uuid,nullif(btrim(input->>'service'),''),coalesce((input->>'hard')::boolean,true)) returning * into requirement;end if;
   end if;
   result:=jsonb_build_object('id',qualification.id,'code',qualification.code,'requirementId',requirement.id);
   insert into private.cockpit_receipts(tenant_id,actor_id,request_id,fingerprint,result) values(target_tenant,auth.uid(),request_id,fingerprint,result);
