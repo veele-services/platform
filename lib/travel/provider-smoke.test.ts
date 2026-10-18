@@ -102,5 +102,23 @@ describe("credential-safe live deployment routing check", () => {
     await expect(checkRoutingProvider(env, fetcher)).rejects.toThrow(
       "provider niet bereikbaar",
     );
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it("retries one transient network failure without weakening response validation", async () => {
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockRejectedValueOnce(new Error("temporary timeout"))
+      .mockImplementation(async () =>
+        Response.json({ durations: [[600]], distances: [[1500]] }),
+      );
+    const log = vi.fn();
+    await checkRoutingProvider(env, fetcher, log);
+    expect(fetcher).toHaveBeenCalledTimes(5);
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining("nog één begrensde poging"),
+    );
+    expect(log).toHaveBeenCalledWith(
+      "Basisrouting foot-walking: beschikbaar.",
+    );
   });
 });

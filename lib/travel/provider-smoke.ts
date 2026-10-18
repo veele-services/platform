@@ -1,5 +1,8 @@
 import { profiles } from "./model";
 
+const routingCheckAttempts = 2;
+const routingCheckTimeoutMs = 20_000;
+
 /** Deployment-only smoke check using public railway stations, never tenant data. */
 export async function checkRoutingProvider(
   env: Record<string, string | undefined>,
@@ -39,27 +42,43 @@ export async function checkRoutingProvider(
   for (const profile of new Set(
     Object.values(profiles).filter((value): value is string => value !== null),
   )) {
-    let response: Response;
-    try {
-      response = await fetcher(`${base.replace(/\/$/, "")}/matrix/${profile}`, {
-        method: "POST",
-        redirect: "error",
-        signal: AbortSignal.timeout(10000),
-        headers: { Authorization: key, "content-type": "application/json" },
-        // Den Haag Centraal → Den Haag HS: two public stations, not private addresses.
-        body: JSON.stringify({
-          locations: [
-            [4.3244, 52.0808],
-            [4.322, 52.0695],
-          ],
-          sources: ["0"],
-          destinations: ["1"],
-          metrics: ["duration", "distance"],
-          units: "m",
-          resolve_locations: false,
-        }),
-      });
-    } catch {
+    let response: Response | undefined;
+    for (let attempt = 1; attempt <= routingCheckAttempts; attempt += 1) {
+      try {
+        response = await fetcher(
+          `${base.replace(/\/$/, "")}/matrix/${profile}`,
+          {
+            method: "POST",
+            redirect: "error",
+            signal: AbortSignal.timeout(routingCheckTimeoutMs),
+            headers: {
+              Authorization: key,
+              "content-type": "application/json",
+            },
+            // Den Haag Centraal → Den Haag HS: two public stations, not private addresses.
+            body: JSON.stringify({
+              locations: [
+                [4.3244, 52.0808],
+                [4.322, 52.0695],
+              ],
+              sources: ["0"],
+              destinations: ["1"],
+              metrics: ["duration", "distance"],
+              units: "m",
+              resolve_locations: false,
+            }),
+          },
+        );
+        break;
+      } catch {
+        if (attempt < routingCheckAttempts) {
+          log(
+            `Routingcontrole ${profile}: tijdelijke netwerkfout; nog één begrensde poging.`,
+          );
+        }
+      }
+    }
+    if (!response) {
       throw new Error(
         `Routingcontrole ${profile}: provider niet bereikbaar; deployment niet activeren.`,
       );
