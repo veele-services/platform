@@ -132,7 +132,7 @@ const dayCommandSchema = z.discriminatedUnion("command", [
   z.object({ command: z.enum(["confirm", "reopen"]), dayReviewId: z.string().uuid(), version: z.number().int().nonnegative(), note: nullableText(1000), idempotencyKey: z.string().uuid() }).strict(),
 ]);
 const workOrderCostCommandSchema = z.discriminatedUnion("command", [
-  z.object({ command: z.literal("add_material"), workOrderId: z.string().uuid(), taskId: z.string().uuid().nullable(), description: z.string().trim().min(2).max(300), quantity: z.number().positive().max(10_000), unit: z.string().trim().min(1).max(40), unitPriceCents: z.number().int().min(0).max(10_000_000), customerVisible: z.boolean(), idempotencyKey: z.string().uuid() }).strict(),
+  z.object({ command: z.literal("add_material"), workOrderId: z.string().uuid(), taskId: z.string().uuid().nullable(), catalogItemId:z.string().uuid().nullable(), description: z.string().trim().min(2).max(300), quantity: z.number().positive().max(10_000), unit: z.string().trim().min(1).max(40), unitPriceCents: z.number().int().min(0).max(10_000_000), customerVisible: z.boolean(), idempotencyKey: z.string().uuid() }).strict(),
   z.object({ command: z.literal("remove_material"), workOrderId: z.string().uuid(), materialId: z.string().uuid(), idempotencyKey: z.string().uuid() }).strict(),
   z.object({ command: z.literal("add_expense"), workOrderId: z.string().uuid(), description: z.string().trim().min(2).max(300), amountCents: z.number().int().min(1).max(100_000_000), customerVisible: z.boolean(), idempotencyKey: z.string().uuid() }).strict(),
   z.object({ command: z.literal("remove_expense"), workOrderId: z.string().uuid(), expenseId: z.string().uuid(), version: z.number().int().nonnegative(), idempotencyKey: z.string().uuid() }).strict(),
@@ -365,6 +365,7 @@ export async function runStaffWorkOrderCostCommand(input: StaffWorkOrderCostComm
     if (parsed.command === "add_material") {
       rpcCommand = "material.create";
       rpcInput = { orderId: parsed.workOrderId, taskId: parsed.taskId, description: parsed.description, quantity: parsed.quantity, unit: parsed.unit, unitPriceCents: parsed.unitPriceCents, customerVisible: parsed.customerVisible };
+      if(parsed.catalogItemId)rpcInput.materialId=parsed.catalogItemId;
     } else if (parsed.command === "remove_material") {
       rpcCommand = "material.delete";
       rpcInput = { id: parsed.materialId };
@@ -384,6 +385,13 @@ export async function runStaffWorkOrderCostCommand(input: StaffWorkOrderCostComm
     revalidateStaffWorkspaces();
     return { ok: true };
   } catch (error) { return { ok: false, error: message(error) }; }
+}
+
+export type StaffMaterialCatalogueItem={id:string;code:string;name:string;category:string;description:string;unit:string;proposedUnitPriceCents:number|null;billableDefault:boolean};
+export async function loadStaffMaterialCatalogue():Promise<ActionResult<{items:StaffMaterialCatalogueItem[]}>>{
+  try{const context=await staffContext(["planning","rapportage"]);const result=await (await createClient()).rpc("staff_material_catalogue",{target_tenant:context.tenant.id});if(result.error)throw result.error;
+    return{ok:true,items:z.array(z.object({id:z.uuid(),code:z.string(),name:z.string(),category:z.string(),description:z.string(),unit:z.string(),proposedUnitPriceCents:z.number().int().nullable(),billableDefault:z.boolean()})).parse(result.data)};
+  }catch(error){return{ok:false,error:message(error)};}
 }
 
 export async function requestStaffExtraWork(input: StaffExtraWorkRequestInput): Promise<ActionResult> {

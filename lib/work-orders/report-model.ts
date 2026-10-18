@@ -2,14 +2,14 @@ import { z } from "zod";
 
 export type SignaturePolicy = { mode: "none" | "optional" | "required"; source: string; employeeRequired: boolean };
 export type ReportSnapshot = {
-  schema: 1; number: string; title: string; summary: string;
+  schema: 1 | 2; number: string; title: string; summary: string;
   tenant: { name: string; primaryColor: string; accentColor: string };
   customer: { name: string }; object: { name: string; address: Record<string, unknown> };
   executionDate: string | null; endedAt: string | null; timezone: string;
   tasks: Array<{ id: string; code: string; name: string; quantity: number; unit: string; executedQuantity: number; result: string; transferredQuantity: number; withdrawnQuantity: number; extraWork: boolean; extraUnitPriceCents?: number | null }>;
   notes: Array<{ id: string; body: string; createdAt?: string }>;
   checklists?:Array<{name:string;version:number;question:string;unit:string;type:string;value:unknown;notApplicable:boolean;reason:string|null;answerVersion:number;attachmentId:string|null}>;
-  materials?:Array<{description:string;quantity:number;unit:string;taskId:string|null;unitPriceCents?:number|null}>;
+  materials?:Array<{description:string;quantity:number;unit:string;taskId:string|null;unitPriceCents?:number|null;pricingState?:"unknown"|"included"|"proposed"|"approved"|"rejected"}>;
   expenses?:Array<{id:string;description:string;amountCents:number}>;
   attachments: Array<{ id: string; name: string; mime: string; sha256: string }>;
 };
@@ -22,7 +22,7 @@ export const signatureModeLabels = { none:"Niet nodig",optional:"Optioneel",requ
 export const signatureSourceLabels: Record<string,string> = {task:"Taakafspraak",work_order:"Werkbon",object:"Object 360",template:"Werkbontemplate",tenant:"Tenantstandaard",historical:"Bestaande afspraak"};
 
 const reportSnapshotSchema = z.object({
-  schema: z.literal(1),
+  schema: z.union([z.literal(1),z.literal(2)]),
   number: z.string(),
   title: z.string(),
   summary: z.string(),
@@ -45,7 +45,7 @@ const reportSnapshotSchema = z.object({
   }).strict()).optional(),
   materials: z.array(z.object({
     description: z.string(), quantity: z.number(), unit: z.string(), taskId: z.string().nullable(),
-    unitPriceCents: z.number().nullable().optional(),
+    unitPriceCents: z.number().nullable().optional(), pricingState:z.enum(["unknown","included","proposed","approved","rejected"]).optional(),
   }).strict()).optional(),
   expenses: z.array(z.object({ id: z.string(), description: z.string(), amountCents: z.number() }).strict()).optional(),
   attachments: z.array(z.object({ id: z.string(), name: z.string(), mime: z.string(), sha256: z.string() }).strict()),
@@ -73,7 +73,7 @@ export const reportVersionSchema = z.object({
  * prevent financial, HR or internal data from leaking through future additions. */
 export function reportExtraTotal(snapshot: ReportSnapshot): number {
  return snapshot.tasks.filter(task=>task.extraWork).reduce((total,task)=>total+Math.round((task.extraUnitPriceCents??0)*task.executedQuantity),0)
-  +(snapshot.materials??[]).reduce((total,material)=>total+Math.round((material.unitPriceCents??0)*material.quantity),0)
+  +(snapshot.materials??[]).reduce((total,material)=>total+(material.pricingState==="approved"||material.pricingState==null&&material.unitPriceCents!=null?Math.round((material.unitPriceCents??0)*material.quantity):0),0)
   +(snapshot.expenses??[]).reduce((total,expense)=>total+expense.amountCents,0);
 }
 
@@ -91,7 +91,7 @@ export function reportDocumentLines(report: ReportVersion): string[] {
   for(const note of s.notes)lines.push(note.body, ...(note.createdAt ? [new Intl.DateTimeFormat("nl-NL",{dateStyle:"short",timeStyle:"short",timeZone:s.timezone}).format(new Date(note.createdAt))] : []));
   for(const answer of s.checklists??[]){const value=answer.notApplicable?`Niet van toepassing: ${answer.reason}`:answer.type==="photo"?"Bewijsfoto bijgevoegd":answer.value===true?"Ja / gecontroleerd":answer.value===false?"Nee":String(answer.value??"");lines.push(`${answer.name} v${answer.version} · ${answer.question}: ${value}${answer.unit?` ${answer.unit}`:""}`);}
   const currency=(cents:number)=>new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR"}).format(cents/100);
-  if(s.materials?.length)lines.push("Materialen",...s.materials.map(m=>`${m.description}: ${m.quantity} ${m.unit}${m.unitPriceCents==null?"":` · ${currency(m.unitPriceCents)} per ${m.unit}`}`));
+  if(s.materials?.length)lines.push("Materialen",...s.materials.map(m=>`${m.description}: ${m.quantity} ${m.unit}${m.pricingState==="included"?" · inbegrepen":m.unitPriceCents==null?" · prijs onbekend":m.pricingState==="approved"||m.pricingState==null?` · ${currency(m.unitPriceCents)} per ${m.unit}`:" · ter beoordeling"}`));
   if(s.expenses?.length)lines.push("Onkosten",...s.expenses.map(expense=>`${expense.description}: ${currency(expense.amountCents)}`));
   for(const task of s.tasks.filter(task=>task.extraWork&&task.extraUnitPriceCents!=null))lines.push(`Meerwerk ${task.name}: ${currency(Math.round(task.extraUnitPriceCents!*task.executedQuantity))}`);
   lines.push(`Totaal extra kosten: ${currency(reportExtraTotal(s))}`);

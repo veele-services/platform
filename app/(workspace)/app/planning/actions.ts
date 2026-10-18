@@ -10,6 +10,8 @@ import type {
   PlanningResult,
   Proposal,
   PlanningOrder,
+  PlanningCandidate,
+  PlanningCapacity,
 } from "@/lib/planning/model";
 
 async function access() {
@@ -55,6 +57,22 @@ export async function loadPlanboardOrder(id: string): Promise<PlanningOrder> {
   if (result.error) throw new Error("Werkbon niet beschikbaar.");
   return result.data as unknown as PlanningOrder;
 }
+export async function loadPlanningCandidates(orderId:string,start:string,end:string):Promise<PlanningCandidate[]> {
+  const tenant=await access();
+  if(!hasManagementPermission(tenant,'backoffice.functions.get_planboard'))throw new Error("Geen toegang tot kandidaten.");
+  const input=z.object({orderId:z.uuid(),start:z.iso.datetime({offset:true}),end:z.iso.datetime({offset:true})}).parse({orderId,start,end});
+  const db=await createClient();
+  const result=await db.rpc("planning_candidates",{target_tenant:tenant.id,target_work_order:input.orderId,target_start:input.start,target_end:input.end});
+  if(result.error)throw new Error("Kandidaten konden niet worden beoordeeld.");
+  return result.data as unknown as PlanningCandidate[];
+}
+export async function loadPlanningCapacity(input:unknown):Promise<PlanningCapacity>{
+  const tenant=await access();if(!hasManagementPermission(tenant,'backoffice.functions.planning_capacity'))throw new Error("Geen toegang tot capaciteit.");
+  const value=z.object({start:z.iso.datetime({offset:true}),end:z.iso.datetime({offset:true}),discipline:z.string().max(120).default(""),functionId:z.uuid().or(z.literal("")).default("")}).parse(input);
+  const db=await createClient();const result=await db.rpc("planning_capacity",{target_tenant:tenant.id,target_start:value.start,target_end:value.end,
+    target_discipline:value.discipline||undefined,target_function:value.functionId||undefined});
+  if(result.error)throw new Error("Capaciteit kon niet worden berekend.");return result.data as unknown as PlanningCapacity;
+}
 const instant = z.iso.datetime({ offset: true });
 const proposalSchema = z.object({
   orderId: z.uuid(),
@@ -63,7 +81,7 @@ const proposalSchema = z.object({
   start: instant.nullable(),
   end: instant.nullable(),
   assignments: z
-    .array(z.object({ personnelId: z.uuid(), start: instant, end: instant }))
+    .array(z.object({ personnelId: z.uuid(), start: instant, end: instant, overrideReason: z.string().trim().min(3).max(1000).optional() }))
     .max(100),
   confirmedWarnings: z.array(z.string().max(200)).max(300),
   undoChange: z.uuid().optional(),

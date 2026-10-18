@@ -26,7 +26,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       tenantName: String(brand.tenant_name), customerName: item.customer.name, billingAddress: item.customer.billingAddress,
       sender: { email: typeof brand.sender_email === "string" ? brand.sender_email : undefined },
       recipient: { legalName:item.customer.legalName, companyNumber:item.customer.companyNumber, vatNumber:item.customer.vatNumber, email:item.customer.email, phone:item.customer.phone ?? undefined },
-      reference: String(prefs.reference ?? ""), costCenter: String(prefs.costCenter ?? ""), lines: item.lines,
+      reference: String(prefs.reference ?? ""), costCenter: String(prefs.costCenter ?? ""), lines: item.lines.map(line=>({...line,sourceContext:`Bron: ${item.number} · ${item.title}`})),
       subtotalCents: item.subtotalCents, vatCents: item.vatCents, totalCents: item.totalCents,
       primaryColor: typeof brand.primary_color === "string" ? brand.primary_color : undefined,
       accentColor: typeof brand.accent_color === "string" ? brand.accent_color : undefined,

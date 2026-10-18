@@ -29,12 +29,26 @@ export type ScopeTask = {
 };
 export type RelatedContext = {
   order: { id: string; number: string; title: string; version: number; status: string; signatureMode?: string; employeeSignatureRequired?: boolean };
+  tenantAutomationEnabled: boolean;
   canManage: boolean; canFinance: boolean; canSplit: boolean;
   tasks: ScopeTask[];
   relations: Array<{ id: string; number: string; title: string; kind: string; reason: string; direction: "source" | "child" }>;
   transfers: Array<{ id: string; sourceTask: string; targetOrder: string; targetNumber: string; quantity: number; unit: string; createdAt: string }>;
-  series: Array<{ id: string; title: string; version: number; definition: Record<string, unknown>; occurrences: Array<{ day: string; state: string; reason: string; orderId: string | null; number: string | null }> }>;
-  materials: Array<{ id: string; description: string; quantity: number; unit: string; taskId: string | null; createdAt: string; customerVisible: boolean; unitPriceCents?: number | null; costCents?: number | null }>;
+  agreementOptions: Array<{ id: string; agreement: string; scope: string; objectId: string }>;
+  personnelOptions: Array<{ id: string; name: string }>;
+  materialCatalogue: Array<{ id: string; code: string; name: string; category: string; description: string; unit: string;
+    proposedUnitPriceCents: number | null; proposedVatBasisPoints: number | null; billableDefault: boolean; version: number }>;
+  series: Array<{ id: string; title: string; version: number; definition: Record<string, unknown>;
+    lifecycleState: "manual" | "concept" | "active" | "paused" | "ended"; automationEnabled: boolean;
+    agreementLineId: string | null; generationHorizonWeeks: number; preferredPersonnelIds: string[];
+    lifecycleReason: string | null; lastGeneratedAt: string | null; lastGeneratedThrough: string | null;
+    lastGenerationResult: Record<string, unknown>; failures: Array<{ day: string; message: string; attempts: number; lastFailedAt: string }>;
+    occurrences: Array<{ day: string; state: string; reason: string; orderId: string | null; number: string | null;
+      preferredMatches: Array<{personnelId:string;fit:{eligible:boolean;hardBlocks:string[];warnings:Array<{key:string;message:string}>;availabilityState:string}}> }> }>;
+  materials: Array<{ id: string; description: string; quantity: number; unit: string; taskId: string | null; createdAt: string;
+    customerVisible: boolean; materialId: string | null; materialSnapshot: Record<string, unknown>; unitPriceCents?: number | null;
+    costCents?: number | null; pricingState?: "unknown" | "included" | "proposed" | "approved" | "rejected";
+    commercialVersion?: number; vatBasisPoints?: number | null; agreementEvidence?: string }>;
   acceptedQuotes: Array<{ id: string; number: string; title: string }>;
 };
 

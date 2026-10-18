@@ -11,6 +11,8 @@ import { authenticateWorkspace } from "./login-auth";
 const title = `Werkbon dossier ${randomUUID().slice(0, 8)}`;
 const templateName = `Checklist browser ${randomUUID().slice(0, 8)}`;
 const personId = randomUUID(), day = "2033-10-05";
+const seededPersonId = "e1000000-0000-4000-8000-000000000001";
+const availabilityIds = [randomUUID(), randomUUID()];
 let db: pg.Client, tenant: string, extraUserId: string, orderId: string;
 const createdOrders: string[] = [];
 test.beforeAll(async () => {
@@ -24,6 +26,7 @@ test.beforeAll(async () => {
   extraUserId = account.data.user.id;
   await db.query("insert into public.tenant_memberships(tenant_id,user_id,roles,status,activated_at) values($1,$2,array['staff']::public.app_role[],'active',now())", [tenant, extraUserId]);
   await db.query("insert into public.personnel(id,tenant_id,user_id,employee_number,full_name,status) values($1,$2,$3,$4,'Milan Werkbontest','active')", [personId, tenant, extraUserId, `WB-${personId.slice(0, 8)}`]);
+  await db.query("insert into public.availability(id,tenant_id,personnel_id,starts_at,ends_at,kind,approved_at) values($1,$3,$4,$5,$6,'available',now()),($2,$3,$7,$5,$6,'available',now())", [availabilityIds[0], availabilityIds[1], tenant, personId, `${day}T05:00:00Z`, `${day}T12:00:00Z`, seededPersonId]);
 });
 test.afterAll(async () => {
   if (!db) return;
@@ -59,6 +62,7 @@ test.afterAll(async () => {
         await db.query("commit");
       } catch (error) { await db.query("rollback"); throw error; }
     }
+    await db.query("delete from public.availability where tenant_id=$1 and id=any($2)", [tenant, availabilityIds]);
     await db.query("delete from public.personnel where id=$1", [personId]);
     if (extraUserId) {
       const admin = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
@@ -176,7 +180,7 @@ test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzett
   await expect(panel).toHaveCount(0);
   const intervals = await db.query("select personnel_id,extract(epoch from(projected_end_at-projected_start_at))/60 minutes from public.work_order_assignments where work_order_id=$1 and status<>'cancelled' order by personnel_id", [orderId]);
   expect(Number(intervals.rows.find(r => r.personnel_id === personId).minutes)).toBe(30);
-  expect(Number(intervals.rows.find(r => r.personnel_id === "e1000000-0000-4000-8000-000000000001").minutes)).toBe(120);
+  expect(Number(intervals.rows.find(r => r.personnel_id === seededPersonId).minutes)).toBe(120);
 
   await page.goto(`/app/werkbonnen/${orderId}?tab=communicatie`);
   const communication = page.locator("form").filter({ has: page.getByRole("button", { name: "Notitie / bestand toevoegen", exact: true }) });

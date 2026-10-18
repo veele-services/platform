@@ -21,7 +21,9 @@ insert into public.work_orders (id, tenant_id, work_order_number, customer_id, o
 insert into public.work_order_assignments (tenant_id, work_order_id, personnel_id, planned_start_at, planned_end_at, projected_start_at, projected_end_at) values
   ('e1000000-0000-4000-8000-000000000001', 'e5000000-0000-4000-8000-000000000001', 'e2000000-0000-4000-8000-000000000001', '2026-10-01 10:00+02', '2026-10-01 10:30+02', '2026-10-01 10:00+02', '2026-10-01 10:30+02'),
   ('e1000000-0000-4000-8000-000000000001', 'e5000000-0000-4000-8000-000000000002', 'e2000000-0000-4000-8000-000000000001', '2026-10-01 11:00+02', '2026-10-01 11:30+02', '2026-10-01 11:00+02', '2026-10-01 11:30+02');
-insert into public.availability (tenant_id, personnel_id, starts_at, ends_at, kind) values ('e1000000-0000-4000-8000-000000000001', 'e2000000-0000-4000-8000-000000000002', '2026-10-01 13:00+02', '2026-10-01 14:00+02', 'leave');
+insert into public.availability (tenant_id, personnel_id, starts_at, ends_at, kind) values
+  ('e1000000-0000-4000-8000-000000000001', 'e2000000-0000-4000-8000-000000000002', '2026-10-01 10:00+02', '2026-10-01 11:00+02', 'available'),
+  ('e1000000-0000-4000-8000-000000000001', 'e2000000-0000-4000-8000-000000000002', '2026-10-01 13:00+02', '2026-10-01 14:00+02', 'leave');
 
 insert into auth.sessions(id,user_id) values
  ('e9000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000001'),

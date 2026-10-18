@@ -673,6 +673,7 @@ test("planningwijziging verschijnt realtime bij personeel zonder paginareload", 
       return await detail.isVisible() ? "saving" : "saved";
     }).not.toBe("saving");
     if (await confirmation.isVisible()) {
+      await confirmation.getByLabel("Reden voor de afwijking", { exact: true }).fill("Bestaande inzet bewust buiten bevestigde beschikbaarheid aangepast.");
       await confirmation.getByRole("button", { name: "Plan toch" }).click();
     }
     await expect(detail).toBeHidden();

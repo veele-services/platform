@@ -78,9 +78,9 @@ test("work-order dossier, immutable templates, checklist validation and list iso
       const a=await list({page:1}),b=await list({page:2});assert.equal(a.total,29);assert.equal(a.rows.length,25);assert.equal(b.rows.length,4);assert(!a.rows.some(x=>b.rows.some(y=>x.id===y.id)));assert.deepEqual((await list({page:1})).rows.map(x=>x.id),a.rows.map(x=>x.id));
     });
     await t.test("planning warnings roll back entire creation and can be explicitly confirmed",async()=>{
-      const p=payload({start:'2032-02-10T08:00:00Z',end:'2032-02-10T09:00:00Z',state:'tentative',assignments:[{personnelId:person,start:'2032-02-10T08:00:00Z',end:'2032-02-10T09:00:00Z'}]});
+      const p=payload({requiredPersonnel:1,start:'2032-02-10T08:00:00Z',end:'2032-02-10T09:00:00Z',state:'tentative',assignments:[{personnelId:person,start:'2032-02-10T08:00:00Z',end:'2032-02-10T09:00:00Z'}]});
       const rejected=await save(p);assert.equal(rejected.ok,false);assert.equal(rejected.code,'confirmation');assert.equal((await db.query('select count(*) from public.work_orders where id=$1',[p.id])).rows[0].count,'0');
-      const accepted=await save({...p,confirmedWarnings:rejected.warnings.map(w=>w.key)});assert.equal(accepted.ok,true);
+      const accepted=await save({...p,assignments:p.assignments.map(assignment=>({...assignment,overrideReason:'FICTITIOUS confirmed unknown availability'})),confirmedWarnings:rejected.warnings.map(w=>w.key)});assert.equal(accepted.ok,true);
     });
     await t.test("template draft concurrency rejects stale saves and publication",async()=>{
       const base={name:'FICTITIOUS concurrency',kind:'checklist',revisionId:null,definition:{questions:[]}};
@@ -110,7 +110,8 @@ test("work-order dossier, immutable templates, checklist validation and list iso
       await call('select public.work_order_signature_settings($1,$2,$3)',[tenant,object,{mode:'inherit'}]);
     });
     await t.test("published work is dispatched per employee; checklist required/conditional answers and CAS are enforced",async()=>{
-      const p=payload({checklistRevisionIds:[checklist.id],start:'2032-02-11T08:00:00Z',end:'2032-02-11T10:00:00Z',state:'tentative',assignments:[{personnelId:person,start:'2032-02-11T08:00:00Z',end:'2032-02-11T09:00:00Z'},{personnelId:person2,start:'2032-02-11T09:00:00Z',end:'2032-02-11T10:00:00Z'}]});
+      await db.query("insert into public.availability(tenant_id,personnel_id,starts_at,ends_at,kind) values($1,$2,'2032-02-11T08:00:00Z','2032-02-11T09:00:00Z','available'),($1,$3,'2032-02-11T09:00:00Z','2032-02-11T10:00:00Z','available')",[tenant,person,person2]);
+      const p=payload({requiredPersonnel:1,checklistRevisionIds:[checklist.id],start:'2032-02-11T08:00:00Z',end:'2032-02-11T10:00:00Z',state:'tentative',assignments:[{personnelId:person,start:'2032-02-11T08:00:00Z',end:'2032-02-11T09:00:00Z'},{personnelId:person2,start:'2032-02-11T09:00:00Z',end:'2032-02-11T10:00:00Z'}]});
       const saved=await save(p);assert.equal(saved.ok,true);
       await call('select public.mutate_work_order($1,$2)',[tenant,{orderId:p.id,version:await version(p.id),mutationId:randomUUID(),action:'publish'}]);
       assert.equal((await db.query('select count(*) from public.dispatches where work_order_id=$1 and revoked_at is null',[p.id])).rows[0].count,'2');
@@ -124,6 +125,7 @@ test("work-order dossier, immutable templates, checklist validation and list iso
       await call('select public.answer_work_order_checklist($1,$2)',[tenant,{...answer,questionId:'note',value:null,notApplicable:true,reason:'Geen bijzonderheid tijdens test',mutationId:randomUUID()}],staff);assert.equal((await db.query('select private.work_order_checklist_ready($1) r',[p.id])).rows[0].r,true);
     });
     await t.test("management removes one employee after a colleague has started, with history and revocation",async()=>{
+      await db.query("insert into public.availability(tenant_id,personnel_id,starts_at,ends_at,kind) values($1,$2,'2035-03-10T08:00:00Z','2035-03-10T09:00:00Z','available'),($1,$3,'2035-03-10T08:00:00Z','2035-03-10T09:00:00Z','available')",[tenant,person,person2]);
       const input=payload({tasks:[{revisionId:revision,quantity:1}],start:'2035-03-10T08:00:00Z',end:'2035-03-10T09:00:00Z',state:'tentative',assignments:[{personnelId:person,start:'2035-03-10T08:00:00Z',end:'2035-03-10T09:00:00Z'},{personnelId:person2,start:'2035-03-10T08:00:00Z',end:'2035-03-10T09:00:00Z'}]});
       let saved=await save(input);if(!saved.ok&&saved.code==='confirmation')saved=await save({...input,confirmedWarnings:saved.warnings.map(w=>w.key)});assert.equal(saved.ok,true);
       await call('select public.mutate_work_order($1,$2)',[tenant,{orderId:input.id,version:await version(input.id),mutationId:randomUUID(),action:'publish'}]);
@@ -147,7 +149,8 @@ test("work-order dossier, immutable templates, checklist validation and list iso
       await assert.rejects(call('select public.manage_work_order($1,$2)',[other,{...command,mutationId:randomUUID()}]),e=>e.code==='42501');
     });
     await t.test("management status commands publish and return without fabricating work or report approval",async()=>{
-      const input=payload({tasks:[{revisionId:revision,quantity:1}],start:'2036-03-10T08:00:00Z',end:'2036-03-10T09:00:00Z',state:'tentative',assignments:[{personnelId:person,start:'2036-03-10T08:00:00Z',end:'2036-03-10T09:00:00Z'}]});
+      await db.query("insert into public.availability(tenant_id,personnel_id,starts_at,ends_at,kind) values($1,$2,'2036-03-10T08:00:00Z','2036-03-10T09:00:00Z','available')",[tenant,person]);
+      const input=payload({requiredPersonnel:1,tasks:[{revisionId:revision,quantity:1}],start:'2036-03-10T08:00:00Z',end:'2036-03-10T09:00:00Z',state:'tentative',assignments:[{personnelId:person,start:'2036-03-10T08:00:00Z',end:'2036-03-10T09:00:00Z'}]});
       let saved=await save(input);if(!saved.ok&&saved.code==='confirmation')saved=await save({...input,confirmedWarnings:saved.warnings.map(w=>w.key)});assert.equal(saved.ok,true);
       const manage=value=>call('select public.manage_work_order($1,$2) r',[tenant,value]).then(r=>r[0].r);
       await manage({orderId:input.id,version:await version(input.id),mutationId:randomUUID(),action:'status',status:'released',reason:'FICTITIOUS publish visit'});

@@ -6,7 +6,8 @@ const snapshot = () => ({
   invoice_number: "FACT-2026-000001", issued_on: "2026-10-07", due_on: "2026-11-06",
   branding_snapshot: { tenant_name: "Fictieve afzender", sender_email: "billing@example.test", company: { company_number: "12345678", vat_number: "NL123456789B01", iban: "NL00TEST0000000000", address: { street: "Teststraat 1", city: "Utrecht" } } },
   customer_snapshot: { name: "Fictieve klant", legal_name: "Fictieve klant B.V.", company_number: "87654321", vat_number: "NL987654321B01", billing_address: { street: "Testplein 2", city: "Amsterdam" }, billing_email: "customer@example.test", billing_preferences: { iban: "NL00TEST1111111111", reference: "PO-123" } },
-  lines_snapshot: [{ description: "Gecontroleerde uitvoering", quantity: 2, unit: "task", unit_price_cents: 1200, vat_basis_points: 2100, subtotal_cents: 2400, vat_cents: 504, total_cents: 2904 }],
+  lines_snapshot: [{ description: "Gecontroleerde uitvoering", quantity: 2, unit: "task", unit_price_cents: 1200, vat_basis_points: 2100, subtotal_cents: 2400, vat_cents: 504, total_cents: 2904,
+    source_snapshot:{work_order_number:"WB-2026-0042",execution_date:"2026-10-07T10:00:00Z",object:{object_number:"OBJ-7",name:"Fictief object"}} }],
   subtotal_cents: 2400, vat_cents: 504, total_cents: 2904,
 });
 
@@ -15,7 +16,7 @@ it("uses frozen issuer and recipient identity without altering the accounting sn
   expect(result.sender).toMatchObject({ companyNumber: "12345678", vatNumber: "NL123456789B01", iban: "NL00TEST0000000000", email: "billing@example.test" });
   expect(result.recipient).toMatchObject({ legalName: "Fictieve klant B.V.", companyNumber: "87654321", vatNumber: "NL987654321B01", iban: "NL00TEST1111111111", address: { street: "Testplein 2" } });
   expect(result.reference).toBe("PO-123");
-  expect(result.lines[0]).toMatchObject({ quantity: 2, unitPriceCents: 1200, totalCents: 2904 });
+  expect(result.lines[0]).toMatchObject({ quantity: 2, unitPriceCents: 1200, totalCents: 2904, sourceContext:"Bron: WB-2026-0042 · OBJ-7 · Fictief object · 7 okt 2026" });
   expect(original).toEqual(before);
 });
 

@@ -44,7 +44,7 @@ export async function saveWorkOrder(input: SaveWorkOrderInput): Promise<WorkOrde
     if (error) throw error; const result = data as unknown as WorkOrderResult; if (result.ok) refreshOrders(); return result;
   } catch (e) { return errorResult(e); }
 }
-const mutation = z.object({ orderId: z.uuid(), version: z.number().int().positive(), mutationId: z.uuid(), action: z.enum(["publish", "archive", "cancel", "delete"]), reason: z.string().max(2000).optional() });
+const mutation = z.object({ orderId: z.uuid(), version: z.number().int().positive(), mutationId: z.uuid(), action: z.enum(["publish", "archive", "cancel", "delete"]), reason: z.string().max(2000).optional(), coverageOverrideReason:z.string().trim().min(3).max(1000).optional() });
 export async function mutateWorkOrder(input: z.infer<typeof mutation>): Promise<WorkOrderResult> {
   try { const tenant = await access(), db = await createClient(); const { data, error } = await db.rpc("mutate_work_order", { target_tenant: tenant.id, input: mutation.parse(input) }); if (error) throw error; refreshOrders(); return data as unknown as WorkOrderResult; } catch (e) { return errorResult(e); }
 }

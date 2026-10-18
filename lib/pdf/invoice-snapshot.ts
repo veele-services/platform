@@ -14,7 +14,16 @@ const linesSchema = z.array(z.object({
   description:z.string(), quantity:z.number().finite().positive(), unit:z.string(),
   unit_price_cents:z.number().int().nonnegative(), vat_basis_points:z.number().int().nonnegative(),
   subtotal_cents:z.number().int().nonnegative(), vat_cents:z.number().int().nonnegative(), total_cents:z.number().int().nonnegative(),
+  source_snapshot:z.record(z.string(),z.unknown()).optional(),
 })).min(1);
+
+const sourceContext=(value:unknown)=>{
+  const source=object(value),site=object(source.object),rawDate=field(source.execution_date);
+  const day=rawDate&&Number.isFinite(Date.parse(rawDate))?new Intl.DateTimeFormat("nl-NL",{dateStyle:"medium"}).format(new Date(rawDate)):"";
+  const number=field(site.object_number||site.number),name=field(site.name);
+  const parts=[field(source.work_order_number),number,name,day].filter(Boolean);
+  return parts.length?`Bron: ${parts.join(" · ")}`:undefined;
+};
 
 /** A refreshed presentation reads frozen invoice data; it never changes the ledger or saved PDF. */
 export function invoiceSnapshotInput(invoice: {
@@ -33,7 +42,7 @@ export function invoiceSnapshotInput(invoice: {
     recipient:{...company(customer),iban:field(customer.iban ?? preferences.iban)},
     reference:field(preferences.reference), costCenter:field(preferences.costCenter),
     primaryColor:field(brand.primary_color), accentColor:field(brand.accent_color), footer:field(brand.pdf_footer) || field(brand.tenant_name),
-    lines:lines.map(line=>({description:line.description,quantity:line.quantity,unit:line.unit,unitPriceCents:line.unit_price_cents,vatBasisPoints:line.vat_basis_points,subtotalCents:line.subtotal_cents,vatCents:line.vat_cents,totalCents:line.total_cents})),
+    lines:lines.map(line=>({description:line.description,sourceContext:sourceContext(line.source_snapshot),quantity:line.quantity,unit:line.unit,unitPriceCents:line.unit_price_cents,vatBasisPoints:line.vat_basis_points,subtotalCents:line.subtotal_cents,vatCents:line.vat_cents,totalCents:line.total_cents})),
     subtotalCents:invoice.subtotal_cents,vatCents:invoice.vat_cents,totalCents:invoice.total_cents,
   };
 }

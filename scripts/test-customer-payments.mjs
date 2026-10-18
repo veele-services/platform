@@ -30,7 +30,7 @@ test('customer checkout preserves exact account, merchant, remaining cents and b
   account=accounts.find(a=>a.customer_id===customer).id;otherAccount=accounts.find(a=>a.customer_id===otherCustomer).id;
   for(const [id,c,o] of [[invoice,customer,object],[invoice2,customer,object],[foreignInvoice,otherCustomer,otherObject]]){
    const order=randomUUID(),task=randomUUID();
-   await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,created_by,planned_start_at,planned_end_at,projected_start_at,projected_end_at)values($1,$2,$3,$4,$1::uuid::text,'Onderhoud','invoice_ready',$5,now(),now()+interval '1 hour',now(),now()+interval '1 hour')",[order,tenant,c,o,manager]);
+   await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,status,report_state,created_by,planned_start_at,planned_end_at,projected_start_at,projected_end_at)values($1,$2,$3,$4,$1::uuid::text,'Onderhoud','invoice_ready','approved',$5,now(),now()+interval '1 hour',now(),now()+interval '1 hour')",[order,tenant,c,o,manager]);
    await db.query("insert into public.work_order_tasks(id,tenant_id,work_order_id,task_code,task_name,duration_minutes,quantity,unit,unit_price_cents,vat_basis_points,completed_at,executed_quantity,execution_state)values($1,$2,$3,'FICTITIOUS','FICTITIOUS service',15,1,'stuk',10000,0,now(),1,'completed')",[task,tenant,order]);
    await db.query("insert into public.invoices(id,tenant_id,customer_id,created_by,status,invoice_number,issued_on,due_on,subtotal_cents,total_cents)values($1,$2,$3,$4,'draft',$1::uuid::text,current_date,current_date+30,10000,10000)",[id,tenant,c,manager]);
    await db.query("insert into public.invoice_lines(tenant_id,invoice_id,work_order_id,work_order_task_id,description,quantity,unit,unit_price_cents,subtotal_cents,vat_basis_points,vat_cents,total_cents)values($1,$2,$3,$4,'FICTITIOUS service',1,'stuk',10000,10000,0,0,10000)",[tenant,id,order,task]);
@@ -74,7 +74,7 @@ test('customer checkout preserves exact account, merchant, remaining cents and b
    await db.query("insert into public.invoice_groups(id,tenant_id,customer_id,purpose,expires_at)values($1,$2,$3,'payment_bundle',now()+interval '1 day')",[group,tenant,customer]);
    await db.query('insert into public.invoice_group_items(tenant_id,invoice_group_id,invoice_id)values($1,$2,$3)',[tenant,group,invoice]);
    await db.query("insert into public.external_action_tokens(tenant_id,purpose,subject_id,token_hash,expires_at)values($1,'payment',$2,$3,now()+interval '1 day')",[tenant,group,hash]);
-   await assert.rejects(call('select public.prepare_provider_payment($1,$2)',[hash,'test'],alice,'service_role'),e=>e.code==='23514');
+   await assert.rejects(call('select public.prepare_provider_payment($1,$2,$3)',[hash,'test','pfl_Fictional'],alice,'service_role'),e=>e.code==='23514');
   });
   await t.test('verified settlement is idempotent and old terminal attempts remain immutable history',async()=>{
    const row=(await db.query('select * from public.payment_attempts where id=$1',[attempt])).rows[0];

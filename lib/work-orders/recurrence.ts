@@ -3,7 +3,7 @@ import { localToInstant, validDay } from "../planning/time";
 
 export const recurrenceSchema = z.object({
   startsOn: z.iso.date(), endsOn: z.iso.date().or(z.literal("")).default(""),
-  frequency: z.enum(["daily", "weekly", "monthly"]),
+  frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
   interval: z.number().int().min(1).max(52).default(1),
   weekdays: z.array(z.number().int().min(1).max(7)).min(1).max(7).default([1]),
   monthlyMode: z.enum(["date", "weekday"]).default("date"),
@@ -13,8 +13,7 @@ export const recurrenceSchema = z.object({
   startsAt: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   endsAt: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   requiredPersonnel: z.number().int().min(1).max(100).default(1),
-}).refine(v => !v.endsOn || v.endsOn >= v.startsOn, { message: "Einddatum ligt vóór de startdatum", path: ["endsOn"] })
-  .refine(v => v.endsAt > v.startsAt, { message: "Eindtijd moet na begintijd liggen", path: ["endsAt"] });
+}).refine(v => !v.endsOn || v.endsOn >= v.startsOn, { message: "Einddatum ligt vóór de startdatum", path: ["endsOn"] });
 
 export type Recurrence = z.infer<typeof recurrenceSchema>;
 const dayMs = 86_400_000;
@@ -30,6 +29,10 @@ export function matchesRecurrence(rule: Recurrence, day: string) {
   if (rule.frequency === "weekly") {
     const weeks = Math.floor((distance + weekday(anchor) - 1) / 7);
     return weeks % rule.interval === 0 && rule.weekdays.includes(weekday(current));
+  }
+  if (rule.frequency === "yearly") {
+    const years = current.getUTCFullYear() - anchor.getUTCFullYear();
+    return years % rule.interval === 0 && current.getUTCMonth() === anchor.getUTCMonth() && current.getUTCDate() === anchor.getUTCDate();
   }
   const months = (current.getUTCFullYear() - anchor.getUTCFullYear()) * 12 + current.getUTCMonth() - anchor.getUTCMonth();
   if (months % rule.interval !== 0) return false;
@@ -48,7 +51,8 @@ export function recurrencePreview(input: Recurrence, from: string, timezone: str
     .map(day => {
       try {
         // PostgreSQL AT TIME ZONE also selects the later occurrence during the autumn fold.
-        return { day, start: localToInstant(`${day}T${rule.startsAt}`, timezone, "later"), end: localToInstant(`${day}T${rule.endsAt}`, timezone, "later"), skipped: false };
+        const endDate = rule.endsAt <= rule.startsAt ? new Date(utcDay(day).getTime() + dayMs).toISOString().slice(0, 10) : day;
+        return { day, start: localToInstant(`${day}T${rule.startsAt}`, timezone, "later"), end: localToInstant(`${endDate}T${rule.endsAt}`, timezone, "later"), skipped: false };
       } catch {
         return { day, start: null, end: null, skipped: true };
       }

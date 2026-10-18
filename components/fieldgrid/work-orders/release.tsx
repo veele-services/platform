@@ -20,14 +20,15 @@ export function WorkOrderReleaseDialog({ order, tenant, onClose, onSaved }: {
   order: { id: string; number: string; version: number };
   tenant: TenantContext; onClose: () => void; onSaved: () => void;
 }) {
-  const [error, setError] = useState(""), [pending, start] = useTransition();
+  const [error, setError] = useState(""), [coverageReason,setCoverageReason]=useState(""), [pending, start] = useTransition();
   const mutation = useRef(crypto.randomUUID());
+  const canOverrideCoverage=tenant.roles.some(role=>["tenant_admin","management"].includes(role));
   return <WorkOrderDialog title="Werkbon vrijgeven" eyebrow="UITVOERING" size="compact" description={order.number} tenant={tenant} busy={pending} onClose={onClose}>
-    <div className="wo-dialog-body"><p>Geef de opgeslagen planning vrij voor alle ingeplande medewerkers. Zij krijgen toegang tot deze werkbon in de personeelsapp.</p><p>Controleer vóór vrijgave de taken, datum en bezetting. Niet-opgeslagen wijzigingen worden niet meegenomen.</p>{error && <p className="wo-error" role="alert">{error}</p>}</div>
+    <div className="wo-dialog-body"><p>Geef de opgeslagen planning vrij voor alle ingeplande medewerkers. Zij krijgen toegang tot deze werkbon in de personeelsapp.</p><p>Controleer vóór vrijgave de taken, datum en bezetting. Niet-opgeslagen wijzigingen worden niet meegenomen.</p>{canOverrideCoverage&&<label>Reden afwijkende bezetting <span>(alleen invullen bij bewuste onderbezetting)</span><textarea value={coverageReason} maxLength={1000} onChange={event=>setCoverageReason(event.target.value)} placeholder="Waarom mag deze werkbon onderbezet worden vrijgegeven?"/></label>}{error && <p className="wo-error" role="alert">{error}</p>}</div>
     <footer className="wizard-footer"><button className="secondary-button" disabled={pending} onClick={onClose}>Annuleren</button><button className="primary-button" disabled={pending} onClick={() => start(async () => {
       setError("");
       try {
-        const result = await mutateWorkOrder({ orderId: order.id, version: order.version, mutationId: mutation.current, action: "publish" });
+        const result = await mutateWorkOrder({ orderId: order.id, version: order.version, mutationId: mutation.current, action: "publish",coverageOverrideReason:coverageReason.trim()||undefined });
         if (!result.ok) { setError(result.error); return; }
         toast.success("Werkbon vrijgegeven"); onSaved();
       } catch { setError("Vrijgave is niet bevestigd. Controleer de actuele status of probeer hetzelfde verzoek opnieuw."); }

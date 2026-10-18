@@ -148,6 +148,15 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
         ],
       );
     await admin.query(
+      "insert into public.availability(tenant_id,personnel_id,starts_at,ends_at,kind,approved_at) select $1,p,$2::timestamptz,$3::timestamptz,'available',now() from unnest($4::uuid[]) p",
+      [tenant, `${day}T00:00:00Z`, `${day}T23:59:59Z`, people],
+    );
+    const knownWeek = {
+      week: Object.fromEntries(["monday","tuesday","wednesday","thursday","friday","saturday","sunday"].map(key=>[key,{enabled:true,start:"00:00",end:"23:59"}])),
+      shifts:["day","evening","night"],planningNote:"",weekends:true,holidays:true,
+    };
+    await admin.query("update public.personnel set availability_preferences=$2 where tenant_id=$1 and id=any($3::uuid[])",[tenant,knownWeek,people]);
+    await admin.query(
       "insert into public.personnel(id,tenant_id,full_name) values($1,$2,'Andere organisatie')",
       [otherPerson, otherTenant],
     );
@@ -713,6 +722,57 @@ test("planboard: real PostgreSQL authorization, transactions, races and integrat
           1,
         );
         await assert.rejects(mutate(await proposal(id)), sqlCode("23514"));
+      },
+    );
+    await t.test(
+      "shared fit treats missing schedules as unknown, audits a one-off override and lets hard absence win",
+      async () => {
+        const person = people[2], id = await order();
+        await admin.query("delete from public.availability where tenant_id=$1 and personnel_id=$2", [tenant, person]);
+        await admin.query("update public.personnel set availability_preferences='{}' where tenant_id=$1 and id=$2", [tenant, person]);
+        const candidates = (await call("select public.planning_candidates($1,$2,$3,$4) result", [tenant,id,start,end]))[0].result;
+        const unknown = candidates.find(candidate => candidate.personnelId === person);
+        assert.equal(unknown.fit.eligible, true);assert.equal(unknown.fit.availabilityState, "unknown");
+        let p = await proposal(id, [person]);
+        let result = await mutate(p);assert.equal(result.code, "confirmation");
+        p = {...p,warnings:result.warnings.map(warning=>warning.key)};
+        result = await mutate(p);assert.equal(result.code, "confirmation");assert.ok(result.warnings.some(warning=>warning.key===`reason:${person}`));
+        p = {...p,assignments:p.assignments.map(assignment=>({...assignment,overrideReason:"Eenmalig telefonisch bevestigd door planning"}))};
+        result = await mutate(p);assert.equal(result.ok,true);
+        assert.equal((await admin.query("select count(*)::int n from public.audit_events where tenant_id=$1 and entity_id=$2 and action='planning.availability_override'",[tenant,id])).rows[0].n,1);
+        await admin.query("insert into public.work_order_tasks(tenant_id,work_order_id,task_code,task_name,duration_minutes,quantity,unit,unit_price_cents,vat_basis_points) values($1,$2,'UNKNOWN','Onbekende beschikbaarheid controleren',60,1,'taak',0,0)",[tenant,id]);
+        const publishUnknown=async()=>call("select public.mutate_work_order($1,$2::jsonb) result",[tenant,JSON.stringify({orderId:id,version:await version(id),mutationId:randomUUID(),action:"publish"})]);
+        await admin.query("update public.work_order_assignments set availability_override_reason=null where tenant_id=$1 and work_order_id=$2",[tenant,id]);
+        await assert.rejects(publishUnknown(),sqlCode("23514"));
+        await admin.query("update public.work_order_assignments set availability_override_reason='Eenmalig telefonisch bevestigd door planning' where tenant_id=$1 and work_order_id=$2",[tenant,id]);
+        assert.equal((await publishUnknown())[0].result.ok,true);
+
+        const hardOrder=await order(),hardStart=`${day}T12:00:00Z`,hardEnd=`${day}T13:00:00Z`;
+        await admin.query("insert into public.availability(tenant_id,personnel_id,starts_at,ends_at,kind,approved_at) values($1,$2,$3,$4,'available',now()),($1,$2,$3,$4,'unavailable',now())",[tenant,person,hardStart,hardEnd]);
+        const hardCandidates=(await call("select public.planning_candidates($1,$2,$3,$4) result",[tenant,hardOrder,hardStart,hardEnd]))[0].result;
+        const blocked=hardCandidates.find(candidate=>candidate.personnelId===person);assert.equal(blocked.fit.eligible,false);assert.ok(blocked.fit.hardBlocks.includes("hard-absence"));
+        await assert.rejects(mutate(await proposal(hardOrder,[person],hardStart,hardEnd)),sqlCode("23P01"));
+      },
+    );
+    await t.test(
+      "capacity reports time coverage instead of counting two half shifts as two full people",
+      async () => {
+        const id=await order({required:2}),windowStart=`${day}T14:00:00Z`,windowEnd=`${day}T16:00:00Z`;
+        const p=await proposal(id,[],windowStart,windowEnd);
+        p.assignments=[
+          {personnelId:people[0],start:windowStart,end:`${day}T15:00:00Z`},
+          {personnelId:people[1],start:`${day}T15:00:00Z`,end:windowEnd},
+        ];
+        const result=await mutate(p);assert.equal(result.ok,true);
+        const capacity=(await call("select public.planning_capacity($1,$2,$3,$4,$5) result",[tenant,windowStart,windowEnd,"",null]))[0].result;
+        const row=capacity.rows.find(item=>item.id===id);assert.equal(row.requiredMinutes,240);assert.equal(row.scheduledMinutes,120);assert.equal(row.missingMinutes,120);assert.equal(row.state,"attention");
+        await admin.query("insert into public.work_order_tasks(tenant_id,work_order_id,task_code,task_name,duration_minutes,quantity,unit,unit_price_cents,vat_basis_points) values($1,$2,'COVER','Dekkingscontrole',120,1,'taak',0,0)",[tenant,id]);
+        const publish=async(input)=>call("select public.mutate_work_order($1,$2::jsonb) result",[tenant,JSON.stringify(input)]);
+        await assert.rejects(publish({orderId:id,version:await version(id),mutationId:randomUUID(),action:"publish"}),sqlCode("23514"));
+        await admin.query("update public.tenant_memberships set roles=array['planner','management']::public.app_role[] where tenant_id=$1 and user_id=$2",[tenant,user]);
+        const released=(await publish({orderId:id,version:await version(id),mutationId:randomUUID(),action:"publish",coverageOverrideReason:"Bevestigde tijdelijke onderbezetting met extra opvolging"}))[0].result;
+        assert.equal(released.ok,true);assert.equal((await admin.query("select count(*)::int n from public.audit_events where tenant_id=$1 and entity_id=$2 and action='work_order.coverage_override'",[tenant,id])).rows[0].n,1);
+        await admin.query("update public.tenant_memberships set roles=array['planner']::public.app_role[] where tenant_id=$1 and user_id=$2",[tenant,user]);
       },
     );
     await t.test(
