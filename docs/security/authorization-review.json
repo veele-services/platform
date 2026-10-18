@@ -7607,14 +7607,12 @@
     },
     {
       "id": "operation:lib/travel/provider-smoke.ts",
-      "surfaceFingerprint": "49d62fff3200c2fe7667b4d797e8c283c6547867c44f3e129fed8272216047da",
-      "status": "controlled",
+      "surfaceFingerprint": "2f2f10fa2e5d06e8043838015901c89e5cd8b3e2c4f4564121c25768eb69abff",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/production-release-boundaries-2026-10-07.md",
-        "lib/operations/production-deployment.test.ts",
-        "lib/env/production-database.test.ts",
-        "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "docs/security/routing-preflight-resilience-2026-10-18.md",
+        "lib/travel/provider-smoke.test.ts",
+        "docs/security/production-release-boundaries-2026-10-07.md"
       ]
     },
     {
