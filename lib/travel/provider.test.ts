@@ -18,7 +18,13 @@ vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({ rpc: mock.rpc }),
 }));
 vi.mock("@/lib/env/server", () => ({ getServerEnv: () => mock.env }));
-import { parseMatrix, routeKey, routesFor, type CachedRoute } from "./provider";
+import {
+  parseDirectionsSummary,
+  parseMatrix,
+  routeKey,
+  routesFor,
+  type CachedRoute,
+} from "./provider";
 const leg = {
   origin: [4.3, 52.1],
   destination: [4.4, 52.2],
@@ -90,6 +96,45 @@ it("asks a minimal one-to-many matrix, deduplicates and reuses a fresh result", 
   await routesFor([leg, second]);
   expect(fetcher).toHaveBeenCalledOnce();
 });
+it("uses a directions summary and directions quota for each walking leg", async () => {
+  const fetcher = vi.fn().mockImplementation(async () =>
+    Response.json({
+      routes: [{ summary: { duration: 540, distance: 750 } }],
+    }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const walking = { ...leg, profile: "foot-walking" } as Segment;
+  const secondWalking = {
+    ...walking,
+    destination: [4.5, 52.3] as [number, number],
+  };
+  await routesFor([walking, secondWalking]);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher.mock.calls[0][0]).toBe(
+    "https://api.heigit.org/openrouteservice/v2/directions/foot-walking",
+  );
+  expect(JSON.parse(fetcher.mock.calls[0][1].body)).toMatchObject({
+    coordinates: [walking.origin, walking.destination],
+    instructions: false,
+    geometry: false,
+  });
+  expect(mock.rpc).toHaveBeenCalledWith(
+    "route_cache_claim",
+    expect.objectContaining({
+      request_kind: "directions",
+      minute_limit: 35,
+      day_limit: 1900,
+    }),
+  );
+  expect(cache.get(routeKey(walking))?.result).toEqual({
+    seconds: 540,
+    metres: 750,
+  });
+  expect(cache.get(routeKey(secondWalking))?.result).toEqual({
+    seconds: 540,
+    metres: 750,
+  });
+});
 it.each([429, 500, 404])(
   "HTTP %s never yields a fictitious zero",
   async (status) => {
@@ -118,6 +163,18 @@ it("null matrix entry means no route; malformed values fail instead of defaultin
   expect(parseMatrix({ durations: [[0]], distances: [[0]] }, 1)).toEqual([
     { seconds: 0, metres: 0 },
   ]);
+});
+it("validates a geometry-free directions summary without inventing values", () => {
+  expect(
+    parseDirectionsSummary({
+      routes: [{ summary: { duration: 540, distance: 750 } }],
+    }),
+  ).toEqual({ seconds: 540, metres: 750 });
+  expect(() =>
+    parseDirectionsSummary({
+      routes: [{ summary: { duration: "540", distance: 750 } }],
+    }),
+  ).toThrow("provider_unavailable");
 });
 it("missing configuration sends no provider request", async () => {
   mock.env.OPENROUTESERVICE_API_KEY = "";

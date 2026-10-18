@@ -68,6 +68,21 @@ export function parseMatrix(
     return { seconds, metres };
   });
 }
+export function parseDirectionsSummary(body: unknown): RouteValue {
+  const summary = (body as {
+    routes?: Array<{ summary?: { duration?: unknown; distance?: unknown } }>;
+  }).routes?.[0]?.summary;
+  if (
+    typeof summary?.duration !== "number" ||
+    !Number.isFinite(summary.duration) ||
+    summary.duration < 0 ||
+    typeof summary.distance !== "number" ||
+    !Number.isFinite(summary.distance) ||
+    summary.distance < 0
+  )
+    throw new Error("provider_unavailable");
+  return { seconds: summary.duration, metres: summary.distance };
+}
 export async function routesFor(
   segments: Segment[],
   geometry = false,
@@ -101,7 +116,13 @@ export async function routesFor(
     )
       continue;
     // A one-to-many matrix asks only for required legs sharing an origin.
-    const group = geometry ? key : JSON.stringify([s.profile, s.origin]);
+    // The hosted ORS Matrix service has recurring profile-specific outages for
+    // foot-walking. A directions summary is the same provider result for one
+    // leg and is tracked against the separate directions budget.
+    const group =
+      geometry || s.profile === "foot-walking"
+        ? key
+        : JSON.stringify([s.profile, s.origin]);
     groups.set(group, [...(groups.get(group) || []), [key, s]]);
   }
   const batches = [...groups.values()].flatMap((g) =>
@@ -116,13 +137,18 @@ export async function routesFor(
     const claim = await db.rpc("route_cache_claim", {
       keys: batch.map(([key]) => key),
       provider_name: "openrouteservice",
-      request_kind: geometry ? "directions" : "matrix",
-      minute_limit: geometry
-        ? env.ROUTING_DIRECTIONS_MINUTE_LIMIT
-        : env.ROUTING_MATRIX_MINUTE_LIMIT,
-      day_limit: geometry
-        ? env.ROUTING_DIRECTIONS_DAY_LIMIT
-        : env.ROUTING_MATRIX_DAY_LIMIT,
+      request_kind:
+        geometry || batch[0][1].profile === "foot-walking"
+          ? "directions"
+          : "matrix",
+      minute_limit:
+        geometry || batch[0][1].profile === "foot-walking"
+          ? env.ROUTING_DIRECTIONS_MINUTE_LIMIT
+          : env.ROUTING_MATRIX_MINUTE_LIMIT,
+      day_limit:
+        geometry || batch[0][1].profile === "foot-walking"
+          ? env.ROUTING_DIRECTIONS_DAY_LIMIT
+          : env.ROUTING_MATRIX_DAY_LIMIT,
       lease_id: lease,
     });
     if (claim.error) throw new Error("Routecache tijdelijk niet beschikbaar.");
@@ -137,23 +163,35 @@ export async function routesFor(
     const claimed = batch.filter(([key]) => outcome.claimed.includes(key));
     if (!claimed.length) continue;
     const first = claimed[0][1];
+    const directionsSummary =
+      !geometry && first.profile === "foot-walking";
+    const requestKind = geometry || directionsSummary ? "directions" : "matrix";
     let values: (RouteValue | null)[] = [],
       failure: string | null = null;
     try {
-      const url = `${env.OPENROUTESERVICE_BASE_URL.replace(/\/$/, "")}/${geometry ? "directions" : "matrix"}/${first.profile}${geometry ? "/geojson" : ""}`;
+      const url = `${env.OPENROUTESERVICE_BASE_URL.replace(/\/$/, "")}/${requestKind}/${first.profile}${geometry ? "/geojson" : ""}`;
       const body = geometry
         ? {
             coordinates: [first.origin, first.destination],
             instructions: false,
           }
-        : {
-            locations: [first.origin, ...claimed.map(([, s]) => s.destination)],
-            sources: ["0"],
-            destinations: claimed.map((_, i) => String(i + 1)),
-            metrics: ["duration", "distance"],
-            units: "m",
-            resolve_locations: false,
-          };
+        : directionsSummary
+          ? {
+              coordinates: [first.origin, first.destination],
+              instructions: false,
+              geometry: false,
+            }
+          : {
+              locations: [
+                first.origin,
+                ...claimed.map(([, s]) => s.destination),
+              ],
+              sources: ["0"],
+              destinations: claimed.map((_, i) => String(i + 1)),
+              metrics: ["duration", "distance"],
+              units: "m",
+              resolve_locations: false,
+            };
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -174,7 +212,8 @@ export async function routesFor(
               : "provider_unavailable",
         );
       const data = await response.json();
-      if (!geometry) values = parseMatrix(data, claimed.length);
+      if (directionsSummary) values = [parseDirectionsSummary(data)];
+      else if (!geometry) values = parseMatrix(data, claimed.length);
       else {
         const f = data.features?.[0],
           summary = f?.properties?.summary;

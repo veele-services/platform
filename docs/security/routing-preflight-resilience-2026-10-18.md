@@ -17,6 +17,14 @@ ten onrechte als timeout laten eindigen. Providerheaders, antwoordlichamen,
 sleutelwaarden en tenantgegevens worden niet gelogd. De wijziging voegt geen
 nieuwe route, databasebron, rol, grant of browsertoegang toe.
 
+De referentielocaties sloten stationsnapping uit, maar `foot-walking` bleef als
+enige Matrix-profiel tweemaal exact op de twintigsecondenlimiet hangen. HeiGIT
+registreerde op 13 oktober 2026 zelf een `Foot Walking`-storing; hun historische
+supportmeldingen beschrijven hetzelfde profielgebonden Matrix-patroon. Runtime en
+preflight gebruiken daarom voor dit ene profiel de geometry-vrije Directions-
+samenvatting. Die aanvraag gebruikt het bestaande afzonderlijke Directions-budget.
+De overige drie profielen blijven via Matrix lopen.
+
 ## Fail-closed gedrag
 
 Een netwerkfout of timeout krijgt maximaal één extra poging op een tweede vast
@@ -32,11 +40,16 @@ accepteren.
 
 - `lib/travel/provider-smoke.test.ts` controleert alle vier profielen, de
   canonieke omgevingsgrenzen, geheimhouding van providerfouten, twee mislukte
-  netwerkpogingen, de wissel naar het tweede openbare traject en herstel na
-  precies één tijdelijke netwerkfout.
-- `pnpm exec vitest run lib/travel/provider-smoke.test.ts`: 9 tests geslaagd.
-- `pnpm exec eslint lib/travel/provider-smoke.ts lib/travel/provider-smoke.test.ts`:
-  geslaagd.
+  netwerkpogingen, de wissel naar het tweede openbare traject, de Directions-
+  samenvatting voor lopen en herstel na precies één tijdelijke netwerkfout.
+- `lib/travel/provider.test.ts` controleert dat looptrajecten afzonderlijk via
+  Directions lopen, het Directions-budget claimen en nooit fictieve waarden
+  krijgen bij een ongeldig antwoord.
+- `pnpm exec vitest run lib/travel/provider.test.ts lib/travel/provider-smoke.test.ts`:
+  19 tests geslaagd.
+- `pnpm test`: 2.005 tests geslaagd.
+- `pnpm lint`: geslaagd zonder fouten; bestaande marketingwaarschuwingen blijven
+  zichtbaar.
 - `pnpm typecheck`: geslaagd.
 - De mislukte stagingruns stopten vóór backup, migratie, handoff en
   activatie; er is geen gedeeltelijke stagingmutatie ontstaan.

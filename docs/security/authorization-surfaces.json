@@ -4183,6 +4183,7 @@
     {
       "id": "code:lib/travel/provider.ts",
       "exports": [
+        "parseDirectionsSummary",
         "parseMatrix",
         "routeKey",
         "routesFor"
@@ -4196,7 +4197,7 @@
         "rpc:route_cache_finish",
         "rpc:route_cache_read"
       ],
-      "source_sha256": "d85db47c0161a19789ef0910df5d9818b594fd4a3e5b5e732010a9a02496fcd9"
+      "source_sha256": "41629d355f848f42e226e7194a8a829da6307ad19fc30d5f87c8c03bdbdd41b3"
     },
     {
       "id": "code:lib/travel/service.ts",
@@ -8878,7 +8879,7 @@
     {
       "id": "operation:lib/travel/provider-smoke.ts",
       "classification": "operation",
-      "source_sha256": "c9212ca394ffe2f332bf4ad9f401a20f986cb95d81182b0880caf8ab9ee84665"
+      "source_sha256": "e323331e6806465aa05b4a8878f0a53170e570fd9756bff74e2e839e165123a3"
     },
     {
       "id": "operation:next.config.ts",

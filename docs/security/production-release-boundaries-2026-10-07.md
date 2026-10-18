@@ -138,7 +138,9 @@ allowlist. All other application code keeps that check.
 
 `lib/travel/provider-smoke.ts` permits production only at its canonical APP_URL,
 uses published public Matrix-reference coordinates, no tenant data, HTTPS without embedded credentials,
-redirect refusal and sanitized output. Profile coverage includes a production case.
+redirect refusal and sanitized output. Driving and cycling validate Matrix;
+walking validates the same geometry-free Directions summary used by runtime.
+Profile coverage includes a production case.
 `scripts/check-security-surface.mjs` includes every new production operational
 file and explicitly tracks environment, worker, routing and scanner helpers.
 No authorization or database surface is removed; changed/new inventory entries
