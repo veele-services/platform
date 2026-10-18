@@ -91,7 +91,7 @@ export function CRMOverview({navigate}:{navigate:(path:string)=>void}){
           <div className="co-card-footer"><span>Eerst wat het langst wacht</span><button type="button" onClick={()=>open('tasks')}>Alle taken <ArrowRight size={15}/></button></div>
         </section>
       </div>
-      {demoCount>0&&<p className="co-data-note">{`Inclusief ${demoCount} herkenbaar gemarkeerde voorbeeldlead${demoCount===1?'':'s'}. Voorbeelden versturen geen e-mail.`}</p>}
+      <p className="co-data-note" aria-hidden={demoCount===0}>{demoCount>0?`Inclusief ${demoCount} herkenbaar gemarkeerde voorbeeldlead${demoCount===1?'':'s'}. Voorbeelden versturen geen e-mail.`:'\u00a0'}</p>
     </>:null}
   </section>;
 }

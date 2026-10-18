@@ -58,9 +58,10 @@ test("platform backoffice beheert tenants, huisstijl en berichttemplates profess
   // the visual baseline contains the loading panel, empty cards or real rows.
   await expect(page.locator(".crm-overview .co-card-grid")).toBeVisible();
   await expect(page.locator(".crm-overview .co-loading")).toHaveCount(0);
-  // Immutable synthetic SQL fixtures retain random IDs and server timestamps.
-  // Mask only those data labels; source frames, headings and actions stay visible.
-  const overviewMasks=[page.locator(".fg-metric strong,.co-pipeline-total strong,.co-stages b,.co-card-intro strong,.co-card-footer>span,.crm-overview .co-list,.fg-cockpit-facts dd,.fg-tenant-list button")];
+  // Immutable synthetic SQL fixtures retain random IDs, server timestamps and
+  // different row counts. Their reserved regions stay stable while headings,
+  // actions and the surrounding layout remain visible to the visual check.
+  const overviewMasks=[page.locator(".fg-metric strong,.co-pipeline-total strong,.co-stages b,.co-card-intro strong,.co-card-footer>span,.crm-overview .co-list,.crm-overview .co-data-note,.fg-cockpit-facts dd,.fg-tenant-list button")];
   await expect(page).toHaveScreenshot("platform-overview-1440.png", { fullPage: true,mask:overviewMasks });
   await page.setViewportSize({ width: 390, height: 844 });
   await expectNoHorizontalOverflow(page);
