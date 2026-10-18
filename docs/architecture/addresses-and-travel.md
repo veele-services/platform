@@ -145,10 +145,14 @@ referentie. De drie voertuig-/fietsprofielen gebruiken Matrix; `foot-walking`
 gebruikt dezelfde geometry-vrije Directions-samenvatting als runtime. Bij een
 tijdelijke netwerkfout volgt één poging met een tweede gepubliceerd
 referentietraject. Deze controle schrijft geen tenantdata en logt geen sleutel,
-coördinaten of providerantwoord. Een fout blokkeert activatie;
-`ROUTING_PROVIDER=disabled` is de expliciete handmatige modus. Reserveer naast
-runtimeverbruik drie Matrix-aanvragen en één Directions-aanvraag per deployment,
-plus maximaal één herhaling per profiel bij een tijdelijke netwerkfout.
+coördinaten of providerantwoord. Een fout in de providerconfiguratie of een van
+de drie vereiste Matrix-profielen blokkeert activatie. Een geïsoleerde storing
+van het optionele `foot-walking`-profiel wordt na twee begrensde pogingen als
+degradatie gelogd; runtime geeft daarvoor veilig `provider_unavailable` terug en
+handmatige reistijd blijft beschikbaar. `ROUTING_PROVIDER=disabled` is de
+expliciete handmatige modus. Reserveer naast runtimeverbruik drie Matrix-
+aanvragen en één Directions-aanvraag per deployment, plus maximaal één
+herhaling per profiel bij een tijdelijke netwerkfout.
 
 ## Verificatie en acceptatie
 

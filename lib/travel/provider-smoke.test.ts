@@ -15,7 +15,9 @@ describe("credential-safe live deployment routing check", () => {
   it("checks all four supported profiles, sending only public coordinates in longitude/latitude order", async () => {
     const fetcher = vi.fn<typeof fetch>(async (url) => successfulResponse(url));
     const log = vi.fn();
-    await checkRoutingProvider(env, fetcher, log);
+    await expect(checkRoutingProvider(env, fetcher, log)).resolves.toEqual({
+      degradedProfiles: [],
+    });
     expect(
       fetcher.mock.calls.map(([url]) => String(url).split("/").at(-1)),
     ).toEqual([
@@ -138,6 +140,34 @@ describe("credential-safe live deployment routing check", () => {
     );
     expect(log).toHaveBeenCalledWith(
       "Basisrouting foot-walking: beschikbaar.",
+    );
+  });
+  it("records an isolated walking outage without weakening required profile checks", async () => {
+    const fetcher = vi.fn<typeof fetch>(async (url) => {
+      if (String(url).includes("/directions/foot-walking"))
+        throw new Error(env.OPENROUTESERVICE_API_KEY);
+      return successfulResponse(url);
+    });
+    const log = vi.fn();
+    await expect(checkRoutingProvider(env, fetcher, log)).resolves.toEqual({
+      degradedProfiles: ["foot-walking"],
+    });
+    expect(fetcher).toHaveBeenCalledTimes(5);
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining("Routingdegradatie foot-walking"),
+    );
+    expect(JSON.stringify(log.mock.calls)).not.toContain(
+      env.OPENROUTESERVICE_API_KEY,
+    );
+  });
+  it("still blocks when a required profile is unavailable", async () => {
+    const fetcher = vi.fn<typeof fetch>(async (url) => {
+      if (String(url).includes("/matrix/cycling-regular"))
+        throw new Error("temporary outage");
+      return successfulResponse(url);
+    });
+    await expect(checkRoutingProvider(env, fetcher, vi.fn())).rejects.toThrow(
+      "cycling-regular: provider niet bereikbaar",
     );
   });
 });

@@ -605,6 +605,17 @@ estimates are explicitly unknown and manual estimates remain usable. Optional
 routing variables and conservative rate limits are listed in that contract.
 Google Routes remains disabled; its key is never a fallback.
 
+De deploymentpreflight behandelt de drie Matrix-profielen voor auto en fiets als
+vereiste kernprofielen. Een ontbrekende sleutel, onbereikbare provider, ongeldige
+providerrespons of fout in een kernprofiel blokkeert de release vóór backup en
+migraties. `foot-walking` is een optioneel, afzonderlijk Directions-profiel:
+wanneer alleen dit profiel na twee begrensde pogingen niet beschikbaar is, legt
+de preflight de degradatie expliciet vast en mag de release doorgaan. Runtime
+blijft dan veilig `provider_unavailable` teruggeven; handmatige reistijd blijft
+beschikbaar en er wordt nooit een fictieve waarde gebruikt. Dit voorkomt dat
+een door de provider bevestigde profielstoring ongerelateerde releases blokkeert
+zonder de kernprovidercontrole of fail-closed datavalidatie te verzwakken.
+
 ## Private ticket-file scanning addition (2026-09-30)
 
 Tickets reuse the existing web runtime, private Supabase Storage and outbox
