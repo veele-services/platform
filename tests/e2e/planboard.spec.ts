@@ -181,10 +181,11 @@ test("capaciteit opent als compacte dag- en weekanalyse zonder het planbord te v
 
 test("eerste uitleg houdt een planbord met veel medewerkers en de bonnenlijst bereikbaar", async ({ page }) => {
   const extraPeople = Array.from({ length: 12 }, () => randomUUID());
+  const employeeNumberRun = randomUUID().slice(0, 8);
   try {
     for (const [index, id] of extraPeople.entries()) await db.query(
       "insert into public.personnel(id,tenant_id,full_name,employee_number) values($1,$2,$3,$4)",
-      [id, tenant, `Extra Medewerker ${index + 1}`, `E2E-MANY-${index}`],
+      [id, tenant, `Extra Medewerker ${index + 1}`, `E2E-MANY-${employeeNumberRun}-${index}`],
     );
     await page.setViewportSize({ width: 1440, height: 900 });
     await authenticateWorkspace(page, "platform-admin@fieldgrid.test", `/app/planning?day=${day}`);
@@ -202,7 +203,18 @@ test("eerste uitleg houdt een planbord met veel medewerkers en de bonnenlijst be
       await expect(list).toBeInViewport();
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     }
-  } finally { await db.query("delete from public.personnel where id=any($1::uuid[])", [extraPeople]); }
+  } finally {
+    await page.close();
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        await db.query("delete from public.personnel where id=any($1::uuid[])", [extraPeople]);
+        break;
+      } catch (error) {
+        if ((error as { code?: string }).code !== "40P01" || attempt === 3) throw error;
+        await new Promise(resolve => setTimeout(resolve, attempt * 100));
+      }
+    }
+  }
 });
 
 test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bonacties", async ({

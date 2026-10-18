@@ -7607,7 +7607,7 @@
     },
     {
       "id": "operation:lib/travel/provider-smoke.ts",
-      "surfaceFingerprint": "2f2f10fa2e5d06e8043838015901c89e5cd8b3e2c4f4564121c25768eb69abff",
+      "surfaceFingerprint": "7949eb59ee12f82a97d733755046c9a3d7edae7c2698904af35fd15a02c78392",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/routing-preflight-resilience-2026-10-18.md",
