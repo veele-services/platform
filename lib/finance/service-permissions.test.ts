@@ -1,9 +1,9 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const mocks=vi.hoisted(()=>({auth:vi.fn(),from:vi.fn(),admin:vi.fn(),provider:vi.fn(),attachment:vi.fn(),update:vi.fn(),items:vi.fn(),token:vi.fn()}));
+const mocks=vi.hoisted(()=>({auth:vi.fn(),from:vi.fn(),rpc:vi.fn(),admin:vi.fn(),provider:vi.fn(),attachment:vi.fn(),update:vi.fn(),items:vi.fn(),token:vi.fn()}));
 vi.mock("server-only",()=>({}));
 vi.mock("next/cache",()=>({revalidatePath:vi.fn()}));
 vi.mock("@/lib/auth/context",()=>({getAuthContext:mocks.auth,hasAnyRole:()=>true}));
-vi.mock("@/lib/supabase/server",()=>({createClient:async()=>({from:mocks.from})}));
+vi.mock("@/lib/supabase/server",()=>({createClient:async()=>({from:mocks.from,rpc:mocks.rpc})}));
 vi.mock("@/lib/supabase/admin",()=>({createAdminClient:mocks.admin}));
 vi.mock("@/lib/providers/sendgrid",()=>({sendEmail:mocks.provider,SendGridDeliveryError:class extends Error{}}));
 vi.mock("@/lib/env/server",()=>({getServerEnv:()=>({SENDGRID_API_KEY:"fake",SENDGRID_FROM_EMAIL:"sender@example.test"})}));
@@ -27,6 +27,7 @@ beforeEach(()=>{
    return query(null);
  });
  mocks.items.mockResolvedValue({error:null});mocks.token.mockResolvedValue({error:null});
+ mocks.rpc.mockResolvedValue({data:{token:"a".repeat(64)},error:null});
  mocks.update.mockReturnValue(query(null));
  mocks.admin.mockImplementation(()=>({from:(table:string)=>table==="external_action_tokens"?{insert:mocks.token}:{...query({id:"delivery",status:"failed",idempotency_key:"invoice-stable",render_snapshot:{delivery:frozen}}),update:mocks.update},rpc:()=>query({should_send:true,delivery_id:"delivery"})}));
  mocks.attachment.mockResolvedValue({filename:"invoice.pdf",bytes:new Uint8Array()});mocks.provider.mockResolvedValue({id:"sent"});
@@ -43,19 +44,16 @@ it("does not send when invoice rights change during attachment IO",async()=>{
  expect(mocks.attachment).toHaveBeenCalled();expect(mocks.provider).not.toHaveBeenCalled();
  expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({status:"failed"}));
 });
-it("does not issue a payment token after rights are revoked during group IO",async()=>{
- const original=mocks.from.getMockImplementation()!;
- mocks.from.mockImplementation((table:string)=>table==="invoices"?query([{id:invoiceId,customer_id:"customer",total_cents:10000,paid_cents:0,status:"final"}]):original(table));
- mocks.items.mockImplementation(async()=>{mocks.auth.mockResolvedValue(context(["backoffice.access","backoffice.finance.write"]));return{error:null};});
- const form=new FormData();form.set("invoiceIds",invoiceId);
- expect((await createPaymentBundle(form)).ok).toBe(false);
- expect(mocks.items).toHaveBeenCalled();expect(mocks.admin).not.toHaveBeenCalled();expect(mocks.token).not.toHaveBeenCalled();
+it("creates group, items and token through one atomic authorized command",async()=>{
+ const form=new FormData();form.set("invoiceIds",invoiceId);form.set("requestId","22222222-2222-4222-8222-222222222222");
+ expect(await createPaymentBundle(form)).toEqual({ok:true,paymentUrl:`https://tenant.example.test/pay/${"a".repeat(64)}`});
+ expect(mocks.rpc).toHaveBeenCalledWith("create_payment_bundle",expect.objectContaining({invoice_ids:[invoiceId]}));
+ expect(mocks.items).not.toHaveBeenCalled();expect(mocks.admin).not.toHaveBeenCalled();expect(mocks.token).not.toHaveBeenCalled();
 });
-it("does not issue a payment token if the initiating user changes",async()=>{
- const original=mocks.from.getMockImplementation()!;
- mocks.from.mockImplementation((table:string)=>table==="invoices"?query([{id:invoiceId,customer_id:"customer",total_cents:10000,paid_cents:0,status:"final"}]):original(table));
- mocks.items.mockImplementation(async()=>{mocks.auth.mockResolvedValue({...context(),user:{id:"other-user"}});return{error:null};});
- const form=new FormData();form.set("invoiceIds",invoiceId);
+it("does not issue a link when the atomic server command rejects current rights",async()=>{
+ mocks.rpc.mockResolvedValue({data:null,error:new Error("rights changed")});
+ const form=new FormData();form.set("invoiceIds",invoiceId);form.set("requestId","33333333-3333-4333-8333-333333333333");
  expect((await createPaymentBundle(form)).ok).toBe(false);
+ expect(mocks.rpc).toHaveBeenCalledOnce();
  expect(mocks.token).not.toHaveBeenCalled();
 });

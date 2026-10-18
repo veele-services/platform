@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const state=vi.hoisted(()=>({ rows:{} as Record<string,Record<string,unknown>[]>, reads:[] as string[], provider:vi.fn(), get:vi.fn(), logo:vi.fn(), rpc:vi.fn() }));
+const state=vi.hoisted(()=>({ rows:{} as Record<string,Record<string,unknown>[]>, reads:[] as string[], provider:vi.fn(), get:vi.fn(), logo:vi.fn(), rpc:vi.fn(), merchant:vi.fn() }));
 vi.mock("server-only",()=>({}));
 vi.mock("@/lib/supabase/admin",()=>({createAdminClient:()=>({rpc:state.rpc,from:(table:string)=>{
   state.reads.push(table);let rows=state.rows[table]??[];
@@ -10,6 +10,7 @@ vi.mock("@/lib/supabase/admin",()=>({createAdminClient:()=>({rpc:state.rpc,from:
   return q;
 }})}));
 vi.mock("@/lib/providers/mollie",()=>({createMolliePayment:state.provider,getMolliePayment:state.get}));
+vi.mock("@/lib/payments/merchant",()=>({requireTenantMerchant:state.merchant}));
 vi.mock("@/lib/env/server",()=>({getServerEnv:()=>({})}));
 vi.mock("@/lib/tenancy/request",()=>({requestMatchesTenant:async()=>true}));
 vi.mock("@/lib/tenancy/hostname",()=>({tenantAppUrl:(_slug:string,path:string)=>`https://tenant.staging.fieldgrid.nl${path}`}));
@@ -21,10 +22,10 @@ import PaymentPage from "@/app/(workspace)/pay/[token]/page";
 const token="fictitious-payment-capability-for-tests";
 const request=()=>new Request("https://tenant.staging.fieldgrid.nl/api/payments/create",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token})});
 const page=()=>PaymentPage({params:Promise.resolve({token}),searchParams:Promise.resolve({})});
-const providerPayment=()=>({id:"tr_fictional",mode:"test",status:"open",amount:{value:"121.00",currency:"EUR"},metadata:{tenant_id:"tenant",invoice_group_id:"group",payment_attempt_id:"attempt"},_links:{checkout:{href:"https://www.mollie.com/checkout/fictional"}}});
+const providerPayment=()=>({id:"tr_fictional",mode:"test",profileId:"pfl_Fictional",status:"open",amount:{value:"121.00",currency:"EUR"},metadata:{tenant_id:"tenant",invoice_group_id:"group",payment_attempt_id:"attempt"},_links:{checkout:{href:"https://www.mollie.com/checkout/fictional"}}});
 describe("payment capability consumers",()=>{
   beforeEach(()=>{
-    vi.stubGlobal("React",React);state.reads=[];state.provider.mockReset();state.get.mockReset().mockResolvedValue(providerPayment());state.logo.mockReset().mockResolvedValue(null);
+    vi.stubGlobal("React",React);state.reads=[];state.provider.mockReset();state.get.mockReset().mockResolvedValue(providerPayment());state.logo.mockReset().mockResolvedValue(null);state.merchant.mockReset().mockResolvedValue({mode:"test",profileId:"pfl_Fictional"});
     state.rpc.mockReset().mockImplementation(async(name:string)=>({
       data:name==="prepare_provider_payment"?state.rows.payment_attempts[0]
         :name==="claim_provider_payment_check"?{action:"provider"}
@@ -38,7 +39,7 @@ describe("payment capability consumers",()=>{
       tenant_settings:[{tenant_id:"tenant",enabled_services:["finance"]}],
       invoice_group_items:[{tenant_id:"tenant",invoice_group_id:"group",invoice_id:"invoice"}],
       invoices:[{id:"invoice",tenant_id:"tenant",customer_id:"customer",invoice_number:"FICTITIOUS-1",total_cents:12100,paid_cents:0,status:"final"}],
-      payment_attempts:[{id:"attempt",tenant_id:"tenant",invoice_group_id:"group",provider:"mollie",provider_mode:"test",provider_payment_id:"tr_fictional",amount_cents:12100,currency:"EUR",idempotency_key:"mollie-group-12100",checkout_url:"https://untrusted.example.invalid/checkout",status:"open"}],
+      payment_attempts:[{id:"attempt",tenant_id:"tenant",invoice_group_id:"group",provider:"mollie",provider_mode:"test",merchant_profile_id:"pfl_Fictional",provider_payment_id:"tr_fictional",amount_cents:12100,currency:"EUR",idempotency_key:"mollie-group-12100",checkout_url:"https://untrusted.example.invalid/checkout",status:"open"}],
       payment_allocations:[{tenant_id:"tenant",payment_attempt_id:"attempt",invoice_id:"invoice",amount_cents:12100}],
     };
   });
@@ -73,13 +74,19 @@ describe("payment capability consumers",()=>{
     expect((await POST(request())).status).toBe(404);await expect(page()).rejects.toThrow("not-found");
     expect(state.provider).not.toHaveBeenCalled();expect(state.get).not.toHaveBeenCalled();
   });
-  it.each([{provider:"manual"},{amount_cents:0},{invoice_group_id:"other"},{provider_mode:"live"}])("does not reuse a poisoned attempt %j",async change=>{
+  it.each([{provider:"manual"},{amount_cents:0},{invoice_group_id:"other"},{provider_mode:"live"},{merchant_profile_id:"pfl_Other"}])("does not reuse a poisoned attempt %j",async change=>{
     Object.assign(state.rows.payment_attempts[0],change);expect((await POST(request())).status).toBe(400);
     expect(state.get).not.toHaveBeenCalled();
   });
   it("does not call the provider after an allocation validation/transaction failure",async()=>{
     state.rpc.mockResolvedValue({data:null,error:{message:"Atomic payment preparation denied"}});
     expect((await POST(request())).status).toBe(400);expect(state.get).not.toHaveBeenCalled();
+  });
+  it("fails closed before payment preparation when the tenant merchant cannot be verified",async()=>{
+    state.merchant.mockRejectedValue(new Error("Betaalontvanger komt niet overeen"));
+    expect((await POST(request())).status).toBe(400);
+    expect(state.rpc).not.toHaveBeenCalledWith("prepare_provider_payment",expect.anything());
+    expect(state.get).not.toHaveBeenCalled();expect(state.provider).not.toHaveBeenCalled();
   });
   it.each(["https://mollie.com.untrusted.invalid/", "javascript:alert(1)", "https://evil.invalid/"])("rejects an unexpected provider checkout destination %s",async href=>{
     const result=providerPayment();result._links.checkout.href=href;state.get.mockResolvedValue(result);

@@ -33,6 +33,8 @@ export async function POST(request:Request){
   }
  }
  const livePlanning=await admin.rpc("process_live_planning");if(livePlanning.error)throw new Error("Actuele planning kon niet worden bijgewerkt.");
+ const qualificationFollowup=await admin.rpc("process_qualification_followup",{batch_size:50});if(qualificationFollowup.error)throw new Error("Kwalificatie-opvolging kon niet worden bijgewerkt.");
+ const contractPlanning=await admin.rpc("process_contract_planning",{batch_size:20});if(contractPlanning.error)throw new Error("Contractplanning kon niet worden bijgewerkt.");
  const dossier=await processDossierReminders();
  const objectReminders=await admin.rpc("process_object_reminders");if(objectReminders.error)throw new Error("Objectherinneringen konden niet worden verwerkt.");
  const customerReminders=await admin.rpc("process_customer_reminders");if(customerReminders.error)throw new Error("Klantherinneringen konden niet worden verwerkt.");
@@ -45,7 +47,7 @@ export async function POST(request:Request){
  const notificationDeliveries=await processNotificationDeliveries();
  const deferredMail=await processDeferredMail();
  const ticketScans=await processTicketScans();const expiredTicketUploads=await cleanupTicketUploads();
- const outcome={claimed:data?.length??0,sent,failed,livePlanning:livePlanning.data,dossier,objectReminders:objectReminders.data,customerReminders:customerReminders.data,managementSignals,expiredSignatureUploads,ticketDeadlines,ticketDeliveries,crmNotifications,notificationDeliveries,deferredMail,ticketScans,expiredTicketUploads};
+ const outcome={claimed:data?.length??0,sent,failed,livePlanning:livePlanning.data,qualificationFollowup:qualificationFollowup.data,contractPlanning:contractPlanning.data,dossier,objectReminders:objectReminders.data,customerReminders:customerReminders.data,managementSignals,expiredSignatureUploads,ticketDeadlines,ticketDeliveries,crmNotifications,notificationDeliveries,deferredMail,ticketScans,expiredTicketUploads};
  const healthy=ticketWorkerHealthy(outcome)&&notificationDeliveries.failed===0&&notificationDeliveries.uncertain===0&&deferredMail.failed===0;
  return NextResponse.json({status:healthy?"ok":"degraded",...outcome},{status:healthy?200:503,headers:{"cache-control":"no-store"}});
 }

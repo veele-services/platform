@@ -86,8 +86,10 @@ test("Dossier 360: shared sources, approval, partial allocation and current acce
    const results=await Promise.all([create(),create()]);assert.equal(results[0][0].id,results[1][0].id);invoice=results[0][0].id;
    assert.equal((await db.query("select count(*)::int n from public.invoice_lines where invoice_id=$1",[invoice])).rows[0].n,2);
    assert.equal((await db.query("select status from public.work_orders where id=$1",[order])).rows[0].status,'invoice_ready');
-   // Simulate an existing pre-alignment allocation: its immutable snapshot already identifies the source.
-   await db.query("begin");try{await db.query("set local session_replication_role='replica'");await db.query("update public.invoice_lines set work_order_task_id=null where invoice_id=$1 and work_order_task_id=$2",[invoice,task]);await db.query("commit");}catch(e){await db.query("rollback");throw e;}
+   // New and changed rows must retain exactly one typed execution source. The
+   // migration-upgrade test separately proves that pre-existing source-less
+   // legacy rows remain readable under the NOT VALID constraint.
+   await assert.rejects(db.query("update public.invoice_lines set work_order_task_id=null where invoice_id=$1 and work_order_task_id=$2",[invoice,task]),e=>e.code==='23514');
    await assert.rejects(call("select public.create_execution_invoice($1,$2,$3)",[tenant,randomUUID(),JSON.stringify([{taskId:task,quantity:2}])]),e=>e.code==="23514");
    await call("select public.create_execution_invoice($1,$2,$3)",[tenant,randomUUID(),JSON.stringify([{taskId:task,quantity:1}])]);
    assert.equal((await db.query("select sum(quantity)::numeric q from public.invoice_lines where work_order_task_id=$1 or source_snapshot->>'work_order_task_id'=$1::text",[task])).rows[0].q,'2.000');

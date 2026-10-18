@@ -54,6 +54,22 @@ export type PlanningPerson = {
   number: string;
   status: string;
 };
+export type PlanningCandidate = {
+  personnelId: string;
+  name: string;
+  number: string;
+  fit: {
+    eligible: boolean;
+    hardBlocks: string[];
+    warnings: PlanningWarning[];
+    qualificationIssues: Array<{code:string;hard:boolean}>;
+    availabilityState: "known_available"|"preference_available"|"unknown"|"outside_preference";
+  };
+};
+export type PlanningCapacity={sourceAt:string;start:string;end:string;requiredMinutes:number;scheduledMinutes:number;missingMinutes:number;unknownCandidates:number;
+  disciplines:string[];functions:Array<{id:string;name:string}>;rows:Array<{id:string;number:string;title:string;discipline:string;functionId:string|null;
+  startsAt:string;endsAt:string;requiredPersonnel:number;requiredMinutes:number;scheduledMinutes:number;missingMinutes:number;
+  knownCandidates:number;unknownCandidates:number;attentionCandidates:number;state:"covered"|"attention"|"shortage"}>};
 export type Availability = {
   id: string;
   personnelId: string;
@@ -92,6 +108,7 @@ export type AssignmentInput = {
   personnelId: string;
   start: string;
   end: string;
+  overrideReason?: string;
 };
 export type Proposal = {
   orderId: string;

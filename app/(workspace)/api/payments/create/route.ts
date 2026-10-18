@@ -3,10 +3,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createMolliePayment, getMolliePayment } from "@/lib/providers/mollie";
-import { getServerEnv } from "@/lib/env/server";
 import { tenantAppUrl } from "@/lib/tenancy/hostname";
 import { requestMatchesTenant } from "@/lib/tenancy/request";
 import { paymentAccess } from "@/lib/payments/access";
+import { requireTenantMerchant } from "@/lib/payments/merchant";
 import { verifiedCheckout, verifiedPayment, verifiedStoredCheckout } from "@/lib/payments/provider-result";
 import { readBoundedJson, RequestBodyTooLargeError } from "@/lib/http/request-body";
 
@@ -20,16 +20,20 @@ export async function POST(request: Request) {
     if (group.status !== "open") return NextResponse.json({ error: "Deze betaalbundel is niet meer open" }, { status: 409 });
     if (!(await requestMatchesTenant(tenant.slug))) return NextResponse.json({ error: "Betaallink hoort bij een andere tenantomgeving" }, { status: 404 });
     if (invoices.every(invoice=>invoice.total_cents<=invoice.paid_cents)) return NextResponse.json({ error: "Deze facturen zijn al betaald" }, { status: 409 });
-    const mode = getServerEnv().MOLLIE_API_KEY?.startsWith("live_") ? "live" : "test";
+    // A bearer link grants invoice scope, never the right to select a payee.
+    // Resolve and verify the tenant's configured recipient before every new or
+    // resumed checkout, exactly as the authenticated customer portal does.
+    const merchant = await requireTenantMerchant(group.tenant_id);
+    const mode = merchant.mode;
     const redirectUrl = new URL(tenantAppUrl(tenant.slug, `/pay/${body.token}`));
     redirectUrl.searchParams.set("return", "1");
     // One bounded replacement after a verified terminal provider response.
     // Allocation creation and reuse validation happen atomically under DB locks.
     for(let retry=0;retry<2;retry++) {
-      const prepared=await admin.rpc("prepare_provider_payment",{payment_token_hash:createHash("sha256").update(body.token).digest("hex"),expected_mode:mode});
+      const prepared=await admin.rpc("prepare_provider_payment",{payment_token_hash:createHash("sha256").update(body.token).digest("hex"),expected_mode:mode,expected_profile:merchant.profileId});
       if(prepared.error||!prepared.data)throw new Error("Betaalverdeling is niet beschikbaar");
       const attempt=prepared.data;
-      if(attempt.provider!=="mollie"||attempt.tenant_id!==group.tenant_id||attempt.invoice_group_id!==group.id||attempt.provider_mode!==mode||attempt.currency!=="EUR"||!Number.isSafeInteger(attempt.amount_cents)||attempt.amount_cents<=0)throw new Error("Ongeldige betaalpoging");
+      if(attempt.provider!=="mollie"||attempt.tenant_id!==group.tenant_id||attempt.invoice_group_id!==group.id||attempt.provider_mode!==mode||attempt.merchant_profile_id!==merchant.profileId||attempt.currency!=="EUR"||!Number.isSafeInteger(attempt.amount_cents)||attempt.amount_cents<=0)throw new Error("Ongeldige betaalpoging");
       if (!(await paymentAccess(admin, body.token))) return NextResponse.json({ error: "Betaallink is niet meer beschikbaar" }, { status: 404 });
       const leaseId=randomUUID();
       const claim=await admin.rpc("claim_provider_payment_check",{target_attempt:attempt.id,lease_id:leaseId});
@@ -42,6 +46,7 @@ export async function POST(request: Request) {
         payment = attempt.provider_payment_id ? await getMolliePayment(attempt.provider_payment_id) :
           await createMolliePayment({ amountCents: attempt.amount_cents, description: `Fieldgrid · ${invoices.map((invoice) => invoice.invoice_number).join(", ")}`.slice(0, 255), redirectUrl: redirectUrl.toString(), metadata: { payment_attempt_id: attempt.id, invoice_group_id: group.id, tenant_id: group.tenant_id }, idempotencyKey:attempt.idempotency_key });
         verifiedPayment(payment, attempt);
+        if (payment.profileId !== merchant.profileId) throw new Error("Onjuiste betaalontvanger");
         // Never let a late checkout response revert a webhook settlement.
         if (!attempt.provider_payment_id) {
           const stored = await admin.from("payment_attempts").update({ provider_payment_id: payment.id,

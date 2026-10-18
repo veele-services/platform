@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { CustomerVisit } from "./model";
 
 const id=z.uuid(),text=z.string(),cents=z.number().int().nonnegative().safe(),moment=z.iso.datetime({offset:true}),version=z.number().int().positive().safe();
-export const customerInvoiceSchema=z.object({id,number:text,description:text,objectIds:z.array(id),issuedOn:z.iso.date(),dueOn:z.iso.date(),total:cents,paid:cents,credited:cents,balance:cents,
+export const customerInvoiceSchema=z.object({id,number:text,description:text,objectIds:z.array(id),sources:z.array(z.object({id,number:text,object:text,executionOn:z.iso.date().nullable(),total:cents}).strict()).optional(),issuedOn:z.iso.date(),dueOn:z.iso.date(),total:cents,paid:cents,credited:cents,balance:cents,
  status:z.enum(["sent","partially_paid","paid","overdue","credited"]),hasPdf:z.boolean(),paymentInvoiceIds:z.array(id).nullable().optional(),paymentPending:z.boolean()}).strict();
 export type CustomerInvoice=z.infer<typeof customerInvoiceSchema>;
 export const customerDocumentSchema=z.object({id,title:text,version,category:text,date:z.iso.date().nullable(),validUntil:z.iso.date().nullable()}).strict();

@@ -6,7 +6,7 @@ import { FIELDGRID_PRIMARY, FIELDGRID_SECONDARY } from "@/lib/communications/tem
 export type InvoicePdfInput = {
   invoiceNumber: string; issuedOn: string; dueOn: string; tenantName: string; customerName: string;
   billingAddress: Record<string, unknown>; reference?: string; costCenter?: string;
-  lines: Array<{ description: string; quantity: number; unit?: string; unitPriceCents: number; vatBasisPoints: number; totalCents: number; subtotalCents?: number; vatCents?: number }>;
+  lines: Array<{ description: string; sourceContext?: string; quantity: number; unit?: string; unitPriceCents: number; vatBasisPoints: number; totalCents: number; subtotalCents?: number; vatCents?: number }>;
   subtotalCents: number; vatCents: number; totalCents: number;
   primaryColor?: string; accentColor?: string; footer?: string | null; senderEmail?: string;
   logo?: Uint8Array; concept?: boolean;
@@ -125,8 +125,8 @@ export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Uint8Arr
   }
   y -= 20; headings();
   for (const item of input.lines) {
-    const description = wrap(item.description, 9, 239), quantity = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 3 }).format(item.quantity);
-    const rowHeight = description.length * 14 + (item.unit ? 13 : 0) + 16;
+    const description = wrap(item.description, 9, 239), sourceContext = item.sourceContext ? wrap(item.sourceContext, 7.5, 239) : [], quantity = new Intl.NumberFormat("nl-NL", { maximumFractionDigits: 3 }).format(item.quantity);
+    const rowHeight = description.length * 14 + sourceContext.length * 12 + (item.unit ? 13 : 0) + 16;
     if (y - Math.min(rowHeight, 180) < 90) next();
     const top = y;
     alignRight(quantity, 338, top, 8.5);
@@ -134,6 +134,7 @@ export async function renderInvoicePdf(input: InvoicePdfInput): Promise<Uint8Arr
     alignRight(`${item.vatBasisPoints / 100}%`, 452, top, 8.5);
     alignRight(money(item.subtotalCents ?? Math.round(item.quantity * item.unitPriceCents)), right - 10, top, 8.5);
     for (const part of description) { if (y < 90) next(); text(part, left + 10, y, 9); y -= 14; }
+    for (const part of sourceContext) { if (y < 90) next(); text(part, left + 10, y, 7.5, font, muted); y -= 12; }
     if (item.unit) { text(`Eenheid: ${item.unit}`, left + 10, y, 8, font, muted); y -= 13; }
     page.drawLine({ start: { x: left, y: y - 3 }, end: { x: right, y: y - 3 }, thickness: .5, color: rule }); y -= 19;
   }

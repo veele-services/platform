@@ -6,6 +6,7 @@ import { BackofficeShell } from "@/components/fieldgrid/backoffice-shell";
 import { DayPlanboard } from "@/components/fieldgrid/planboard/day-planboard";
 import { initialPlanningQuery } from "@/lib/planning/model";
 import {hasManagementPermission} from '@/lib/management/model';
+import {CapacityOverview} from "@/components/fieldgrid/planboard/capacity-overview";
 
 export default async function PlanningPage({
   searchParams,
@@ -36,6 +37,7 @@ export default async function PlanningPage({
       initialView="planning"
       presentation="sites-management"
     >
+      {hasManagementPermission(context.tenant,'backoffice.functions.planning_capacity')&&<CapacityOverview day={day} timezone={context.tenant.timezone}/>}
       <DayPlanboard
         key={`${context.tenant.id}:${context.user.id}`}
         initial={data}

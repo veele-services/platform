@@ -11,6 +11,7 @@ test.use({ trace: "off", screenshot: "off", video: "off" });
 // Only disposable fixtures in the isolated local Supabase project, never staging.
 const day = "2031-03-04",
   people = [randomUUID(), randomUUID()],
+  availability = [randomUUID(), randomUUID()],
   orders = [randomUUID(), randomUUID()];
 let db: pg.Client, tenant: string;
 let hiddenPeople: Array<{ id: string; status: string }> = [];
@@ -41,6 +42,7 @@ test.beforeAll(async () => {
       "insert into public.personnel(id,tenant_id,full_name,employee_number) values($1,$2,$3,$4)",
       [id, tenant, ["Ada Planbord", "Bram Planbord"][i], `E2E-PLAN-${i}`],
     );
+  await db.query("insert into public.availability(id,tenant_id,personnel_id,starts_at,ends_at,kind,approved_at) values($1,$3,$4,$5,$6,'available',now()),($2,$3,$7,$5,$6,'available',now())", [availability[0], availability[1], tenant, people[0], `${day}T06:00:00Z`, `${day}T12:00:00Z`, people[1]]);
   for (const [i, id] of orders.entries()) {
     await db.query(
       "insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,discipline,created_by,day_instructions) values($1,$2,'e2000000-0000-4000-8000-000000000001','e3000000-0000-4000-8000-000000000001',$3,'Onderhoud',$4,$5)",
@@ -77,6 +79,7 @@ test.afterAll(async () => {
       orders,
     ]);
     await db.query("delete from public.work_orders where id=any($1)", [orders]);
+    await db.query("delete from public.availability where id=any($1)", [availability]);
     await db.query("delete from public.personnel where id=any($1)", [people]);
     for (const person of hiddenPeople)
       await db.query("update public.personnel set status=$2 where id=$1", [
@@ -154,6 +157,28 @@ test("een handmatig gekozen dag blijft geselecteerd bij focus en realtime wijzig
   }
 });
 
+test("capaciteit opent als compacte dag- en weekanalyse zonder het planbord te verdringen", async ({ page }, info) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page);
+  const capacity = page.getByRole("region", { name: "Capaciteit", exact: true });
+  const toggle = capacity.getByRole("button", { name: "Capaciteit openen", exact: true });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect.poll(() => page.locator(".planboard-viewport:visible").evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThan(600);
+  await toggle.click();
+  await expect(capacity.getByText("Concrete vraag", { exact: true })).toBeVisible();
+  await expect(capacity.getByRole("link", { name: /PB-90-1/ })).toBeVisible();
+  await page.screenshot({ path: info.outputPath("capacity-day-1440.png"), fullPage: true, animations: "disabled" });
+  await capacity.getByRole("button", { name: "Week", exact: true }).click();
+  await expect(capacity.getByRole("button", { name: "Week", exact: true })).toHaveClass(/primary-button/);
+  await expect(capacity.getByText("Capaciteit berekenen…", { exact: true })).toHaveCount(0);
+  await page.setViewportSize({ width: 390, height: 900 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: info.outputPath("capacity-week-390.png"), fullPage: true, animations: "disabled" });
+  await capacity.getByRole("button", { name: "Capaciteit sluiten", exact: true }).click();
+  await expect(capacity.locator(".capacity-body")).toHaveCount(0);
+});
+
 test("eerste uitleg houdt een planbord met veel medewerkers en de bonnenlijst bereikbaar", async ({ page }) => {
   const extraPeople = Array.from({ length: 12 }, () => randomUUID());
   try {
@@ -225,7 +250,10 @@ test("planbord past op alle doelbreedtes, scrolt onafhankelijk en portalt de bon
       )
       .toBe(true);
     await expect(page.getByRole("combobox", { name: "Bonnenweergave", exact: true })).toBeVisible();
-    expect((await board.boundingBox())!.height).toBeGreaterThan(240);
+    // The collapsed capacity control consumes one compact heading row on
+    // tablet widths; the board must still expose its ruler and two useful
+    // personnel rows without taking over page scrolling.
+    expect((await board.boundingBox())!.height).toBeGreaterThan(200);
     await board.evaluate((el) => {
       el.scrollLeft = innerWidth < 768 ? 174 : 0;
     });
@@ -367,6 +395,7 @@ test("minuutsleepactie, annuleren, opslaan, undo en exacte mobiele invoer gebrui
   await expect(confirmation).toBeVisible();
   await expect(confirmation).toContainText("1 medewerker(s) ontbreken");
   await expect(confirmation).toContainText("08:03");
+  await confirmation.getByLabel("Reden voor de afwijking", { exact: true }).fill("Bewust onderbezet gepland voor deze testuitvoering.");
   await confirmation.getByRole("button", { name: "Plan toch" }).click();
   await expect(panel).toHaveCount(0);
   await expect(page.getByRole("main").locator(`[data-order-id="${orders[1]}"]`)).toContainText(
@@ -437,6 +466,7 @@ test("bonnen kunnen van medewerker wisselen, resizen en via de lijst opnieuw wor
     name: "Controleer de afwijking",
   });
   await expect(confirmation).toBeVisible();
+  await confirmation.getByLabel("Reden voor de afwijking", { exact: true }).fill("Werkbon bewust teruggezet naar de bonnenlijst.");
   await confirmation.getByRole("button", { name: "Plan toch" }).click();
   await expect(card).toHaveCount(0);
   await page.getByRole("combobox", { name: "Bonnenweergave", exact: true }).selectOption("unassigned");

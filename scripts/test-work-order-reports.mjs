@@ -315,6 +315,11 @@ test("Work-order reports: individual time, immutable versions, signing and direc
    await call("select public.attach_invoice_pdf($1,$2,$3)",[inv.id,path,hash],manager);
    await call("update public.invoices set status='sent',sent_at=now() where id=$1",[inv.id],manager);
    const visible=await list();assert.equal(visible.length,1);assert.equal(visible[0].total,Number(inv.total_cents));assert.equal(visible[0].balance,Number(inv.total_cents));assert.equal(visible[0].paymentPending,false);assert.deepEqual(visible[0].objectIds,[object]);
+   assert.equal(visible[0].sources.length,1);assert.deepEqual(visible[0].sources[0],{
+    id:order,number:`W-${order}`,object:'Fictitious report object',
+    executionOn:(await db.query("select (coalesce(actual_start_at,projected_start_at,planned_start_at) at time zone 'Europe/Amsterdam')::date::text as execution_day from public.work_orders where id=$1",[order])).rows[0].execution_day,
+    total:Number(inv.total_cents),
+   });
    for(const forbidden of ["CANARY","source_snapshot","provider_payment_id","provider_payload","storage_path",path,staff,manager])assert.equal(JSON.stringify(visible).includes(forbidden),false);
    const descriptor=(await call("select public.customer_file_access($1,$2,'invoice') data",[tenant,inv.id],outsider))[0].data;assert.deepEqual(descriptor.scope,[tenant,inv.id]);assert.equal(descriptor.sha256,hash);
    const group=randomUUID(),attempt=randomUUID();

@@ -41,4 +41,18 @@ describe("work-order scope and recurrence", () => {
     expect(recurrencePreview(rule(), "2026-09-30", "Europe/Amsterdam")).toEqual(first);
     expect(() => recurrencePreview(rule(), "2026-09-30", "Europe/Amsterdam", 27)).toThrow();
   });
+  it("keeps an explicit yearly leap-day pattern on leap years only", () => {
+    const yearly = rule({ startsOn: "2024-02-29", frequency: "yearly" });
+    expect(matchesRecurrence(yearly, "2025-02-28")).toBe(false);
+    expect(matchesRecurrence(yearly, "2028-02-29")).toBe(true);
+  });
+  it("normalizes an overnight visit onto the following calendar day", () => {
+    const [visit] = recurrencePreview(rule({ startsAt: "22:00", endsAt: "02:00" }), "2026-10-18", "Europe/Amsterdam", 1);
+    expect(visit).toMatchObject({
+      day: "2026-10-18",
+      start: "2026-10-18T20:00:00.000Z",
+      end: "2026-10-19T00:00:00.000Z",
+      skipped: false,
+    });
+  });
 });

@@ -4,7 +4,7 @@ import { hasManagementPermission } from "@/lib/management/model";
 import { withTenantEmailBrand } from "@/lib/communications/tenant-email-brand";
 import { readScannedFile, uploadScannedFile } from "@/lib/files/scanned-storage";
 
-import { createHash, randomBytes } from "node:crypto";
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getAuthContext, hasAnyRole, type AuthContext, type TenantContext } from "@/lib/auth/context";
@@ -60,7 +60,7 @@ export async function createInvoice(formData: FormData): Promise<ActionResult<{ 
       if (candidates.error) throw new Error("Factureerbare bronnen konden niet worden geladen");
       const concepts = invoiceConceptSchema.array().parse(candidates.data).filter(item => ids.includes(item.id));
       if (new Set(concepts.map(item => item.id)).size !== new Set(ids).size) throw new Error("Selecteer actuele goedgekeurde concepten");
-      const sources = concepts.flatMap(item => item.lines.map(line => ({ taskId: line.taskId, quantity: line.quantity })));
+      const sources = concepts.flatMap(item => item.lines.map(line => ({ sourceType:line.sourceType??(line.materialId?"material":"task"),sourceId:line.sourceId??line.materialId??line.taskId,quantity:line.quantity })));
       if (!sources.length) throw new Error("Er zijn geen gecontroleerde, nog factureerbare hoeveelheden");
       const { data, error } = await supabase.rpc("create_execution_invoice", { target_tenant: context.tenant.id, request_id: requestId!, sources });
       if (error) throw new Error("Factuur niet aangemaakt. Controleer de rapportcontrole, akkoorden en nog factureerbare hoeveelheden.");
@@ -128,15 +128,16 @@ export async function sendInvoice(formData: FormData): Promise<ActionResult<{ pa
     activeDelivery = {tenantId:context.tenant.id,id:claim.delivery_id};
     let paymentUrl = savedSnapshot.success ? savedSnapshot.data.targetUrl : "";
     if (!paymentUrl) {
-    const { data: group, error: groupError } = await supabase.from("invoice_groups").insert({ tenant_id: context.tenant.id, customer_id: customer.id, purpose: "payment_bundle", created_by: context.user.id, expires_at: new Date(Date.now() + 30 * 86_400_000).toISOString() }).select().single();
-    if (groupError) throw groupError;
-    const { error: itemError } = await supabase.from("invoice_group_items").insert({ tenant_id: context.tenant.id, invoice_group_id: group.id, invoice_id: invoice.id });
-    if (itemError) throw itemError;
-    const token = randomBytes(32).toString("base64url");
-    const tokenHash = createHash("sha256").update(token).digest("hex");
     await confirmFinanceAction(context,"backoffice.functions.send_invoice");
-    const { error: tokenError } = await admin.from("external_action_tokens").insert({ tenant_id: context.tenant.id, purpose: "payment", subject_id: group.id, token_hash: tokenHash, expires_at: group.expires_at! });
-    if (tokenError) throw tokenError;
+    const bundle = await supabase.rpc("create_payment_bundle", {
+      target_tenant: context.tenant.id,
+      invoice_ids: [invoice.id],
+      request_id: invoice.id,
+    });
+    if (bundle.error || !bundle.data || typeof bundle.data !== "object" || Array.isArray(bundle.data))
+      throw bundle.error ?? new Error("De betaallink kon niet atomair worden aangemaakt.");
+    const token = (bundle.data as Record<string, unknown>).token;
+    if (typeof token !== "string" || !/^[0-9a-f]{64}$/.test(token)) throw new Error("De betaallink is ongeldig.");
     paymentUrl = tenantAppUrl(context.tenant.slug, `/pay/${token}`);
     }
     let frozen:MailSnapshot;
@@ -243,23 +244,22 @@ export async function registerManualPayment(formData: FormData): Promise<ActionR
 export async function createPaymentBundle(formData: FormData): Promise<ActionResult<{ paymentUrl: string }>> {
   try {
     const context = await financeContext("backoffice.functions.create_payment_bundle");
-    const ids = z.string().min(1).parse(formData.get("invoiceIds")).split(",").map((id) => z.string().uuid().parse(id));
+    const input = z.object({
+      invoiceIds: z.string().min(1).transform(value => value.split(",").map(id => z.uuid().parse(id))),
+      requestId: z.uuid(),
+    }).parse(Object.fromEntries(formData));
+    if (new Set(input.invoiceIds).size !== input.invoiceIds.length) throw new Error("Selecteer iedere factuur één keer");
     const supabase = await createClient();
-    const { data: invoices, error: invoiceError } = await supabase.from("invoices").select("id,customer_id,total_cents,paid_cents,status").in("id", ids);
-    if (invoiceError || invoices.length !== ids.length) throw invoiceError ?? new Error("Niet alle facturen zijn gevonden");
-    if (new Set(invoices.map((item) => item.customer_id)).size !== 1) throw new Error("Een betaallink kan alleen facturen van één klant combineren");
-    if (invoices.some((item) => item.status === "draft" || item.paid_cents >= item.total_cents)) throw new Error("Selecteer alleen definitieve openstaande facturen");
-    const expiresAt = new Date(Date.now() + 30 * 86_400_000).toISOString();
-    const { data: group, error: groupError } = await supabase.from("invoice_groups").insert({ tenant_id: context.tenant.id, customer_id: invoices[0].customer_id, purpose: "payment_bundle", created_by: context.user.id, expires_at: expiresAt }).select().single();
-    if (groupError) throw groupError;
-    const { error: itemError } = await supabase.from("invoice_group_items").insert(invoices.map((invoice) => ({ tenant_id: context.tenant.id, invoice_group_id: group.id, invoice_id: invoice.id })));
-    if (itemError) throw itemError;
-    const rawToken = randomBytes(32).toString("base64url");
-    const tokenHash = createHash("sha256").update(rawToken).digest("hex");
     await confirmFinanceAction(context,"backoffice.functions.create_payment_bundle");
-    const admin = createAdminClient();
-    const { error } = await admin.from("external_action_tokens").insert({ tenant_id: context.tenant.id, purpose: "payment", subject_id: group.id, token_hash: tokenHash, expires_at: expiresAt });
-    if (error) throw error;
+    const result = await supabase.rpc("create_payment_bundle", {
+      target_tenant: context.tenant.id,
+      invoice_ids: input.invoiceIds,
+      request_id: input.requestId,
+    });
+    if (result.error || !result.data || typeof result.data !== "object" || Array.isArray(result.data))
+      throw result.error ?? new Error("Betaalbatch kon niet worden aangemaakt");
+    const rawToken = (result.data as Record<string, unknown>).token;
+    if (typeof rawToken !== "string" || !/^[0-9a-f]{64}$/.test(rawToken)) throw new Error("Betaaltoken ontbreekt");
     return { ok: true, paymentUrl: tenantAppUrl(context.tenant.slug, `/pay/${rawToken}`) };
   } catch (error) { return { ok: false, error: message(error) }; }
 }

@@ -1658,6 +1658,7 @@ export type Database = {
           description: string
           id: string
           invoice_id: string
+          material_usage_id: string | null
           quantity: number
           source_snapshot: Json
           subtotal_cents: number
@@ -1676,6 +1677,7 @@ export type Database = {
           description: string
           id?: string
           invoice_id: string
+          material_usage_id?: string | null
           quantity: number
           source_snapshot: Json
           subtotal_cents: number
@@ -1694,6 +1696,7 @@ export type Database = {
           description?: string
           id?: string
           invoice_id?: string
+          material_usage_id?: string | null
           quantity?: number
           source_snapshot?: Json
           subtotal_cents?: number
@@ -1712,6 +1715,13 @@ export type Database = {
             columns: ["tenant_id", "commercial_period_id"]
             isOneToOne: false
             referencedRelation: "commercial_billing_periods"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "invoice_lines_material_usage_fk"
+            columns: ["tenant_id", "material_usage_id"]
+            isOneToOne: false
+            referencedRelation: "work_order_material_usage"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -1931,6 +1941,71 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "outbox_events"
             referencedColumns: ["tenant_id", "id"]
+          },
+        ]
+      }
+      material_catalog: {
+        Row: {
+          active: boolean
+          billable_default: boolean
+          category: string
+          code: string
+          created_at: string
+          created_by: string
+          default_cost_cents: number | null
+          description: string
+          id: string
+          name: string
+          proposed_unit_price_cents: number | null
+          proposed_vat_basis_points: number | null
+          tenant_id: string
+          unit: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          billable_default?: boolean
+          category?: string
+          code: string
+          created_at?: string
+          created_by: string
+          default_cost_cents?: number | null
+          description?: string
+          id?: string
+          name: string
+          proposed_unit_price_cents?: number | null
+          proposed_vat_basis_points?: number | null
+          tenant_id: string
+          unit: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          active?: boolean
+          billable_default?: boolean
+          category?: string
+          code?: string
+          created_at?: string
+          created_by?: string
+          default_cost_cents?: number | null
+          description?: string
+          id?: string
+          name?: string
+          proposed_unit_price_cents?: number | null
+          proposed_vat_basis_points?: number | null
+          tenant_id?: string
+          unit?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_catalog_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -4099,7 +4174,9 @@ export type Database = {
         Row: {
           active: boolean
           code: string
+          evidence_kind: string
           id: string
+          level_label: string | null
           name: string
           reminder_days: number[]
           tenant_id: string
@@ -4107,7 +4184,9 @@ export type Database = {
         Insert: {
           active?: boolean
           code: string
+          evidence_kind?: string
           id?: string
+          level_label?: string | null
           name: string
           reminder_days?: number[]
           tenant_id: string
@@ -4115,7 +4194,9 @@ export type Database = {
         Update: {
           active?: boolean
           code?: string
+          evidence_kind?: string
           id?: string
+          level_label?: string | null
           name?: string
           reminder_days?: number[]
           tenant_id?: string
@@ -5613,6 +5694,7 @@ export type Database = {
         Row: {
           appointment_blocks: Json
           bill_travel_default: boolean
+          contract_planning_automation_enabled: boolean
           contract_reminder_days: number
           enabled_services: string[]
           invoice_prefix: string
@@ -5631,6 +5713,7 @@ export type Database = {
         Insert: {
           appointment_blocks?: Json
           bill_travel_default?: boolean
+          contract_planning_automation_enabled?: boolean
           contract_reminder_days?: number
           enabled_services?: string[]
           invoice_prefix?: string
@@ -5649,6 +5732,7 @@ export type Database = {
         Update: {
           appointment_blocks?: Json
           bill_travel_default?: boolean
+          contract_planning_automation_enabled?: boolean
           contract_reminder_days?: number
           enabled_services?: string[]
           invoice_prefix?: string
@@ -6654,6 +6738,8 @@ export type Database = {
         Row: {
           actual_end_at: string | null
           actual_start_at: string | null
+          availability_override_reason: string | null
+          availability_state: string
           created_at: string
           departed_at: string | null
           id: string
@@ -6676,6 +6762,8 @@ export type Database = {
         Insert: {
           actual_end_at?: string | null
           actual_start_at?: string | null
+          availability_override_reason?: string | null
+          availability_state?: string
           created_at?: string
           departed_at?: string | null
           id?: string
@@ -6698,6 +6786,8 @@ export type Database = {
         Update: {
           actual_end_at?: string | null
           actual_start_at?: string | null
+          availability_override_reason?: string | null
+          availability_state?: string
           created_at?: string
           departed_at?: string | null
           id?: string
@@ -7021,6 +7111,8 @@ export type Database = {
           customer_visible: boolean
           description: string
           id: string
+          material_id: string | null
+          material_snapshot: Json
           quantity: number
           task_id: string | null
           tenant_id: string
@@ -7033,6 +7125,8 @@ export type Database = {
           customer_visible?: boolean
           description: string
           id?: string
+          material_id?: string | null
+          material_snapshot?: Json
           quantity: number
           task_id?: string | null
           tenant_id: string
@@ -7045,6 +7139,8 @@ export type Database = {
           customer_visible?: boolean
           description?: string
           id?: string
+          material_id?: string | null
+          material_snapshot?: Json
           quantity?: number
           task_id?: string | null
           tenant_id?: string
@@ -7052,6 +7148,13 @@ export type Database = {
           work_order_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "work_order_material_catalog_fk"
+            columns: ["tenant_id", "material_id"]
+            isOneToOne: false
+            referencedRelation: "material_catalog"
+            referencedColumns: ["tenant_id", "id"]
+          },
           {
             foreignKeyName: "work_order_material_usage_tenant_id_task_id_fkey"
             columns: ["tenant_id", "task_id"]
@@ -7284,10 +7387,19 @@ export type Database = {
       work_order_series: {
         Row: {
           active: boolean
+          agreement_line_id: string | null
+          automation_enabled: boolean
           created_at: string
           created_by: string
           definition: Json
+          generation_horizon_weeks: number
           id: string
+          last_generated_at: string | null
+          last_generated_through: string | null
+          last_generation_result: Json
+          lifecycle_reason: string | null
+          lifecycle_state: string
+          preferred_personnel_ids: string[]
           source_order_id: string
           tenant_id: string
           timezone: string
@@ -7296,10 +7408,19 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          agreement_line_id?: string | null
+          automation_enabled?: boolean
           created_at?: string
           created_by: string
           definition: Json
+          generation_horizon_weeks?: number
           id?: string
+          last_generated_at?: string | null
+          last_generated_through?: string | null
+          last_generation_result?: Json
+          lifecycle_reason?: string | null
+          lifecycle_state?: string
+          preferred_personnel_ids?: string[]
           source_order_id: string
           tenant_id: string
           timezone: string
@@ -7308,10 +7429,19 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          agreement_line_id?: string | null
+          automation_enabled?: boolean
           created_at?: string
           created_by?: string
           definition?: Json
+          generation_horizon_weeks?: number
           id?: string
+          last_generated_at?: string | null
+          last_generated_through?: string | null
+          last_generation_result?: Json
+          lifecycle_reason?: string | null
+          lifecycle_state?: string
+          preferred_personnel_ids?: string[]
           source_order_id?: string
           tenant_id?: string
           timezone?: string
@@ -7319,6 +7449,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "work_order_series_agreement_line_fk"
+            columns: ["tenant_id", "agreement_line_id"]
+            isOneToOne: false
+            referencedRelation: "customer_agreement_lines"
+            referencedColumns: ["tenant_id", "id"]
+          },
           {
             foreignKeyName: "work_order_series_tenant_id_source_order_id_fkey"
             columns: ["tenant_id", "source_order_id"]
@@ -7665,6 +7802,7 @@ export type Database = {
           report_version: number
           request_id: string | null
           requested_date: string | null
+          required_function_id: string | null
           required_personnel: number
           signature_mode: string
           signature_policy_snapshot: Json | null
@@ -7716,6 +7854,7 @@ export type Database = {
           report_version?: number
           request_id?: string | null
           requested_date?: string | null
+          required_function_id?: string | null
           required_personnel?: number
           signature_mode?: string
           signature_policy_snapshot?: Json | null
@@ -7767,6 +7906,7 @@ export type Database = {
           report_version?: number
           request_id?: string | null
           requested_date?: string | null
+          required_function_id?: string | null
           required_personnel?: number
           signature_mode?: string
           signature_policy_snapshot?: Json | null
@@ -7787,6 +7927,13 @@ export type Database = {
             columns: ["tenant_id", "lead_personnel_id"]
             isOneToOne: false
             referencedRelation: "personnel"
+            referencedColumns: ["tenant_id", "id"]
+          },
+          {
+            foreignKeyName: "work_orders_required_function_fk"
+            columns: ["tenant_id", "required_function_id"]
+            isOneToOne: false
+            referencedRelation: "function_catalog"
             referencedColumns: ["tenant_id", "id"]
           },
           {
@@ -8042,6 +8189,21 @@ export type Database = {
         }
       }
       change_work_order_planning: {
+        Args: {
+          appointment_data?: Json
+          confirmed_warnings?: string[]
+          expected_version: number
+          mutation_id: string
+          target_assignments: Json
+          target_end: string
+          target_start: string
+          target_tenant: string
+          target_work_order: string
+          undo_change?: string
+        }
+        Returns: Json
+      }
+      change_work_order_planning_legacy: {
         Args: {
           appointment_data?: Json
           confirmed_warnings?: string[]
@@ -8477,6 +8639,28 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      confirm_shift_interest_legacy: {
+        Args: { target_personnel_id: string; target_shift_id: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          ends_at: string
+          function_id: string
+          id: string
+          required_certificate_codes: string[]
+          selected_personnel_id: string | null
+          starts_at: string
+          status: string
+          tenant_id: string
+          work_order_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "open_shifts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_commercial_period_invoice: {
         Args: {
           confirmed: boolean
@@ -8552,6 +8736,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_payment_bundle: {
+        Args: {
+          invoice_ids: string[]
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
       }
       crm_availability: { Args: { day: string }; Returns: Json }
       crm_command: {
@@ -8894,6 +9086,7 @@ export type Database = {
           report_version: number
           request_id: string | null
           requested_date: string | null
+          required_function_id: string | null
           required_personnel: number
           signature_mode: string
           signature_policy_snapshot: Json | null
@@ -9119,7 +9312,24 @@ export type Database = {
         Returns: Json
       }
       management_query: { Args: { target_tenant: string }; Returns: Json }
+      material_catalogue: {
+        Args: { include_archived?: boolean; target_tenant: string }
+        Returns: Json
+      }
+      material_catalogue_command: {
+        Args: {
+          command: string
+          input: Json
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
       mutate_work_order: {
+        Args: { input: Json; target_tenant: string }
+        Returns: Json
+      }
+      mutate_work_order_legacy: {
         Args: { input: Json; target_tenant: string }
         Returns: Json
       }
@@ -9367,6 +9577,25 @@ export type Database = {
           personnel_id: string
         }[]
       }
+      planning_candidates: {
+        Args: {
+          target_end: string
+          target_start: string
+          target_tenant: string
+          target_work_order: string
+        }
+        Returns: Json
+      }
+      planning_capacity: {
+        Args: {
+          target_discipline?: string
+          target_end: string
+          target_function?: string
+          target_start: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
       platform_account_command: {
         Args: {
           expected_revision: number
@@ -9385,6 +9614,38 @@ export type Database = {
         Returns: Json
       }
       platform_team_query: { Args: never; Returns: Json }
+      platform_template_save_v3: {
+        Args: {
+          actor_session_id: string
+          actor_user_id: string
+          body: string
+          expected_revision: number
+          request_id: string
+          reset_to_default: boolean
+          subject: string
+          target_tenant: string
+          template_key: string
+        }
+        Returns: Json
+      }
+      platform_tenant_lifecycle: {
+        Args: {
+          desired_status: string
+          expected_version: number
+          request_id: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      platform_tenant_provision_v3: {
+        Args: {
+          actor_session_id: string
+          actor_user_id: string
+          input: Json
+          request_id: string
+        }
+        Returns: Json
+      }
       platform_workspace_access: { Args: never; Returns: boolean }
       platform_workspace_domain_command: {
         Args: {
@@ -9404,7 +9665,11 @@ export type Database = {
         Returns: number
       }
       prepare_provider_payment: {
-        Args: { expected_mode: string; payment_token_hash: string }
+        Args: {
+          expected_mode: string
+          expected_profile: string
+          payment_token_hash: string
+        }
         Returns: {
           amount_cents: number
           checkout_url: string | null
@@ -9446,9 +9711,17 @@ export type Database = {
         }
         Returns: Json
       }
+      process_contract_planning: {
+        Args: { batch_size?: number }
+        Returns: Json
+      }
       process_customer_reminders: { Args: never; Returns: number }
       process_live_planning: { Args: never; Returns: number }
       process_object_reminders: { Args: never; Returns: number }
+      process_qualification_followup: {
+        Args: { batch_size?: number }
+        Returns: Json
+      }
       process_ticket_deadlines: {
         Args: { target_tenant?: string }
         Returns: Json
@@ -9519,6 +9792,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      qualification_catalogue_command: {
+        Args: { input: Json; request_id: string; target_tenant: string }
+        Returns: Json
       }
       record_customer_agreement: {
         Args: { input: Json; target_customer: string; target_tenant: string }
@@ -9624,6 +9901,7 @@ export type Database = {
           report_version: number
           request_id: string | null
           requested_date: string | null
+          required_function_id: string | null
           required_personnel: number
           signature_mode: string
           signature_policy_snapshot: Json | null
@@ -9663,6 +9941,15 @@ export type Database = {
       resolve_workspace_hostname: {
         Args: { requested_environment: string; requested_host: string }
         Returns: string
+      }
+      review_material_usage: {
+        Args: {
+          expected_version: number
+          input: Json
+          target_tenant: string
+          target_usage: string
+        }
+        Returns: Json
       }
       review_object_visit_request: {
         Args: {
@@ -9749,6 +10036,7 @@ export type Database = {
           report_version: number
           request_id: string | null
           requested_date: string | null
+          required_function_id: string | null
           required_personnel: number
           signature_mode: string
           signature_policy_snapshot: Json | null
@@ -9814,6 +10102,7 @@ export type Database = {
           report_version: number
           request_id: string | null
           requested_date: string | null
+          required_function_id: string | null
           required_personnel: number
           signature_mode: string
           signature_policy_snapshot: Json | null
@@ -9945,6 +10234,10 @@ export type Database = {
         }
         Returns: Json
       }
+      staff_material_catalogue: {
+        Args: { target_tenant: string }
+        Returns: Json
+      }
       staff_report_customer_absent: {
         Args: {
           absence_reason: string
@@ -10020,6 +10313,15 @@ export type Database = {
         Returns: Json
       }
       staff_work_order_cost_command: {
+        Args: {
+          command: string
+          idempotency_key: string
+          input: Json
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      staff_work_order_cost_command_legacy: {
         Args: {
           command: string
           idempotency_key: string
@@ -10209,6 +10511,7 @@ export type Database = {
           report_version: number
           request_id: string | null
           requested_date: string | null
+          required_function_id: string | null
           required_personnel: number
           signature_mode: string
           signature_policy_snapshot: Json | null
@@ -10306,7 +10609,20 @@ export type Database = {
         }
         Returns: Json
       }
+      work_order_related_command_legacy: {
+        Args: {
+          command: string
+          command_id: string
+          input: Json
+          target_tenant: string
+        }
+        Returns: Json
+      }
       work_order_related_context: {
+        Args: { target_order: string; target_tenant: string }
+        Returns: Json
+      }
+      work_order_related_context_legacy: {
         Args: { target_order: string; target_tenant: string }
         Returns: Json
       }
@@ -10319,6 +10635,15 @@ export type Database = {
         Returns: Json
       }
       work_order_series_command: {
+        Args: {
+          command: string
+          command_id: string
+          input: Json
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      work_order_series_command_legacy: {
         Args: {
           command: string
           command_id: string

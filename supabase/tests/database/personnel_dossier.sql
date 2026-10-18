@@ -21,8 +21,8 @@ insert into public.personnel(id,tenant_id,user_id,employee_number,full_name,stat
 insert into public.function_catalog(id,tenant_id,name,discipline,required_certificate_codes) values('d0900000-0000-4000-8000-000000000001','d0200000-0000-4000-8000-000000000001','Operator','Service','{TEST}');
 insert into public.customers(id,tenant_id,customer_number,name) values('d1000000-0000-4000-8000-000000000001','d0200000-0000-4000-8000-000000000001','K-DOS','Dossier customer');
 insert into public.objects(id,tenant_id,customer_id,object_number,name,address) values('d1100000-0000-4000-8000-000000000001','d0200000-0000-4000-8000-000000000001','d1000000-0000-4000-8000-000000000001','O-DOS','Dossier object','{}');
-insert into public.work_orders(id,tenant_id,work_order_number,customer_id,object_id,discipline,planned_start_at,planned_end_at,projected_start_at,projected_end_at,created_by) values
- ('d1200000-0000-4000-8000-000000000001','d0200000-0000-4000-8000-000000000001','W-DOS','d1000000-0000-4000-8000-000000000001','d1100000-0000-4000-8000-000000000001','Service','2090-06-30 22:00+02','2090-07-01 00:00+02','2090-06-30 22:00+02','2090-07-01 00:00+02','d0100000-0000-4000-8000-000000000001');
+insert into public.work_orders(id,tenant_id,work_order_number,customer_id,object_id,discipline,required_function_id,planned_start_at,planned_end_at,projected_start_at,projected_end_at,created_by) values
+ ('d1200000-0000-4000-8000-000000000001','d0200000-0000-4000-8000-000000000001','W-DOS','d1000000-0000-4000-8000-000000000001','d1100000-0000-4000-8000-000000000001','Service','d0900000-0000-4000-8000-000000000001','2090-06-30 22:00+02','2090-07-01 00:00+02','2090-06-30 22:00+02','2090-07-01 00:00+02','d0100000-0000-4000-8000-000000000001');
 
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"d0100000-0000-4000-8000-000000000001","session_id":"d0100000-0000-4000-8000-000000000001","role":"authenticated"}',true);
@@ -87,6 +87,9 @@ select is((select dossier_status from public.certificates where id='d0700000-000
 select ok((select verified_at is null from public.qualifications where code='TEST' and tenant_id='d0200000-0000-4000-8000-000000000001'),'changed evidence immediately removes operational approval');
 update public.certificates set dossier_status='approved' where id='d0700000-0000-4000-8000-000000000001';
 insert into public.personnel_functions(tenant_id,personnel_id,function_id) values('d0200000-0000-4000-8000-000000000001','d0300000-0000-4000-8000-000000000001','d0900000-0000-4000-8000-000000000001');
+update public.personnel_contracts set ends_on='2090-06-30' where id='d0500000-0000-4000-8000-000000000001';
+insert into public.availability(tenant_id,personnel_id,starts_at,ends_at,kind) values
+ ('d0200000-0000-4000-8000-000000000001','d0300000-0000-4000-8000-000000000001','2090-06-30 22:00+02','2090-07-01 00:00+02','available');
 select lives_ok($$select public.reschedule_work_order('d1200000-0000-4000-8000-000000000001','d0300000-0000-4000-8000-000000000001','2090-06-30 22:00+02',(select version from public.work_orders where id='d1200000-0000-4000-8000-000000000001'))$$,'valid-to is inclusive, exclusive next-midnight end is allowed');
 select throws_ok($$select public.reschedule_work_order('d1200000-0000-4000-8000-000000000001','d0300000-0000-4000-8000-000000000001','2090-06-30 22:01+02',(select version from public.work_orders where id='d1200000-0000-4000-8000-000000000001'))$$,'23514',null,'entire work period must be covered via the central planning command');
 select is((select qualification_snapshot->0->>'evidence_id' from public.work_order_assignments where work_order_id='d1200000-0000-4000-8000-000000000001'),'d0700000-0000-4000-8000-000000000001','snapshot records checked evidence version');

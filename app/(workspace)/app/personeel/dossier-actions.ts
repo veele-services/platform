@@ -234,11 +234,13 @@ export async function updateDossierDocument(form:FormData):Promise<ActionResult>
 export async function saveQualificationCatalog(form:FormData):Promise<ActionResult> {
  try {
   const {db,tenant}=await authorize(String(form.get("personnelId")));
-  const input=z.object({code:z.string().trim().toUpperCase().regex(/^[A-Z0-9][A-Z0-9_.-]{0,31}$/),name:z.string().trim().min(2).max(160),scope:z.enum(["","function","customer","object","work_order","service"]),subjectId:z.string().uuid().or(z.literal("")),service:z.string().max(100),hard:z.string().optional(),reminderDays:z.string().default("90,60,30,14,7"),active:z.string().optional()}).parse(Object.fromEntries(form));
+  const input=z.object({commandId:z.uuid(),code:z.string().trim().toUpperCase().regex(/^[A-Z0-9][A-Z0-9_.-]{0,31}$/),name:z.string().trim().min(2).max(160),
+    evidenceKind:z.enum(["certificate","diploma","training","skill","object_knowledge"]),levelLabel:z.string().trim().max(80),
+    scope:z.enum(["","function","customer","object","work_order","service","task_revision"]),subjectId:z.string().uuid().or(z.literal("")),service:z.string().max(100),hard:z.string().optional(),reminderDays:z.string().default("90,60,30,14,7"),active:z.string().optional()}).parse(Object.fromEntries(form));
   if(input.code==="VOG")throw new Error("VOG gebruikt een aparte controleregistratie.");
   const days=String(validateDossierInput("task",{title:"Catalogus",reminderDays:input.reminderDays},"open").reminderDays).split(",").filter(Boolean).map(Number);
-  const {error}=await db.from("qualification_types").upsert({tenant_id:tenant.id,code:input.code,name:input.name,reminder_days:days,active:input.active==="on"},{onConflict:"tenant_id,code"});if(error)throw new Error("Het type kon niet worden opgeslagen.");
-  if(input.scope){const {error:ruleError}=await db.from("qualification_requirements").insert({tenant_id:tenant.id,code:input.code,scope:input.scope,subject_id:input.subjectId||null,service_name:input.service||null,hard_requirement:input.hard==="on"});if(ruleError)throw new Error("Het type is opgeslagen; controleer de gekozen koppeling voor de eis.");}
+  const {error}=await db.rpc("qualification_catalogue_command",{target_tenant:tenant.id,request_id:input.commandId,input:{code:input.code,name:input.name,evidenceKind:input.evidenceKind,
+    levelLabel:input.levelLabel,reminderDays:days,active:input.active==="on",scope:input.scope,subjectId:input.subjectId,service:input.service,hard:input.hard==="on"}});if(error)throw error;
   refresh(String(form.get("personnelId")));return {ok:true};
  }catch(error){return failure(error);}
 }

@@ -116,6 +116,11 @@ from public.tenants t
 join public.work_orders w on w.tenant_id = t.id and w.work_order_number = 'TEST-W001'
 join public.personnel p on p.tenant_id = t.id and p.employee_number = 'TEST-P001'
 where t.slug = 'testorganisatie';
+insert into public.availability (tenant_id, personnel_id, starts_at, ends_at, kind)
+select t.id, p.id, '2026-10-15 09:00+02', '2026-10-15 10:30+02', 'available'
+from public.tenants t
+join public.personnel p on p.tenant_id = t.id and p.employee_number = 'TEST-P001'
+where t.slug = 'testorganisatie';
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"90000000-0000-4000-8000-000000000002","session_id":"90000000-0000-4000-8000-000000000002","role":"authenticated"}', true);

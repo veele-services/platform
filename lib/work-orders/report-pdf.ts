@@ -88,7 +88,7 @@ export async function renderWorkOrderReportPdf(report: ReportVersion, assets: Ar
     heading("Meerwerk");
     for (const task of snapshot.tasks.filter(task => task.extraWork)) row(task.name, `${task.executedQuantity} ${task.unit} · ${resultLabels[task.result] ?? "Vastgelegd"}`, task.extraUnitPriceCents == null ? "Ter beoordeling" : money(Math.round(task.executedQuantity * task.extraUnitPriceCents)));
   }
-  if (snapshot.materials?.length) { heading("Materiaal"); for (const material of snapshot.materials) row(material.description, `${material.quantity} ${material.unit}${material.unitPriceCents == null ? "" : ` · ${money(material.unitPriceCents)} per ${material.unit}`}`, material.unitPriceCents == null ? "Inbegrepen" : money(Math.round(material.unitPriceCents * material.quantity))); }
+  if (snapshot.materials?.length) { heading("Materiaal"); for (const material of snapshot.materials) row(material.description, `${material.quantity} ${material.unit}${material.unitPriceCents == null ? "" : ` · ${money(material.unitPriceCents)} per ${material.unit}`}`, material.pricingState === "included" ? "Inbegrepen" : material.unitPriceCents == null ? "Prijs onbekend" : material.pricingState === "approved" ? money(Math.round(material.unitPriceCents * material.quantity)) : "Ter beoordeling"); }
   if (snapshot.expenses?.length) { heading("Onkosten"); for (const expense of snapshot.expenses) row(expense.description, "Onkosten bij deze uitvoering", money(expense.amountCents)); }
   space(70); y -= 8;
   page.drawRectangle({ x: left, y: y - 28, width, height: 40, color: soft });

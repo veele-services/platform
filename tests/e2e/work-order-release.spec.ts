@@ -8,12 +8,13 @@ test.use({ trace: "off", screenshot: "off", video: "off" });
 test.setTimeout(90_000);
 
 test("werkbon vrijgeven via planbord, lijst en dossier publiceert dezelfde versievaste planning", async ({ page, browser }, info) => {
-  const db = new Client({ connectionString: requireLocalDatabaseUrl().href }), day = "2034-11-08", ids: string[] = [];
+  const db = new Client({ connectionString: requireLocalDatabaseUrl().href }), day = "2034-11-08", ids: string[] = [], availabilityId = randomUUID();
   const staffContext = await browser.newContext({ baseURL: "http://127.0.0.1:3000", locale: "nl-NL" });
   const staff = await staffContext.newPage();
   await db.connect();
   try {
     const tenant = (await db.query("select id from public.tenants where slug='fieldgrid-e2e'")).rows[0].id;
+    await db.query("insert into public.availability(id,tenant_id,personnel_id,starts_at,ends_at,kind,approved_at) values($1,$2,'e1000000-0000-4000-8000-000000000001',$3,$4,'available',now())", [availabilityId, tenant, `${day}T08:00:00Z`, `${day}T13:00:00Z`]);
     for (const [index, entry] of ["planbord", "lijst", "dossier"].entries()) {
       const id = randomUUID(), number = `RELEASE-${id.slice(0, 8)}`; ids.push(id);
       const start = `${day}T${String(9 + index).padStart(2, "0")}:00:00Z`, end = `${day}T${String(9 + index).padStart(2, "0")}:30:00Z`;
@@ -55,6 +56,7 @@ test("werkbon vrijgeven via planbord, lijst en dossier publiceert dezelfde versi
       await db.query("delete from private.work_order_commands where result->>'id'=any($1::text[])", [ids]);
       await db.query("delete from public.work_orders where id=any($1::uuid[])", [ids]);
     }
+    await db.query("delete from public.availability where id=$1", [availabilityId]);
     await db.end();
     await staffContext.close();
   }

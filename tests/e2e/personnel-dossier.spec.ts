@@ -96,10 +96,10 @@ test("server worker sends branded generic reminders exactly once and retries con
    await db.query("update public.outbox_events set available_at=$3 where tenant_id=$1 and id=$2",[f.tenant.id,captured.rows[0].outbox_event_id,due]);
    await db.query("update private.notification_deliveries set available_at=$3 where tenant_id=$1 and request_id=$2",[f.tenant.id,captured.rows[0].id,due]);
   };await makeDue();
-  const run=async(expected=200)=>{const response=await request.post("/api/worker",{headers:{authorization:"Bearer fieldgrid-local-e2e-worker-placeholder-only"}});expect(response.status()).toBe(expected);const result=await response.json();expect(result.status).toBe(expected===200?"ok":"degraded");if(expected===503)expect(result.notificationDeliveries.failed).toBe(1);};
+  const run=async(expected=200)=>{const response=await request.post("/api/worker",{headers:{authorization:"Bearer fieldgrid-local-e2e-worker-placeholder-only"}});const result=await response.json();expect(response.status()).toBe(expected);expect(result.status).toBe(expected===200?"ok":"degraded");if(expected===503)expect(result.notificationDeliveries.failed).toBe(1);};
   await fetch(rejectionUrl,{method:"POST"});await run(503);
   const failed=await f.admin.from("personnel_dossier_deliveries").select("status,attempts").eq("source_id",taskId).single();expect(failed.data).toMatchObject({status:"failed",attempts:1});
-  await makeDue();await run();await run();
+  await fetch(rejectionUrl,{method:"DELETE"});await makeDue();await run();await run();
   const sent=await f.admin.from("personnel_dossier_deliveries").select("status,attempts").eq("source_id",taskId).single();expect(sent.data).toMatchObject({status:"sent",attempts:2});
   const mails=await(await fetch(`http://127.0.0.1:59329/messages?recipient=${recipient}`)).json();expect(mails).toHaveLength(1);const mail=JSON.stringify(mails[0]);expect(mail).not.toContain("Confidential case");expect(mail).not.toContain("Lisa Dossierdemo");expect(mail).toContain(`/app/personeel/${f.id}`);expect(mail).toContain("#214E72");
   const source=await f.admin.from("personnel_dossier_items").select("dossier_status").eq("id",taskId).single();expect(source.data?.dossier_status).toBe("open");

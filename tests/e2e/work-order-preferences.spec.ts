@@ -20,12 +20,19 @@ async function cleanup(db: pg.Client, tenant: string, title: string) {
   await db.query("delete from public.work_orders where tenant_id=$1 and id=any($2)", [tenant, ids]);
   await db.query("delete from public.appointment_slots where tenant_id=$1 and id=any($2)", [tenant, orders.map(order => order.appointment_slot_id).filter(Boolean)]);
 }
+async function addAvailability(db: pg.Client, tenant: string, personnelId: string, startsAt: string, endsAt: string) {
+  const id = randomUUID();
+  await db.query("insert into public.availability(id,tenant_id,personnel_id,starts_at,ends_at,kind,approved_at) values($1,$2,$3,$4,$5,'available',now())", [id, tenant, personnelId, startsAt, endsAt]);
+  return id;
+}
 
 test("nieuwe werkbon vraagt alleen een dag en twee-uursvenster en houdt taakduur los van planning", async ({ page }, info) => {
   test.setTimeout(90_000);
   const db = new pg.Client({ connectionString: requireLocalDatabaseUrl().href });
   await db.connect();
   const tenant = (await db.query("select id from public.tenants where slug='fieldgrid-e2e'")).rows[0].id;
+  const worker = (await db.query("select p.id from public.personnel p join auth.users u on u.id=p.user_id where p.tenant_id=$1 and u.email='field-worker@fieldgrid.test'", [tenant])).rows[0].id;
+  const availabilityId = await addAvailability(db, tenant, worker, "2033-12-05T12:00:00Z", "2033-12-05T17:00:00Z");
   const title = `Fictief aankomstvenster ${randomUUID().slice(0, 8)}`;
   try {
     await authenticateWorkspace(page, "platform-admin@fieldgrid.test", "/app/werkbonnen");
@@ -91,7 +98,7 @@ test("nieuwe werkbon vraagt alleen een dag en twee-uursvenster en houdt taakduur
     await planning.getByRole("button", { name: "Planning opslaan", exact: true }).click();
     await expect(planning).toHaveCount(0);
     expect(await stored()).toMatchObject({ planning_state: "tentative", crew: 1, budget_labor_minutes: 180, task_minutes: 180, customer_window_kind: "arrival", projected_start_at: new Date("2033-12-05T13:00:00Z"), projected_end_at: new Date("2033-12-05T16:00:00Z"), starts_at: new Date("2033-12-05T13:00:00Z"), ends_at: new Date("2033-12-05T15:00:00Z") });
-  } finally { await cleanup(db, tenant, title); await db.end(); }
+  } finally { await cleanup(db, tenant, title); await db.query("delete from public.availability where tenant_id=$1 and id=$2", [tenant, availabilityId]); await db.end(); }
 });
 
 test("bewerken behoudt bestaande nietstandaard klantafspraak, planner en exacte personeelsinzet", async ({ page }) => {
@@ -101,12 +108,13 @@ test("bewerken behoudt bestaande nietstandaard klantafspraak, planner en exacte 
   const tenant = (await db.query("select id from public.tenants where slug='fieldgrid-e2e'")).rows[0].id;
   const owner = (await db.query("select id from auth.users where email='platform-admin@fieldgrid.test'")).rows[0].id;
   const worker = (await db.query("select p.id from public.personnel p join auth.users u on u.id=p.user_id where p.tenant_id=$1 and u.email='field-worker@fieldgrid.test'", [tenant])).rows[0].id;
+  const availabilityId = await addAvailability(db, tenant, worker, `${day}T05:00:00Z`, `${day}T11:00:00Z`);
   const id = randomUUID(), slot = randomUUID(), title = `Fictief behoud planning ${randomUUID().slice(0, 8)}`;
   try {
     await db.query("insert into public.appointment_slots(id,tenant_id,starts_at,ends_at,capacity,booked_count,status) values($1,$2,$3,$4,1,1,'full')", [slot, tenant, `${day}T06:07:00Z`, `${day}T09:07:00Z`]);
     await db.query("insert into public.work_orders(id,tenant_id,customer_id,object_id,work_order_number,title,discipline,created_by,planner_user_id,lead_personnel_id,planning_state,requested_date,deadline,budget_labor_minutes,customer_window_kind,appointment_slot_id,planned_start_at,projected_start_at,planned_end_at,projected_end_at) values($1,$2,$3,$4,$5,$6,'Onderhoud',$7,$7,$8,'final',$9,$9,180,'execution',$10,$11,$11,$12,$12)", [id, tenant, customerId, objectId, `PREF-${id.slice(0, 8)}`, title, owner, worker, day, slot, `${day}T06:07:00Z`, `${day}T09:07:00Z`]);
     await db.query("insert into public.work_order_tasks(tenant_id,work_order_id,task_revision_id,task_code,task_name,duration_minutes,quantity,unit,unit_price_cents,vat_basis_points,added_by) select $1,$2,id,'PREF','Fictieve voorkeurstaak',duration_minutes,6,unit,price_cents,vat_basis_points,$4 from public.task_revisions where tenant_id=$1 and id=$3", [tenant, id, taskId, owner]);
-    await db.query("insert into public.work_order_assignments(tenant_id,work_order_id,personnel_id,planned_start_at,projected_start_at,planned_end_at,projected_end_at) values($1,$2,$3,$4,$4,$5,$5)", [tenant, id, worker, `${day}T06:31:00Z`, `${day}T08:37:00Z`]);
+    await db.query("insert into public.work_order_assignments(tenant_id,work_order_id,personnel_id,planned_start_at,projected_start_at,planned_end_at,projected_end_at,availability_state) values($1,$2,$3,$4,$4,$5,$5,'known_available')", [tenant, id, worker, `${day}T06:31:00Z`, `${day}T08:37:00Z`]);
     const snapshot = async () => (await db.query("select jsonb_build_object('planning',w.planning_state,'planner',w.planner_user_id,'lead',w.lead_personnel_id,'required',w.required_personnel,'deadline',w.deadline,'start',w.projected_start_at,'end',w.projected_end_at,'plannedStart',w.planned_start_at,'plannedEnd',w.planned_end_at,'requested',w.requested_date,'windowKind',w.customer_window_kind,'slot',w.appointment_slot_id,'slotStart',s.starts_at,'slotEnd',s.ends_at,'budget',w.budget_labor_minutes,'assignments',(select jsonb_agg(to_jsonb(a)-'updated_at'-'version' order by id) from public.work_order_assignments a where a.work_order_id=w.id),'tasks',(select jsonb_agg(to_jsonb(t)-'updated_at'-'version' order by id) from public.work_order_tasks t where t.work_order_id=w.id)) as state from public.work_orders w join public.appointment_slots s on s.id=w.appointment_slot_id where w.tenant_id=$1 and w.id=$2", [tenant, id])).rows[0].state;
     const before = await snapshot();
     await authenticateWorkspace(page, "platform-admin@fieldgrid.test", `/app/werkbonnen/${id}`);
@@ -122,9 +130,11 @@ test("bewerken behoudt bestaande nietstandaard klantafspraak, planner en exacte 
     await wizard.getByRole("button", { name: "Wijzigingen opslaan", exact: true }).click();
     await expect(wizard).toHaveCount(0);
     expect(await snapshot()).toEqual(before);
+    await expect(page.getByRole("button", { name: "Bewerk", exact: true })).toBeEnabled();
   } finally {
     await cleanup(db, tenant, title);
     await db.query("delete from public.appointment_slots where tenant_id=$1 and id=$2", [tenant, slot]);
+    await db.query("delete from public.availability where tenant_id=$1 and id=$2", [tenant, availabilityId]);
     await db.end();
   }
 });

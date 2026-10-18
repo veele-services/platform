@@ -1,6 +1,6 @@
 "use client";
 import {CommercialOrderContext} from "@/components/fieldgrid/commercial/order-context";
-import { useEffect, useState, type FormEvent, type ReactNode, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode, type CSSProperties } from "react";
 import Link from "next/link";
 import {
   Sheet,
@@ -18,9 +18,11 @@ import {
   initialProposal,
   type PlanningOrder,
   type PlanningPerson,
+  type PlanningCandidate,
   type Proposal,
 } from "@/lib/planning/model";
 import { localDateTime, localToInstant } from "@/lib/planning/time";
+import {loadPlanningCandidates} from "@/app/(workspace)/app/planning/actions";
 
 import {useDashboardPresentation} from "../presentation";
 import {SourceNativeDialog} from "../source-native-dialog";
@@ -118,6 +120,19 @@ export function PlanningDetail({
   const [scope, setScope] = useState(different ? "shift" : "joint");
   const [individualId, setIndividualId] = useState(order.assignments[0]?.id ?? "");
   const [fold, setFold] = useState<"" | "earlier" | "later">("");
+  const [candidates,setCandidates]=useState<PlanningCandidate[]>([]);
+  const [candidateLoading,setCandidateLoading]=useState(false);
+  useEffect(()=>{
+    let cancelled=false;
+    const timer=setTimeout(()=>{
+      let startAt:string,endAt:string;
+      try{startAt=localToInstant(start,timezone,fold||undefined);endAt=localToInstant(end,timezone,fold||undefined);if(Date.parse(endAt)<=Date.parse(startAt))return;}catch{return;}
+      setCandidateLoading(true);
+      void loadPlanningCandidates(order.id,startAt,endAt).then(rows=>{if(!cancelled)setCandidates(rows)}).catch(()=>{if(!cancelled)setCandidates([])}).finally(()=>{if(!cancelled)setCandidateLoading(false)});
+    },250);
+    return()=>{cancelled=true;clearTimeout(timer)};
+  },[order.id,start,end,timezone,fold]);
+  const candidateById=useMemo(()=>new Map(candidates.map(candidate=>[candidate.personnelId,candidate])),[candidates]);
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
   const [appointment, setAppointment] = useState({
@@ -422,13 +437,17 @@ export function PlanningDetail({
                   <legend>
                     Medewerkers · minimaal {appointment.requiredPersonnel}
                   </legend>
-                  {people.map((person) => (
+                  {candidateLoading&&<p className="pb-help">Geschiktheid controleren…</p>}
+                  {people.map((person) => {
+                    const candidate=candidateById.get(person.id);
+                    return (
                     <label className="pb-person-option" key={person.id}>
                       <input
                         type="checkbox"
                         checked={selected.includes(person.id)}
                         disabled={
                           busy ||
+                          (candidate&&!candidate.fit.eligible&&!selected.includes(person.id)) ||
                           (person.status !== "active" &&
                             !selected.includes(person.id))
                         }
@@ -445,6 +464,7 @@ export function PlanningDetail({
                         {person.status !== "active" && (
                           <small>Niet actief · alleen bestaande planning</small>
                         )}
+                        {candidate&&<small>{candidate.fit.eligible?(candidate.fit.availabilityState==="known_available"?"Beschikbaar":candidate.fit.availabilityState==="preference_available"?"Beschikbaar volgens weekrooster":candidate.fit.availabilityState==="outside_preference"?"Buiten weekrooster · reden vereist":"Beschikbaarheid onbekend · reden vereist"):`Niet inzetbaar · ${candidate.fit.hardBlocks.join(", ")}`}</small>}
                         {different &&
                           order.assignments.find(
                             (a) => a.personnelId === person.id,
@@ -460,7 +480,7 @@ export function PlanningDetail({
                           )}
                       </span>
                     </label>
-                  ))}
+                  )})}
                 </fieldset>
                 <p className="pb-help">
                   Geen roostergegevens betekent onbekende beschikbaarheid. De

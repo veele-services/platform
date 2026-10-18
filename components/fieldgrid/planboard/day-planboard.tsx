@@ -172,6 +172,7 @@ export function DayPlanboard({
     warnings: PlanningWarning[];
     before: Pick<PlanningOrder, "start" | "end">;
   } | null>(null);
+  const [overrideReason,setOverrideReason]=useState("");
   const [lastError, setLastError] = useState<{
     message: string;
     proposal: Proposal;
@@ -334,6 +335,7 @@ export function DayPlanboard({
         const result = await savePlanning(proposal);
         if (!result.ok) {
           if (result.code === "confirmation") {
+            setOverrideReason("");
             setConfirmation({
               proposal: { ...proposal, ...result.proposed },
               warnings: result.warnings,
@@ -1377,6 +1379,9 @@ export function DayPlanboard({
                     <li key={w.key}>{w.message}</li>
                   ))}
                 </ul>
+                <label className="wide">Reden voor de afwijking
+                  <textarea value={overrideReason} onChange={event=>setOverrideReason(event.target.value)} minLength={3} maxLength={1000} required/>
+                </label>
                 <div className="pb-form-actions">
                   <button
                     className="secondary-button"
@@ -1387,10 +1392,11 @@ export function DayPlanboard({
                   </button>
                   <button
                     className="primary-button"
-                    disabled={busy}
+                    disabled={busy || overrideReason.trim().length<3}
                     onClick={() =>
                       save({
                         ...confirmation.proposal,
+                        assignments: confirmation.proposal.assignments.map(item=>({...item,overrideReason:overrideReason.trim()})),
                         confirmedWarnings: confirmation.warnings.map(
                           (w) => w.key,
                         ),

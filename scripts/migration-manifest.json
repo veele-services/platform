@@ -891,6 +891,11 @@
       "version": "20261016001315",
       "name": "crm_notification_retry_parameter",
       "sha256": "449f1015478c0abfe732aaff98cf1ad5ec24124ddf698cab73c266925b6d6d30"
+    },
+    {
+      "version": "20261017232527",
+      "name": "operational_chain_completion",
+      "sha256": "822185852cd2e37763f04c6b0da1deb3509b2d10ca00848cb59067d1aba5be73"
     }
   ]
 }

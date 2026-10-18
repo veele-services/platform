@@ -44,7 +44,8 @@ test("release gate closes staff eligibility, coworker metadata and stale-session
     await db.query("insert into public.review_decisions(tenant_id,work_order_id,report_version,decision,reason,decided_by) values($1,$2,1,'returned','FICTITIOUS internal review',$3)", [tenant, order, manager]);
     await db.query("insert into public.function_catalog(id,tenant_id,name,discipline,required_certificate_codes) values($1,$2,'FICTITIOUS qualified job','FICTITIOUS',array['SEC-CERT'])", [job, tenant]);
     await db.query("insert into public.personnel_functions(tenant_id,personnel_id,function_id) values($1,$2,$3)", [tenant, personA, job]);
-    await db.query("insert into public.qualifications(tenant_id,personnel_id,code,name,valid_until) values($1,$2,'SEC-CERT','FICTITIOUS certificate',current_date+30)", [tenant, personA]);
+    await db.query("insert into public.qualifications(tenant_id,personnel_id,code,name,issued_at,valid_until,verified_at) values($1,$2,'SEC-CERT','FICTITIOUS certificate',current_date,current_date+30,now())", [tenant, personA]);
+    await db.query("insert into public.availability(tenant_id,personnel_id,starts_at,ends_at,kind) values($1,$2,now()+interval '2 hours',now()+interval '5 hours','available')", [tenant, personA]);
     await db.query("insert into public.open_shifts(id,tenant_id,work_order_id,function_id,starts_at,ends_at,required_certificate_codes,created_by) values($1,$2,$3,$4,now()+interval '3 hours',now()+interval '4 hours',array['SEC-CERT'],$5)", [shift, tenant, order, job, manager]);
 
     await t.test("only the eligible staff member sees and changes the open shift", async () => {

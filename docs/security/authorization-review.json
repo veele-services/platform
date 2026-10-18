@@ -349,14 +349,14 @@
     },
     {
       "id": "code:app/(workspace)/api/files/invoice-concept/[id]/route.ts",
-      "surfaceFingerprint": "d38a456d40c38aeaf4077b0a6c9a2c9ffb866b9b24f64941965f91dbcc5e8bf0",
+      "surfaceFingerprint": "dec91a1b2d4157b5cc6c8b466af2b4c954af389f3703241fe83a46b2a8eda830",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/dashboard-details-verification-2026-10-07.md",
-        "tests/e2e/dossier-alignment.spec.ts",
-        "lib/pdf/invoice-snapshot.test.ts",
-        "lib/pdf/invoice.test.ts",
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#routeverplaatsingen"
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -696,14 +696,14 @@
     },
     {
       "id": "code:app/(workspace)/api/payments/create/route.ts",
-      "surfaceFingerprint": "220fb486d86fc164fe7694aacd4ce6bb4ea142c0684ad367444f628e14fcf028",
-      "status": "controlled",
+      "surfaceFingerprint": "edcafea02e589b800e0292e50aba18b08b838d938bdbb90cc9dc24e36a20ae7e",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs",
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#routeverplaatsingen"
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -845,17 +845,14 @@
     },
     {
       "id": "code:app/(workspace)/api/worker/route.ts",
-      "surfaceFingerprint": "83945d4e429bb5816e992ba682558132a4d3bf96284a1154866797660a5ef56a",
+      "surfaceFingerprint": "78d6fe694cf1d41c610b7c270376606cc667648a9c93c4e12030b0b943a9129f",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#mail",
-        "docs/integration/sites-v3/phase-1.md",
-        "docs/integration/sites-v3/phase-6.md",
-        "docs/integration/sites-v3/phase-25.md",
-        "scripts/test-notification-boundaries.mjs",
-        "scripts/test-notification-delivery.mjs",
-        "scripts/test-notification-mail.mjs",
-        "scripts/test-platform-crm.mjs"
+        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-operational-chain-upgrade.mjs",
+        "lib/work-orders/recurrence.test.ts"
       ]
     },
     {
@@ -994,23 +991,14 @@
     },
     {
       "id": "code:app/(workspace)/app/finance-actions.ts",
-      "surfaceFingerprint": "52a89efde4d8bed02eae57c497a3d87753debbd333951006d1a34ed874ac78fd",
+      "surfaceFingerprint": "17e5179a2a11d107d10955d8ea9e96b26629e9698c591d326648ed9ed4bfceaf",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#native",
-        "docs/integration/sites-v3/phase-10.md",
-        "docs/integration/sites-v3/phase-11.md",
-        "docs/integration/sites-v3/phase-12.md",
-        "docs/integration/sites-v3/phase-15.md",
-        "docs/integration/sites-v3/phase-16.md",
-        "docs/integration/sites-v3/phase-17.md",
-        "docs/integration/sites-v3/phase-18.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-commercial-source-list.mjs",
-        "scripts/test-source-invoice-list.mjs",
-        "scripts/test-planboard.mjs",
-        "scripts/test-management-mutation-replies.mjs"
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -1468,23 +1456,14 @@
     },
     {
       "id": "code:app/(workspace)/app/personeel/dossier-actions.ts",
-      "surfaceFingerprint": "67866e1a9e2914cf14694ff9471ba0ce184506158ca123b6b24c7413cb9f9fda",
+      "surfaceFingerprint": "15abf0a746dc91106877643e210c1e69995b74b260911af88e6f243c22c43d43",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#native",
-        "docs/integration/sites-v3/phase-10.md",
-        "docs/integration/sites-v3/phase-11.md",
-        "docs/integration/sites-v3/phase-12.md",
-        "docs/integration/sites-v3/phase-15.md",
-        "docs/integration/sites-v3/phase-16.md",
-        "docs/integration/sites-v3/phase-17.md",
-        "docs/integration/sites-v3/phase-18.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-commercial-source-list.mjs",
-        "scripts/test-source-invoice-list.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-planboard.mjs",
-        "scripts/test-management-mutation-replies.mjs"
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -1510,44 +1489,26 @@
     },
     {
       "id": "code:app/(workspace)/app/planning/actions.ts",
-      "surfaceFingerprint": "50515aa9d2065b5778a3894fb08d7caab16bb0eaaace5a79cc468e0ed0e16528",
+      "surfaceFingerprint": "f224b52915ad9c1d5488b8ba73f6a252f443956ceafac9485c132a1799a5c2f8",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#native",
-        "docs/integration/sites-v3/phase-10.md",
-        "docs/integration/sites-v3/phase-11.md",
-        "docs/integration/sites-v3/phase-12.md",
-        "docs/integration/sites-v3/phase-15.md",
-        "docs/integration/sites-v3/phase-16.md",
-        "docs/integration/sites-v3/phase-17.md",
-        "docs/integration/sites-v3/phase-18.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-commercial-source-list.mjs",
-        "scripts/test-source-invoice-list.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-planboard.mjs",
-        "scripts/test-management-mutation-replies.mjs"
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
       "id": "code:app/(workspace)/app/planning/page.tsx",
-      "surfaceFingerprint": "228ae1d2bc467cbe7915a0e4aef2328343b12d0b5fe7f8338bfbf5baa6a66fdf",
+      "surfaceFingerprint": "5210da85ca5cde052669c6f8a11c75959d624203d6e1d82e0272aa342133901e",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#native",
-        "docs/integration/sites-v3/phase-10.md",
-        "docs/integration/sites-v3/phase-11.md",
-        "docs/integration/sites-v3/phase-12.md",
-        "docs/integration/sites-v3/phase-15.md",
-        "docs/integration/sites-v3/phase-16.md",
-        "docs/integration/sites-v3/phase-17.md",
-        "docs/integration/sites-v3/phase-18.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-commercial-source-list.mjs",
-        "scripts/test-source-invoice-list.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-planboard.mjs",
-        "scripts/test-management-mutation-replies.mjs"
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -1790,23 +1751,14 @@
     },
     {
       "id": "code:app/(workspace)/app/work-order-actions.ts",
-      "surfaceFingerprint": "1a946e2d0844a6665c1ff3c4a7ebbddaba88465c67bf4db9090c626be687d2ef",
+      "surfaceFingerprint": "e3bbdbc1cd6d902be1c1fb921633b4b063fab4f7bec2dbc1f31a9980c46a2c83",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#native",
-        "docs/integration/sites-v3/phase-10.md",
-        "docs/integration/sites-v3/phase-11.md",
-        "docs/integration/sites-v3/phase-12.md",
-        "docs/integration/sites-v3/phase-15.md",
-        "docs/integration/sites-v3/phase-16.md",
-        "docs/integration/sites-v3/phase-17.md",
-        "docs/integration/sites-v3/phase-18.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-commercial-source-list.mjs",
-        "scripts/test-source-invoice-list.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-planboard.mjs",
-        "scripts/test-management-mutation-replies.mjs"
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -1823,14 +1775,14 @@
     },
     {
       "id": "code:app/(workspace)/app/work-order-related-actions.ts",
-      "surfaceFingerprint": "ebca94b9f5abf3b19b4a4ad7f0707a1c38dbaab02a69ff082fe7fd1413c3ff5c",
-      "status": "controlled",
+      "surfaceFingerprint": "12d18e366e8a89234c98a974c95456ecad6a2d4605d46b0d6eb0b2b0ba684624",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "standard-scan:0b3d3db8-e01f-44cc-b996-d06f22fef2a4",
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
-        "scripts/check-security-surface.mjs",
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#routeverplaatsingen"
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -2461,15 +2413,14 @@
     },
     {
       "id": "code:app/(workspace)/staff/actions.ts",
-      "surfaceFingerprint": "f99a8a91136cfdc7cbd7bb6458ac31199367cc983faa5b3dcfaf5a3a8afde067",
+      "surfaceFingerprint": "d24a7447b33361dae2884147187d5d617065e61f37be793122f3cc3b0244ee5d",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/tenant-branding-address-payment-verification-2026-10-07.md",
-        "app/api/addresses/route.test.ts",
-        "lib/addresses/form.test.ts",
-        "scripts/test-customer-portal.mjs",
-        "tests/e2e/login-branding.spec.ts",
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#routeverplaatsingen"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -2778,23 +2729,14 @@
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
-      "surfaceFingerprint": "839d13fc5ba3dab1ad87e27f1d9d839639c4fbfc49ddc4f53b5831b64a513307",
+      "surfaceFingerprint": "24d380792893aaa9c841ebcbe5b97c2b922f9e0bdabd1790d497cd41a499790b",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#native",
-        "docs/integration/sites-v3/phase-10.md",
-        "docs/integration/sites-v3/phase-11.md",
-        "docs/integration/sites-v3/phase-12.md",
-        "docs/integration/sites-v3/phase-15.md",
-        "docs/integration/sites-v3/phase-16.md",
-        "docs/integration/sites-v3/phase-17.md",
-        "docs/integration/sites-v3/phase-18.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-commercial-source-list.mjs",
-        "scripts/test-source-invoice-list.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-planboard.mjs",
-        "scripts/test-management-mutation-replies.mjs"
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -2815,18 +2757,14 @@
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
-      "surfaceFingerprint": "598f73c375a547a7b120c695e36db37c6e5c54119a1c4d429ffeb69b0e8b6043",
+      "surfaceFingerprint": "6fa84cc818e7bcc2bb158707659bd1808cd704fd936cd67f17641a2c20de3f3c",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#portals",
-        "docs/integration/sites-v3/phase-23.md",
-        "docs/integration/sites-v3/phase-24.md",
-        "scripts/test-sites-v3-staff-portal.mjs",
-        "scripts/test-sites-v3-customer-portal.mjs",
-        "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "lib/tickets/files-origin.test.ts",
-        "tests/e2e/tickets.spec.ts"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -3286,14 +3224,13 @@
     },
     {
       "id": "code:lib/finance/source-invoice-data.ts",
-      "surfaceFingerprint": "0b8b4731c7c62216ba3b968c7acced7838f35e835469c86452e278ec54459a90",
+      "surfaceFingerprint": "5d206e2758087df8c5a2170f988a562cf914e73f5653ff02acf2fb37298f4017",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#finance",
-        "docs/integration/sites-v3/phase-4.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-management-finance.mjs",
-        "scripts/test-management-finance-concurrency.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
         "scripts/test-source-invoice-list.mjs"
       ]
     },
@@ -4319,6 +4256,18 @@
       ]
     },
     {
+      "id": "db:private.contract_series_failures",
+      "surfaceFingerprint": "8afd4b2fddf7570099bd46af8ee747245654d1a9dd65dacef1e79987de50a175",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-operational-chain-upgrade.mjs",
+        "lib/work-orders/recurrence.test.ts"
+      ]
+    },
+    {
       "id": "db:private.crm_activities",
       "surfaceFingerprint": "0e6d89b16a13c5b7c82c0d4156dc468c556ae06e6626104e4a849a9140e6a429",
       "status": "corrected-and-rechecked",
@@ -4584,6 +4533,18 @@
         "scripts/test-work-order-reports.mjs",
         "scripts/test-release-security.mjs",
         "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:private.execution_invoice_receipts",
+      "surfaceFingerprint": "ffdcc8e0f367723079a165e48c6e76fb642d93c6f5e19f8ccb8f3f8b44082fdd",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -5051,6 +5012,18 @@
       ]
     },
     {
+      "id": "db:private.payment_bundle_receipts",
+      "surfaceFingerprint": "4257fa71cee75c15d6ef298f8ed0f5abae373b466d9fc87959b20012c7108c08",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
       "id": "db:private.personnel_number_counters",
       "surfaceFingerprint": "ec76d5f2110119bd7984dd830f248eab8f0f29fc09f86e10ee1cddec21a11dc7",
       "status": "controlled",
@@ -5232,6 +5205,30 @@
       ]
     },
     {
+      "id": "db:private.qualification_followup_checks",
+      "surfaceFingerprint": "8e489f9bb9f8311d3afcd5ad0d72809fa4a7accfe7a355a6a838102aae601d65",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
+      "id": "db:private.qualification_followup_queue",
+      "surfaceFingerprint": "aa652c20d5696ffc924c0c5b34b026693ff95bf8c1a939e1d7afbc15f8fe89aa",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
       "id": "db:private.route_cache",
       "surfaceFingerprint": "cffb5826d3a52e42990ad15b2d6ac17823f126e55a7700430a49398b37f286f0",
       "status": "controlled",
@@ -5408,16 +5405,27 @@
       ]
     },
     {
-      "id": "db:private.work_order_material_finance",
-      "surfaceFingerprint": "0ee36b24c2496569d66ad5186225d99c3ee852f2e67fdac6fb298b0657672c0a",
-      "status": "controlled",
+      "id": "db:private.work_order_material_commercial",
+      "surfaceFingerprint": "9af3fb7896a79e0788610c08849f39cacf56a3e1fd535c25eea56a583939c20a",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-security-catalog.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-planboard.mjs",
-        "docs/implementation/staff-realtime-and-release.md#brondekking"
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
+      "id": "db:private.work_order_material_finance",
+      "surfaceFingerprint": "03ac552b5a0f6328de226eca86c038fd8d2e43eb3427f7cdd0efafa74d51fca3",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -5581,16 +5589,14 @@
     },
     {
       "id": "db:public.certificates",
-      "surfaceFingerprint": "19a0796869b07c7003524a8c961272a9abc4e90b150d672d22c38516723b8e00",
-      "status": "controlled",
+      "surfaceFingerprint": "5c366c9a65e0d9e12035dbaf8cfff556e65d5702075c4e49ae9d4a46db2bb04e",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#restrictive-tables-and-sensitive-projections",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-personnel-numbering.mjs",
-        "supabase/tests/database/personnel_dossier.sql",
-        "supabase/tests/database/personnel_numbering.sql"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -5844,14 +5850,13 @@
     },
     {
       "id": "db:public.invoice_lines",
-      "surfaceFingerprint": "ab5c265e7a1203d05e9382f4ef7bb7570064abb85ce001b9017ebd79dd6ccfd9",
+      "surfaceFingerprint": "89ba47425047192baf93f3f81f6c2d0f1077af8705ffde5025ef52324298a23d",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#finance",
-        "docs/integration/sites-v3/phase-4.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-management-finance.mjs",
-        "scripts/test-management-finance-concurrency.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
         "scripts/test-source-invoice-list.mjs"
       ]
     },
@@ -5897,6 +5902,18 @@
         "scripts/test-notification-delivery.mjs",
         "scripts/test-payment-security.mjs",
         "lib/finance/service-permissions.test.ts"
+      ]
+    },
+    {
+      "id": "db:public.material_catalog",
+      "surfaceFingerprint": "df41dd08f41ddbcacdb95ee808e5dbf5177acf6c1dfd79965fee3e88940d6485",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -6334,44 +6351,38 @@
     },
     {
       "id": "db:public.qualification_requirements",
-      "surfaceFingerprint": "afd6ae88397d6981ed0d9e7e5546a748524a2d63b042d418fd6b1d46d389f782",
-      "status": "controlled",
+      "surfaceFingerprint": "1ff5b91d81af8373586278a141e01285ba59519d9c759994a67fe170cd13657a",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#restrictive-tables-and-sensitive-projections",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-personnel-numbering.mjs",
-        "supabase/tests/database/personnel_dossier.sql",
-        "supabase/tests/database/personnel_numbering.sql"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
       "id": "db:public.qualification_types",
-      "surfaceFingerprint": "2806d078bd28a0c1d54c26b45b1977ee9f828343242e75494b442c5f201a73d8",
-      "status": "controlled",
+      "surfaceFingerprint": "83398f7cf66d19bf1429c9e68534cbb0952eabfe333272dc13d64cf18bace1ab",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#restrictive-tables-and-sensitive-projections",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-personnel-numbering.mjs",
-        "supabase/tests/database/personnel_dossier.sql",
-        "supabase/tests/database/personnel_numbering.sql"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
       "id": "db:public.qualifications",
-      "surfaceFingerprint": "acba393a53d75684c4b170360bbbf79704795b39078a347e338c896cd8cbbfc7",
-      "status": "controlled",
+      "surfaceFingerprint": "bddc32a2c1e086c4c835563cf23522dfcdcc119d404851fa53a3f12992982808",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#restrictive-tables-and-sensitive-projections",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-personnel-numbering.mjs",
-        "supabase/tests/database/personnel_dossier.sql",
-        "supabase/tests/database/personnel_numbering.sql"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -6680,15 +6691,14 @@
     },
     {
       "id": "db:public.tenant_settings",
-      "surfaceFingerprint": "cb76489a0b36bd479174c546c9c0dc9190ef734316e5ce738b1f27024bceb0f5",
-      "status": "controlled",
+      "surfaceFingerprint": "559df90ecf07e9d21a784002ae6b974f7f88ddfbf3a9b76cee32c59f0e4b3998",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#restrictive-tables-and-sensitive-projections",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-tenant-house-style.mjs",
-        "scripts/test-module-security.mjs",
-        "scripts/test-platform-security.mjs",
-        "scripts/test-management-roles.mjs"
+        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-operational-chain-upgrade.mjs",
+        "lib/work-orders/recurrence.test.ts"
       ]
     },
     {
@@ -6880,16 +6890,14 @@
     },
     {
       "id": "db:public.work_order_assignments",
-      "surfaceFingerprint": "df6d89606f76b825d2532f06713601d851da5a586177b8c6927ed1d0a3e54ba9",
-      "status": "controlled",
+      "surfaceFingerprint": "89bacb4c88e38755a4e21eef3837f52fc9054d31cc2d20c56ca32e31d684d01a",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-planboard.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-travel.mjs",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-management-mutation-replies.mjs"
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -6963,16 +6971,14 @@
     },
     {
       "id": "db:public.work_order_material_usage",
-      "surfaceFingerprint": "13aa4d3bb29361dd5b66687e66654eda95b4e5be23d982d4639c6e52f9adb799",
-      "status": "controlled",
+      "surfaceFingerprint": "b20c9759c68f64dbcb3a8c471a8a3247e11f5777cbf4766b4c398f1a221ee6ac",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs"
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -7074,23 +7080,14 @@
     },
     {
       "id": "db:public.work_order_tasks",
-      "surfaceFingerprint": "137c36add0edd79e758d7e00188ca85097d2d4fe5463d18560fe3950d2660d2e",
+      "surfaceFingerprint": "f7639e93dddebe09ac3a57064654e5653faeded77eed76eddce4ed7fea3b57fc",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#native",
-        "docs/integration/sites-v3/phase-10.md",
-        "docs/integration/sites-v3/phase-11.md",
-        "docs/integration/sites-v3/phase-12.md",
-        "docs/integration/sites-v3/phase-15.md",
-        "docs/integration/sites-v3/phase-16.md",
-        "docs/integration/sites-v3/phase-17.md",
-        "docs/integration/sites-v3/phase-18.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-commercial-source-list.mjs",
-        "scripts/test-source-invoice-list.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-planboard.mjs",
-        "scripts/test-management-mutation-replies.mjs"
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -7123,23 +7120,14 @@
     },
     {
       "id": "db:public.work_orders",
-      "surfaceFingerprint": "185ecd9da7c043747cd3a3dadead3e30df279395415c514bcec61268b135e2b6",
+      "surfaceFingerprint": "dab2a1af1efd2e58391f5c95631f4ced423071c3c0f4297e6728d2216d699ad2",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#native",
-        "docs/integration/sites-v3/phase-10.md",
-        "docs/integration/sites-v3/phase-11.md",
-        "docs/integration/sites-v3/phase-12.md",
-        "docs/integration/sites-v3/phase-15.md",
-        "docs/integration/sites-v3/phase-16.md",
-        "docs/integration/sites-v3/phase-17.md",
-        "docs/integration/sites-v3/phase-18.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-commercial-source-list.mjs",
-        "scripts/test-source-invoice-list.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-planboard.mjs",
-        "scripts/test-management-mutation-replies.mjs"
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -7649,20 +7637,13 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "105bf7fc11d94d0259a59bdc98e54a5669eaf80b31bbd0a839e6a33f66aa59da",
+      "surfaceFingerprint": "c7b133e8cc4b90b02326b94dfb5377c493548a12ae78691559705fbafc917d1d",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
-        "docs/integration/sites-v3/phase-1.md",
-        "docs/integration/sites-v3/phase-26.md",
-        "scripts/contract-test-image.sh",
-        "lib/operations/contract-test-image.test.ts",
-        "scripts/test-staging-contract-linux.sh",
-        "scripts/test-production-contract-linux.sh",
-        "scripts/test-standalone-materialization.mjs",
-        "lib/operations/deployment-broker.test.ts",
-        "lib/operations/production-deployment.test.ts",
-        "scripts/test-release-artifact.mjs"
+        "docs/security/operational-chain-review-2026-10-18.md#code-ingangen-en-operationele-bestanden",
+        "docs/security/operational-chain-review-2026-10-18.md#uitgevoerde-hercontrole",
+        "scripts/verify-local-migration-manifest.ts",
+        ".github/workflows/_verify.yml"
       ]
     },
     {
@@ -8101,20 +8082,13 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "8eb31c0ecb31d0e50f29403133487670c99ae16505dfe385316c04208c6cd285",
+      "surfaceFingerprint": "6a2a3b999efee76042824601984856e5622fe4c9be70eef64411a6a708bd9f66",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
-        "docs/integration/sites-v3/phase-1.md",
-        "docs/integration/sites-v3/phase-26.md",
-        "scripts/contract-test-image.sh",
-        "lib/operations/contract-test-image.test.ts",
-        "scripts/test-staging-contract-linux.sh",
-        "scripts/test-production-contract-linux.sh",
-        "scripts/test-standalone-materialization.mjs",
-        "lib/operations/deployment-broker.test.ts",
-        "lib/operations/production-deployment.test.ts",
-        "scripts/test-release-artifact.mjs"
+        "docs/security/operational-chain-review-2026-10-18.md#code-ingangen-en-operationele-bestanden",
+        "docs/security/operational-chain-review-2026-10-18.md#uitgevoerde-hercontrole",
+        "scripts/verify-local-migration-manifest.ts",
+        ".github/workflows/_verify.yml"
       ]
     },
     {
@@ -8539,13 +8513,14 @@
     },
     {
       "id": "rpc:private.assignment_requirements(t uuid, p uuid, w uuid, s timestamp with time zone, e timestamp with time zone)",
-      "surfaceFingerprint": "bccc50ab257068d1466353dc2c39100b645c94b58bacbb186485496dfce1d52f",
-      "status": "controlled",
+      "surfaceFingerprint": "008437305dbce56e11f0594d04f5506511694f191311951ec68fc0eb147ede52",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -8572,6 +8547,18 @@
         "scripts/test-work-order-reports.mjs",
         "scripts/test-release-security.mjs",
         "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.bind_material_catalogue(target_tenant uuid, target_usage uuid, target_material uuid)",
+      "surfaceFingerprint": "73b87efee9305039f531a90c9ba90732bbac49a6b74b90b11a90c257a6242207",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -8708,13 +8695,14 @@
     },
     {
       "id": "rpc:private.check_qualification_scope()",
-      "surfaceFingerprint": "28d81bcdaeeb322af81363deee8a5f4f810d90fc10d96c95d1ca1e36cd2f8d76",
-      "status": "controlled",
+      "surfaceFingerprint": "179f778aad23e1779226de95ab70c6316d73c99c51ed78a8c8ac8dd2be528ad0",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -9078,14 +9066,13 @@
     },
     {
       "id": "rpc:private.cockpit_invoice_list(t uuid, filters jsonb)",
-      "surfaceFingerprint": "605a596271cac8739cad1fe06bf1b320aaf36435942f12ad8637cf7f27a57bca",
+      "surfaceFingerprint": "a01f9b96d973d279f1ba9d89c0679fb2e8b10bbeb109cb41615e15308dbb11bf",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#finance",
-        "docs/integration/sites-v3/phase-4.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-management-finance.mjs",
-        "scripts/test-management-finance-concurrency.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
         "scripts/test-source-invoice-list.mjs"
       ]
     },
@@ -10112,15 +10099,14 @@
     },
     {
       "id": "rpc:private.customer_signature_snapshot(snapshot jsonb)",
-      "surfaceFingerprint": "92c068aad1ef974aed4eb0dc57dfa778fdf31944fb2008fe94e77a94c4593064",
+      "surfaceFingerprint": "3f47385ff9a6bcf8fb76cb769dbff76780b51eb307ea623798af8fe0ca122497",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
         "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -10353,6 +10339,18 @@
       ]
     },
     {
+      "id": "rpc:private.execution_invoice_sources_v2(target_tenant uuid, target_order uuid)",
+      "surfaceFingerprint": "fa702459fc4801f2383b8240d6a276a68be90b00b4e826bd4ed1a391839fffab",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
       "id": "rpc:private.execution_invoice_sources(target_tenant uuid, target_order uuid)",
       "surfaceFingerprint": "8ebc182fdd537567ba516cadc9f03c9edd951a41fdc3994d7735c402ac312cd3",
       "status": "corrected-and-rechecked",
@@ -10385,6 +10383,30 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:private.generate_series_occurrence(target_series uuid, day date)",
+      "surfaceFingerprint": "926465b5b382e3370cc2c20496c097e09d383b5d8797ad4a9512ed7bf603ac91",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-operational-chain-upgrade.mjs",
+        "lib/work-orders/recurrence.test.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.generate_series_range(target_series uuid, from_day date, until_day date)",
+      "surfaceFingerprint": "012214ee2058ad62c16360b6694fe49e266ecd5ddb4d443c6150686c5d5ab3bc",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-operational-chain-upgrade.mjs",
+        "lib/work-orders/recurrence.test.ts"
       ]
     },
     {
@@ -10455,13 +10477,14 @@
     },
     {
       "id": "rpc:private.invoice_source_guard()",
-      "surfaceFingerprint": "9434a28d1316d5e2510d1ff652b8bb919d9a74a9d38ecb085327827b3c42336f",
-      "status": "controlled",
+      "surfaceFingerprint": "18b4a26b77553a77f5d61fc4fe0f003a2229c597b14a69b9caeae4d7008e2858",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -10778,6 +10801,42 @@
         "scripts/test-travel.mjs",
         "tests/e2e/travel.spec.ts",
         "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.material_price_proposal_sync()",
+      "surfaceFingerprint": "9960a0a0d773ec1f7dac3cda4c8b6a307eaf582e0ed622ab7734ab9622296471",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.material_report_source_guard()",
+      "surfaceFingerprint": "69587d07277d335c5bb88a7234ef48874f6506efbc5a9a1d60068a31188e592a",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.material_usage_catalogue_immutable()",
+      "surfaceFingerprint": "8ce1b2bbd394bfe71f79b84cf6dbe3f40da9b2a8d8242cc36e1f0d5999b7b9c3",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -11866,13 +11925,14 @@
     },
     {
       "id": "rpc:private.open_shift_eligible(t uuid, s uuid, p uuid)",
-      "surfaceFingerprint": "a203c81f21da1bab2edcb78c01e63b181136c5af45fcc473fdf7e92696c14d9c",
+      "surfaceFingerprint": "0468108866dba735b9e254a8cc093b3e8c569edf4369db72069515e640497d3a",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_direct_rpc_guards.sql",
-        "scripts/test-security-catalog.mjs",
-        "docs/implementation/staff-personnel-app-traceability.md#werkbon-uitvoering-en-tijd"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -11917,6 +11977,18 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:private.personnel_fit(target_tenant uuid, target_personnel uuid, target_start timestamp with time zone, target_end timestamp with time zone, target_work_order uuid, target_function uuid)",
+      "surfaceFingerprint": "fa3bcd96cf8d565e39be6c2da4bfc392741efac65a2a00233ecd6db9c52477de",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -11978,13 +12050,14 @@
     },
     {
       "id": "rpc:private.planning_assignment_version()",
-      "surfaceFingerprint": "61490577fdd72bea3f7bb9670cadcd4f1db5d9e91a0962279e1e319cf5dc9b82",
-      "status": "controlled",
+      "surfaceFingerprint": "c441c7b08c0d7dbd223b857d7573dfc28cfb86ed1b78aa3a9af9aa133524f3ec",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -12281,14 +12354,39 @@
       ]
     },
     {
-      "id": "rpc:private.qualified_for_period(t uuid, p uuid, c text, s timestamp with time zone, e timestamp with time zone)",
-      "surfaceFingerprint": "390e8c21de1e803cde0ec1585332e703dbd3dd0515a0909286117f14ee7ccd69",
-      "status": "controlled",
+      "id": "rpc:private.qualification_followup_enqueue()",
+      "surfaceFingerprint": "1ece14e67af05dfc438848c3a9c32cf980c75abf207dad257f4e1d50b3b49cba",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.qualified_for_period(t uuid, p uuid, c text, s timestamp with time zone, e timestamp with time zone)",
+      "surfaceFingerprint": "8d3637713a63f4ddcb6a48e47c4d5e57777c080d0c5f29fd958ea72eb68d670e",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.queue_qualification_followup(t uuid, c text, p uuid)",
+      "surfaceFingerprint": "56dc9532960dd10c7a84679ded97bfe0107291c7e894e83d0bf309a145e1aa44",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -12300,6 +12398,18 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:private.rebind_indexed_agreement_line()",
+      "surfaceFingerprint": "b6b26ff1a1c57ffd929da6de12abe3c048d59bdd6b772ef5678bb66931f40368",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-operational-chain-upgrade.mjs",
+        "lib/work-orders/recurrence.test.ts"
       ]
     },
     {
@@ -13125,6 +13235,18 @@
       ]
     },
     {
+      "id": "rpc:private.sync_qualification_followup(t uuid, c text, p uuid)",
+      "surfaceFingerprint": "95c701750492b585b0e0cdcb72da9a788e07dc2c2620db283844f3e781d5c975",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
       "id": "rpc:private.task_execution_allowed(task work_order_tasks)",
       "surfaceFingerprint": "e909c50370385fca2dfe134e345a7bd2cbcd367aeff9c9603c1cfde7a5ad2253",
       "status": "corrected-and-rechecked",
@@ -13725,13 +13847,14 @@
     },
     {
       "id": "rpc:private.validate_work_order_recurrence(rule jsonb)",
-      "surfaceFingerprint": "4796d727057fb95835433191208189d147ac8214f169480beeab6501749b812a",
-      "status": "controlled",
+      "surfaceFingerprint": "97a97a5d7d58a1db3ce5c735b61529913456d02c5ad53d327c0e6ec9fce7ed37",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-operational-chain-upgrade.mjs",
+        "lib/work-orders/recurrence.test.ts"
       ]
     },
     {
@@ -13813,6 +13936,18 @@
       ]
     },
     {
+      "id": "rpc:private.work_order_coverage_sufficient(target_tenant uuid, target_work_order uuid)",
+      "surfaceFingerprint": "3951e4ba38991e2c1dcc37fb58fe3d50f4f50d1491bb5b6581ff533154eb7af3",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
       "id": "rpc:private.work_order_delivery_complete(w work_orders)",
       "surfaceFingerprint": "7a6ba0b0fa57e57fd0de84bd13b434a5ffab19a709e856e010fdadec875c3388",
       "status": "corrected-and-rechecked",
@@ -13879,13 +14014,14 @@
     },
     {
       "id": "rpc:private.work_order_recurrence_matches(rule jsonb, day date)",
-      "surfaceFingerprint": "150cb05df5792ebd8a72fc5d107fed7a9ba414d38da37282227f730513f4fa9e",
-      "status": "controlled",
+      "surfaceFingerprint": "fab65449264a0652dbcb2b5b17c19f6e8c6dc57fdcb0e81c301cc21239cffdb5",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-operational-chain-upgrade.mjs",
+        "lib/work-orders/recurrence.test.ts"
       ]
     },
     {
@@ -13911,16 +14047,27 @@
       ]
     },
     {
-      "id": "rpc:private.work_order_report_snapshot(w work_orders, summary text)",
-      "surfaceFingerprint": "cc77790d40dc01f5ae6a46aaae57afda5e40d7e459e2bd94232e7c31d3b0886e",
+      "id": "rpc:private.work_order_report_snapshot_legacy(w work_orders, summary text)",
+      "surfaceFingerprint": "4ead013895b5f23b854aa6041674bbe24124bff84d8196582cb58964feb576fd",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/secure-dossier-and-live-execution.md#authorization-review",
-        "scripts/test-object360.mjs",
-        "scripts/test-live-planning.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
         "scripts/test-work-order-reports.mjs",
-        "scripts/test-release-security.mjs",
-        "scripts/test-security-catalog.mjs"
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.work_order_report_snapshot(w work_orders, summary text)",
+      "surfaceFingerprint": "13150550eb9b514ff2280d431c6ebcd058676c578d4b1267c1e7fca7583cd48d",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -14213,18 +14360,27 @@
       ]
     },
     {
-      "id": "rpc:public.change_work_order_planning(target_tenant uuid, target_work_order uuid, expected_version bigint, mutation_id uuid, target_start timestamp with time zone, target_end timestamp with time zone, target_assignments jsonb, confirmed_warnings text[], undo_change uuid, appointment_data jsonb)",
-      "surfaceFingerprint": "cb21969b51eb078a7b37571dafe140d0e81282e05d5fb6e4cfe5501b066d37b1",
-      "status": "controlled",
+      "id": "rpc:public.change_work_order_planning_legacy(target_tenant uuid, target_work_order uuid, expected_version bigint, mutation_id uuid, target_start timestamp with time zone, target_end timestamp with time zone, target_assignments jsonb, confirmed_warnings text[], undo_change uuid, appointment_data jsonb)",
+      "surfaceFingerprint": "2e3eaaed9bcf256a1fa8dd3e5a8be91ca5278aa64f405c8ffaa7f3a5064cdaf0",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-planboard.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-travel.mjs",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.change_work_order_planning(target_tenant uuid, target_work_order uuid, expected_version bigint, mutation_id uuid, target_start timestamp with time zone, target_end timestamp with time zone, target_assignments jsonb, confirmed_warnings text[], undo_change uuid, appointment_data jsonb)",
+      "surfaceFingerprint": "e6801e277595a87057c3dad34f554bb5dff75ca7529b42843f3dc4bb912d620c",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -14926,18 +15082,27 @@
       ]
     },
     {
-      "id": "rpc:public.confirm_shift_interest(target_shift_id uuid, target_personnel_id uuid)",
-      "surfaceFingerprint": "25918f5f030276be64cc798ba6e09a0939f38e672cadf049b668a91e3c69e99d",
-      "status": "controlled",
+      "id": "rpc:public.confirm_shift_interest_legacy(target_shift_id uuid, target_personnel_id uuid)",
+      "surfaceFingerprint": "f408436e130d997ee0d038086a58937fb2f532466e4d0f428ede0b807e95daf6",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-planboard.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-travel.mjs",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.confirm_shift_interest(target_shift_id uuid, target_personnel_id uuid)",
+      "surfaceFingerprint": "b27451641f4df9c337ba0ff5170f9928c80f20f549a3cfaa7955408f71c28950",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -14958,18 +15123,26 @@
     },
     {
       "id": "rpc:public.create_execution_invoice(target_tenant uuid, request_id uuid, sources jsonb)",
-      "surfaceFingerprint": "201c17eb545828deda75437d1b189e1d1a38aafbc0469a50762d8de630062efe",
-      "status": "controlled",
+      "surfaceFingerprint": "ee2fbbf06d7693e3c619e63ce5a15d1497e018ea89883d11ea7c8062fc9b4b03",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-payment-security.mjs",
         "scripts/test-customer-payments.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-commercial.mjs",
-        "lib/finance/service-permissions.test.ts",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.create_payment_bundle(target_tenant uuid, invoice_ids uuid[], request_id uuid)",
+      "surfaceFingerprint": "d20de8cb4229d0726ddfad12f2953b6669e6999822269fb7806ae841b63d4e65",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -15281,11 +15454,14 @@
     },
     {
       "id": "rpc:public.customer_portal_invoices(target_tenant uuid, target_account uuid)",
-      "surfaceFingerprint": "ba36ee04593c4a24d8c40f8a03a5114bbcac428d9e7be935ba115033849bac91",
-      "status": "controlled",
+      "surfaceFingerprint": "47b847c55572476293df1b4db79b513477f014e9078ce76ab484b833b210c0da",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -15613,14 +15789,13 @@
     },
     {
       "id": "rpc:public.execution_invoice_concepts(target_tenant uuid, target_order uuid)",
-      "surfaceFingerprint": "11ddf32ffeeda0ecb3bd08b08e5d1204a3f35c7e4414736ed9174594feb533ec",
+      "surfaceFingerprint": "05e2b82d26e1228702634e5080d11c717673a4afc0b6bc832bd6ce75fba65924",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#finance",
-        "docs/integration/sites-v3/phase-4.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-management-finance.mjs",
-        "scripts/test-management-finance-concurrency.mjs",
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
         "scripts/test-source-invoice-list.mjs"
       ]
     },
@@ -15883,18 +16058,51 @@
       ]
     },
     {
-      "id": "rpc:public.mutate_work_order(target_tenant uuid, input jsonb)",
-      "surfaceFingerprint": "66b8e8b7dfec5b9424ca20a0708d5a6981455daf0508feeb772faac43d8418b2",
-      "status": "controlled",
+      "id": "rpc:public.material_catalogue_command(target_tenant uuid, request_id uuid, command text, input jsonb)",
+      "surfaceFingerprint": "e3295c94b078befd8ba485de05fef4c0e2fa829b29ce97b207635d19fea8e433",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.material_catalogue(target_tenant uuid, include_archived boolean)",
+      "surfaceFingerprint": "e0967786fc5736d82a2c6ce9e52d1bfa59322991edf73f65eef8a2d0a5ccc9cb",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.mutate_work_order_legacy(target_tenant uuid, input jsonb)",
+      "surfaceFingerprint": "7a79a8e72071feec0c98c78bb97360768c92d8e26631b40a67701e1ccf58fb96",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.mutate_work_order(target_tenant uuid, input jsonb)",
+      "surfaceFingerprint": "6854d6c5503752dda641e1bfd5fd1179d8ca243e4b177b4150a23c642ac88305",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -16305,6 +16513,30 @@
       ]
     },
     {
+      "id": "rpc:public.planning_candidates(target_tenant uuid, target_work_order uuid, target_start timestamp with time zone, target_end timestamp with time zone)",
+      "surfaceFingerprint": "d88ad1f0f4646e69d72db5d84864e7ef5e397d0d862beca3a6b1d1a6d6983bb0",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.planning_capacity(target_tenant uuid, target_start timestamp with time zone, target_end timestamp with time zone, target_discipline text, target_function uuid)",
+      "surfaceFingerprint": "3279c1fd67aba5d5d6300a0bd0bdfd158fe951aab4bb18924e18a236eed211bb",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
       "id": "rpc:public.platform_account_command(target_user uuid, expected_revision bigint, request_id uuid)",
       "surfaceFingerprint": "43190afa4cba7f61435af6bff45389a40b29c0252875ba143eebbb940c66f1c5",
       "status": "corrected-and-rechecked",
@@ -16448,12 +16680,15 @@
       ]
     },
     {
-      "id": "rpc:public.prepare_provider_payment(payment_token_hash text, expected_mode text)",
-      "surfaceFingerprint": "b2b5f699f55f77b13b3eeb2be60a276c8cf95597a9ebfa7a4588d54449b3660e",
+      "id": "rpc:public.prepare_provider_payment(payment_token_hash text, expected_mode text, expected_profile text)",
+      "surfaceFingerprint": "6e633e830de4628a1aec0e62a2eacf176fdfed06e58039ef98a0650b244f16cc",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/portal-release-verification-2026-10-05.md",
-        "docs/security/customer-portal-verification-2026-10-05.md"
+        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-payment-security.mjs",
+        "scripts/test-customer-payments.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -16468,6 +16703,18 @@
         "scripts/test-management-roles.mjs",
         "supabase/tests/database/staff_report_upload_finalize.sql",
         "docs/architecture/management-rpc-permissions.json"
+      ]
+    },
+    {
+      "id": "rpc:public.process_contract_planning(batch_size integer)",
+      "surfaceFingerprint": "b2ff9e6a55890ec04a71172f64b3897ad40a9d8d9bde565f3aaecec3c39a942e",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-operational-chain-upgrade.mjs",
+        "lib/work-orders/recurrence.test.ts"
       ]
     },
     {
@@ -16503,6 +16750,18 @@
         "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
         "scripts/test-security-catalog.mjs",
         "pnpm test:db"
+      ]
+    },
+    {
+      "id": "rpc:public.process_qualification_followup(batch_size integer)",
+      "surfaceFingerprint": "f9e1e316d3741dc874eafddcdb477661fb4c64cebaef3436d2c9ed6e5c003a13",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -16573,6 +16832,18 @@
         "scripts/test-list-pagination.mjs",
         "scripts/test-release-security.mjs",
         "docs/architecture/management-rpc-permissions.json"
+      ]
+    },
+    {
+      "id": "rpc:public.qualification_catalogue_command(target_tenant uuid, request_id uuid, input jsonb)",
+      "surfaceFingerprint": "a1d40f280a11af45362209fef334321aeb93bf98d16ddc48f31b8c6d918fcc72",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-planboard.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -16683,6 +16954,18 @@
         "lib/platform/workspace-domain-actions.test.ts",
         "lib/tenancy/workspace-domain.test.ts",
         "lib/tenancy/proxy-boundary.test.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.review_material_usage(target_tenant uuid, target_usage uuid, expected_version bigint, input jsonb)",
+      "surfaceFingerprint": "17098dd295dac39f4e5db66d75cad0571aa75114b3812956bdf1c95e17d252ac",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -16922,6 +17205,18 @@
       ]
     },
     {
+      "id": "rpc:public.staff_material_catalogue(target_tenant uuid)",
+      "surfaceFingerprint": "3b77e1883bba922c916dedb94e8a3f6bd772c468cccff5e669b757373dcdaec0",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
       "id": "rpc:public.staff_report_customer_absent(target_tenant uuid, target_report uuid, expected_content_hash text, absence_reason text, idempotency_key uuid)",
       "surfaceFingerprint": "8d77c3507e3d997fa255d01734e83fe28499146436a1fc8beb07dcb10e88c85a",
       "status": "controlled",
@@ -17047,15 +17342,27 @@
       ]
     },
     {
-      "id": "rpc:public.staff_work_order_cost_command(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
-      "surfaceFingerprint": "8868a4f4ed5c44019293dc7aef86b830388da69a0418523aef1253bcb43d3156",
-      "status": "controlled",
+      "id": "rpc:public.staff_work_order_cost_command_legacy(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
+      "surfaceFingerprint": "6eea2a1a91e4dc189b93fe9c5475d7487e1f2e8b35d9c82262acecf61d5a5ce2",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-security-catalog.mjs",
-        "docs/implementation/staff-personnel-app-traceability.md#rapportage-en-ondertekening"
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.staff_work_order_cost_command(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
+      "surfaceFingerprint": "8c402e87f4036563f3f42ce6d164b21ed015efe55d47d7739c5c1cc9832e5f3f",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-planboard.mjs",
+        "scripts/test-operational-chain.mjs",
+        "tests/e2e/work-order-release.spec.ts"
       ]
     },
     {
@@ -17524,33 +17831,51 @@
       ]
     },
     {
-      "id": "rpc:public.work_order_related_command(target_tenant uuid, command_id uuid, command text, input jsonb)",
-      "surfaceFingerprint": "fe9f8f5e6154c3b6e409ac53425288ee8cfa5653387c0a13b0fb660d4c702750",
-      "status": "controlled",
+      "id": "rpc:public.work_order_related_command_legacy(target_tenant uuid, command_id uuid, command text, input jsonb)",
+      "surfaceFingerprint": "b6b7efebd7a33557d90c7162eb42804bcb2e9e07902cc30489c74f5df27512e3",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.work_order_related_command(target_tenant uuid, command_id uuid, command text, input jsonb)",
+      "surfaceFingerprint": "81d0094ef401e5c42579c21874278c5a474b6a6e80c28814d70919759ac0eb9a",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.work_order_related_context_legacy(target_tenant uuid, target_order uuid)",
+      "surfaceFingerprint": "d39d5e7bfb43a13edb49e0bf9b7fc30c7c0a658e693280401cec25cdecdca5b7",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
       "id": "rpc:public.work_order_related_context(target_tenant uuid, target_order uuid)",
-      "surfaceFingerprint": "369f992f1f593cc0fa22fda8fd16be87ccf615aaca53ba2bc898d61f88a37e06",
-      "status": "controlled",
+      "surfaceFingerprint": "db88c3059b8cd88f726b88c34d684644b8fdab33c6106cd93cb83c6858458bb9",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-source-invoice-list.mjs"
       ]
     },
     {
@@ -17582,18 +17907,27 @@
       ]
     },
     {
-      "id": "rpc:public.work_order_series_command(target_tenant uuid, command_id uuid, command text, input jsonb)",
-      "surfaceFingerprint": "dd5d67a7f0b3dbdf53d38aad462af2034d1e26e6ad5689a8aac02ab9e3082c06",
-      "status": "controlled",
+      "id": "rpc:public.work_order_series_command_legacy(target_tenant uuid, command_id uuid, command text, input jsonb)",
+      "surfaceFingerprint": "823ebfd4e1a7b2421ac96c34a07900abfaf850cc0396f05950db7be413793269",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-operational-chain-upgrade.mjs",
+        "lib/work-orders/recurrence.test.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.work_order_series_command(target_tenant uuid, command_id uuid, command text, input jsonb)",
+      "surfaceFingerprint": "a974f834b5e7960458d0773e7a6404e25f6d685318672291971299d62c5deec9",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
+        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "scripts/test-operational-chain.mjs",
+        "scripts/test-operational-chain-upgrade.mjs",
+        "lib/work-orders/recurrence.test.ts"
       ]
     },
     {
