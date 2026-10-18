@@ -18,16 +18,16 @@ test('Operational chain: contract concepts and qualification re-evaluation share
    assert.deepEqual(privileges,{anon:false,authenticated:false,service:false,postgres:true});
   });
   await seedSlaFixture(db,f);
-  const today=(await db.query("select current_date::text as business_day,(current_date+1)::text as tomorrow,(current_date+2)::text as last_day")).rows[0];
+  const today=(await db.query("select business_day::text,(business_day+1)::text as tomorrow,(business_day+2)::text as last_day from (select (clock_timestamp() at time zone timezone)::date business_day from public.tenants where id=$1) tenant_day",[f.tenant])).rows[0];
   const oldLine=(await db.query('select id from public.customer_agreement_lines where tenant_id=$1 and agreement_id=$2',[f.tenant,f.agreement])).rows[0].id;
-  await db.query("update public.customer_agreements set state='active',starts_on=current_date-30,ends_on=null where id=$1",[f.agreement]);
+  await db.query("update public.customer_agreements set state='active',starts_on=$2::date-30,ends_on=null where id=$1",[f.agreement,today.business_day]);
   await db.query("insert into public.work_order_tasks(tenant_id,work_order_id,task_revision_id,task_code,task_name,duration_minutes,quantity,unit,unit_price_cents,vat_basis_points,agreement_line_id,added_by) values($1,$2,$3,'CONTRACT','FICTITIOUS contract visit',30,1,'uitvoering',1200,900,$4,$5)",[f.tenant,f.workOrder,f.revision,oldLine,f.owner]);
 
   const nextAgreement=randomUUID(),nextLine=randomUUID(),indexation=randomUUID();
-  await db.query("insert into public.customer_agreements(id,tenant_id,customer_id,previous_id,version,title,starts_on,state,accepted_by_name,accepted_on,created_by) values($1,$2,$3,$4,2,'FICTITIOUS indexed agreement',current_date+1,'active','FICTITIOUS customer',current_date,$5)",[nextAgreement,f.tenant,f.customer,f.agreement,f.owner]);
+  await db.query("insert into public.customer_agreements(id,tenant_id,customer_id,previous_id,version,title,starts_on,state,accepted_by_name,accepted_on,created_by) values($1,$2,$3,$4,2,'FICTITIOUS indexed agreement',$6::date+1,'active','FICTITIOUS customer',$6::date,$5)",[nextAgreement,f.tenant,f.customer,f.agreement,f.owner,today.business_day]);
   await db.query("insert into public.customer_agreement_lines(id,tenant_id,agreement_id,object_id,task_revision_id,scope,quantity,price_cents,limit_cents,unit,vat_basis_points) values($1,$2,$3,$4,$5,'FICTITIOUS indexed scope',1,1500,1500,'uitvoering',900)",[nextLine,f.tenant,nextAgreement,f.object,f.revision]);
-  await db.query("insert into private.cockpit_indexations(id,tenant_id,agreement_id,customer_id,state,percent_basis_points,effective_on,source_snapshot,source_fingerprint,approved_by,approved_at,processed_agreement_id,created_by) values($1,$2,$3,$4,'Verwerkt',2500,current_date+1,'{}',$5,$6,now(),$7,$6)",[indexation,f.tenant,f.agreement,f.customer,'0'.repeat(64),f.owner,nextAgreement]);
-  await db.query("insert into private.cockpit_indexation_lines(tenant_id,indexation_id,old_line_id,new_line_id,effective_on) values($1,$2,$3,$4,current_date+1)",[f.tenant,indexation,oldLine,nextLine]);
+  await db.query("insert into private.cockpit_indexations(id,tenant_id,agreement_id,customer_id,state,percent_basis_points,effective_on,source_snapshot,source_fingerprint,approved_by,approved_at,processed_agreement_id,created_by) values($1,$2,$3,$4,'Verwerkt',2500,$8::date+1,'{}',$5,$6,now(),$7,$6)",[indexation,f.tenant,f.agreement,f.customer,'0'.repeat(64),f.owner,nextAgreement,today.business_day]);
+  await db.query("insert into private.cockpit_indexation_lines(tenant_id,indexation_id,old_line_id,new_line_id,effective_on) values($1,$2,$3,$4,$5::date+1)",[f.tenant,indexation,oldLine,nextLine,today.business_day]);
 
   const definition={startsOn:today.business_day,endsOn:today.last_day,frequency:'daily',interval:1,weekdays:[1,2,3,4,5,6,7],monthlyMode:'date',monthDay:1,monthPosition:1,monthWeekday:1,startsAt:'08:00',endsAt:'10:00',requiredPersonnel:1};
   const sourceVersion=Number((await db.query('select version from public.work_orders where id=$1',[f.workOrder])).rows[0].version),commandId=randomUUID();
