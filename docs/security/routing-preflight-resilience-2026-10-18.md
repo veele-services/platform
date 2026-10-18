@@ -9,7 +9,11 @@ aangeroepen en behoudt de vaste omgevingsgrenzen: staging is toegestaan via
 `DEPLOY_TARGET=production` en `APP_URL=https://fieldgrid.nl`.
 
 De check gebruikt alleen de bestaande OpenRouteService-sleutel en twee vaste
-trajecten tussen openbare stations. Providerheaders, antwoordlichamen,
+trajecten met de openbare referentiecoördinaten uit de officiële Matrix-
+documentatie. Daarmee controleert de preflight hetzelfde providercontract zonder
+op stationsperrons te snappen: zulke perronsegmenten kunnen voor `foot-walking`
+los liggen van de doorgaande voetgangersgraaf en daardoor een gezonde provider
+ten onrechte als timeout laten eindigen. Providerheaders, antwoordlichamen,
 sleutelwaarden en tenantgegevens worden niet gelogd. De wijziging voegt geen
 nieuwe route, databasebron, rol, grant of browsertoegang toe.
 
@@ -34,6 +38,6 @@ accepteren.
 - `pnpm exec eslint lib/travel/provider-smoke.ts lib/travel/provider-smoke.test.ts`:
   geslaagd.
 - `pnpm typecheck`: geslaagd.
-- De mislukte stagingruns stopten beide vóór backup, migratie, handoff en
+- De mislukte stagingruns stopten vóór backup, migratie, handoff en
   activatie; er is geen gedeeltelijke stagingmutatie ontstaan.
 

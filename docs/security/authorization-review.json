@@ -7193,26 +7193,23 @@
     },
     {
       "id": "operation:.github/workflows/deploy-production.yml",
-      "surfaceFingerprint": "4e026605c47e8ef236b65bcf1f62575022bd2647ce7d8a1b224237842b6bb5b7",
+      "surfaceFingerprint": "685cef063f7d829bbae9371c78bb915547798975a2fabff17117f9444d069527",
       "status": "controlled",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
+        "docs/security/routing-preflight-resilience-2026-10-18.md",
         "lib/operations/production-deployment.test.ts",
-        "lib/env/production-database.test.ts",
-        "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "lib/travel/provider-smoke.test.ts"
       ]
     },
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
-      "surfaceFingerprint": "0d55632df84d3cccb0286ad441778418c7050143af3facf2823463251143b708",
+      "surfaceFingerprint": "ba700ccbc2c48e9b41cc9c1fb7cd8f84671615dc6484013e5d6d49bc3d5e1519",
       "status": "controlled",
       "evidence": [
-        "docs/security/veele-website-review.md",
-        "scripts/test-veele-marketing.mjs",
-        "app/api/veele-website/requests/route.test.ts",
-        "lib/marketing/veele/render.test.ts",
-        "tests/e2e/veele-marketing.spec.ts"
+        "docs/architecture/addresses-and-travel.md",
+        "docs/security/routing-preflight-resilience-2026-10-18.md",
+        "lib/travel/provider-smoke.test.ts"
       ]
     },
     {
@@ -7607,7 +7604,7 @@
     },
     {
       "id": "operation:lib/travel/provider-smoke.ts",
-      "surfaceFingerprint": "7949eb59ee12f82a97d733755046c9a3d7edae7c2698904af35fd15a02c78392",
+      "surfaceFingerprint": "285004cab9f614f497fcc15983717341343542cdaa22ebaeedc1d894b3c2706a",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/routing-preflight-resilience-2026-10-18.md",

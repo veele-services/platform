@@ -137,10 +137,13 @@ systemd, poort of deployroot vereist. De bestaande staging-releaseketen voert de
 forward-only migratie na backup uit.
 
 Vóór stagingmigraties controleert de deployworkflow met de ingestelde sleutel alle
-vier profielen op één traject tussen twee openbare stations. Deze controle schrijft
-geen tenantdata en logt geen sleutel, coördinaten of providerantwoord. Een fout
-blokkeert activatie; `ROUTING_PROVIDER=disabled` is de expliciete handmatige modus.
-Reserveer naast runtimeverbruik vier Matrix-aanvragen per deployment.
+vier profielen op een vast traject uit de openbare OpenRouteService Matrix-
+referentie. Bij een tijdelijke netwerkfout volgt één poging met een tweede
+gepubliceerd referentietraject. Deze controle schrijft geen tenantdata en logt geen
+sleutel, coördinaten of providerantwoord. Een fout blokkeert activatie;
+`ROUTING_PROVIDER=disabled` is de expliciete handmatige modus. Reserveer naast
+runtimeverbruik vier Matrix-aanvragen per deployment, plus maximaal één herhaling
+per profiel bij een tijdelijke netwerkfout.
 
 ## Verificatie en acceptatie
 
