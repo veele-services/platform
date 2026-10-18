@@ -16,7 +16,7 @@
 .co-stages>button:hover{color:var(--brand-action)}.co-stages b{text-align:right;font-weight:600}
 .co-stage-track{height:6px;background:var(--brand-surface);overflow:hidden;border-radius:6px}
 .co-stage-track i{display:block;height:100%;border-radius:inherit;background:#529156}.co-stage-track .co-stage-new{background:#86aac9}.co-stage-track .co-stage-contacted{background:#6598bc}.co-stage-track .co-stage-scheduled{background:#477ea5}.co-stage-track .co-stage-proposal{background:#86b98a}.co-stage-track .co-stage-trial{background:#52a061}
-.co-list{display:grid;align-content:start;flex:1}
+.co-list{display:grid;align-content:start;flex:1;min-height:258px}
 .co-list-row{display:flex;align-items:center;gap:12px;width:100%;min-height:86px;margin:0;padding:15px 0;border:0;border-bottom:1px solid var(--brand-border);background:transparent;color:var(--brand-ink);text-align:left;font:inherit;cursor:pointer}
 .co-list-row:last-child{border-bottom:0}.co-list-row:hover .co-row-title strong{color:var(--brand-action)}.co-list-row>svg:last-child{flex:none;color:#9caeb7;width:15px}
 .co-avatar,.co-action-icon{flex:none;display:grid;place-items:center;width:38px;height:38px;border:1px solid var(--brand-border);border-radius:11px;background:var(--brand-surface);color:#5c8198;font-size:11px;font-weight:600}
