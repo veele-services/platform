@@ -1,7 +1,7 @@
 # Operationele ketens: implementatiematrix
 
 Baseline: `caf992acd9815eef2106042769387058d225e7fd` (`main`, 18 oktober
-2026 gecontroleerd). Deze matrix onderscheidt aanwezige bouwstenen, herstelwerk
+2026 gecontroleerd). Implementatiecommit: `9fef4f2d`. Deze matrix onderscheidt aanwezige bouwstenen, herstelwerk
 en nieuwe functies. De status wordt tijdens de uitvoering bijgewerkt; een rij is
 pas geaccepteerd als database, server, UI, rechten en de genoemde ketentests
 samen slagen.

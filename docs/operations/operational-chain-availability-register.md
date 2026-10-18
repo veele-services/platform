@@ -1,8 +1,8 @@
 # Beschikbaarheidsregister operationele ketens
 
 Datum: 18 oktober 2026. Onderzochte baseline:
-`caf992acd9815eef2106042769387058d225e7fd`. De implementatiecommit wordt na de
-review in dit register vastgelegd. `Lokaal getest` is geen stagingacceptatie.
+`caf992acd9815eef2106042769387058d225e7fd`. Implementatiecommit:
+`9fef4f2d`. `Lokaal getest` is geen stagingacceptatie.
 
 | Functie | Route / ingang | Module en kernrechten | Configuratie | Bewijs-ID's | Omgeving | Status |
 | --- | --- | --- | --- | --- | --- | --- |
