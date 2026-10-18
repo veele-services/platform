@@ -7604,9 +7604,10 @@
     },
     {
       "id": "operation:lib/travel/provider-smoke.ts",
-      "surfaceFingerprint": "2d8a60ac720f745fa42599ca959dc006d5939fbf1ef87b27df61fb29b7ff0594",
+      "surfaceFingerprint": "a6f7e43bfd43b9260881a1c6061403b36e758f9434385f893a3e0c2a9b4c5d8b",
       "status": "corrected-and-rechecked",
       "evidence": [
+        "docs/architecture/staging.md",
         "docs/security/routing-preflight-resilience-2026-10-18.md",
         "lib/travel/provider-smoke.test.ts",
         "docs/security/production-release-boundaries-2026-10-07.md"

@@ -25,28 +25,37 @@ preflight gebruiken daarom voor dit ene profiel de geometry-vrije Directions-
 samenvatting. Die aanvraag gebruikt het bestaande afzonderlijke Directions-budget.
 De overige drie profielen blijven via Matrix lopen.
 
-## Fail-closed gedrag
+## Vereiste kernprofielen en begrensde degradatie
 
 Een netwerkfout of timeout krijgt maximaal één extra poging op een tweede vast
 openbaar traject. Zo blokkeert een lokale graph- of snapstoring niet alsof de
 hele provider onbereikbaar is. Iedere poging is afzonderlijk begrensd op twintig
-seconden. Na twee mislukte pogingen stopt de deployment nog steeds. HTTP-fouten,
-ongeldige JSON, niet-numerieke waarden en een ontbrekend traject blijven zonder
-goedkeuring blokkeren. De extra poging kan dus alleen een tijdelijk
-transportprobleem opvangen en kan geen inhoudelijk ongeldig providerantwoord
-accepteren.
+seconden. Een ontbrekende sleutel, ongeldige providerbasis of storing in een van
+de drie Matrix-kernprofielen blokkeert de deployment nog steeds vóór backup en
+migraties. HTTP-fouten, ongeldige JSON, niet-numerieke waarden en een ontbrekend
+traject worden daarbij nooit als geldig resultaat geaccepteerd.
+
+De publieke ORS-dienst liet op 18 oktober 2026 echter zowel Matrix als Directions
+voor alleen `foot-walking` tweemaal exact time-outen, terwijl de drie
+kernprofielen direct bruikbare antwoorden gaven. Daarom is lopen expliciet een
+optioneel profiel: na twee mislukte pogingen logt de preflight een duidelijke
+degradatie en mag de release doorgaan. Runtime behoudt hetzelfde fail-closed
+datagedrag (`provider_unavailable`), handmatige reistijd blijft bruikbaar en er
+wordt geen nulwaarde of ander fictief resultaat opgeslagen. Een totale
+providerstoring of storing van auto/fiets blijft de release blokkeren.
 
 ## Bewijs
 
 - `lib/travel/provider-smoke.test.ts` controleert alle vier profielen, de
   canonieke omgevingsgrenzen, geheimhouding van providerfouten, twee mislukte
   netwerkpogingen, de wissel naar het tweede openbare traject, de Directions-
-  samenvatting voor lopen en herstel na precies één tijdelijke netwerkfout.
+  samenvatting voor lopen, herstel na precies één tijdelijke netwerkfout,
+  geregistreerde loopdegradatie en blijvende blokkade bij een vereist profiel.
 - `lib/travel/provider.test.ts` controleert dat looptrajecten afzonderlijk via
   Directions lopen, het Directions-budget claimen en nooit fictieve waarden
   krijgen bij een ongeldig antwoord.
 - `pnpm exec vitest run lib/travel/provider.test.ts lib/travel/provider-smoke.test.ts`:
-  19 tests geslaagd.
+  21 tests geslaagd.
 - `pnpm test`: 2.005 tests geslaagd.
 - `pnpm lint`: geslaagd zonder fouten; bestaande marketingwaarschuwingen blijven
   zichtbaar.

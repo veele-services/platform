@@ -30,7 +30,7 @@ export async function checkRoutingProvider(
     log(
       "Automatische routing is expliciet uitgeschakeld; alleen handmatige reistijden.",
     );
-    return;
+    return { degradedProfiles: [] as string[] };
   }
   const key = env.OPENROUTESERVICE_API_KEY;
   if (!key || key.length < 10)
@@ -54,6 +54,7 @@ export async function checkRoutingProvider(
     url.hash
   )
     throw new Error("Ongeldige routingbasis.");
+  const degradedProfiles: string[] = [];
   for (const profile of new Set(
     Object.values(profiles).filter((value): value is string => value !== null),
   )) {
@@ -99,14 +100,27 @@ export async function checkRoutingProvider(
       }
     }
     if (!response) {
-      throw new Error(
-        `Routingcontrole ${profile}: provider niet bereikbaar; deployment niet activeren.`,
-      );
+      const message = `Routingcontrole ${profile}: provider niet bereikbaar.`;
+      if (profile === "foot-walking") {
+        degradedProfiles.push(profile);
+        log(
+          `Routingdegradatie ${profile}: provider niet bereikbaar; handmatige reistijd blijft beschikbaar.`,
+        );
+        continue;
+      }
+      throw new Error(`${message} Deployment niet activeren.`);
     }
-    if (!response.ok)
-      throw new Error(
-        `Routingcontrole ${profile}: HTTP ${response.status}; controleer providersleutel, toegang en limiet.`,
-      );
+    if (!response.ok) {
+      const message = `Routingcontrole ${profile}: HTTP ${response.status}; controleer providersleutel, toegang en limiet.`;
+      if (profile === "foot-walking") {
+        degradedProfiles.push(profile);
+        log(
+          `Routingdegradatie ${profile}: HTTP ${response.status}; handmatige reistijd blijft beschikbaar.`,
+        );
+        continue;
+      }
+      throw new Error(message);
+    }
     let data: {
       durations?: unknown[][];
       distances?: unknown[][];
@@ -115,6 +129,13 @@ export async function checkRoutingProvider(
     try {
       data = await response.json();
     } catch {
+      if (profile === "foot-walking") {
+        degradedProfiles.push(profile);
+        log(
+          `Routingdegradatie ${profile}: ongeldig antwoord; handmatige reistijd blijft beschikbaar.`,
+        );
+        continue;
+      }
       throw new Error(`Routingcontrole ${profile}: ongeldig antwoord.`);
     }
     const values = directionsSummary
@@ -128,10 +149,19 @@ export async function checkRoutingProvider(
         (value) =>
           typeof value === "number" && Number.isFinite(value) && value > 0,
       )
-    )
+    ) {
+      if (profile === "foot-walking") {
+        degradedProfiles.push(profile);
+        log(
+          `Routingdegradatie ${profile}: geen bruikbaar traject; handmatige reistijd blijft beschikbaar.`,
+        );
+        continue;
+      }
       throw new Error(
         `Routingcontrole ${profile}: geen bruikbaar traject ontvangen.`,
       );
+    }
     log(`Basisrouting ${profile}: beschikbaar.`);
   }
+  return { degradedProfiles };
 }
