@@ -2,6 +2,19 @@ import { profiles } from "./model";
 
 const routingCheckAttempts = 2;
 const routingCheckTimeoutMs = 20_000;
+const routingCheckRoutes = [
+  // Den Haag Centraal → Den Haag HS.
+  [
+    [4.3244, 52.0808],
+    [4.322, 52.0695],
+  ],
+  // Utrecht Centraal → Utrecht Vaartsche Rijn. A second public route keeps a
+  // local graph/snap issue from being mistaken for total provider failure.
+  [
+    [5.1102, 52.0893],
+    [5.1217, 52.0787],
+  ],
+] as const;
 
 /** Deployment-only smoke check using public railway stations, never tenant data. */
 export async function checkRoutingProvider(
@@ -55,12 +68,8 @@ export async function checkRoutingProvider(
               Authorization: key,
               "content-type": "application/json",
             },
-            // Den Haag Centraal → Den Haag HS: two public stations, not private addresses.
             body: JSON.stringify({
-              locations: [
-                [4.3244, 52.0808],
-                [4.322, 52.0695],
-              ],
+              locations: routingCheckRoutes[attempt - 1],
               sources: ["0"],
               destinations: ["1"],
               metrics: ["duration", "distance"],

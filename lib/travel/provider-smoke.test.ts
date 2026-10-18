@@ -114,6 +114,18 @@ describe("credential-safe live deployment routing check", () => {
     const log = vi.fn();
     await checkRoutingProvider(env, fetcher, log);
     expect(fetcher).toHaveBeenCalledTimes(5);
+    expect(JSON.parse(String(fetcher.mock.calls[0][1]?.body)).locations).toEqual(
+      [
+        [4.3244, 52.0808],
+        [4.322, 52.0695],
+      ],
+    );
+    expect(JSON.parse(String(fetcher.mock.calls[1][1]?.body)).locations).toEqual(
+      [
+        [5.1102, 52.0893],
+        [5.1217, 52.0787],
+      ],
+    );
     expect(log).toHaveBeenCalledWith(
       expect.stringContaining("nog één begrensde poging"),
     );
