@@ -24,10 +24,10 @@ Datum: 18 oktober 2026. Onderzochte baseline:
 ## Lokaal releasebewijs
 
 - Verse installatie: `pnpm db:reset` en migratiemanifestcontrole groen.
-- Database: 398 pgTAP-tests en 729 Node-integratietests groen.
+- Database: 398 pgTAP-tests en 730 Node-integratietests groen.
 - Applicatie: lint zonder fouten, typecheck, 208 Vitest-bestanden met 2.002
   tests en productiebuild groen.
-- Autorisatie: 1.418 geïnventariseerde server-/RPC-oppervlakken groen.
+- Autorisatie: 1.456 geïnventariseerde server-/RPC-oppervlakken groen.
 - Browser: 135/135 Playwright-scenario's groen, met een echte lokale
   fail-closed ClamAV-socket voor uploadketens.
 - Visueel: capaciteit dag/week, ingeklapte tabletweergave en vaste

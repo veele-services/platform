@@ -961,6 +961,8 @@ begin
       then private.work_order_material_commercial.version+1 else private.work_order_material_commercial.version end;
   return new;
 end $$;
+revoke all on function private.material_price_proposal_sync() from public,anon,authenticated,service_role;
+grant execute on function private.material_price_proposal_sync() to postgres;
 create trigger material_price_proposal_sync after insert or update of unit_price_cents on private.work_order_material_finance
   for each row execute function private.material_price_proposal_sync();
 

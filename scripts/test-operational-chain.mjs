@@ -9,6 +9,14 @@ test('Operational chain: contract concepts and qualification re-evaluation share
  const call=async(sql,args=[],actor=f.owner,role='authenticated')=>{await db.query('savepoint operation');try{await db.query(`set local role ${role}`);await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({role,sub:actor,session_id:f.sessions.get(actor)})]);const result=await db.query(sql,args);await db.query('reset role');await db.query("select set_config('request.jwt.claims','{}',true)");await db.query('release savepoint operation');return result.rows[0]?.data??result.rows}catch(error){await db.query('rollback to savepoint operation');await db.query('release savepoint operation');throw error}};
  const service=(sql,args=[])=>call(sql,args,f.owner,'service_role');
  try{
+  await t.test('private material trigger is executable only by PostgreSQL',async()=>{
+   const privileges=(await db.query(`select
+     has_function_privilege('anon','private.material_price_proposal_sync()','EXECUTE') anon,
+     has_function_privilege('authenticated','private.material_price_proposal_sync()','EXECUTE') authenticated,
+     has_function_privilege('service_role','private.material_price_proposal_sync()','EXECUTE') service,
+     has_function_privilege('postgres','private.material_price_proposal_sync()','EXECUTE') postgres`)).rows[0];
+   assert.deepEqual(privileges,{anon:false,authenticated:false,service:false,postgres:true});
+  });
   await seedSlaFixture(db,f);
   const today=(await db.query("select current_date::text as business_day,(current_date+1)::text as tomorrow,(current_date+2)::text as last_day")).rows[0];
   const oldLine=(await db.query('select id from public.customer_agreement_lines where tenant_id=$1 and agreement_id=$2',[f.tenant,f.agreement])).rows[0].id;

@@ -42,8 +42,8 @@ samen slagen.
 | Verse database-installatie | Groen met volledige `db reset` |
 | Upgrade vanaf `20261016001315` met representatieve legacydata | Groen; IDs/historie behouden en nieuwe defaults gesloten |
 | Typecheck en lint | Groen; lint bevat uitsluitend 38 bestaande marketingwaarschuwingen |
-| Brede unit-, build- en securitygates | Groen: 208 Vitest-bestanden / 2.002 tests, productiebuild, migratiemanifest en 1.418 autorisatieoppervlakken |
-| Volledige databasegate | Groen: 398 pgTAP-tests en 729 Node-integratietests op een verse lokale Supabase-installatie |
+| Brede unit-, build- en securitygates | Groen: 208 Vitest-bestanden / 2.002 tests, productiebuild, migratiemanifest en 1.456 autorisatieoppervlakken |
+| Volledige databasegate | Groen: 398 pgTAP-tests en 730 Node-integratietests op een verse lokale Supabase-installatie |
 | Volledige browserreleasegate | Groen: 135/135 Playwright-scenario's met fail-closed lokale ClamAV-scan; desktop-, tablet- en mobiele bewijzen bekeken |
 | Stagingpromotie en exacte health/worker | Wacht op review en groene main-CI |
 | Echte Mollie-testmodusacceptatie | Externe acceptatie; nog niet uitgevoerd |
@@ -80,7 +80,7 @@ profiel ingevuld.
 | HER-01–08 | `test-operational-chain.mjs`, upgradepad, recurrence-unittests en workerroute-build | Staging-workeracceptatie staat nog open |
 | FAC-01–06 | `test-source-invoice-list.mjs`, rapport-/portaal-/PDF-tests en dossier-/factuur-E2E | Echte boekhoudexport valt buiten deze opdracht |
 | BET-01–07 | payment-security, customer-payment en concurrencytests | Legacy zonder profiel blijft zichtbaar geblokkeerd; BET-08 extern open |
-| SEC-01 | bestaande autorisatiegates, nieuwe directe RPC-negatieve tests en `security:review` over 1.418 oppervlakken | Staging blijft aan de bestaande omgevingsgrenzen gebonden |
+| SEC-01 | bestaande autorisatiegates, nieuwe directe RPC-negatieve tests en `security:review` over 1.456 oppervlakken | Staging blijft aan de bestaande omgevingsgrenzen gebonden |
 | MIG-01 | `test-operational-chain-upgrade.mjs` | Staging forward migration volgt na review |
 | UX-01 | 135/135 browsertests; capaciteit en beschikbaarheid visueel bekeken op desktop/tablet/mobiel | Nog niet als staging geaccepteerd |
 
