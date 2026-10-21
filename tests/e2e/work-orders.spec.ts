@@ -92,11 +92,11 @@ test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzett
   await wizard.getByLabel("Titel", { exact: true }).fill(title);
   await wizard.getByLabel("Dienstcategorie", { exact: true }).fill("Onderhoud");
   await wizard.getByLabel("Taak toevoegen", { exact: true }).selectOption("e5000000-0000-4000-8000-000000000001");
-  await wizard.getByLabel("Hoeveelheid (task)", { exact: true }).fill("6");
+  await wizard.getByLabel("Hoeveelheid (taak)", { exact: true }).fill("6");
   await wizard.getByRole("button", { name: "Vorige" }).click();
   await wizard.getByRole("button", { name: "Volgende" }).click();
   await expect(wizard.getByLabel("Titel", { exact: true })).toHaveValue(title);
-  await expect(wizard.getByLabel("Hoeveelheid (task)", { exact: true })).toHaveValue("6");
+  await expect(wizard.getByLabel("Hoeveelheid (taak)", { exact: true })).toHaveValue("6");
   await wizard.getByRole("button", { name: "Volgende" }).click();
   await wizard.getByLabel("Instructies voor deze werkbon", { exact: true }).fill("Vandaag extra aandacht voor de entree.");
   await wizard.getByRole("button", { name: "Volgende" }).click();
@@ -156,6 +156,8 @@ test("werkbonwizard bewaart een aankomstvenster en plant twee individuele inzett
   await page.getByRole("combobox",{name:"Facturatie",exact:true}).selectOption("not_ready");
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/planning=tentative/);
+  await expect(page).toHaveURL(/execution=planned/);
+  await expect(page).toHaveURL(/billing=not_ready/);
   await expect(page.locator(".resource-table tbody tr")).toHaveCount(1);
   await page.locator(".resource-table").getByRole("button",{name:/^Meer acties voor WB/}).click();
   await page.getByRole("link",{name:"Volledige werkbon",exact:true}).click();
