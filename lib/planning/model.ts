@@ -24,6 +24,7 @@ export type Crew = {
   }>;
 };
 export type PlanningOrder = {
+  visitId?:string;hasVisits?:boolean;
   id: string;
   number: string;
   customerId: string;
@@ -136,7 +137,7 @@ export type PlanningResult =
     }
   | { ok: false; code: "conflict" | "error"; error: string };
 export const canPlan = (order: PlanningOrder) =>
-  ["planned", "released", "seen", "travelling"].includes(order.status) &&
+  !order.hasVisits && !order.visitId && ["planned", "released", "seen", "travelling"].includes(order.status) &&
   !order.actualStart;
 export const overlap = (
   aStart: string,

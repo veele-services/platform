@@ -7,7 +7,7 @@ export const objectTabs = [
   ["toegang", "Toegang & beveiligde gegevens"], ["diensten", "Diensten & werkprogramma"], ["afspraken", "Afspraken"],
   ["instructies", "Instructies & taken"], ["werkbonnen", "Werkbonnen & rapporten"], ["kwaliteit", "Kwaliteit & incidenten"],
   ["commercieel", "Aanvragen & offertes"],
-  ["materialen", "Materialen & voorzieningen"], ["documenten", "Documenten & plattegronden"], ["tijdlijn", "Tijdlijn"],
+  ["items", "Items"], ["materialen", "Materialen & voorzieningen"], ["documenten", "Documenten & plattegronden"], ["tijdlijn", "Tijdlijn"],
 ] as const;
 export type ObjectTab = typeof objectTabs[number][0];
 export const objectStates = { draft: "Concept", active: "Actief", paused: "Gepauzeerd", archived: "Gearchiveerd" } as const;

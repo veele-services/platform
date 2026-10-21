@@ -875,7 +875,7 @@ export function DayPlanboard({
                     const editable = canPlan(order) && !busy;
                     return (
                       <div
-                        key={assignment.id}
+                        key={`${order.visitId??"base"}:${assignment.id}`}
                         className={`pb-bon ${editable ? "" : "pb-bon-locked"} ${right - left < 80 ? "pb-bon-narrow" : ""}`}
                         style={{ ...assignmentStatusStyle(status), left, width: right - left }}
                         data-order-id={order.id}

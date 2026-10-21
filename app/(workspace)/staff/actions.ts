@@ -132,7 +132,7 @@ const dayCommandSchema = z.discriminatedUnion("command", [
   z.object({ command: z.enum(["confirm", "reopen"]), dayReviewId: z.string().uuid(), version: z.number().int().nonnegative(), note: nullableText(1000), idempotencyKey: z.string().uuid() }).strict(),
 ]);
 const workOrderCostCommandSchema = z.discriminatedUnion("command", [
-  z.object({ command: z.literal("add_material"), workOrderId: z.string().uuid(), taskId: z.string().uuid().nullable(), catalogItemId:z.string().uuid().nullable(), description: z.string().trim().min(2).max(300), quantity: z.number().positive().max(10_000), unit: z.string().trim().min(1).max(40), unitPriceCents: z.number().int().min(0).max(10_000_000), customerVisible: z.boolean(), idempotencyKey: z.string().uuid() }).strict(),
+  z.object({ command: z.literal("add_material"), targetId:z.string().uuid().optional(), workOrderId: z.string().uuid(), taskId: z.string().uuid().nullable(), catalogItemId:z.string().uuid().nullable(), description: z.string().trim().min(2).max(300), quantity: z.number().positive().max(10_000), unit: z.string().trim().min(1).max(40), unitPriceCents: z.number().int().min(0).max(10_000_000), customerVisible: z.boolean(), idempotencyKey: z.string().uuid() }).strict(),
   z.object({ command: z.literal("remove_material"), workOrderId: z.string().uuid(), materialId: z.string().uuid(), idempotencyKey: z.string().uuid() }).strict(),
   z.object({ command: z.literal("add_expense"), workOrderId: z.string().uuid(), description: z.string().trim().min(2).max(300), amountCents: z.number().int().min(1).max(100_000_000), customerVisible: z.boolean(), idempotencyKey: z.string().uuid() }).strict(),
   z.object({ command: z.literal("remove_expense"), workOrderId: z.string().uuid(), expenseId: z.string().uuid(), version: z.number().int().nonnegative(), idempotencyKey: z.string().uuid() }).strict(),
@@ -366,6 +366,7 @@ export async function runStaffWorkOrderCostCommand(input: StaffWorkOrderCostComm
       rpcCommand = "material.create";
       rpcInput = { orderId: parsed.workOrderId, taskId: parsed.taskId, description: parsed.description, quantity: parsed.quantity, unit: parsed.unit, unitPriceCents: parsed.unitPriceCents, customerVisible: parsed.customerVisible };
       if(parsed.catalogItemId)rpcInput.materialId=parsed.catalogItemId;
+      if(parsed.targetId)rpcInput.targetId=parsed.targetId;
     } else if (parsed.command === "remove_material") {
       rpcCommand = "material.delete";
       rpcInput = { id: parsed.materialId };

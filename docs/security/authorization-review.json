@@ -1751,14 +1751,15 @@
     },
     {
       "id": "code:app/(workspace)/app/work-order-actions.ts",
-      "surfaceFingerprint": "e3bbdbc1cd6d902be1c1fb921633b4b063fab4f7bec2dbc1f31a9980c46a2c83",
+      "surfaceFingerprint": "2ae668e28cf1c650e210006279ca2658c3078a991f54bce996aa3399a4fc24ae",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-planboard.mjs",
-        "scripts/test-operational-chain.mjs",
-        "tests/e2e/work-order-release.spec.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/task-controls.spec.ts"
       ]
     },
     {
@@ -2413,14 +2414,15 @@
     },
     {
       "id": "code:app/(workspace)/staff/actions.ts",
-      "surfaceFingerprint": "d24a7447b33361dae2884147187d5d617065e61f37be793122f3cc3b0244ee5d",
+      "surfaceFingerprint": "ddf1ea938a62ee2cb6f089a404eb77168c23fcbd639ff2723ee133ef2da3a12b",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-planboard.mjs",
-        "scripts/test-operational-chain.mjs",
-        "tests/e2e/work-order-release.spec.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/task-controls.spec.ts"
       ]
     },
     {
@@ -2729,14 +2731,15 @@
     },
     {
       "id": "code:components/fieldgrid/planboard/day-planboard.tsx",
-      "surfaceFingerprint": "24d380792893aaa9c841ebcbe5b97c2b922f9e0bdabd1790d497cd41a499790b",
+      "surfaceFingerprint": "c35a538832bb214b860feb0a43d097256a12de7fcd4a139396d21bd5b18d0a24",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-planboard.mjs",
-        "scripts/test-operational-chain.mjs",
-        "tests/e2e/work-order-release.spec.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/task-controls.spec.ts"
       ]
     },
     {
@@ -2757,30 +2760,26 @@
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
-      "surfaceFingerprint": "6fa84cc818e7bcc2bb158707659bd1808cd704fd936cd67f17641a2c20de3f3c",
+      "surfaceFingerprint": "608a454cad2c6c6842f25bf05b4ebf97f77d865a8c2818d6743cf05e5f48669f",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-planboard.mjs",
-        "scripts/test-operational-chain.mjs",
-        "tests/e2e/work-order-release.spec.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-work-order-lineage.mjs",
+        "tests/e2e/task-controls.spec.ts"
       ]
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
-      "surfaceFingerprint": "dc417410685acaf7bb5f9d1bcfeb227817c887d3b92ee3c686c196914e1f1c38",
+      "surfaceFingerprint": "2df213aa6716c51beff7bf11a13c98b6ca65db2e0def7d468b7427a4764dc625",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#portals",
-        "docs/integration/sites-v3/phase-23.md",
-        "docs/integration/sites-v3/phase-24.md",
-        "scripts/test-sites-v3-staff-portal.mjs",
-        "scripts/test-sites-v3-customer-portal.mjs",
-        "scripts/test-customer-portal.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "lib/tickets/files-origin.test.ts",
-        "tests/e2e/tickets.spec.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/task-controls.spec.ts"
       ]
     },
     {
@@ -3726,12 +3725,28 @@
     },
     {
       "id": "code:lib/tasks/actions.ts",
-      "surfaceFingerprint": "de6cbbeb490c51ea4cd1fdc3c697f29b32c1be29e372f858225331f47a960b0b",
+      "surfaceFingerprint": "56898fe8ff0d77d312d1ebedd643e6c3318aabd3eecbdf844ef29346fd555374",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/2026-10-06-work-order-management.md",
-        "scripts/test-task-catalogue.mjs",
-        "tests/e2e/task-catalogue.spec.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/task-controls.spec.ts"
+      ]
+    },
+    {
+      "id": "code:lib/tasks/control-actions.ts",
+      "surfaceFingerprint": "77398214497fc51b398696e54030bc2eb49861af32b4a90b65242090663e2cc2",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/task-controls.spec.ts"
       ]
     },
     {
@@ -3753,6 +3768,32 @@
         "scripts/test-source-invoice-list.mjs",
         "scripts/test-planboard.mjs",
         "scripts/test-management-mutation-replies.mjs"
+      ]
+    },
+    {
+      "id": "code:lib/tasks/norm-actions.ts",
+      "surfaceFingerprint": "f90da1c7b358463faf7e3a28cfa32a69045010f140f2bdfd094d65412038ff38",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/task-controls.spec.ts"
+      ]
+    },
+    {
+      "id": "code:lib/tasks/visit-actions.ts",
+      "surfaceFingerprint": "5c042861ff2652dd875a5f87433ebcb5793b80314793380ffd42e58b50bb0205",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
+        "tests/e2e/task-controls.spec.ts"
       ]
     },
     {
@@ -5262,6 +5303,138 @@
       ]
     },
     {
+      "id": "db:private.task_item_history",
+      "surfaceFingerprint": "08b06fcc43809e2604f561cd8ddbee8cf8d25c93fdeebbe6f52411db6f097cbd",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:private.task_items",
+      "surfaceFingerprint": "7233a19d2fd404c7c7a3eac86920b3759d7b35933d02c6986e66f4db622a6c1c",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:private.task_norm_decisions",
+      "surfaceFingerprint": "044f8d80864f505070cb4bce72120a76cad21a22483bdefe1c7b405afc561def",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:private.task_norm_policies",
+      "surfaceFingerprint": "6d44ed06816a0f9ab9fe1a91e2f5557b56bd46278be012667a244e34168f20b1",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:private.task_norm_versions",
+      "surfaceFingerprint": "fa7725001a8deb216f76bc5ae52388753bec02ea35a68a0e8f2f6d74cf0ae0ad",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:private.task_target_executions",
+      "surfaceFingerprint": "698af6e4119c1f65be7d5fa09f8af3c83920d598c16388735e106c5e0063f733",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:private.task_targets",
+      "surfaceFingerprint": "39963b8248fe693fc059a0adc1893a8099fc167b6bf8b22834e1a906cf17ece3",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:private.task_time_allocations",
+      "surfaceFingerprint": "8f776d684f688136c8a412679b0478275d62b4cf4015b4e1ca336c1916858758",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:private.task_visit_crew",
+      "surfaceFingerprint": "a042003296b3ecfb9c2bb2140b78dbf2c4947ec4af760363d63e296301b7a99e",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:private.task_visit_sessions",
+      "surfaceFingerprint": "d963697461dfda10510fbf7c0a4c2103598a930222b0ef828502d63760a46ce9",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "db:private.task_visits",
+      "surfaceFingerprint": "64b90077bd9588616f44f6519755e737ab66e7b60a6cad18a77c9282af40ccbb",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
       "id": "db:private.ticket_audit",
       "surfaceFingerprint": "d6568fbe289caa44c8a0156ffb42b57b37dce448ee2d2df3b355855057995d31",
       "status": "controlled",
@@ -5850,14 +6023,16 @@
     },
     {
       "id": "db:public.invoice_lines",
-      "surfaceFingerprint": "89ba47425047192baf93f3f81f6c2d0f1077af8705ffde5025ef52324298a23d",
+      "surfaceFingerprint": "f9edc10d2253fb35aeb8fb4c0eb1f7d2337039b9ee9d2f91bffdb576a9b25745",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#facturen-en-betalingen",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-payment-security.mjs",
-        "scripts/test-customer-payments.mjs",
-        "scripts/test-source-invoice-list.mjs"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-work-order-lineage.mjs"
       ]
     },
     {
@@ -6587,15 +6762,14 @@
     },
     {
       "id": "db:public.task_revisions",
-      "surfaceFingerprint": "1bb5cff980b284854fd04b1a456932a57041a359463082f042a666b750886c43",
-      "status": "controlled",
+      "surfaceFingerprint": "6a1c9534a7e4a8e6f6a11098a1d5c1c89c543a80b5f01229887eed86e7536f5b",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#restrictive-tables-and-sensitive-projections",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-reports.mjs"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -6835,16 +7009,14 @@
     },
     {
       "id": "db:public.time_entries",
-      "surfaceFingerprint": "1fe8c43822c57eef5f529804ecb2c21200949a08a6f73f8b4a3fc29d87ec6fdf",
-      "status": "controlled",
+      "surfaceFingerprint": "a79d13654b31dbb8208be5db89ddbfafd9f4c0877549838dc12711adfe28b84c",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#restrictive-tables-and-sensitive-projections",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-personnel-numbering.mjs",
-        "supabase/tests/database/personnel_dossier.sql",
-        "supabase/tests/database/personnel_numbering.sql"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -6890,14 +7062,14 @@
     },
     {
       "id": "db:public.work_order_assignments",
-      "surfaceFingerprint": "89bacb4c88e38755a4e21eef3837f52fc9054d31cc2d20c56ca32e31d684d01a",
+      "surfaceFingerprint": "f36baa91aadc230cafb1d457fb960210ab789c75d697b98c972f51f447bcf0a1",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-planboard.mjs",
-        "scripts/test-operational-chain.mjs",
-        "tests/e2e/work-order-release.spec.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -6916,16 +7088,14 @@
     },
     {
       "id": "db:public.work_order_checklists",
-      "surfaceFingerprint": "a4920a9cb5b52c246828f573b23a2f0cd80132b537734af6fabc6107cd0a5532",
-      "status": "controlled",
+      "surfaceFingerprint": "9e1aa41d470f0c567f9264e5836af792fcab453a4d9df27c56fdc5d4a7e8ff6c",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -7080,28 +7250,26 @@
     },
     {
       "id": "db:public.work_order_tasks",
-      "surfaceFingerprint": "f7639e93dddebe09ac3a57064654e5653faeded77eed76eddce4ed7fea3b57fc",
+      "surfaceFingerprint": "996bd973b73eaa552e742c0c102b886f23b2bdf6039e71a8c020c590022fbcda",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-planboard.mjs",
-        "scripts/test-operational-chain.mjs",
-        "tests/e2e/work-order-release.spec.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "db:public.work_order_template_versions",
-      "surfaceFingerprint": "a3e78907c41a69c0e2a15223e35cab296d4f2eefa1ad7a97424b80bbecf0d795",
-      "status": "controlled",
+      "surfaceFingerprint": "4e5d712bd8127c074bc99d8c4de006bb3e285c9b7496c4474ddbb7699b475699",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -7633,13 +7801,14 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "c7b133e8cc4b90b02326b94dfb5377c493548a12ae78691559705fbafc917d1d",
+      "surfaceFingerprint": "ac53be0a22c744ee686463bd4912cd65b2a8b96f81d193904d8e13ab574841d2",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#code-ingangen-en-operationele-bestanden",
-        "docs/security/operational-chain-review-2026-10-18.md#uitgevoerde-hercontrole",
-        "scripts/verify-local-migration-manifest.ts",
-        ".github/workflows/_verify.yml"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -7663,28 +7832,26 @@
     },
     {
       "id": "operation:pnpm-lock.yaml",
-      "surfaceFingerprint": "e2fa9b93b0f9f79ba46ff5282880f134f0c1a09a7211bff4416b253b5234eca0",
+      "surfaceFingerprint": "824ccc2fd429759da5736fb3cf4dc92c0ce3c7f0af2e0f7249aff0034f151f8f",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
-        "docs/integration/sites-v3/phase-1.md",
-        "docs/integration/sites-v3/phase-26.md",
-        "scripts/contract-test-image.sh",
-        "lib/operations/contract-test-image.test.ts",
-        "scripts/test-staging-contract-linux.sh",
-        "scripts/test-production-contract-linux.sh",
-        "scripts/test-standalone-materialization.mjs",
-        "lib/operations/deployment-broker.test.ts",
-        "lib/operations/production-deployment.test.ts",
-        "scripts/test-release-artifact.mjs"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "operation:pnpm-workspace.yaml",
-      "surfaceFingerprint": "2f0b496da55567a312aaffc057340a47ec178cc7ee8b0a1422cb8604aa63e199",
+      "surfaceFingerprint": "d5697adf4eaf587097fb303064ecf69f6422b377fbdef59dbe6454bfb8787904",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "The sole audit exception is paired with a committed local patch for GHSA-vfj7-8cjw-p6xm and executable regression coverage; remove both after an official fixed release (2026-10-03)."
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -8078,13 +8245,13 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "6a2a3b999efee76042824601984856e5622fe4c9be70eef64411a6a708bd9f66",
+      "surfaceFingerprint": "e9cd36b35d5876c60e32628cb96af9ea852a748719c9bd34a13c5442af64465f",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#code-ingangen-en-operationele-bestanden",
-        "docs/security/operational-chain-review-2026-10-18.md#uitgevoerde-hercontrole",
-        "scripts/verify-local-migration-manifest.ts",
-        ".github/workflows/_verify.yml"
+        "docs/security/task-controls-authorization-review.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-work-order-lineage.mjs",
+        "tests/e2e/task-controls.spec.ts"
       ]
     },
     {
@@ -10383,14 +10550,14 @@
     },
     {
       "id": "rpc:private.generate_series_occurrence(target_series uuid, day date)",
-      "surfaceFingerprint": "926465b5b382e3370cc2c20496c097e09d383b5d8797ad4a9512ed7bf603ac91",
+      "surfaceFingerprint": "84ef8900a74a5c6f215906090a6da5ae64d16a2e64f9edfaa162b87ce017ab94",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-operational-chain.mjs",
-        "scripts/test-operational-chain-upgrade.mjs",
-        "lib/work-orders/recurrence.test.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -11977,14 +12144,16 @@
     },
     {
       "id": "rpc:private.personnel_fit(target_tenant uuid, target_personnel uuid, target_start timestamp with time zone, target_end timestamp with time zone, target_work_order uuid, target_function uuid)",
-      "surfaceFingerprint": "fa3bcd96cf8d565e39be6c2da4bfc392741efac65a2a00233ecd6db9c52477de",
+      "surfaceFingerprint": "0978d464d360723889498708c3627768ed6357bc9d6ae6654c25a790bf13d41c",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
         "scripts/test-planboard.mjs",
-        "scripts/test-operational-chain.mjs",
-        "tests/e2e/work-order-release.spec.ts"
+        "scripts/test-live-planning.mjs"
       ]
     },
     {
@@ -12035,13 +12204,16 @@
     },
     {
       "id": "rpc:private.planning_assignment_guard()",
-      "surfaceFingerprint": "b306bc8fbd30383bf33471f0b288fbebede98136a14b7db6d893df6dce02ad78",
-      "status": "controlled",
+      "surfaceFingerprint": "03cd740d1d2e782d44e9925d2cc51caf7763e0165af1fe3f9304ed07612fcdc6",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
         "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "scripts/test-planboard.mjs",
+        "scripts/test-live-planning.mjs"
       ]
     },
     {
@@ -12410,12 +12582,16 @@
     },
     {
       "id": "rpc:private.refresh_live_planning(t uuid)",
-      "surfaceFingerprint": "eb56fab37abd7fe2eef0483fffc516155116a90ad756431e8224a6b7e4a9f97d",
+      "surfaceFingerprint": "1191a7187b35bb877850a0fd151f7b4948c152f619b5591cbe4e81a7d2c361f3",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/2026-10-06-work-order-management.md",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-work-orders.mjs"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
+        "scripts/test-planboard.mjs",
+        "scripts/test-live-planning.mjs"
       ]
     },
     {
@@ -13127,14 +13303,14 @@
     },
     {
       "id": "rpc:private.staff_task_dto(task work_order_tasks)",
-      "surfaceFingerprint": "19002d6a6eea357abcd2799d0bb398910085a4b7c5dd5e74e42faf7463fb5d3a",
-      "status": "controlled",
+      "surfaceFingerprint": "a23b359fc79578ed35b6555956212905fbee0cf78cd25553a33ceddebb49d609",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-security-catalog.mjs",
-        "docs/implementation/staff-personnel-app-traceability.md#rapportage-en-ondertekening"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -13243,13 +13419,111 @@
       ]
     },
     {
-      "id": "rpc:private.task_execution_allowed(task work_order_tasks)",
-      "surfaceFingerprint": "e909c50370385fca2dfe134e345a7bd2cbcd367aeff9c9603c1cfde7a5ad2253",
+      "id": "rpc:private.task_allocation_guard()",
+      "surfaceFingerprint": "d20051c09e673ae57a166642ad4cd4f32749f9955dae967c225eb56999688433",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/2026-10-06-work-order-management.md",
-        "scripts/test-work-order-reports.mjs",
-        "lib/staff/work-order-completion.test.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_assignment_session_close()",
+      "surfaceFingerprint": "6200abc0ae129d5f8da306f01747c7e18c6bfbbd6ec153c63e8ca6034280ad60",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_checklist_attach(t uuid, w uuid, task uuid, execution uuid, revision uuid)",
+      "surfaceFingerprint": "39f43d898e9caf2ea7f0c65c99d55fecb40b33356a2a9a9842d8c3e47c1228f1",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_checklist_ready(checklist uuid)",
+      "surfaceFingerprint": "5cee90031526f25daaac744db380b561b8a885d3d594215b4db57ca57a791528",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_checklist_rule_guard()",
+      "surfaceFingerprint": "23b5bae9d20edd938ac9c04e2ebfcd605ce79a3d6600ca77a8148d61420abf60",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_control_access(t uuid, w uuid, write_access boolean)",
+      "surfaceFingerprint": "94e18c85a62f0f1d1eb4f95574eec9add4d033f182d26708239c31ca1781d4a0",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_control_defaults()",
+      "surfaceFingerprint": "5c083156fd031e3aaf7d0ba65a6cbf50b641dd11fb6dd4ab6aa51d5e6caa23b9",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_execution_allowed(task work_order_tasks)",
+      "surfaceFingerprint": "4d1e01a58737c81670c806b3406c3b7f7594616a3984ec946bf5d0f29cd671e4",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_execution_config(t uuid, c jsonb)",
+      "surfaceFingerprint": "5cac596b502c2e5c13a63f164e2088b41053cce82f9d159c2bba99211d3d3832",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -13264,12 +13538,158 @@
       ]
     },
     {
-      "id": "rpc:private.task_revision_requirements_immutable()",
-      "surfaceFingerprint": "27b19c1bdb984289468986669da9f2b16419fcc332e31c28b2ff402223f2da4e",
+      "id": "rpc:private.task_norm_analysis(t uuid, task uuid, variant text)",
+      "surfaceFingerprint": "397596d6d83d3f682c827f55ce5eb2e0c7d80f12e63993e5694fa3f8c49321d4",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/2026-10-06-work-order-management.md",
-        "scripts/test-task-catalogue.mjs"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_norm_snapshot(r task_revisions, on_day date, variant_key text)",
+      "surfaceFingerprint": "48952c23b419576fdb5c373afab15e108a607434abb45c21e88bf35814c79a65",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_planboard_day_order(w uuid, day_start timestamp with time zone, day_end timestamp with time zone)",
+      "surfaceFingerprint": "08c9cef07b816b82e1d31318ad61e36dba4de0b863a2cc825288947f4004e578",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_refresh_budget(task uuid)",
+      "surfaceFingerprint": "e58dc49aade92cd960ede2bed37ce17752aa1b85becc0d536c400179422b7e4e",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_related_goals(source work_order_tasks, receiver uuid, line jsonb, transferring boolean)",
+      "surfaceFingerprint": "0c766837c2db220e7c48bb6b3fe1363cdd1d10a803e0e39436e6e47a5f5460d6",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_revision_config_guard()",
+      "surfaceFingerprint": "2217383224f2fc8f1b2d0aed425b0e64b472936d1a0057bb4d2326bcbb1ee48f",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_revision_requirements_immutable()",
+      "surfaceFingerprint": "82f5d1cf3c3f4a7103292611bb46c2d0d204fc8a8c9034252d91363efb3f6ec0",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_scope_invoice_guard()",
+      "surfaceFingerprint": "b109e9044ca4509c42065b1a750a306b05d84367a5e27b9d8cf9406c79a90157",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-work-order-lineage.mjs",
+        "tests/e2e/task-controls.spec.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.task_single_source_guard()",
+      "surfaceFingerprint": "9bc6de194c5812e312334f859aab549a40a31eee7608c8c1741678812a01bc61",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_source_time_guard()",
+      "surfaceFingerprint": "762298814acebc67870436150c717db83f772f23e4e63e7018c7b5353362d40b",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_target_add(task work_order_tasks, selection jsonb, origin text, why text)",
+      "surfaceFingerprint": "33a7fd071aa99bbeee65a550ca8fb9e3a2721181114f38111b2efcb2ce5422c1",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_target_aggregate_guard()",
+      "surfaceFingerprint": "836ac9604713029dfbad992af5f80e9312be419946e76a09b6ed37762b7317d0",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.task_visit_planboard_row(v private.task_visits)",
+      "surfaceFingerprint": "e3cf42b266082a081e8fc1373303f779be590c89870813e5fd7efb1f614c5b18",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -13855,12 +14275,16 @@
     },
     {
       "id": "rpc:private.validate_work_order_report(w work_orders)",
-      "surfaceFingerprint": "0b6fa7ab55b202d2a0c01bc5a2acfc7448a2e5ede79592151d77b5b712d8252f",
+      "surfaceFingerprint": "ef9a4bd0a78300fd6bb12ac852d4d3c93b3f8c69ca3844d640e16054dd427099",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/implementation/2026-10-06-work-order-management.md",
-        "scripts/test-task-catalogue.mjs",
-        "scripts/test-work-order-reports.mjs"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
+        "scripts/test-work-order-reports.mjs",
+        "scripts/test-work-order-lineage.mjs"
       ]
     },
     {
@@ -13900,13 +14324,14 @@
     },
     {
       "id": "rpc:private.work_order_checklist_errors(target_order uuid)",
-      "surfaceFingerprint": "2c57cc841bb9bed9e887335581f7e1b2e9404d94dc00ceda55c93405458f6c04",
-      "status": "controlled",
+      "surfaceFingerprint": "2234b739a5436f9418029cb3843f174a5053509e8993b9ed8a9840f616497649",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -13922,13 +14347,14 @@
     },
     {
       "id": "rpc:private.work_order_clone(t uuid, source_id uuid, title text, instructions text, requested date, kind text, copy_template boolean, copy_contacts boolean, copy_personnel boolean)",
-      "surfaceFingerprint": "3131513ddfefe078119f398cbf42def4590c051afe49e152eeb8b0ce00aa1c8e",
-      "status": "controlled",
+      "surfaceFingerprint": "2030aeec6ac3ef70fa3f2a302f46d55ffad84594e8a951c31d16e458b51a82d1",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -14044,26 +14470,30 @@
     },
     {
       "id": "rpc:private.work_order_report_snapshot_legacy(w work_orders, summary text)",
-      "surfaceFingerprint": "4ead013895b5f23b854aa6041674bbe24124bff84d8196582cb58964feb576fd",
+      "surfaceFingerprint": "fc40a886c9c3162b0ff4da3527c57b84a92a27f9263f1effda1c61004c0fca9a",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-operational-chain.mjs",
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
         "scripts/test-work-order-reports.mjs",
-        "scripts/test-source-invoice-list.mjs"
+        "scripts/test-work-order-lineage.mjs"
       ]
     },
     {
       "id": "rpc:private.work_order_report_snapshot(w work_orders, summary text)",
-      "surfaceFingerprint": "13150550eb9b514ff2280d431c6ebcd058676c578d4b1267c1e7fca7583cd48d",
+      "surfaceFingerprint": "da2b09ab93bc5837a9cd55341f0c0d3991ee2b65c3e5d727683b0b6a42faa619",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-operational-chain.mjs",
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
         "scripts/test-work-order-reports.mjs",
-        "scripts/test-source-invoice-list.mjs"
+        "scripts/test-work-order-lineage.mjs"
       ]
     },
     {
@@ -14106,13 +14536,14 @@
     },
     {
       "id": "rpc:private.work_order_scope_guard()",
-      "surfaceFingerprint": "7f6608ec6f911b987fb33f94f0a460c54ccfe45a4c7c4f9d37878396313a6b2e",
-      "status": "controlled",
+      "surfaceFingerprint": "b7dd8fb0357e22b4e75b1a6501aaaec342ff20d64314ec16de1a45340b3c2a23",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "manual-completion-audit:2026-10-01",
-        "docs/security/release-security-inventory.md#werkelijk-gecontroleerde-lokale-catalogus",
-        "scripts/test-security-catalog.mjs",
-        "pnpm test:db"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -14244,17 +14675,14 @@
     },
     {
       "id": "rpc:public.answer_work_order_checklist(target_tenant uuid, input jsonb)",
-      "surfaceFingerprint": "0ed36fac31ceac61acad932db9a5f078a9fe5cbc47d3db7da80a2a3a645c7069",
-      "status": "controlled",
+      "surfaceFingerprint": "ae4f32097753d32d67199dba6941da64349a69eeb222fc72a862bda12e5856a3",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -14301,17 +14729,14 @@
     },
     {
       "id": "rpc:public.attach_work_order_checklist(target_tenant uuid, input jsonb)",
-      "surfaceFingerprint": "dc2029a0d2ab016fcd85f857bbcf4f6361ca31409cc2fffbd0c37290d9492971",
-      "status": "controlled",
+      "surfaceFingerprint": "9c32a257dd5028c77c99feeccea602b1855fcdad557cddfef4ffe826c278c172",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -14357,26 +14782,30 @@
     },
     {
       "id": "rpc:public.change_work_order_planning_legacy(target_tenant uuid, target_work_order uuid, expected_version bigint, mutation_id uuid, target_start timestamp with time zone, target_end timestamp with time zone, target_assignments jsonb, confirmed_warnings text[], undo_change uuid, appointment_data jsonb)",
-      "surfaceFingerprint": "2e3eaaed9bcf256a1fa8dd3e5a8be91ca5278aa64f405c8ffaa7f3a5064cdaf0",
+      "surfaceFingerprint": "5ddf844fc5d67034fb10580591405cf2514d6b972563a863fc63f9a5fcae7203",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
         "scripts/test-planboard.mjs",
-        "scripts/test-operational-chain.mjs",
-        "tests/e2e/work-order-release.spec.ts"
+        "scripts/test-live-planning.mjs"
       ]
     },
     {
       "id": "rpc:public.change_work_order_planning(target_tenant uuid, target_work_order uuid, expected_version bigint, mutation_id uuid, target_start timestamp with time zone, target_end timestamp with time zone, target_assignments jsonb, confirmed_warnings text[], undo_change uuid, appointment_data jsonb)",
-      "surfaceFingerprint": "e6801e277595a87057c3dad34f554bb5dff75ca7529b42843f3dc4bb912d620c",
+      "surfaceFingerprint": "ab963d54ba7b309c46fb7ac6c70babbe2b963a76f90bb4aa7a91d33969e74ed4",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs",
         "scripts/test-planboard.mjs",
-        "scripts/test-operational-chain.mjs",
-        "tests/e2e/work-order-release.spec.ts"
+        "scripts/test-live-planning.mjs"
       ]
     },
     {
@@ -15924,17 +16353,14 @@
     },
     {
       "id": "rpc:public.get_planboard(target_tenant uuid, target_day date, list_view text, search_text text, status_filter text, page_number integer)",
-      "surfaceFingerprint": "eab1f9fc58a629a0715eedbbdd076e7be4f782db95cd990e10661cb8be154af1",
-      "status": "controlled",
+      "surfaceFingerprint": "796c675a94b8a6d04331d30016d903536ce605a60083a64b9b03e2c35d790d01",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-planboard.mjs",
-        "scripts/test-live-planning.mjs",
-        "scripts/test-travel.mjs",
-        "scripts/test-management-roles.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -16859,17 +17285,14 @@
     },
     {
       "id": "rpc:public.record_task_execution(target_tenant uuid, target_task uuid, expected_version bigint, result text, actual_quantity numeric, reason text)",
-      "surfaceFingerprint": "5ea8ffdeef0311364c1da98279c35c0d5e8ff24661d8e74d023df51fb3df3710",
-      "status": "controlled",
+      "surfaceFingerprint": "d769917c12ed4a13d73269c46cbcfa47f49e1b83010fa6b1f11a5171f21565b2",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -17109,17 +17532,14 @@
     },
     {
       "id": "rpc:public.save_work_order(target_tenant uuid, input jsonb)",
-      "surfaceFingerprint": "7e236b0c434e9d0e74b0b1b987c0a4239c278657c1bf4c3195abeccfc6c0b8fc",
-      "status": "controlled",
+      "surfaceFingerprint": "ca62a268962adbe8118a374dcf472ca46eaa70c2cefd3a9118a2ec68cadff029",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -17351,27 +17771,26 @@
     },
     {
       "id": "rpc:public.staff_work_order_cost_command(target_tenant uuid, command text, input jsonb, idempotency_key uuid)",
-      "surfaceFingerprint": "8c402e87f4036563f3f42ce6d164b21ed015efe55d47d7739c5c1cc9832e5f3f",
+      "surfaceFingerprint": "240c439314eeaa8eb0b2e6fb070ed82dd665b117febb5e28a088962e77147d80",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#planning-en-kwalificaties",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-planboard.mjs",
-        "scripts/test-operational-chain.mjs",
-        "tests/e2e/work-order-release.spec.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "rpc:public.staff_workspace(target_tenant uuid)",
-      "surfaceFingerprint": "501f673eac819945a0b7f8adb3e15718f0a72cf53bb5ab0389e6b9b43e6ec660",
+      "surfaceFingerprint": "9c6a9e36d189b5782136e49151ec8ee0720bf7d4c2c4dd8dcc61a45c17d4e401",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/release-security-inventory.md#personeelsapp-review--5-oktober-2026",
-        "supabase/tests/database/staff_personnel_app.sql",
-        "lib/staff/workspace.test.ts",
-        "scripts/test-personnel-privacy.mjs",
-        "scripts/test-security-catalog.mjs",
-        "docs/implementation/staff-personnel-app-traceability.md#toegangs--en-privacycontract"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -17428,28 +17847,146 @@
     },
     {
       "id": "rpc:public.task_catalogue_command(target_tenant uuid, input jsonb)",
-      "surfaceFingerprint": "96f3796564fbb91f5dca5f72f9eed79df060d19698b3d37c52d86fc27b52174f",
-      "status": "controlled",
+      "surfaceFingerprint": "de87c33691e667dbf1649642a63d879983f849e184fe155c2fe6c65f6b64a977",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-task-catalogue.mjs",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "rpc:public.task_catalogue(target_tenant uuid)",
-      "surfaceFingerprint": "90cbcb1e2a1a2bffdb9a7c47c28dfba6df86167d90976aac03a88958c6a29c4f",
-      "status": "controlled",
+      "surfaceFingerprint": "629f195aec48c175ba4b6dfea5b1a002dc48faa11fdf0026f34d8b521e254101",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-task-catalogue.mjs",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.task_control_command(target_tenant uuid, input jsonb)",
+      "surfaceFingerprint": "e0db328bab2bd6d8bf6cff69e04122152a07e908c9fff3d610386286e9911d7f",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.task_control_context(target_tenant uuid, target_task uuid, page_offset integer, query text)",
+      "surfaceFingerprint": "c8ab853b5db7ebaa9321a68fabd0bb596bfc68e3917cd49b2142d89230f258a3",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.task_item_context(target_tenant uuid, target_object uuid, query text, page_offset integer)",
+      "surfaceFingerprint": "074e2cab7a440a8850573d1e0ff5e27504468eb9762428f7137ea8f54951fbd5",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.task_item_dossier(target_tenant uuid, target_item uuid, target_order uuid)",
+      "surfaceFingerprint": "5a74381953fe4241c8007bf7b1f9e4ca6703b9df6e5f5c79ab1bbc00f2097dec",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.task_norm_command(target_tenant uuid, input jsonb)",
+      "surfaceFingerprint": "141aeffe345393fc62011b4bf91bc71980d478cdfb8d3455331825161d432f29",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.task_norm_context(target_tenant uuid, target_task uuid, variant_key text)",
+      "surfaceFingerprint": "78ff3e665cb5385cf21b3eaa051638cc596ca8e1121c2c11fdfe8b99c12f1eba",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.task_norm_policy_command(target_tenant uuid, input jsonb)",
+      "surfaceFingerprint": "cc4e927b069c554c47f6f6a94665438de068293b98c886558c8db8f32584eba9",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.task_scan_context(target_tenant uuid, target_order uuid, identity text)",
+      "surfaceFingerprint": "62b3101e0a650201ef70e4359bb55af818cc120196f95ee5224acf9c529a54dc",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.task_visit_command(target_tenant uuid, input jsonb)",
+      "surfaceFingerprint": "07d65396f78005646326ba5ef14234df82584e06e3a83e32d5261fe995b64800",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.task_visit_context(target_tenant uuid, target_order uuid)",
+      "surfaceFingerprint": "1fd08b79c82221fab1b94168702a914b30f2aa68a336728c384e61ef4753eb95",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -17723,17 +18260,14 @@
     },
     {
       "id": "rpc:public.work_order_dossier(target_tenant uuid, target_order uuid)",
-      "surfaceFingerprint": "0b6cca10d5ef1608e4e621ee81ec2d637fb0c85dc09544bfc549d19d3d3e20f7",
+      "surfaceFingerprint": "cc6fc7062ee98b576af3408669fb2f359514a76495beb5ccf89a93eabb685325",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -17813,29 +18347,26 @@
     },
     {
       "id": "rpc:public.work_order_options(target_tenant uuid)",
-      "surfaceFingerprint": "e384a112d10a2fd54ece96cbcfa45160c696014098f5989d00a84aa5f1f4cc2f",
-      "status": "controlled",
+      "surfaceFingerprint": "ac3c4ea55694c0056fb926b220ea378155defaefdc85cb51a6aa7419ac979ede",
+      "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/management-workspace-verification-2026-10-09.md#module-functions-and-record-operations",
-        "supabase/migrations/20261008173000_tenant_management_roles.sql",
-        "scripts/test-work-orders.mjs",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "scripts/test-management-mutation-replies.mjs",
-        "scripts/test-management-roles.mjs",
-        "docs/architecture/management-rpc-permissions.json"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
       "id": "rpc:public.work_order_related_command_legacy(target_tenant uuid, command_id uuid, command text, input jsonb)",
-      "surfaceFingerprint": "b6b7efebd7a33557d90c7162eb42804bcb2e9e07902cc30489c74f5df27512e3",
+      "surfaceFingerprint": "50ef8ba59378a626be6cb228ba46c5453697fed874499e0c6816bee00a44fcc7",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-operational-chain.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-source-invoice-list.mjs"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -17864,14 +18395,14 @@
     },
     {
       "id": "rpc:public.work_order_related_context(target_tenant uuid, target_order uuid)",
-      "surfaceFingerprint": "db88c3059b8cd88f726b88c34d684644b8fdab33c6106cd93cb83c6858458bb9",
+      "surfaceFingerprint": "e84ec4a39fcbe4f8875d8bb1bc7a58eccba0e0c6c137f08e29b4fdd533dcf71f",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#materialen-en-rapportbewijs",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-operational-chain.mjs",
-        "scripts/test-work-order-reports.mjs",
-        "scripts/test-source-invoice-list.mjs"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {
@@ -17904,14 +18435,14 @@
     },
     {
       "id": "rpc:public.work_order_series_command_legacy(target_tenant uuid, command_id uuid, command text, input jsonb)",
-      "surfaceFingerprint": "823ebfd4e1a7b2421ac96c34a07900abfaf850cc0396f05950db7be413793269",
+      "surfaceFingerprint": "43066b58d9cb1f334f7887128422cf89fe171b7c2295a918df7bd32eb9c693c2",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
-        "supabase/migrations/20261017232527_operational_chain_completion.sql",
-        "scripts/test-operational-chain.mjs",
-        "scripts/test-operational-chain-upgrade.mjs",
-        "lib/work-orders/recurrence.test.ts"
+        "docs/security/task-controls-authorization-review.md",
+        "docs/architecture/task-controls.md",
+        "scripts/test-task-controls.mjs",
+        "scripts/test-task-controls-concurrency.mjs",
+        "scripts/test-security-catalog.mjs"
       ]
     },
     {

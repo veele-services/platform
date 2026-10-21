@@ -1,4 +1,5 @@
 "use client";
+import {staffEntriesForDay} from "@/lib/staff/task-time";
 import { SourcePortalFrame } from "../portals/source-frame";
 import { SourceNativeDialog } from "../source-native-dialog";
 import { AccountMenu } from "../account-menu";
@@ -255,14 +256,14 @@ export function PersonnelApp({ context, data, personnel, notificationPreferences
 
 function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, onNews }: { orders: StaffOrder[]; assignments: Assignment[]; data: StaffWorkspaceData; timezone: string; onOpen: (order: StaffOrder) => void; onHours: () => void; onNews: () => void }) {
   const today = staffDate(new Date(), timezone);
-  const orderDays = assignments.map((item) => staffDate(item.projected_start_at, timezone));
+  const orderDays = [...assignments.filter(a=>!data.visits.some(v=>v.work_order_id===a.work_order_id)).map((item) => staffDate(item.projected_start_at, timezone)),...data.visits.filter(v=>!["cancelled","missed"].includes(v.state)).map(v=>staffDate(v.starts_at,timezone))];
   // Only initialize on opening; refreshed assignments must not change the chosen day.
   const [selectedDay, setSelectedDay] = useState(() => staffDate(new Date(), timezone));
   const [mode, setMode] = useState<PlanningView>("lijst");
   const swipe = useRef<number | null>(null);
   const week = staffWeek(selectedDay);
-  const assignmentsByOrder = new Map(assignments.map((item) => [item.work_order_id, item]));
-  const visible = orders.filter((order) => staffDate(assignmentsByOrder.get(order.id)!.projected_start_at, timezone) === selectedDay)
+  const assignmentsByOrder = new Map(assignments.map((item) => {const visit=data.visits.find(v=>v.assignment_id===item.id&&staffDate(v.starts_at,timezone)===selectedDay&&!["cancelled","missed"].includes(v.state));return [item.work_order_id,visit?{...item,projected_start_at:visit.starts_at,projected_end_at:visit.ends_at,actual_start_at:visit.own_session_start,actual_end_at:visit.own_session_end}:item];}));
+  const visible = orders.filter((order) => (!data.visits.some(v=>v.work_order_id===order.id)||data.visits.some(v=>v.work_order_id===order.id&&staffDate(v.starts_at,timezone)===selectedDay))&&staffDate(assignmentsByOrder.get(order.id)!.projected_start_at, timezone) === selectedDay)
     .sort((left, right) => mode === "agenda"
       ? Date.parse(assignmentsByOrder.get(left.id)!.projected_start_at) - Date.parse(assignmentsByOrder.get(right.id)!.projected_start_at)
       : Date.parse(right.published_at ?? assignmentsByOrder.get(right.id)!.created_at) - Date.parse(left.published_at ?? assignmentsByOrder.get(left.id)!.created_at));
@@ -272,7 +273,7 @@ function PlanningScreen({ orders, assignments, data, timezone, onOpen, onHours, 
   const contacts = data.staffContacts;
   const chronological = [...visible].sort((left, right) => Date.parse(assignmentsByOrder.get(left.id)!.projected_start_at) - Date.parse(assignmentsByOrder.get(right.id)!.projected_start_at));
   const next = chronological.find((order) => !assignmentsByOrder.get(order.id)?.actual_end_at && !["returned", "cancelled", "completed"].includes(assignmentsByOrder.get(order.id)?.status ?? ""));
-  const dayEntries = data.timeEntries.filter((entry) => staffDate(entry.starts_at, timezone) === selectedDay);
+  const dayEntries = staffEntriesForDay(data.timeEntries,selectedDay,timezone);
   const totals = summarizeEntries(dayEntries);
   const nextAssignment = next ? assignmentsByOrder.get(next.id) : null;
   const nextObject = next ? objects.get(next.object_id) : null;

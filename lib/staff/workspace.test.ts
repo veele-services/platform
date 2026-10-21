@@ -36,6 +36,7 @@ const emptyProjection = () => ({
   staffDepots: [],
   workOrders: [],
   assignments: [],
+  visits:[],
   workOrderTasks: [],
   tasks: [],
   taskRevisions: [],

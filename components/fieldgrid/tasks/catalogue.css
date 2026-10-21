@@ -11,3 +11,5 @@
 .catalogue-form-panel { display:grid; gap:24px; align-content:start; }
 .catalogue-form-panel > .form-note { margin:0; line-height:1.65; }
 .catalogue-form-panel > a { justify-self:start; }
+
+.catalogue-form>.content-tabs{grid-column:1/-1;min-width:0}.catalogue-form .content-tab-panel{padding:18px;min-width:0}.catalogue-preview{padding:14px;border:1px solid var(--brand-border);border-radius:8px;background:var(--brand-surface);overflow-wrap:anywhere}.catalogue-variant{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-block:14px;padding:14px;border:1px solid var(--brand-border);border-radius:8px}.catalogue-form .content-tab-list{flex-wrap:wrap}.catalogue-form .content-tab-list button{min-height:44px}.catalogue-form .catalogue-row-actions{flex-wrap:wrap;gap:12px;align-items:center}.catalogue-form input,.catalogue-form select,.catalogue-form textarea{max-width:100%;min-width:0}.catalogue-step-fields{min-width:0}@media(max-width:600px){.catalogue-variant{grid-template-columns:minmax(0,1fr)}.catalogue-form .content-tab-panel{padding:12px}.catalogue-form .content-tab-list button{flex:1;padding-inline:8px;white-space:normal}}

@@ -5315,6 +5315,7 @@ export type Database = {
         Row: {
           created_at: string
           duration_minutes: number
+          execution_config: Json
           id: string
           price_cents: number
           requires_customer_signature: boolean
@@ -5330,6 +5331,7 @@ export type Database = {
         Insert: {
           created_at?: string
           duration_minutes: number
+          execution_config?: Json
           id?: string
           price_cents: number
           requires_customer_signature?: boolean
@@ -5345,6 +5347,7 @@ export type Database = {
         Update: {
           created_at?: string
           duration_minutes?: number
+          execution_config?: Json
           id?: string
           price_cents?: number
           requires_customer_signature?: boolean
@@ -6887,6 +6890,8 @@ export type Database = {
           definition: Json
           id: string
           name: string
+          target_execution_id: string | null
+          task_id: string | null
           template_revision_id: string
           tenant_id: string
           work_order_id: string
@@ -6896,6 +6901,8 @@ export type Database = {
           definition: Json
           id?: string
           name: string
+          target_execution_id?: string | null
+          task_id?: string | null
           template_revision_id: string
           tenant_id: string
           work_order_id: string
@@ -6905,11 +6912,20 @@ export type Database = {
           definition?: Json
           id?: string
           name?: string
+          target_execution_id?: string | null
+          task_id?: string | null
           template_revision_id?: string
           tenant_id?: string
           work_order_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "checklist_task_context"
+            columns: ["tenant_id", "work_order_id", "task_id"]
+            isOneToOne: false
+            referencedRelation: "work_order_tasks"
+            referencedColumns: ["tenant_id", "work_order_id", "id"]
+          },
           {
             foreignKeyName: "work_order_checklists_tenant_id_template_revision_id_fkey"
             columns: ["tenant_id", "template_revision_id"]
@@ -7114,6 +7130,7 @@ export type Database = {
           material_id: string | null
           material_snapshot: Json
           quantity: number
+          target_id: string | null
           task_id: string | null
           tenant_id: string
           unit: string
@@ -7128,6 +7145,7 @@ export type Database = {
           material_id?: string | null
           material_snapshot?: Json
           quantity: number
+          target_id?: string | null
           task_id?: string | null
           tenant_id: string
           unit: string
@@ -7142,6 +7160,7 @@ export type Database = {
           material_id?: string | null
           material_snapshot?: Json
           quantity?: number
+          target_id?: string | null
           task_id?: string | null
           tenant_id?: string
           unit?: string
@@ -7554,17 +7573,22 @@ export type Database = {
           allowed_for_staff: boolean
           assigned_personnel_id: string | null
           commercial_snapshot: Json
+          commercially_approved_quantity: number | null
           completed_at: string | null
           completion_note: string | null
           created_at: string
+          current_budget_minutes: number | null
           duration_minutes: number
           executed_quantity: number | null
+          execution_snapshot: Json
           execution_state: string
           execution_version: number
           extra_work_status: string | null
           id: string
           instructions: string
           is_extra_work: boolean
+          original_budget_minutes: number | null
+          original_quantity: number | null
           quantity: number
           scope_root_task_id: string | null
           staff_request_reason: string | null
@@ -7586,17 +7610,22 @@ export type Database = {
           allowed_for_staff?: boolean
           assigned_personnel_id?: string | null
           commercial_snapshot?: Json
+          commercially_approved_quantity?: number | null
           completed_at?: string | null
           completion_note?: string | null
           created_at?: string
+          current_budget_minutes?: number | null
           duration_minutes: number
           executed_quantity?: number | null
+          execution_snapshot?: Json
           execution_state?: string
           execution_version?: number
           extra_work_status?: string | null
           id?: string
           instructions?: string
           is_extra_work?: boolean
+          original_budget_minutes?: number | null
+          original_quantity?: number | null
           quantity?: number
           scope_root_task_id?: string | null
           staff_request_reason?: string | null
@@ -7618,17 +7647,22 @@ export type Database = {
           allowed_for_staff?: boolean
           assigned_personnel_id?: string | null
           commercial_snapshot?: Json
+          commercially_approved_quantity?: number | null
           completed_at?: string | null
           completion_note?: string | null
           created_at?: string
+          current_budget_minutes?: number | null
           duration_minutes?: number
           executed_quantity?: number | null
+          execution_snapshot?: Json
           execution_state?: string
           execution_version?: number
           extra_work_status?: string | null
           id?: string
           instructions?: string
           is_extra_work?: boolean
+          original_budget_minutes?: number | null
+          original_quantity?: number | null
           quantity?: number
           scope_root_task_id?: string | null
           staff_request_reason?: string | null
@@ -8019,17 +8053,22 @@ export type Database = {
           allowed_for_staff: boolean
           assigned_personnel_id: string | null
           commercial_snapshot: Json
+          commercially_approved_quantity: number | null
           completed_at: string | null
           completion_note: string | null
           created_at: string
+          current_budget_minutes: number | null
           duration_minutes: number
           executed_quantity: number | null
+          execution_snapshot: Json
           execution_state: string
           execution_version: number
           extra_work_status: string | null
           id: string
           instructions: string
           is_extra_work: boolean
+          original_budget_minutes: number | null
+          original_quantity: number | null
           quantity: number
           scope_root_task_id: string | null
           staff_request_reason: string | null
@@ -8584,17 +8623,22 @@ export type Database = {
           allowed_for_staff: boolean
           assigned_personnel_id: string | null
           commercial_snapshot: Json
+          commercially_approved_quantity: number | null
           completed_at: string | null
           completion_note: string | null
           created_at: string
+          current_budget_minutes: number | null
           duration_minutes: number
           executed_quantity: number | null
+          execution_snapshot: Json
           execution_state: string
           execution_version: number
           extra_work_status: string | null
           id: string
           instructions: string
           is_extra_work: boolean
+          original_budget_minutes: number | null
+          original_quantity: number | null
           quantity: number
           scope_root_task_id: string | null
           staff_request_reason: string | null
@@ -10368,6 +10412,64 @@ export type Database = {
       task_catalogue: { Args: { target_tenant: string }; Returns: Json }
       task_catalogue_command: {
         Args: { input: Json; target_tenant: string }
+        Returns: Json
+      }
+      task_control_command: {
+        Args: { input: Json; target_tenant: string }
+        Returns: Json
+      }
+      task_control_context: {
+        Args: {
+          page_offset?: number
+          query?: string
+          target_task: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      task_item_context: {
+        Args: {
+          page_offset?: number
+          query?: string
+          target_object: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      task_item_dossier: {
+        Args: {
+          target_item: string
+          target_order?: string
+          target_tenant: string
+        }
+        Returns: Json
+      }
+      task_norm_command: {
+        Args: { input: Json; target_tenant: string }
+        Returns: Json
+      }
+      task_norm_context: {
+        Args: {
+          target_task: string
+          target_tenant: string
+          variant_key?: string
+        }
+        Returns: Json
+      }
+      task_norm_policy_command: {
+        Args: { input: Json; target_tenant: string }
+        Returns: Json
+      }
+      task_scan_context: {
+        Args: { identity: string; target_order: string; target_tenant: string }
+        Returns: Json
+      }
+      task_visit_command: {
+        Args: { input: Json; target_tenant: string }
+        Returns: Json
+      }
+      task_visit_context: {
+        Args: { target_order: string; target_tenant: string }
         Returns: Json
       }
       ticket_command: {

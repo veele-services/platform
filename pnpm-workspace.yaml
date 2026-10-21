@@ -12,3 +12,8 @@ audit:
 
 patchedDependencies:
   braces@3.0.3: patches/braces@3.0.3.patch
+
+# Fixed release for GHSA-587h-7wmj-h5pm, required by the existing audit gate.
+# Vite is transitive through the development-only Vitest runner.
+overrides:
+  vite: 8.3.3

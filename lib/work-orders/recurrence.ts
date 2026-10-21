@@ -2,6 +2,7 @@ import { z } from "zod";
 import { localToInstant, validDay } from "../planning/time";
 
 export const recurrenceSchema = z.object({
+  taskIds:z.array(z.uuid()).min(1).max(100).optional(),
   startsOn: z.iso.date(), endsOn: z.iso.date().or(z.literal("")).default(""),
   frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
   interval: z.number().int().min(1).max(52).default(1),

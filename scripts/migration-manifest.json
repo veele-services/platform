@@ -896,6 +896,11 @@
       "version": "20261017232527",
       "name": "operational_chain_completion",
       "sha256": "822185852cd2e37763f04c6b0da1deb3509b2d10ca00848cb59067d1aba5be73"
+    },
+    {
+      "version": "20261020234321",
+      "name": "task_execution_controls",
+      "sha256": "0fcfdf2d4fcad3aabf9713760aa25d3c08d9a90441c2aa9102aeb2a3fb902d4f"
     }
   ]
 }

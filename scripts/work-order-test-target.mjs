@@ -53,13 +53,15 @@ export function safeWorkOrderConnectionError(error) {
 /** Committing fixture suites may only target an explicitly identified local stack. */
 export function localWorkOrderTestConfig() {
     if (process.env.FIELDGRID_STAGING_SMOKE) throw new Error("Deze fixturetest is uitsluitend lokaal toegestaan.");
-    const replay = process.env.FIELDGRID_LOCAL_REPLAY_DIR;
-    if (replay && (!/^\/tmp\/fieldgrid-release-migrations\.[A-Za-z0-9]+$/.test(replay) || !readFileSync(`${replay}/supabase/config.toml`, "utf8").includes('project_id = "fieldgrid-release-audit-20261001"'))) throw new Error("Ongeldige lokale migratie-replayomgeving.");
+    const controlsReplay = process.env.FIELDGRID_TASK_CONTROLS_REPLAY_DIR;
+    if (controlsReplay && (controlsReplay !== '/tmp/fieldgrid-task-controls-replay' || process.env.FIELDGRID_LOCAL_REPLAY_DIR || !readFileSync(`${controlsReplay}/supabase/config.toml`, 'utf8').includes('project_id = "fieldgrid-task-controls-replay"'))) throw new Error('Ongeldige lokale taakcontrole-replayomgeving.');
+    const replay = controlsReplay || process.env.FIELDGRID_LOCAL_REPLAY_DIR;
+    if (replay && !controlsReplay && (!/^\/tmp\/fieldgrid-release-migrations\.[A-Za-z0-9]+$/.test(replay) || !readFileSync(`${replay}/supabase/config.toml`, "utf8").includes('project_id = "fieldgrid-release-audit-20261001"'))) throw new Error("Ongeldige lokale migratie-replayomgeving.");
     const local = JSON.parse(execFileSync("pnpm", ["supabase", "status", "-o", "json", ...(replay ? ["--workdir", replay] : [])], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
     const url = new URL(local.DB_URL);
-    if (!["postgres:", "postgresql:"].includes(url.protocol) || url.hostname !== "127.0.0.1" || url.port !== (replay ? "60322" : "59322") || url.pathname !== "/postgres" || url.search || url.hash) throw new Error("Werkbontests vereisen de afgeschermde lokale database.");
+    if (!["postgres:", "postgresql:"].includes(url.protocol) || url.hostname !== "127.0.0.1" || url.port !== (controlsReplay ? "62322" : replay ? "60322" : "59322") || url.pathname !== "/postgres" || url.search || url.hash) throw new Error("Werkbontests vereisen de afgeschermde lokale database.");
     const api = new URL(local.API_URL);
-    if (api.protocol !== 'http:' || api.hostname !== '127.0.0.1' || api.port !== (replay ? '60321' : '59321') || api.pathname !== '/' || api.search || api.hash) throw new Error('HTTP-tests vereisen dezelfde afgeschermde lokale database.');
+    if (api.protocol !== 'http:' || api.hostname !== '127.0.0.1' || api.port !== (controlsReplay ? '62321' : replay ? '60321' : '59321') || api.pathname !== '/' || api.search || api.hash) throw new Error('HTTP-tests vereisen dezelfde afgeschermde lokale database.');
     return local;
 }
 
