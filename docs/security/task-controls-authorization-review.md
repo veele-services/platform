@@ -117,3 +117,10 @@ De bestaande dependency-audit signaleerde de op 20 oktober gepubliceerde
 De transitive ontwikkeldependency is op de gepatchte Vite 8.3.3 vastgezet.
 De bestaande braces-patch met bijbehorende eerdere audituitzondering blijft
 ongewijzigd; er is geen nieuwe audituitzondering toegevoegd.
+
+De aanvullende read-compatibiliteitsmigratie bewaart de oude strikte personeels-
+projectie. De nieuwe serverclient vraagt de versie expliciet op; de header
+verleent geen toegang. De locatieguard verhindert dat personeel via een oude
+bon actuele gegevens van een verplaatst item leest. Itemmetadata verleent geen
+afgeleide bevoegdheid op taak-/rapporthistorie. De regressies controleren de
+oude en nieuwe projectie, locatieverandering en intrekking van de bronmodule.

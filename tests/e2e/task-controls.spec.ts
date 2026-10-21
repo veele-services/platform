@@ -1,10 +1,12 @@
 import {expect,test} from "@playwright/test";
 import {mkdir} from "node:fs/promises";
-import {taskControlsFixture} from "./task-controls-fixture";
+import {taskControlsFixture,latestFixtureVisit,archiveTaskControlsFixtures} from "./task-controls-fixture";
 import {authenticateWorkspace} from "./login-auth";
 
 let fixture:Awaited<ReturnType<typeof taskControlsFixture>>;
-test.beforeAll(async()=>{fixture=await taskControlsFixture(true);await mkdir("docs/task-controls/evidence",{recursive:true});});
+const fixtureTenants:string[]=[];
+test.beforeAll(async()=>{fixture=await taskControlsFixture(true);fixtureTenants.push(fixture.tenant);await mkdir("docs/task-controls/evidence",{recursive:true});});
+test.afterAll(async()=>{await archiveTaskControlsFixtures(fixtureTenants);});
 for(const width of [320,390,768,1440])test(`native catalogue, object and task contexts at ${width}px`,async({page})=>{
  await page.setViewportSize({width,height:960});await page.context().addCookies([{name:"fieldgrid_tenant_id",value:fixture.tenant,url:"http://127.0.0.1:3000"}]);await authenticateWorkspace(page,"platform-admin@fieldgrid.test","/app/taken");await expect(page.locator("[data-account-guides-ready=true]")).toBeAttached();
  await page.getByRole("button",{name:"Periodieke apparaatcontrole — uitgebreide fictieve acceptatie",exact:true}).last().click();
@@ -17,7 +19,7 @@ for(const width of [320,390,768,1440])test(`native catalogue, object and task co
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
 for(const width of [320,390,768,1440])test(`staff device and room controls persist outcomes at ${width}px`,async({page})=>{
- const scenario=await taskControlsFixture();
+ const scenario=await taskControlsFixture();fixtureTenants.push(scenario.tenant);
  await page.setViewportSize({width,height:960});await page.context().addCookies([{name:"fieldgrid_tenant_id",value:scenario.tenant,url:"http://127.0.0.1:3000"}]);await authenticateWorkspace(page,"field-worker@fieldgrid.test",`/staff?workOrder=${scenario.serviceOrder}`);
  await page.getByRole("tab",{name:"Werkzaamheden",exact:true}).click();await page.getByRole("button",{name:"Open taak",exact:true}).first().click();await page.getByRole("button",{name:"Open controles",exact:true}).first().click();
  const panel=page.getByRole("region",{name:"Taakuitvoering",exact:true}).filter({has:page.getByRole("heading",{name:"Periodieke apparaatcontrole — uitgebreide fictieve acceptatie",exact:true})});
@@ -27,4 +29,11 @@ for(const width of [320,390,768,1440])test(`staff device and room controls persi
  await page.reload();await page.getByRole("tab",{name:"Werkzaamheden",exact:true}).click();await page.getByRole("button",{name:"Open taak",exact:true}).first().click();await expect(page.getByText("afwijkingen",{exact:false}).first()).toBeVisible();
  await page.goto(`/staff?workOrder=${scenario.cleaningOrder}`);await page.getByRole("tab",{name:"Werkzaamheden",exact:true}).click();await page.locator("article.task-target-card").filter({has:page.getByText("Sanitair reinigen — fictieve acceptatie",{exact:true})}).getByRole("button",{name:"Open taak",exact:true}).click();await page.getByRole("button",{name:"Open controles",exact:true}).first().click();const room=page.getByRole("region",{name:"Taakuitvoering",exact:true}).filter({has:page.getByRole("heading",{name:"Sanitair reinigen — fictieve acceptatie",exact:true})});await room.getByRole("combobox",{name:"Uitvoering",exact:true}).selectOption("not_done");await room.getByRole("textbox",{name:"Reden en resterend werk",exact:true}).fill("Fictieve ruimte niet toegankelijk; resterend werk blijft open.");await room.getByRole("button",{name:"Uitzondering vastleggen",exact:true}).click();await expect(room.getByText("Niet uitgevoerd — Fictieve ruimte niet toegankelijk; resterend werk blijft open.",{exact:true})).toBeVisible();expect(await room.evaluate(el=>el.scrollWidth<=el.clientWidth+1)).toBe(true);await page.screenshot({path:`docs/task-controls/evidence/staff-cleaning-${width}.png`});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+});
+
+test("visit planning persists both occurrences of the autumn clock-change hour",async({page})=>{
+ await page.setViewportSize({width:390,height:960});await page.context().addCookies([{name:"fieldgrid_tenant_id",value:fixture.tenant,url:"http://127.0.0.1:3000"}]);await authenticateWorkspace(page,"platform-admin@fieldgrid.test",`/app/werkbonnen/${fixture.serviceOrder}?tab=planning`);
+ const panel=page.getByRole("region",{name:"Bezoeken en persoonlijke tijd",exact:true});await panel.getByRole("button",{name:"Bezoek plannen",exact:true}).click();const form=panel.locator("form").filter({has:page.getByRole("button",{name:"Bezoek opslaan",exact:true})});
+ await form.getByLabel("Bezoek vanaf").fill("2026-10-25T02:30");await form.getByLabel("Bezoek tot").fill("2026-10-25T02:30");await form.getByRole("checkbox",{name:"Fictieve medewerker",exact:true}).check();await form.getByText("Keuze bij dubbele wintertijd",{exact:true}).click();await form.getByRole("combobox",{name:"Start bij dubbele wintertijd",exact:true}).selectOption("earlier");await form.getByRole("combobox",{name:"Einde bij dubbele wintertijd",exact:true}).selectOption("later");
+ await form.getByText("Eventuele beschikbaarheidswaarschuwingen bevestigen",{exact:true}).click();await form.getByRole("checkbox",{name:"Ik heb de gemelde beschikbaarheid/werktijden beoordeeld",exact:true}).check();await form.getByLabel("Reden beschikbaarheidsafwijking").fill("Fictieve acceptatie: dubbele wintertijd bewust gepland.");await form.getByRole("button",{name:"Bezoek opslaan",exact:true}).click();await expect.poll(async()=>Number((await latestFixtureVisit(fixture.serviceOrder))?.minutes??0)).toBe(60);await page.screenshot({path:"docs/task-controls/evidence/visit-wintertime-390.png"});
 });

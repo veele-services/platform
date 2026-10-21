@@ -19,7 +19,7 @@ export function TaskControls({taskId,objectId,editable,attachments=[],onClose,in
  const [data,setData]=useState<TaskControlContext|null>(null),[error,setError]=useState(""),[query,setQuery]=useState(initialQuery),[page,setPage]=useState(0),[selected,setSelected]=useState<string|null>(null),[adding,setAdding]=useState(false),[pending,start]=useTransition();
  const router=useRouter(),generation=useRef({sequence:0});
  const reload=useCallback(async()=>{const requests=generation.current;const seq=++requests.sequence;const r=await loadTaskControls(taskId,page*25,query);if(seq!==requests.sequence)return;if(r.ok){setData(r.data);setError("");}else setError(r.error);},[taskId,page,query]);
- useEffect(()=>{const requests=generation.current;const seq=++requests.sequence;void loadTaskControls(taskId,page*25,query).then(r=>{if(seq!==requests.sequence)return;if(r.ok){setData(r.data);setError("");}else setError(r.error);});return()=>{requests.sequence++;};},[taskId,page,query]);
+ useEffect(()=>{const requests=generation.current;const seq=++requests.sequence;void loadTaskControls(taskId,page*25,query).then(r=>{if(seq!==requests.sequence)return;if(r.ok){setData(r.data);setError("");}else setError(r.error);});return()=>{requests.sequence++;};},[taskId,page,query,editable]);
  objectId=objectId??data?.objectId;
  const autoSelected=data?.targets.filter(t=>(t.snapshot as {id?:string}).id===query);
  const target=data?.targets.find(x=>x.id===(selected??(autoSelected?.length===1?autoSelected[0].id:null)));

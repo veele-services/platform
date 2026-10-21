@@ -2799,7 +2799,7 @@
         "createClient"
       ],
       "resources": [],
-      "source_sha256": "606711c84b7f42093b55f5865e9ef886219fc851e53ebcdb83b49592a69f77e8"
+      "source_sha256": "5068f73c916b94dffacc5d4437663dfbbd542a0711544afdf194c679bf59b5fa"
     },
     {
       "id": "code:components/fieldgrid/staff/personnel-app.tsx",
@@ -3309,7 +3309,7 @@
         "rpc:personnel_availability",
         "rpc:personnel_dossier_summary"
       ],
-      "source_sha256": "f83af17879f557740844ff3db4f8119c84a90e183d00dd355221a73596f4cd1a"
+      "source_sha256": "2abf0d648aca5ea08a5d8dc9ce5b5ab37cdf9ad62c0f1aac6acc178a453e4cb0"
     },
     {
       "id": "code:lib/dossiers/data.ts",
@@ -9315,7 +9315,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "5038c5783fabfa0ff7ab3cea80bf34514336dbfb70f6bd8831b8b0404e3d6e00"
+      "source_sha256": "3f3c04b924644b263b312e1d11a74a69e0e9eb33df441437650a0d2173f4a3d7"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -16353,7 +16353,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "246b296aa18cca37af87e15e178ac7b3e59eb13fa035030ed472f7ed338be05f"
+      "definition_sha256": "58bc86a9d0e3bf5eae9c16e3a4b2bf8fea1c2fb82586c9d4ab282480c6c2d24e"
     },
     {
       "id": "rpc:public.store_travel_estimates(t uuid, revision bigint, legs jsonb, manual_action text, actor uuid, actor_session uuid)",
@@ -16443,7 +16443,7 @@
       "anonymous": false,
       "authenticated": true,
       "service": false,
-      "definition_sha256": "d81fe487bec9a8e80c6ba38af61087ad8f0ea50ca64ad4c61cff68291a26caff"
+      "definition_sha256": "4709758f091170e997471cbdbdda3893855a07d89c4511b943625a30131480f0"
     },
     {
       "id": "rpc:public.task_norm_command(target_tenant uuid, input jsonb)",

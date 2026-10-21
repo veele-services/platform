@@ -144,8 +144,26 @@ Volledige offline synchronisatie is niet toegevoegd. Een mislukte/netwerkmutatie
 krijgt geen succesmelding; het formulier behoudt invoer en herhaalsleutel zolang
 het geopend blijft. Er is geen belofte van duurzaam opgeslagen offline uitvoering.
 
-De forward migration is `20261020234321_task_execution_controls.sql`; toegepaste
+De forward migrations zijn `20261020234321_task_execution_controls.sql` en
+`20261021022113_task_controls_workspace_compatibility.sql` en
+`20261021023228_task_item_dossier_current_location_guard.sql`; toegepaste
 migraties blijven onveranderd. Fresh/upgrade, API-/policy-, concurrency-, rapport-,
 financiële en browsercontroles staan in de [acceptatiematrix](../task-controls/acceptance.md).
 Promotie blijft uitsluitend de bestaande gereviewde main → staging-route met
 exacte SHA-controle. Deze opdracht voert geen productiepromotie uit.
+
+## Compatibiliteit tijdens uitrol en rollback
+
+De bestaande personeelsclient valideert zijn workspace-payload strikt. Daarom
+vraagt de nieuwe personeelsworkspace de uitbreiding expliciet op met de header
+`x-fieldgrid-task-controls: 1`. Zonder die header behoudt dezelfde bestaande RPC
+het oude antwoordformaat en gehele duurwaarden. De header kiest uitsluitend een
+representatie: sessie, tenant, dispatch, capabilities en privacycontrole blijven
+ongewijzigd. Dit voorkomt dat migratie vóór runtimepublicatie of rollback een
+oude personeelsclient door extra JSON-velden laat uitvallen. Nieuwe configuratie
+blijft serverzijdig beschermd tegen uitvoering via oude ongeschikte acties.
+
+Een verplaatst item geeft personeel op de oude bon uitsluitend de bevroren
+taak-/rapportcontext; het actuele Item-360-dossier vraagt de huidige object- en
+klantbinding. Ook een itembeheerder ontvangt taak-/rapporthistorie alleen met
+de actuele bronrechten en moduletoegang voor de betreffende werkbon.

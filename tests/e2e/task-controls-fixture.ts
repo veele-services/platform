@@ -52,3 +52,11 @@ export async function taskControlsFixture(seedNorms=false){
   await db.query("delete from auth.sessions where id=$1",[session]);await db.query("commit");return{tenant,object,customer,service:service.id,serviceOrder:serviceOrder.id,cleaningOrder:cleaningOrder.id};
  }catch(error){await db.query("rollback");throw error;}finally{await db.end();}
 }
+export async function latestFixtureVisit(orderId:string){const db=new pg.Client({connectionString:requireLocalDatabaseUrl().href});await db.connect();try{const r=await db.query("select starts_at::text,ends_at::text,extract(epoch from(ends_at-starts_at))/60 minutes from private.task_visits where work_order_id=$1 order by created_at desc limit 1",[orderId]);return r.rows[0] as {starts_at:string;ends_at:string;minutes:string}|undefined;}finally{await db.end();}}
+
+/** Retain evidence records without leaving extra selectable local tenants for
+ * subsequent browser specs. Only this helper's synthetic tenant identity fits. */
+export async function archiveTaskControlsFixtures(tenantIds:string[]){
+ const db=new pg.Client({connectionString:requireLocalDatabaseUrl().href});await db.connect();
+ try{await db.query("update public.tenants set status='archived' where id=any($1::uuid[]) and slug ~ '^controls-[a-f0-9]{8}$' and name='Fictieve controlesacceptatie'",[tenantIds]);}finally{await db.end();}
+}

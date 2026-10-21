@@ -2760,12 +2760,11 @@
     },
     {
       "id": "code:components/fieldgrid/staff-app.tsx",
-      "surfaceFingerprint": "608a454cad2c6c6842f25bf05b4ebf97f77d865a8c2818d6743cf05e5f48669f",
+      "surfaceFingerprint": "df197db273c62c19f17b4e1371f5c14ede5df6ac5f6ab6d0af2846bb1cda6763",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/task-controls-authorization-review.md",
-        "scripts/test-task-controls.mjs",
-        "scripts/test-work-order-lineage.mjs",
+        "docs/security/task-controls-authorization-review.md: scoped staff projection and native work-order entrypoints",
+        "tests/e2e/staff-popups.spec.ts",
         "tests/e2e/task-controls.spec.ts"
       ]
     },
@@ -3117,23 +3116,12 @@
     },
     {
       "id": "code:lib/data/workspace.ts",
-      "surfaceFingerprint": "a6f9333158fdd48831e586fd792fffd246bf0db52cd4c74488dfade2ab4a0337",
+      "surfaceFingerprint": "942bebf6941be521918c51c56197ebbafc0cef59855a7147a1d7bf79043637c7",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/sites-v3-authorization-review-2026-10-16.md#native",
-        "docs/integration/sites-v3/phase-10.md",
-        "docs/integration/sites-v3/phase-11.md",
-        "docs/integration/sites-v3/phase-12.md",
-        "docs/integration/sites-v3/phase-15.md",
-        "docs/integration/sites-v3/phase-16.md",
-        "docs/integration/sites-v3/phase-17.md",
-        "docs/integration/sites-v3/phase-18.md",
-        "docs/integration/sites-v3/phase-19.md",
-        "scripts/test-work-order-rpc-guards.mjs",
-        "scripts/test-commercial-source-list.mjs",
-        "scripts/test-source-invoice-list.mjs",
-        "scripts/test-planboard.mjs",
-        "scripts/test-management-mutation-replies.mjs"
+        "docs/security/task-controls-authorization-review.md: explicit representation negotiation preserves authenticated tenant scope",
+        "lib/supabase/server.ts",
+        "scripts/test-task-controls.mjs: legacy and extended staff projections"
       ]
     },
     {
@@ -8245,13 +8233,11 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "e9cd36b35d5876c60e32628cb96af9ea852a748719c9bd34a13c5442af64465f",
+      "surfaceFingerprint": "572d445cdcc933688318e61e4f4836f3e02c6da7099a161f85acf0302e818215",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/task-controls-authorization-review.md",
-        "scripts/test-task-controls.mjs",
-        "scripts/test-work-order-lineage.mjs",
-        "tests/e2e/task-controls.spec.ts"
+        "docs/security/task-controls-authorization-review.md: additive native CLI migrations; prior 180 statement hashes unchanged",
+        "scripts/verify-local-migration-manifest.ts"
       ]
     },
     {
@@ -17783,14 +17769,12 @@
     },
     {
       "id": "rpc:public.staff_workspace(target_tenant uuid)",
-      "surfaceFingerprint": "9c6a9e36d189b5782136e49151ec8ee0720bf7d4c2c4dd8dcc61a45c17d4e401",
+      "surfaceFingerprint": "7967454c07af92cea2056a4f78541f208737de3fe806aa95547d3b678835f979",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/task-controls-authorization-review.md",
-        "docs/architecture/task-controls.md",
-        "scripts/test-task-controls.mjs",
-        "scripts/test-task-controls-concurrency.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/task-controls-authorization-review.md: legacy representation and current dispatch/session authority",
+        "scripts/test-task-controls.mjs: legacy and extended DTO regression",
+        "scripts/test-personnel-privacy.mjs"
       ]
     },
     {
@@ -17907,14 +17891,11 @@
     },
     {
       "id": "rpc:public.task_item_dossier(target_tenant uuid, target_item uuid, target_order uuid)",
-      "surfaceFingerprint": "5a74381953fe4241c8007bf7b1f9e4ca6703b9df6e5f5c79ab1bbc00f2097dec",
+      "surfaceFingerprint": "e6382b8d9822115fae4061793bf040fdc66a620125c0efd089c322039974ca77",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/task-controls-authorization-review.md",
-        "docs/architecture/task-controls.md",
-        "scripts/test-task-controls.mjs",
-        "scripts/test-task-controls-concurrency.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/task-controls-authorization-review.md: current object/customer binding and source-specific capabilities",
+        "scripts/test-task-controls.mjs: relocation denies current dossier, disabled reporting denies history, frozen report unchanged"
       ]
     },
     {

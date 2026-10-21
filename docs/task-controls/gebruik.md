@@ -43,7 +43,9 @@ Plan bezoeken onder de bestaande werkbon en kies medewerkers die al op die bon
 zijn ingezet. Een tweede bezoekdag verdubbelt geen voorbereiding of taakscope.
 Toekomstige, ongestarte bezoeken kunnen met reden worden verplaatst/geannuleerd.
 Gebruik hiervoor **Bezoeken & persoonlijke tijd**, zodat gesloten dagen behouden
-blijven. Wekelijkse reiniging en halfjaarlijkse inspectie kunnen twee bestaande
+blijven. Gebruik bij een dubbel tijdstip in de wintertijd de keuze voor eerste
+of tweede keer, afzonderlijk voor begin en einde. Een niet-bestaand tijdstip
+bij de zomertijd wordt geweigerd. Wekelijkse reiniging en halfjaarlijkse inspectie kunnen twee bestaande
 reeksen met eigen taakselectie zijn; controleer de generatie-uitzonderingen.
 
 ## Personeel

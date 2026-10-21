@@ -5,12 +5,13 @@ import { cookies } from "next/headers";
 import type { Database } from "@/lib/database.types";
 import { clientEnv } from "@/lib/env/client";
 
-export async function createClient() {
+export async function createClient(options?: { taskControls?: boolean }) {
   const cookieStore = await cookies();
   return createServerClient<Database>(
     clientEnv.NEXT_PUBLIC_SUPABASE_URL,
     clientEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
+      ...(options?.taskControls ? { global: { headers: { "x-fieldgrid-task-controls": "1" } } } : {}),
       cookies: {
         getAll: () => cookieStore.getAll(),
         setAll: (items) => {

@@ -901,6 +901,16 @@
       "version": "20261020234321",
       "name": "task_execution_controls",
       "sha256": "0fcfdf2d4fcad3aabf9713760aa25d3c08d9a90441c2aa9102aeb2a3fb902d4f"
+    },
+    {
+      "version": "20261021022113",
+      "name": "task_controls_workspace_compatibility",
+      "sha256": "8ed514cd74e44719b090036c8d86b48db187da1165f2f19967a63f98794f4960"
+    },
+    {
+      "version": "20261021023228",
+      "name": "task_item_dossier_current_location_guard",
+      "sha256": "5c8878b57fa5907d111b6ccd7e4893b6aa0f167f40bae62add5e92623bf94a04"
     }
   ]
 }
