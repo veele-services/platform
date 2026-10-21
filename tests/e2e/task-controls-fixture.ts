@@ -60,3 +60,8 @@ export async function archiveTaskControlsFixtures(tenantIds:string[]){
  const db=new pg.Client({connectionString:requireLocalDatabaseUrl().href});await db.connect();
  try{await db.query("update public.tenants set status='archived' where id=any($1::uuid[]) and slug ~ '^controls-[a-f0-9]{8}$' and name='Fictieve controlesacceptatie'",[tenantIds]);}finally{await db.end();}
 }
+
+export async function fixtureWorkerAsPlanner(tenantId:string){
+ const db=new pg.Client({connectionString:requireLocalDatabaseUrl().href});await db.connect();
+ try{const r=await db.query("update public.tenant_memberships m set roles=array['staff','planner']::public.app_role[] from public.tenants t,auth.users u where m.tenant_id=t.id and m.user_id=u.id and t.id=$1 and t.slug ~ '^controls-[a-f0-9]{8}$' and t.name='Fictieve controlesacceptatie' and u.email='field-worker@fieldgrid.test' returning m.user_id",[tenantId]);if(r.rowCount!==1)throw new Error('Synthetic planner fixture not found');}finally{await db.end();}
+}

@@ -100,3 +100,8 @@ Bevoegd beheer kan gemotiveerd goedkeuren, afwijzen of uitstellen en de
 meetinstellingen beheren. Goedkeuren vraagt een toekomstige ingangsdatum.
 Een nieuwe toepassing vanaf die datum gebruikt de nieuwe norm; huidige bonnen
 en bestaande prijzen blijven behouden.
+
+Een bestaande eenheid wijzigen vraagt tariefbeheer, omdat de eenheid ook bij
+het tarief hoort. Zonder die bevoegdheid kun je de normtijd en normbasis binnen
+de bestaande eenheid aanpassen. Een toepassingsvorm die een andere eenheid
+nodig heeft laat de huidige instelling staan en vraagt om een tariefbeheerder.

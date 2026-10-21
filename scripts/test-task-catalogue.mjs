@@ -58,5 +58,20 @@ test('task catalogue numbering, immutable requirements and tenant/finance bounda
    await assert.rejects(call("insert into public.task_categories(tenant_id,name,prefix) values($1,'Bypass','BAD') returning id r",[tenant]),e=>e.code==='42501');
    await assert.rejects(command({action:'category_save',name:'X',prefix:'BAD CODE'}),e=>e.code==='23514');
   });
+  await t.test('changing the rate unit requires tariff access while planners can still update the norm',async()=>{
+   const current=(await catalogue()).tasks.find(x=>x.id===task.id);
+   const before=(await db.query('select * from public.task_revisions where id=$1',[current.revisionId])).rows[0];
+   const edit={action:'task_save',id:current.id,version:current.version,name:current.name,discipline:current.discipline,duration:45};
+   await assert.rejects(command({...edit,unit:'hour'},planner),e=>e.code==='42501');
+   await assert.rejects(call("insert into public.task_revisions(tenant_id,task_id,revision,duration_minutes,price_cents,vat_basis_points,unit) values($1,$2,$3,45,$4,$5,'hour')",[tenant,current.id,before.revision+1,before.price_cents,before.vat_basis_points],planner),e=>e.code==='42501');
+   await assert.rejects(call("insert into public.task_revisions(tenant_id,task_id,revision,duration_minutes,price_cents,vat_basis_points,unit) values($1,$2,$3,45,$4,$5,$6)",[tenant,current.id,before.revision+1,Number(before.price_cents)+1,before.vat_basis_points,before.unit],planner),e=>e.code==='42501');
+   await assert.rejects(call("insert into public.task_revisions(tenant_id,task_id,revision,duration_minutes,price_cents,vat_basis_points,unit) values($1,$2,$3,45,$4,$5,$6)",[tenant,current.id,before.revision+1,before.price_cents,before.vat_basis_points,before.unit]),e=>e.code==='42501');
+   const denied=(await catalogue()).tasks.find(x=>x.id===task.id);assert.equal(denied.version,current.version);assert.equal(denied.revisionId,current.revisionId);
+   await command({...edit,unit:current.unit},planner);
+   const norm=(await catalogue()).tasks.find(x=>x.id===task.id);assert.equal(norm.unit,current.unit);assert.equal(norm.duration,45);assert.equal(norm.priceCents,Number(before.price_cents));assert.equal(norm.vatBasisPoints,before.vat_basis_points);
+   await command({...edit,version:norm.version,unit:'hour',priceCents:Number(before.price_cents),vatBasisPoints:before.vat_basis_points});
+   const converted=(await catalogue()).tasks.find(x=>x.id===task.id);assert.equal(converted.unit,'hour');assert.equal(converted.priceCents,Number(before.price_cents));
+   const old=(await db.query('select unit,price_cents,vat_basis_points from public.task_revisions where id=$1',[before.id])).rows[0];assert.deepEqual(old,{unit:before.unit,price_cents:before.price_cents,vat_basis_points:before.vat_basis_points});
+  });
  }finally{await db.query('rollback');await db.end();}
 });

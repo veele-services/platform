@@ -124,3 +124,26 @@ verleent geen toegang. De locatieguard verhindert dat personeel via een oude
 bon actuele gegevens van een verplaatst item leest. Itemmetadata verleent geen
 afgeleide bevoegdheid op taak-/rapporthistorie. De regressies controleren de
 oude en nieuwe projectie, locatieverandering en intrekking van de bronmodule.
+
+## Tariefeenheid en rechtstreekse revisieschrijfpaden
+
+Een planner zonder `commercial_access` kan in de bestaande cataloguscommand
+geen bestaande eenheid veranderen. Een afgewezen request schrijft geen nieuwe
+revisie en verhoogt geen taakversie. Een normwijziging binnen de bestaande
+eenheid blijft mogelijk en behoudt prijs en btw; een bevoegde tariefbeheerder
+kan de eenheid bewust in een nieuwe revisie wijzigen. De editor blokkeert
+impliciete eenheidsconversies voor onbevoegde gebruikers en toont waarom.
+
+INSERT/UPDATE/DELETE op `task_revisions` zijn voor authenticated gesloten, ook
+op kolomniveau. De huidige native cataloguseditor schrijft via de bestaande
+beveiligde command. De blokkade treedt vóór tabeltriggers op, zodat een
+onbevoegde directe insert geen verborgen tarieven kan vergelijken. Leesrechten,
+private helpergrants en werkbonkolomrechten zijn niet verruimd.
+
+Bewijs: de nieuwe regressie in `scripts/test-task-catalogue.mjs` faalde vóór de
+correctie doordat de onbevoegde RPC slaagde. Na correctie weigeren RPC en directe
+insert de wijziging, blijven oude bedragen/versies gelijk en slaagt de bevoegde
+norm-/tariefwijziging. `tests/e2e/task-controls.spec.ts` controleert de echte
+plannerseditor, opgeslagen norm en geblokkeerde eenheid; `planner-unit-390.png`
+toont de beperkte weergave. Native schone replay bevat 183 migraties; de vorige
+182 statementhashes blijven gelijk.

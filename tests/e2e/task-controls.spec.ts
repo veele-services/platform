@@ -1,6 +1,6 @@
 import {expect,test} from "@playwright/test";
 import {mkdir} from "node:fs/promises";
-import {taskControlsFixture,latestFixtureVisit,archiveTaskControlsFixtures} from "./task-controls-fixture";
+import {taskControlsFixture,latestFixtureVisit,archiveTaskControlsFixtures,fixtureWorkerAsPlanner} from "./task-controls-fixture";
 import {authenticateWorkspace} from "./login-auth";
 
 let fixture:Awaited<ReturnType<typeof taskControlsFixture>>;
@@ -36,4 +36,13 @@ test("visit planning persists both occurrences of the autumn clock-change hour",
  const panel=page.getByRole("region",{name:"Bezoeken en persoonlijke tijd",exact:true});await panel.getByRole("button",{name:"Bezoek plannen",exact:true}).click();const form=panel.locator("form").filter({has:page.getByRole("button",{name:"Bezoek opslaan",exact:true})});
  await form.getByLabel("Bezoek vanaf").fill("2026-10-25T02:30");await form.getByLabel("Bezoek tot").fill("2026-10-25T02:30");await form.getByRole("checkbox",{name:"Fictieve medewerker",exact:true}).check();await form.getByText("Keuze bij dubbele wintertijd",{exact:true}).click();await form.getByRole("combobox",{name:"Start bij dubbele wintertijd",exact:true}).selectOption("earlier");await form.getByRole("combobox",{name:"Einde bij dubbele wintertijd",exact:true}).selectOption("later");
  await form.getByText("Eventuele beschikbaarheidswaarschuwingen bevestigen",{exact:true}).click();await form.getByRole("checkbox",{name:"Ik heb de gemelde beschikbaarheid/werktijden beoordeeld",exact:true}).check();await form.getByLabel("Reden beschikbaarheidsafwijking").fill("Fictieve acceptatie: dubbele wintertijd bewust gepland.");await form.getByRole("button",{name:"Bezoek opslaan",exact:true}).click();await expect.poll(async()=>Number((await latestFixtureVisit(fixture.serviceOrder))?.minutes??0)).toBe(60);await page.screenshot({path:"docs/task-controls/evidence/visit-wintertime-390.png"});
+});
+
+test("planner preserves the hidden tariff unit while updating the task norm",async({page})=>{
+ const scenario=await taskControlsFixture();fixtureTenants.push(scenario.tenant);await fixtureWorkerAsPlanner(scenario.tenant);
+ await page.setViewportSize({width:390,height:960});await page.context().addCookies([{name:"fieldgrid_tenant_id",value:scenario.tenant,url:"http://127.0.0.1:3000"}]);await authenticateWorkspace(page,"field-worker@fieldgrid.test","/app/taken");
+ const open=async()=>{await page.getByRole("button",{name:"Periodieke apparaatcontrole — uitgebreide fictieve acceptatie",exact:true}).last().click();await page.getByRole("button",{name:"Acties",exact:false}).last().click();await page.getByRole("button",{name:"Taak & tarief bewerken",exact:true}).click();return page.getByRole("dialog").last();};
+ let dialog=await open();await dialog.getByRole("tab",{name:"Uitvoering & controles",exact:true}).click();await dialog.getByLabel("Waarop voer je deze taak uit?").selectOption("once");await expect(dialog.getByRole("alert")).toContainText("tariefbeheer");await expect(dialog.getByLabel("Waarop voer je deze taak uit?")).toHaveValue("items");
+ await dialog.getByRole("tab",{name:"Tijd & afspraken",exact:true}).click();await expect(dialog.getByRole("combobox",{name:"Eenheid",exact:true})).toBeDisabled();await expect(dialog.getByRole("combobox",{name:"Eenheid",exact:true})).toHaveValue("item");await expect(dialog.getByLabel(/^Prijs excl\. btw/)).toHaveCount(0);await dialog.getByLabel("Norm (arbeidsminuten)",{exact:true}).fill("31");await dialog.getByRole("button",{name:"Nieuwe versie opslaan",exact:true}).click();await expect(dialog).not.toBeVisible();
+ await page.reload();dialog=await open();await dialog.getByRole("tab",{name:"Tijd & afspraken",exact:true}).click();await expect(dialog.getByLabel("Norm (arbeidsminuten)",{exact:true})).toHaveValue("31");await expect(dialog.getByRole("combobox",{name:"Eenheid",exact:true})).toHaveValue("item");await expect(dialog.getByRole("combobox",{name:"Eenheid",exact:true})).toBeDisabled();await dialog.screenshot({path:"docs/task-controls/evidence/planner-unit-390.png"});await dialog.getByRole("button",{name:"Annuleren",exact:true}).click();
 });
