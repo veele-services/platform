@@ -65,6 +65,11 @@ describe("staging smoke target guard", () => {
       expect(() => localWorkOrderTestUrl()).toThrow("Ongeldige lokale");
     } finally { if (previous === undefined) delete process.env.FIELDGRID_LOCAL_REPLAY_DIR; else process.env.FIELDGRID_LOCAL_REPLAY_DIR = previous; }
   });
+  it.each(["/tmp", "/home/codex/repos/fieldgrid", "/tmp/fieldgrid-task-controls-replay/../other"])("rejects unrelated task-control replay directories before invoking CLI: %s", path => {
+    const previous = process.env.FIELDGRID_TASK_CONTROLS_REPLAY_DIR;
+    try { process.env.FIELDGRID_TASK_CONTROLS_REPLAY_DIR = path; expect(() => localWorkOrderTestUrl()).toThrow("Ongeldige lokale"); }
+    finally { if (previous === undefined) delete process.env.FIELDGRID_TASK_CONTROLS_REPLAY_DIR; else process.env.FIELDGRID_TASK_CONTROLS_REPLAY_DIR = previous; }
+  });
   it.each(["host=db.ck%64tiuemeygrnujjibnw.supabase.co&user=postgres", "user=postgres.zyxwvutsrqponmlkjihg", "database=other", "port=6543", "sslmode=disable", "sslmode=require&sslmode=disable", "options=-c%20search_path=public"])("rejects query overrides: %s", query => {
     expect(() => stagingWorkOrderTestUrl({ ...env, MIGRATION_DATABASE_URL: `${env.MIGRATION_DATABASE_URL}?${query}` })).toThrow();
   });

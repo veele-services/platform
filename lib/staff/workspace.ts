@@ -138,7 +138,11 @@ export const staffWorkOrderTaskSchema = z.object({
   task_name: text,
   quantity: z.number(),
   unit: text,
-  duration_minutes: nonNegativeInteger,
+  duration_minutes: z.number().nonnegative(),
+  execution_snapshot:z.record(z.string(),z.unknown()).optional(),
+  original_quantity:z.number().nullable().optional(),
+  original_budget_minutes:z.number().nullable().optional(),
+  current_budget_minutes:z.number().nullable().optional(),
   is_extra_work: z.boolean(),
   extra_work_status: nullableText,
   completed_at: nullableText,
@@ -480,6 +484,7 @@ export const staffWorkspaceProjectionSchema = z.object({
   staffDepots: z.array(staffDepotSchema),
   workOrders: z.array(staffWorkOrderSchema),
   assignments: z.array(staffAssignmentSchema),
+  visits:z.array(z.object({id,tenant_id:id,work_order_id:id,assignment_id:id,starts_at:text,ends_at:text,state:text,own_session_start:nullableText,own_session_end:nullableText}).strict()).default([]),
   workOrderTasks: z.array(staffWorkOrderTaskSchema),
   tasks: z.array(staffTaskSchema),
   taskRevisions: z.array(staffTaskRevisionSchema),
@@ -538,6 +543,7 @@ export function parseStaffWorkspaceProjection(input: unknown, tenantId: string):
     }
   }
 
+  for(const visit of parsed.visits){if(!parsed.assignments.some(a=>a.id===visit.assignment_id&&a.work_order_id===visit.work_order_id))throw new Error("Ongeldige bezoektoewijzing in staff_workspace.visits");}
   const personnelId = parsed.personnel[0]?.id;
   if (personnelId) {
     for (const name of personnelCollections) {

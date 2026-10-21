@@ -15,7 +15,7 @@ export const relatedCommandSchema = z.object({
   instructions: z.string().max(2000).default(""),
   reason: z.enum(["remainder", "repair", "warranty", "paid", "inspection"]).default("remainder"),
   requestedDate: z.iso.date().or(z.literal("")).default(""),
-  tasks: z.array(z.object({ id: z.uuid(), quantity: z.number().positive().max(999999999) })).max(100),
+  tasks: z.array(z.object({ id: z.uuid(), quantity: z.number().positive().max(999999999), targetIds: z.array(z.uuid()).max(5000).optional() })).max(100),
   copyTemplate: z.boolean().default(true),
   copyContacts: z.boolean().default(true),
   copyPersonnel: z.boolean().default(false),
@@ -25,7 +25,7 @@ export const relatedCommandSchema = z.object({
 
 export type ScopeTask = {
   id: string; name: string; unit: string; planned: number; executed: number;
-  transferred: number; withdrawn: number; available: number;
+  transferred: number; withdrawn: number; available: number; targeted?: boolean;
 };
 export type RelatedContext = {
   order: { id: string; number: string; title: string; version: number; status: string; signatureMode?: string; employeeSignatureRequired?: boolean };

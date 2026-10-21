@@ -657,3 +657,11 @@ DNS-verifiëren en na operatorinrichting activeren. Dit volgt het
 [domeincontract](tenant-workspace-domains.md). Tenantselectie blijft uitsluitend
 hostname-gebaseerd, fail-closed en gescheiden van productie; de vaste hostnamen,
 poort3301 en deploymentconfiguratie blijven gelden.
+
+## Task-directed controls
+
+The [task execution contract](task-controls.md) extends the existing catalogue,
+work orders, personal visits, checklists and report pipeline. It preserves the
+fixed staging identities, reviewed main-to-staging promotion and production
+isolation. Fictional acceptance data is confined to disposable local tests;
+it is never seeded into a customer or staging tenant.

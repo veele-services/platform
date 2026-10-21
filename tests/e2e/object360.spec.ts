@@ -45,7 +45,7 @@ test("Object 360: full page tabs, structure, versioned instructions and responsi
  test.setTimeout(120000);await login(page,`/app/objecten/${object}`);
  await expect(page.getByRole("heading",{name:"Object 360 testlocatie",exact:true})).toBeVisible();
  await expect(page.locator("[data-account-guides-ready=true]")).toBeAttached();
- const tabs=page.getByRole("navigation",{name:"Objectdossier tabbladen"});await expect(tabs.getByRole("link")).toHaveCount(13);
+ const tabs=page.getByRole("navigation",{name:"Objectdossier tabbladen"});await expect(tabs.getByRole("link")).toHaveCount(14);await expect(tabs.getByRole("link",{name:"Items",exact:true})).toBeVisible();
  for(const width of [1440,768,390,320]){
   await page.setViewportSize({width,height:950});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   if(width<=620){

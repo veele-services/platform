@@ -1,0 +1,17 @@
+"use server";
+import {z} from "zod";
+import {revalidatePath} from "next/cache";
+import {getAuthContext} from "@/lib/auth/context";
+import {createClient} from "@/lib/supabase/server";
+import type {ActionResult} from "@/lib/actions/result";
+export type VisitContext={canPlan:boolean;activeKind?:string|null;visits:Array<{id:string;start:string;end:string;state:string;version:number;personnelIds:string[];sessions:Array<{id:string;start:string;end:string|null;own:boolean}>}>;activeAllocation:{id:string;taskId:string;targetId:string|null;start:string;method:string}|null;unallocatedMinutes:number};
+async function context(){const {tenant}=await getAuthContext();if(!tenant?.enabledServices.includes("planning")||!tenant.enabledServices.includes("personeel"))throw new Error("Geen bezoektoegang");return tenant;}
+export async function loadTaskVisits(orderId:string):Promise<ActionResult<{data:VisitContext}>>{try{const tenant=await context(),db=await createClient();const r=await db.rpc("task_visit_context",{target_tenant:tenant.id,target_order:z.uuid().parse(orderId)});if(r.error)throw r.error;return{ok:true,data:r.data as unknown as VisitContext};}catch{return{ok:false,error:"Bezoeken konden niet worden geladen. Controleer je toegang en verbinding."};}}
+const command=z.discriminatedUnion("action",[
+ z.object({action:z.literal("plan"),mutationId:z.uuid(),orderId:z.uuid(),version:z.number().int().positive(),start:z.iso.datetime({offset:true}),end:z.iso.datetime({offset:true}),personnelIds:z.array(z.uuid()).min(1).max(100),acknowledgeWarnings:z.boolean().default(false),overrideReason:z.string().max(1000).default("")}).strict(),
+ z.object({action:z.literal("reschedule"),mutationId:z.uuid(),orderId:z.uuid(),version:z.number().int().positive(),visitId:z.uuid(),visitVersion:z.number().int().positive(),reason:z.string().trim().min(5).max(2000),start:z.iso.datetime({offset:true}),end:z.iso.datetime({offset:true}),personnelIds:z.array(z.uuid()).min(1).max(100),acknowledgeWarnings:z.boolean().default(false),overrideReason:z.string().max(1000).default("")}).strict(),
+ z.object({action:z.literal("cancel"),mutationId:z.uuid(),orderId:z.uuid(),version:z.number().int().positive(),visitId:z.uuid(),visitVersion:z.number().int().positive(),reason:z.string().trim().min(5).max(2000)}).strict(),
+ z.object({action:z.enum(["start","close","pause","resume"]),mutationId:z.uuid(),orderId:z.uuid(),visitId:z.uuid()}).strict(),
+ z.object({action:z.literal("allocate"),mutationId:z.uuid(),orderId:z.uuid(),visitId:z.uuid(),taskId:z.uuid(),targetId:z.uuid().optional(),method:z.enum(["direct","batch","estimated"]),quantity:z.number().positive().max(100000)}).strict(),
+]);
+export async function saveTaskVisit(input:z.input<typeof command>):Promise<ActionResult>{try{const tenant=await context(),value=command.parse(input),db=await createClient();const r=await db.rpc("task_visit_command",{target_tenant:tenant.id,input:value});if(r.error)throw r.error;revalidatePath("/app","layout");revalidatePath("/staff","layout");return{ok:true};}catch(error){const e=error as {code?:string;message?:string};return{ok:false,error:error instanceof z.ZodError?error.issues[0]?.message??"Controleer de invoer.":e.code==="40001"?"De planning of sessie is gewijzigd. Vernieuw de actuele werkbon.":["23514","42501","23P01"].includes(e.code??"")?e.message??"Bezoekhandeling geweigerd.":"Opslaan kon niet worden bevestigd. Je invoer blijft behouden."};}}

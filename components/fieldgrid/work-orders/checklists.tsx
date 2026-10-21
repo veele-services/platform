@@ -9,7 +9,7 @@ import "./work-orders.css";
 import "./templates.css";
 
 type Photo = { id: string; file_name: string; mime_type: string };
-function Question({ checklist, question, editable, attachments }: { checklist: ChecklistInstance; question: ChecklistQuestion; editable: boolean; attachments: Photo[] }) {
+function Question({ checklist, question, editable, attachments, onSaved }: { onSaved?:()=>void; checklist: ChecklistInstance; question: ChecklistQuestion; editable: boolean; attachments: Photo[] }) {
   const existing = checklist.answers.find(a => a.questionId === question.id);
   const state = checklistQuestionState(checklist, question);
   const [value, setValue] = useState<string | number | boolean | null>(existing && ["string", "number", "boolean"].includes(typeof existing.value) ? existing.value as string | number | boolean : null);
@@ -18,8 +18,8 @@ function Question({ checklist, question, editable, attachments }: { checklist: C
   const router = useRouter(), id = `${checklist.id}-${question.id}`;
   const changed = () => { setSaved(false); setMutationId(crypto.randomUUID()); };
   const save = () => startTransition(async () => {
-    const r = await answerWorkOrderChecklist({ mutationId, checklistId: checklist.id, questionId: question.id, version: existing?.version ?? 0, value, notApplicable: na, reason, attachmentId: photo || null });
-    if (!r.ok) setError(r.error); else { setError(""); setSaved(true); router.refresh(); }
+    try { const r = await answerWorkOrderChecklist({ mutationId, checklistId: checklist.id, questionId: question.id, version: existing?.version ?? 0, value, notApplicable: na, reason, attachmentId: photo || null });
+    if (!r.ok) setError(r.error); else { setError(""); setSaved(true); router.refresh(); onSaved?.(); }} catch {setError("Opslaan kon niet worden bevestigd. Je invoer blijft behouden; controleer de verbinding en probeer opnieuw.");setSaved(false);}
   });
   return <section className="wo-checklist-question">
     <label htmlFor={id}><strong>{question.label}{question.required ? " *" : ""}</strong></label>
@@ -40,9 +40,9 @@ function Question({ checklist, question, editable, attachments }: { checklist: C
     {existing && <small className="dossier-muted">Laatst opgeslagen {new Date(existing.updatedAt).toLocaleString("nl-NL")} · antwoordversie {existing.version}</small>}
   </section>;
 }
-export function ChecklistPanel({ orderId, checklists, editable, attachments }: { orderId: string; checklists: ChecklistInstance[]; editable: boolean; attachments: Photo[] }) {
+export function ChecklistPanel({ orderId, checklists, editable, attachments, onSaved }: { onSaved?:()=>void; orderId: string; checklists: ChecklistInstance[]; editable: boolean; attachments: Photo[] }) {
   return <div className="wo-list" data-order={orderId}>
     {!checklists.length && <p>Geen checklists aan deze werkbon gekoppeld.</p>}
-    {checklists.map(c => <section className="wo-checklist-instance" key={c.id} aria-label={c.name}><header><h3>{c.name}</h3><span className="dossier-status">Versie {c.version}</span></header>{c.questions.filter(q => checklistQuestionState(c,q).visible).map(q => <Question key={`${q.id}:${c.answers.find(a => a.questionId === q.id)?.version ?? 0}`} checklist={c} question={q} editable={editable} attachments={attachments}/>)}</section>)}
+    {checklists.map(c => <section className="wo-checklist-instance" key={c.id} aria-label={c.name}><header><h3>{c.name}</h3><span className="dossier-status">Versie {c.version}</span></header>{c.questions.filter(q => checklistQuestionState(c,q).visible).map(q => <Question key={`${q.id}:${c.answers.find(a => a.questionId === q.id)?.version ?? 0}`} checklist={c} question={q} editable={editable} attachments={attachments} onSaved={onSaved}/>)}</section>)}
   </div>;
 }

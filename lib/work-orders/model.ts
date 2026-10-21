@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { targetSelectionSchema, type TaskExecutionConfig, type NormVersion } from "@/lib/tasks/execution-config";
 import type { Json } from "@/lib/database.types";
 import type { Row } from "@/lib/objects/model";
 
@@ -26,6 +27,7 @@ export type WorkOrderListData = { rows: WorkOrderListRow[]; total: number; page:
 export type ChecklistQuestion = {
   id: string; section: string; label: string; help: string; type: "check" | "boolean" | "choice" | "text" | "number" | "photo";
   options: string[]; unit: string; required: boolean; proof: boolean; allowNA: boolean; customerVisible: boolean;
+  outcomeRule?:{equals?:string|boolean;minimum?:number;maximum?:number};
   condition?: { questionId: string; equals: string | boolean };
 };
 export type WorkTemplate = { id: string; name: string; kind: "work_order" | "checklist"; version: number; editVersion?: number; state: "draft" | "published" | "archived"; revisionId: string; definition: { discipline?: string; requiredPersonnel?: number; signatureMode?: "none" | "optional" | "required"; employeeSignatureRequired?: boolean; tasks?: Array<{ revisionId: string; quantity: number; instructions?: string }>; questions?: ChecklistQuestion[]; checklistRevisionIds?: string[] } };
@@ -35,11 +37,11 @@ export type WorkOrderOptions = {
   contacts: Array<{ id: string; customer_id: string; objectIds: string[]; full_name: string; email: string | null; phone: string | null }>;
   personnel: Array<{ id: string; full_name: string; personnel_number: string }>;
   planners: Array<{ id: string; label: string }>;
-  tasks: Array<{ id: string; revisionId: string; code: string; name: string; discipline: string; unit: string; durationMinutes: number; priceCents?: number; vatBasisPoints?: number }>;
+  tasks: Array<{ id: string; revisionId: string; code: string; name: string; discipline: string; unit: string; durationMinutes: number; executionConfig?: Partial<TaskExecutionConfig>; normVersions?: NormVersion[]; priceCents?: number; vatBasisPoints?: number }>;
   templates: WorkTemplate[]; disciplines: string[]; finance: boolean; defaultSignatureMode: "none" | "optional" | "required"; canManageSignature: boolean; defaultPaymentTermsDays: number;
 };
 export type ChecklistQuestionState = { questionId: string; visible: boolean; answered: boolean; editable: boolean };
-export type ChecklistInstance = { id: string; revisionId: string; name: string; version: number; questions: ChecklistQuestion[]; questionStates?: ChecklistQuestionState[]; answers: Array<{ questionId: string; value: Json; notApplicable: boolean; reason: string; attachmentId?: string; version: number; actor: string; updatedAt: string }> };
+export type ChecklistInstance = { taskId?: string; targetExecutionId?:string|null; id: string; revisionId: string; name: string; version: number; questions: ChecklistQuestion[]; questionStates?: ChecklistQuestionState[]; answers: Array<{ questionId: string; value: Json; notApplicable: boolean; reason: string; attachmentId?: string; version: number; actor: string; updatedAt: string }> };
 export function checklistQuestionState(checklist: ChecklistInstance, question: ChecklistQuestion): ChecklistQuestionState {
   // Restricted staff responses contain server-evaluated conditions, not peers'
   // answers. Full backoffice dossiers retain their existing answer-based view.
@@ -73,7 +75,7 @@ export const saveWorkOrderSchema = z.object({
   windowKind: z.enum(["arrival", "execution", "unknown"]).default("unknown"), requiredPersonnel: z.number().int().min(1).max(100).default(1),
   durationMinutes: z.number().int().positive().max(100000).nullable().default(null), instructions: z.string().max(4000).default(""),
   contacts: z.array(z.object({ id: z.uuid(), roles: z.array(z.enum(["site", "requester", "extra_approver", "handover", "billing"])).min(1) })).max(30).default([]),
-  tasks: z.array(z.object({ revisionId: z.uuid(), quantity: z.number().positive().max(100000), instructions: z.string().max(2000).default("") })).max(100), preserveTasks: z.boolean().default(false),
+  tasks: z.array(z.object({ revisionId: z.uuid(), quantity: z.number().positive().max(100000), targets:z.array(targetSelectionSchema).max(5000).optional(), instructions: z.string().max(2000).default("") })).max(100), preserveTasks: z.boolean().default(false),
   templateRevisionId: z.uuid().nullable().default(null), checklistRevisionIds: z.array(z.uuid()).max(20).default([]),
   signatureMode: z.enum(["inherit", "none", "optional", "required"]).default("inherit"), employeeSignatureRequired: z.boolean().default(false),
   state: z.enum(["draft", "unassigned", "tentative", "final"]).default("unassigned"),

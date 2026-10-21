@@ -1,4 +1,6 @@
 "use client";
+import { TaskControls } from "./tasks/controls";
+import type { Json } from "@/lib/database.types";
 import { useEffect, useState } from "react";
 import type { Row } from "@/lib/objects/model";
 import { assignWorkOrderTask, getTaskCollaboration, recordTaskExecution, type TaskCollaboration } from "@/app/(workspace)/app/dossier-actions";
@@ -9,7 +11,7 @@ type ExecutionTask = Pick<Row<"work_order_tasks">,
   "withdrawn_quantity" | "executed_quantity" | "completed_at" |
   "completion_note" | "execution_state" | "execution_version" |
   "is_extra_work" | "extra_work_status"
-> & { unit_price_cents?: number };
+> & { unit_price_cents?: number; execution_snapshot?:Json };
 export function TaskExecution({ task, editable = false, allocated = 0, reviewed = false }: { task: ExecutionTask; editable?: boolean; allocated?: number; reviewed?: boolean }) {
   const [open, setOpen] = useState(false);
   const [collaboration, setCollaboration] = useState<TaskCollaboration | null>(null), [details, setDetails] = useState(false), [error, setError] = useState("");
@@ -18,10 +20,13 @@ export function TaskExecution({ task, editable = false, allocated = 0, reviewed 
   const actual = task.executed_quantity ?? (task.completed_at ? ownQuantity : 0);
   const financial = task.unit_price_cents === undefined ? null : billingStatus(task.unit_price_cents, !!task.completed_at, reviewed && (!task.is_extra_work || task.extra_work_status === "approved"), allocated, actual);
   const resultState = task.transferred_quantity > 0 && ownQuantity <= actual ? "remaining_transferred" : task.completed_at && task.execution_state === "planned" ? "completed" : task.execution_state;
+  const scope=task.execution_snapshot as {mode?:string;config?:{checklistMode?:string}}|undefined;
+  if(scope&&["items","rooms"].includes(scope.mode??""))return <article className="object-record"><TaskControls taskId={task.id} editable={editable}/></article>;
   return <article className="object-record">
     <header><h3>{task.task_name}</h3><span className="dossier-status">{executionLabels[resultState]}</span></header>
     <p>Uitgevoerd: {actual} van {ownQuantity} {task.unit} eigen werk.</p>
     {(task.transferred_quantity > 0 || task.withdrawn_quantity > 0) && <p className="dossier-muted">Oorspronkelijke scope: {task.quantity} {task.unit} · overgedragen: {task.transferred_quantity} · ingetrokken: {task.withdrawn_quantity}</p>}
+    {scope?.config?.checklistMode&&scope.config.checklistMode!=="none"&&<TaskControls taskId={task.id} editable={editable}/>}
     {task.completion_note && <p>{task.completion_note}</p>}
     {financial && <p className="dossier-muted">{financial}</p>}
     <button className="resource-action" aria-expanded={details} onClick={() => setDetails(!details)}>Taakverdeling en bijdragen</button>

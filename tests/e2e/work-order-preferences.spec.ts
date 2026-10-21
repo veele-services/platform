@@ -44,7 +44,7 @@ test("nieuwe werkbon vraagt alleen een dag en twee-uursvenster en houdt taakduur
     await wizard.getByLabel("Titel", { exact: true }).fill(title);
     await wizard.getByLabel("Dienstcategorie", { exact: true }).fill("Onderhoud");
     await wizard.getByLabel("Taak toevoegen", { exact: true }).selectOption(taskId);
-    await wizard.getByLabel("Hoeveelheid (task)", { exact: true }).fill("6");
+    await wizard.getByLabel("Hoeveelheid (taak)", { exact: true }).fill("6");
     await next(page, 2);
     const step = wizard.locator(".wo-wizard-step:not([hidden])");
     await expect(step.locator("input,select,textarea")).toHaveCount(2);

@@ -86,7 +86,7 @@ function rows<T>(result: { data: T[] | null; error: { message: string } | null }
 export function getWorkspaceData(tenantId: string, scope: "staff"): Promise<StaffWorkspaceData>;
 export function getWorkspaceData(tenantId: string, scope?: "backoffice"): Promise<WorkspaceData>;
 export async function getWorkspaceData(tenantId: string, scope: "backoffice" | "staff" = "backoffice"): Promise<WorkspaceData | StaffWorkspaceData> {
-  const supabase = await createClient();
+  const supabase = await createClient(scope === "staff" ? { taskControls: true } : undefined);
   if (scope === "staff") {
     const [projection, brandingResult] = await Promise.all([
       reportRpc(supabase, "staff_workspace", { target_tenant: tenantId }),
