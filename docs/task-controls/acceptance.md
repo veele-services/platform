@@ -47,10 +47,10 @@ De volledige bestaande `pnpm test:db`-keten blijft verplicht.
 | A33 | Ondertekend rapport verandert niet door hernoemen/verplaatsen, nieuwe checklist of nieuwe norm. | Geslaagd in gerichte lokale verificatie; CI vereist | Opgeslagen doelrapport/hash gelijk na hernoemen/verplaatsen; bestaande echte signature- en PDF-regressies; DB-suite en `scripts/test-work-order-reports.mjs`. |
 | A34 | Personeel en klant ontvangen geen ongeautoriseerde collega-antwoorden, interne notities, tarieven of normanalytics. | Geslaagd in gerichte lokale verificatie; CI vereist | Eigen antwoorden/gedeelde voortgang, verborgen bevinding ontbreekt in rapport; norm-/tenantdenials en bestaande klant/personeel-privacyregressies. |
 | A35 | Een verouderde versie, retry, gewijzigde payload en gelijktijdige afronding geven gecontroleerde uitkomsten, geen dataverlies. | Geslaagd in gerichte lokale verificatie; CI vereist | Stale antwoord-/uitvoeringsversie en gewijzigde retry-payload geweigerd; echte concurrente requests; DB- en concurrency-suite. |
-| A36 | Directe API/RPC-paden weigeren onbevoegde rol, ingetrokken inzet, verkeerd object en vreemde tenant. | Geslaagd in gerichte lokale verificatie; CI vereist | Directe RPC-/tabel-/kolomdenials, verkeerde context en sessie ingetrokken tijdens lockwait; DB-/concurrency-/securitycatalogussuites. |
-| A37 | Schoonmaak en service zijn op 320/390/768/1440 px via bestaande schermen volledig bruikbaar. | Geslaagd in gerichte lokale verificatie; CI vereist | Acht native browserketens op 320/390/768/1440 px en een extra wintertijdcase, met lange namen, opgeslagen uitkomsten en controle op horizontale overflow; 25 screenshots in `evidence/`. |
+| A36 | Directe API/RPC-paden weigeren onbevoegde rol, ingetrokken inzet, verkeerd object en vreemde tenant. | Geslaagd in gerichte lokale verificatie; CI vereist | Directe RPC-/tabel-/kolomdenials, verkeerde context en sessie ingetrokken tijdens lockwait; ongeoorloofde tariefeenheid en directe revisieschrijfacties geweigerd met behoud van bevoegde normwijzigingen; DB-/concurrency-/securitycatalogussuites. |
+| A37 | Schoonmaak en service zijn op 320/390/768/1440 px via bestaande schermen volledig bruikbaar. | Geslaagd in gerichte lokale verificatie; CI vereist | Acht native browserketens op 320/390/768/1440 px en extra wintertijd- en plannerrechtencontroles, met lange namen, opgeslagen uitkomsten en controle op horizontale overflow; 26 screenshots in `evidence/`. |
 | A38 | Er staat geen apart onderhoudsmenu in de personeelsapp; keyboard/focus/labels/modals werken. | Geslaagd in gerichte lokale verificatie; CI vereist | Bestaande werkbonmodal en Werkzaamheden → Open taak → Open controles; native tabs, labels en modalcomponenten; browserketens en bestaande toegankelijkheidsregressies. |
-| A39 | Verse installatie én upgrade met oude uren, signatures, prijzen en factuurbronnen behouden integriteit. | Geslaagd in gerichte lokale verificatie; CI vereist | Schone 182-migratiereplay; upgrades vanaf 20260930142326, 20260930192516 en 20261001042234; historische handtekening/uren/review, meldingen en platformbevoegdheden behouden. |
+| A39 | Verse installatie én upgrade met oude uren, signatures, prijzen en factuurbronnen behouden integriteit. | Geslaagd in gerichte lokale verificatie; CI vereist | Schone 183-migratiereplay; upgrades vanaf 20260930142326, 20260930192516 en 20261001042234; historische handtekening/uren/review, meldingen en platformbevoegdheden behouden. |
 | A40 | CI en staging draaien exact de gereviewde SHA; de publieke healthcheck bevestigt deze; productie is niet gewijzigd. | Releasegate — bevestiging in opleverbericht | Releasegate: gereviewde main-SHA bewust naar staging promoveren; bestaande workflow moet slagen en publieke healthcheck moet exact dezelfde SHA melden. Definitieve run/SHA/health-uitkomst staat in het opleverbericht. |
 
 ## Browserbewijs en beoordeling
@@ -69,7 +69,7 @@ De bestaande verplichte workflow voert audit, lint, typecheck, unit-, echte
 DB-/policy-, oude upgrade-, authorization-surface/-review-, HTTP-security-,
 database-lint/-advisor-, build-, standalone- en Playwrightcontroles uit.
 De migratiemanifestcontrole vergelijkt 179 ongewijzigde historische hashes plus
-de drie nieuwe native CLI-statementhashes. Er is geen gate of policy afgezwakt.
+de vier nieuwe native CLI-statementhashes. Er is geen gate of policy afgezwakt.
 
 Volledige offline synchronisatie is niet toegevoegd. Invoer en herhaalsleutel
 blijven behouden zolang het formulier open blijft; lokaal niet-bevestigde

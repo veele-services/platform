@@ -146,7 +146,8 @@ het geopend blijft. Er is geen belofte van duurzaam opgeslagen offline uitvoerin
 
 De forward migrations zijn `20261020234321_task_execution_controls.sql` en
 `20261021022113_task_controls_workspace_compatibility.sql` en
-`20261021023228_task_item_dossier_current_location_guard.sql`; toegepaste
+`20261021023228_task_item_dossier_current_location_guard.sql` en
+`20261021053000_task_catalogue_rate_unit_access.sql`; toegepaste
 migraties blijven onveranderd. Fresh/upgrade, API-/policy-, concurrency-, rapport-,
 financiële en browsercontroles staan in de [acceptatiematrix](../task-controls/acceptance.md).
 Promotie blijft uitsluitend de bestaande gereviewde main → staging-route met
@@ -167,3 +168,20 @@ Een verplaatst item geeft personeel op de oude bon uitsluitend de bevroren
 taak-/rapportcontext; het actuele Item-360-dossier vraagt de huidige object- en
 klantbinding. Ook een itembeheerder ontvangt taak-/rapporthistorie alleen met
 de actuele bronrechten en moduletoegang voor de betreffende werkbon.
+
+## Eenheid en tariefbevoegdheid
+
+De cataloguseenheid bepaalt ook de betekenis van het bestaande tarief. Daarom
+vereist het wijzigen van die eenheid dezelfde bestaande tariefbevoegdheid als
+het wijzigen van prijs en btw. Een planner zonder tariefinzage kan normduur,
+normbasis en controles binnen de bestaande eenheid aanpassen. Een omschrijving
+opslaan zonder eenheid houdt de bestaande eenheid en prijs intact. Een
+toepassingsvorm die een andere eenheid nodig heeft vraagt een tariefbeheerder;
+de editor verandert de eenheid dan niet stil. De server dwingt dit ook bij een
+rechtstreekse RPC af, vóór een taak of revisie wordt gewijzigd.
+
+Rechtstreekse tabelmutaties op catalogusrevisies zijn gesloten voor authenticated.
+De bestaande native cataloguscommand maakt en sluit revisies met de passende
+bevoegdheden. Dit voorkomt zowel een tweede tariefschrijfpad als een vergelijking
+van verborgen bedragen in een onbevoegde tabeltrigger. Werkbonkolomrechten en
+het bestaande leesgedrag blijven afzonderlijk geregeld.

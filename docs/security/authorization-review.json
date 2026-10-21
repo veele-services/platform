@@ -6750,14 +6750,11 @@
     },
     {
       "id": "db:public.task_revisions",
-      "surfaceFingerprint": "6a1c9534a7e4a8e6f6a11098a1d5c1c89c543a80b5f01229887eed86e7536f5b",
+      "surfaceFingerprint": "081d9557bf607040e565e094e4250ea5940ced2ee651114e55678ba0be6fe688",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/task-controls-authorization-review.md",
-        "docs/architecture/task-controls.md",
-        "scripts/test-task-controls.mjs",
-        "scripts/test-task-controls-concurrency.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/security/task-controls-authorization-review.md: tariff-unit and direct revision write boundary",
+        "scripts/test-task-catalogue.mjs: direct inserts denied before triggers; native norm and authorized rate changes retain historical values"
       ]
     },
     {
@@ -8233,10 +8230,10 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "572d445cdcc933688318e61e4f4836f3e02c6da7099a161f85acf0302e818215",
+      "surfaceFingerprint": "572ce7ed083aea734d8ee061b1146fe0485a695ac4051001031fa008d2015d3c",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/task-controls-authorization-review.md: additive native CLI migrations; prior 180 statement hashes unchanged",
+        "docs/security/task-controls-authorization-review.md: native 183-migration replay preserves all prior 182 statement hashes",
         "scripts/verify-local-migration-manifest.ts"
       ]
     },
@@ -17831,14 +17828,12 @@
     },
     {
       "id": "rpc:public.task_catalogue_command(target_tenant uuid, input jsonb)",
-      "surfaceFingerprint": "de87c33691e667dbf1649642a63d879983f849e184fe155c2fe6c65f6b64a977",
+      "surfaceFingerprint": "0d4ae4fcdddd84f09a6db825727a510440c8e4af694e9423552f83fc9a073338",
       "status": "corrected-and-rechecked",
       "evidence": [
-        "docs/security/task-controls-authorization-review.md",
-        "docs/architecture/task-controls.md",
-        "scripts/test-task-controls.mjs",
-        "scripts/test-task-controls-concurrency.mjs",
-        "scripts/test-security-catalog.mjs"
+        "docs/architecture/task-controls.md: catalogue unit shares the existing tariff permission",
+        "scripts/test-task-catalogue.mjs: red/green rejection, no version change on denial, preserved norm-edit permissions",
+        "tests/e2e/task-controls.spec.ts: planner saves norm while unit stays disabled"
       ]
     },
     {

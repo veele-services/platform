@@ -911,6 +911,11 @@
       "version": "20261021023228",
       "name": "task_item_dossier_current_location_guard",
       "sha256": "5c8878b57fa5907d111b6ccd7e4893b6aa0f167f40bae62add5e92623bf94a04"
+    },
+    {
+      "version": "20261021053000",
+      "name": "task_catalogue_rate_unit_access",
+      "sha256": "5ad5766dea3076e0da8071c173ef563d1d332e1b82236ff02c6662dfbba7d510"
     }
   ]
 }
