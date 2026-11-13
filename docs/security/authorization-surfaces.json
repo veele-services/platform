@@ -6,12 +6,13 @@
       "id": "code:app/(marketing)/fieldgrid-site/[[...path]]/page.tsx",
       "exports": [
         "default",
+        "dynamic",
         "generateMetadata"
       ],
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "b089cd39bdd95e07d86c04253174dee8db1439da23168e8fafda062b4cc47e99"
+      "source_sha256": "efb91c64605f7db93d39c33f975d0b13d23df6671c5d8aabfb79394ff646f171"
     },
     {
       "id": "code:app/(marketing)/fieldgrid-site/layout.tsx",
@@ -37,12 +38,13 @@
     {
       "id": "code:app/(marketing)/fieldgrid-site/sitemap.xml/route.ts",
       "exports": [
-        "GET"
+        "GET",
+        "dynamic"
       ],
       "classification": "route-or-rsc",
       "observedControls": [],
       "resources": [],
-      "source_sha256": "d3a934d64e0b806e24fc18dc37ec673e718424c13f4b668b065eac0dbe24da82"
+      "source_sha256": "2c12a2eeb1c2699bf101b6d89739673809f637ad1a7accd09b8a7638f61e9490"
     },
     {
       "id": "code:app/(marketing)/layout.tsx",
@@ -111,6 +113,29 @@
       "observedControls": [],
       "resources": [],
       "source_sha256": "19e8d1182dfb3fef224077e368519fbe9eb8e79825af89ec673a875d94d0c720"
+    },
+    {
+      "id": "code:app/(workspace)/api/blog-admin/[...path]/route.ts",
+      "exports": [
+        "GET",
+        "PATCH",
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "556c2249d2451fb3f34df64284562cbf2bfe6fd218efed9ab8c7054e00353d2a"
+    },
+    {
+      "id": "code:app/(workspace)/api/blog-admin/route.ts",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "8cfec6970cc161133d6dd3b5136106111cbeb8924258e1e629116a3311527851"
     },
     {
       "id": "code:app/(workspace)/api/branding/[tenantId]/email-logo/route.ts",
@@ -704,6 +729,18 @@
         "rpc:work_order_list"
       ],
       "source_sha256": "98bd813eec30ce164d050db029a8f654ccf253778b6010e6e08b58c372549868"
+    },
+    {
+      "id": "code:app/(workspace)/api/socialhero/v1/[...path]/route.ts",
+      "exports": [
+        "GET",
+        "POST",
+        "PUT"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [],
+      "resources": [],
+      "source_sha256": "211e6b894293c7805e065d4874342f3e0b3b43656688c4bf34ddecf8de2afea8"
     },
     {
       "id": "code:app/(workspace)/api/tickets/files/[id]/route.ts",
@@ -1889,6 +1926,22 @@
       "source_sha256": "69563d1b4621cb94804f48e59d8efdf258b176a4011f61ca8e511c27b232ef47"
     },
     {
+      "id": "code:app/(workspace)/blog-media/[id]/route.ts",
+      "exports": [
+        "GET"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "createAdminClient",
+        "requireBlogEditor",
+        "requireBlogHost"
+      ],
+      "resources": [
+        "from:fieldgrid-blog-media"
+      ],
+      "source_sha256": "e182c4f23b6432398e330c58dfcf42b2f96c855275d7abf49b849b0b92771349"
+    },
+    {
       "id": "code:app/(workspace)/booking/[token]/actions.ts",
       "exports": [
         "bookAppointment"
@@ -2201,6 +2254,32 @@
         "rpc:complete_platform_admin_invitation"
       ],
       "source_sha256": "918e6649a9e6e1aaf018324e20cd077d324050e60b2df1653904991c4a23377c"
+    },
+    {
+      "id": "code:app/(workspace)/platform/blog/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "requireBlogEditor"
+      ],
+      "resources": [],
+      "source_sha256": "667b01d2094cc566ebd88f1cb5034331b87d446f97867be816892a58238b9256"
+    },
+    {
+      "id": "code:app/(workspace)/platform/blog/preview/[id]/page.tsx",
+      "exports": [
+        "default",
+        "metadata"
+      ],
+      "classification": "route-or-rsc",
+      "observedControls": [
+        "requireBlogEditor"
+      ],
+      "resources": [],
+      "source_sha256": "259ec9f0805dc52359511324510597eda9b4f138a77232bf5299ae835b112244"
     },
     {
       "id": "code:app/(workspace)/platform/crm/page.tsx",
@@ -2928,6 +3007,90 @@
       ],
       "resources": [],
       "source_sha256": "e617fd6fdbda9da0de553e36d513e53b99465b958e614e28fcc7633ceb25fcf0"
+    },
+    {
+      "id": "code:lib/blog/admin-api.ts",
+      "exports": [
+        "blogAdminApi"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "requireBlogEditor",
+        "requireBlogHost",
+        "requireSameOrigin"
+      ],
+      "resources": [],
+      "source_sha256": "e6fc99550d932b8ade4764afcf61e7776ada69fd3fb2fb3ff05b762b3ccad43c"
+    },
+    {
+      "id": "code:lib/blog/auth.ts",
+      "exports": [
+        "requireBlogCredential",
+        "requireBlogEditor",
+        "requireBlogHost",
+        "requireSameOrigin"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "auth.getUser",
+        "createAdminClient",
+        "createClient",
+        "requireBlogHost",
+        "resolveHostContext"
+      ],
+      "resources": [],
+      "source_sha256": "cbf601891c2fcbc210c7affefdcf475dd855dd504a4705906a3583e88156020b"
+    },
+    {
+      "id": "code:lib/blog/data.ts",
+      "exports": [
+        "blogAdminQuery",
+        "blogAdminWrite",
+        "blogQuery",
+        "blogWrite",
+        "getBlog",
+        "getBlogTaxonomy",
+        "getPublicBlog",
+        "getPublishedBlog",
+        "listBlogEntries"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createAdminClient",
+        "createClient"
+      ],
+      "resources": [],
+      "source_sha256": "88cbbcf4fd67c80e0e34da0b4a035d34a1c288b67a274145d18e57d5dd31191e"
+    },
+    {
+      "id": "code:lib/blog/media.ts",
+      "exports": [
+        "BLOG_MEDIA_LIMIT",
+        "BLOG_MEDIA_TYPES",
+        "decodeBlogMedia",
+        "getBlogAsset",
+        "uploadBlogMedia"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "createAdminClient"
+      ],
+      "resources": [
+        "from:fieldgrid-blog-media"
+      ],
+      "source_sha256": "893a0f30a3d38ca5ca7d22c90327254158169ec6d2b9b241bdd40c5cc5e98022"
+    },
+    {
+      "id": "code:lib/blog/service-api.ts",
+      "exports": [
+        "socialHeroApi"
+      ],
+      "classification": "data-access-module",
+      "observedControls": [
+        "requireBlogCredential"
+      ],
+      "resources": [],
+      "source_sha256": "0780695cae14ac6f3474cf0a0b2f2e2ca54f353f7f5fafedca0007fe9a0caf84"
     },
     {
       "id": "code:lib/branding/house-style-actions.ts",
@@ -4354,7 +4517,7 @@
         "resolveHostContext"
       ],
       "resources": [],
-      "source_sha256": "77c843fb970e0af94a1909acf804e185c7e390ae78e511dd1844b3f0751cfe55"
+      "source_sha256": "7c5e6165630c36a4073f4feba5d77905135825c9339880c862d86121592718f1"
     },
     {
       "id": "db:private.cockpit_action_overlays",
@@ -5157,6 +5320,142 @@
     },
     {
       "id": "db:private.execution_invoice_receipts",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.fieldgrid_blog_assets",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.fieldgrid_blog_authors",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.fieldgrid_blog_categories",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.fieldgrid_blog_credentials",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.fieldgrid_blog_posts",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.fieldgrid_blog_rate",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.fieldgrid_blog_receipts",
+      "classification": "table",
+      "rls": true,
+      "force_rls": true,
+      "anonymous": false,
+      "authenticated": false,
+      "anonymous_select": false,
+      "anonymous_insert": false,
+      "anonymous_update": false,
+      "anonymous_delete": false,
+      "authenticated_select": false,
+      "authenticated_insert": false,
+      "authenticated_update": false,
+      "authenticated_delete": false,
+      "authorization_sha256": "3d4492cfca0e1eb73acfbf57ac044195470fda37405f560a05c507791bc4a8c6"
+    },
+    {
+      "id": "db:private.fieldgrid_blog_slugs",
       "classification": "table",
       "rls": true,
       "force_rls": true,
@@ -9130,12 +9429,12 @@
     {
       "id": "operation:next.config.ts",
       "classification": "operation",
-      "source_sha256": "e33b1b319f4266408f46a42d246221a17298b66a316a4e437cdb7de25c5d68b4"
+      "source_sha256": "cccd61c677a3b829995fc72d89544033212eeae021604bb2b145bea09a146774"
     },
     {
       "id": "operation:package.json",
       "classification": "operation",
-      "source_sha256": "a010fd8384d0fe357bd82e721a94dcaac1a3a5dc91676cda884a881dce1e3138"
+      "source_sha256": "f4c344868ac8beb777ef43c9c4b1456022241e41ecc74fb90959e6dde495c192"
     },
     {
       "id": "operation:patches/braces@3.0.3.patch",
@@ -9150,12 +9449,12 @@
     {
       "id": "operation:pnpm-lock.yaml",
       "classification": "operation",
-      "source_sha256": "6d758e4702549be263d753c07d071d622160966c0bf8e6efd22ba670d1720924"
+      "source_sha256": "b8b4d31858a7404d573e8f13b152ce212e730a44485b977bc4465d938cedae1d"
     },
     {
       "id": "operation:pnpm-workspace.yaml",
       "classification": "operation",
-      "source_sha256": "0e73ced92ad6402a90c6b3916af1100afb0a2b06f73e6ac5fbea5bc2786380bb"
+      "source_sha256": "6480503e35ce3f4bd540633f999e66c21eee4aa104c421cc059418d866cda1bb"
     },
     {
       "id": "operation:public/sw.js",
@@ -9176,6 +9475,11 @@
       "id": "operation:scripts/backup-production-database.ts",
       "classification": "operation",
       "source_sha256": "64bdae32e39f5de4747bf5447784051c54fa3b0758f0383b47c714e2b54cc7d2"
+    },
+    {
+      "id": "operation:scripts/blog-credential.ts",
+      "classification": "operation",
+      "source_sha256": "97b94614554374429b2f9651cd79405d1730fba01a4e5d9356950445f530d501"
     },
     {
       "id": "operation:scripts/bootstrap-platform-admin.ts",
@@ -9235,7 +9539,7 @@
     {
       "id": "operation:scripts/check-security-surface.mjs",
       "classification": "operation",
-      "source_sha256": "a488bd4134c8bb39d2a00bfba047af53933fa4af11e5b21405990ac8d7eeefe5"
+      "source_sha256": "07c3370878a79fc81f10386e304cbd2d81e967012179a31c77ba78c7e4d7a62c"
     },
     {
       "id": "operation:scripts/check-source-secrets.mjs",
@@ -9315,7 +9619,7 @@
     {
       "id": "operation:scripts/migration-manifest.json",
       "classification": "operation",
-      "source_sha256": "2c18122a5f07d995291c8cb5b3e7c51fedc94a04456d5a4559e2d74bd6d93052"
+      "source_sha256": "fc5b63a5b0c961c21d18e16b6d1ae8fce8eb0f488012d13a1b2c5939fdd78bc2"
     },
     {
       "id": "operation:scripts/migration-manifest.ts",
@@ -10927,6 +11231,60 @@
       "authenticated": false,
       "service": false,
       "definition_sha256": "20a2b545c149b10866bda6bc509e79935668faf801b78380a141323d3f80d737"
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_editor()",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "36faa4fe92bf9178a8da10424b2d526cbaae44b7e9f4f11faabb67bda4259b45"
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_entry(p private.fieldgrid_blog_posts)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "622b0586833474dc6982b4d9f771bd4b80c1a5f358a6ec3ada8f8025d887d0bd"
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_media_ids(fields jsonb)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "008f526776b528bf6ee9590a79feef64a126c8bb9c8da694acc53768489408d2"
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_read(operation text, payload jsonb)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "9d4d00b1dd1487ea5e5f2a99c43191d65826b271ea6137cf77296352c0d7d4de"
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_validate(fields jsonb, site text, env text)",
+      "classification": "private-function",
+      "security_definer": false,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "514441a6b5b51f0e8daf4c7a6c4ea7ce256c06e77eca181f03cfb77a20deadb0"
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_write(operation text, payload jsonb)",
+      "classification": "private-function",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": false,
+      "definition_sha256": "a75acb66b598e1ee4523a643d5b8c604278db6eba7e99806e91309dbd3b41fd0"
     },
     {
       "id": "rpc:private.file_is_scanned(object_id uuid, object_version text)",
@@ -15265,6 +15623,60 @@
       "authenticated": true,
       "service": false,
       "definition_sha256": "b8767cf247dc118472c48ce76b62163867d108c737425b349168993523c4ea8e"
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_admin_read(operation text, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "fd36f7237f3df8ec07fd4e89b246860cbee3e87d8012810939c91f596c466eb6"
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_admin_write(operation text, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": true,
+      "service": false,
+      "definition_sha256": "4748aa28458fcf39564057e29c729036a1856b6aef8c46a7f42234a5651b65c6"
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_authenticate(token_hash text)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "e7248181f1220e3b203859711c40e26779924d82d830befc8b6298179648051a"
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_public_read(operation text, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "641b7e9161887a6b3e1a31839e5f315dcc25d6ce196497db98527a15706f9f57"
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_read(operation text, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "10440ee05fa9d71b8b51fd7836a3d859940b22f157cd3f02c4cff7b613516b33"
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_write(operation text, payload jsonb)",
+      "classification": "public-rpc",
+      "security_definer": true,
+      "anonymous": false,
+      "authenticated": false,
+      "service": true,
+      "definition_sha256": "288a6062284fa26fa56b17f83be7c8ee66cc3858f1f5f8c53aba59348a4f36b0"
     },
     {
       "id": "rpc:public.file_scan_attest(target_bucket text, target_path text, expected_id uuid, expected_version text, proof jsonb)",

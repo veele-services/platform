@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
   deploymentId: process.env.DEPLOYMENT_VERSION ?? process.env.RELEASE_SHA,
   poweredByHeader: false,
   reactStrictMode: true,
+  // Canonical and revision markers must be in the original head for crawlers
+  // and the unauthenticated SocialHero publication verifier.
+  htmlLimitedBots: /.*/,
   experimental: {
     globalNotFound: true,
     serverActions: {

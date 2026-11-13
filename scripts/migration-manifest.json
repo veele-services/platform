@@ -916,6 +916,11 @@
       "version": "20261021053000",
       "name": "task_catalogue_rate_unit_access",
       "sha256": "5ad5766dea3076e0da8071c173ef563d1d332e1b82236ff02c6662dfbba7d510"
+    },
+    {
+      "version": "20261113124643",
+      "name": "fieldgrid_blog_socialhero",
+      "sha256": "7f8110722e2ef31e705209312e67f6d9069d3ff948190e0dcab5c7eca93a9d8c"
     }
   ]
 }

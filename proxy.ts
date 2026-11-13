@@ -11,6 +11,8 @@ import { signedInLoginDestination } from "@/lib/auth/workspace-destination";
 import { publicMarketingPath, VEELE_WEBSITE_SLUG } from "@/lib/marketing/veele/routes";
 import { renderWebsite, websiteSitemap } from "@/lib/marketing/veele/render";
 import { FIELDGRID_MARKETING_INTERNAL, FIELDGRID_MARKETING_ASSETS, FIELDGRID_PUBLIC_CRM_PATHS, isInternalMarketingPath, isMarketingPrivatePath } from "@/lib/marketing/fieldgrid/routes";
+import { isBlogServiceRequest, isBlogMediaRequest, isLocalBlogPath } from "@/lib/blog/routes";
+import { localBlogOrigin } from "@/lib/blog/origin";
 
 export async function proxy(request: NextRequest) {
   if (isAuthenticatedWorkerRequest({ method: request.method, pathname: request.nextUrl.pathname, search: request.nextUrl.search, host: request.headers.get("host"), authorization: request.headers.get("authorization") }, { DEPLOY_TARGET: process.env.DEPLOY_TARGET, PORT: process.env.PORT, ADMIN_API_SECRET: process.env.ADMIN_API_SECRET })) {
@@ -23,6 +25,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request: { headers: workerHeaders } });
   }
   let hostContext = resolveHostContext(request.headers.get("host"), process.env.APP_URL!, process.env.DEPLOY_TARGET ?? "local");
+  const localBlog = localBlogOrigin();
+  if (localBlog && request.headers.get('host') === new URL(localBlog).host && isLocalBlogPath(request.nextUrl.pathname, request.method)) {
+    hostContext = { kind: 'marketing', hostname: new URL(localBlog).hostname };
+  }
   let customWorkspace = false;
   if (hostContext.kind === "invalid") {
     const custom = await resolveCustomWorkspaceHost(hostContext.hostname, process.env.DEPLOY_TARGET ?? "local");
@@ -41,7 +47,7 @@ export async function proxy(request: NextRequest) {
   const fieldgridPath = request.nextUrl.pathname;
   if (isInternalMarketingPath(fieldgridPath)) return new NextResponse("Pagina niet gevonden", { status: 404, headers: { "cache-control": "no-store" } });
   if (hostContext.kind === "marketing") {
-    const isPublicApi = FIELDGRID_PUBLIC_CRM_PATHS.some(path => path === fieldgridPath);
+    const isPublicApi = FIELDGRID_PUBLIC_CRM_PATHS.some(path => path === fieldgridPath) || isBlogServiceRequest(fieldgridPath, request.method) || isBlogMediaRequest(fieldgridPath, request.method);
     const isAsset = fieldgridPath.startsWith(FIELDGRID_MARKETING_ASSETS) || fieldgridPath.startsWith("/_next/");
     if ((!isPublicApi && isMarketingPrivatePath(fieldgridPath)) || (!isPublicApi && !["GET", "HEAD"].includes(request.method))) {
       return new NextResponse("Pagina niet gevonden", { status: 404, headers: { "cache-control": "no-store" } });
