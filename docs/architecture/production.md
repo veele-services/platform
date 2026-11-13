@@ -18,6 +18,12 @@ private API's worden daar geweigerd. Interne presentatiepaden zijn niet direct
 bereikbaar. DNS/TLS, publicatie en productiepromotie blijven afzonderlijke,
 bewust uitgevoerde operatorstappen; de gewenste hostname bewijst geen livegang.
 
+De blogopdracht van 13 november 2026 voegt `/blog`, `/blog/{slug}` en de exact
+afgebakende SocialHero v1-methoden uit [het blogcontract](fieldgrid-blog.md) toe
+aan de bestaande marketinghost. De redactie en preview blijven uitsluitend op
+de platformhost onder `/platform/blog`. Dit voegt geen runtime of deploydoel toe;
+promotie, migratie en credentialregistratie blijven operatorhandelingen.
+
 | Onderdeel | Productie |
 | --- | --- |
 | Platform | `https://fieldgrid.nl` |

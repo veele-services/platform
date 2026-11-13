@@ -12,6 +12,41 @@ administration remains on the platform origin. Direct requests to the internal
 namespace fail closed. Staging marketing remains noindex. This contract does not
 provision DNS/TLS or change APP_URL, ports, tenant origins or release gates.
 
+### Public blog and SocialHero (13 November 2026)
+
+The owner requested public `/blog` and `/blog/{slug}` pages and platform-only
+editorial management at `/platform/blog`. Tenant workspace news is separate.
+The marketing origin exposes only these additional service methods:
+
+| Path | Methods |
+| --- | --- |
+| `/api/socialhero/v1/capabilities` | GET |
+| `/api/socialhero/v1/media` | POST |
+| `/api/socialhero/v1/posts/{externalId}` | GET, PUT |
+| `/api/socialhero/v1/posts/{externalId}/publish` | POST |
+| `/blog-media/{assetId}` | GET, HEAD |
+
+Each service call requires an independently revocable, scoped site/environment
+credential. The proxy rejects all other service paths and methods before
+application dispatch; tenants cannot use these endpoints. Admin APIs and
+previews remain on the platform origin behind live platform-admin authorization.
+Draft media is private; only media referenced by a current live revision is
+served without editorial authorization. These are application routes in the
+existing runtime, with no additional DNS, port, service or deployment.
+
+The production SEO canonical remains `https://www.fieldgrid.nl/blog/{slug}`.
+Staging receipts return `publicUrl` on `https://www.staging.fieldgrid.nl` and a
+separate `canonicalUrl`; SocialHero verifies the expected article/revision on
+the former without credentials. Staging responses retain `noindex, nofollow`.
+Only live revisions appear in lists and the sitemap; explicit test records do
+not. Runtime reads plus invalidation of the internal rewrite destination avoid
+requiring a build hook. Social posts wait for an unauthenticated revision check.
+
+For isolated local acceptance only, `FIELDGRID_BLOG_LOCAL_ORIGIN` can select an
+HTTP loopback origin different from `APP_URL`. Only the listed service/media
+paths and public blog pages use that origin. It is ignored outside local
+development. No local configuration supplies staging values.
+
 Scope: staging only
 
 This document is the architectural source of truth for the first Fieldgrid V1

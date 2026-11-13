@@ -4,7 +4,7 @@
   "entries": [
     {
       "id": "code:app/(marketing)/fieldgrid-site/[[...path]]/page.tsx",
-      "surfaceFingerprint": "fec42dd4e07379ac54ecf7d362df8122b11f095aa90538fe630f501ce01901a3",
+      "surfaceFingerprint": "1c4ce45ce020c194b9c14ae73bce93927f99fd62043e60e6e8057f768e57b500",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#marketing",
@@ -12,7 +12,10 @@
         "lib/tenancy/proxy-boundary.test.ts",
         "lib/tenancy/hostname.test.ts",
         "scripts/test-sites-v3-browser.mjs",
-        "scripts/test-sites-v3-chain.mjs"
+        "scripts/test-sites-v3-chain.mjs",
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
       ]
     },
     {
@@ -43,7 +46,7 @@
     },
     {
       "id": "code:app/(marketing)/fieldgrid-site/sitemap.xml/route.ts",
-      "surfaceFingerprint": "3b5993ee02c308e89b8fa2952c6af0c24908548d40024cc26374b1ee543a32ba",
+      "surfaceFingerprint": "fdb467ebca1519251577df8dbe534c57ad5a3bdbf88620b54a54316f73238b88",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#marketing",
@@ -51,7 +54,12 @@
         "lib/tenancy/proxy-boundary.test.ts",
         "lib/tenancy/hostname.test.ts",
         "scripts/test-sites-v3-browser.mjs",
-        "scripts/test-sites-v3-chain.mjs"
+        "scripts/test-sites-v3-chain.mjs",
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts",
+        "scripts/test-blog-http.mjs",
+        "scripts/test-blog-browser.mjs"
       ]
     },
     {
@@ -114,6 +122,26 @@
         "docs/security/release-security-verification.md#gericht-bewijs-en-regressies",
         "scripts/check-security-surface.mjs",
         "docs/security/sites-v3-authorization-review-2026-10-16.md#routeverplaatsingen"
+      ]
+    },
+    {
+      "id": "code:app/(workspace)/api/blog-admin/[...path]/route.ts",
+      "surfaceFingerprint": "7e80cdf166e9d2224b553e1fca572ffdc90363658184afc3f99fca3b688bf777",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "code:app/(workspace)/api/blog-admin/route.ts",
+      "surfaceFingerprint": "8e4615f206b5f80a9f8c0be4dad8afba627d56d696380e3ad987f14fb5a19d3c",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
       ]
     },
     {
@@ -792,6 +820,16 @@
         "lib/tenancy/proxy-boundary.test.ts",
         "tests/e2e/management-roles.spec.ts",
         "docs/security/sites-v3-authorization-review-2026-10-16.md#routeverplaatsingen"
+      ]
+    },
+    {
+      "id": "code:app/(workspace)/api/socialhero/v1/[...path]/route.ts",
+      "surfaceFingerprint": "0089b6a2fc52c5be1fb0e9bdc8a7bfec8e81dadba586ad17e940bd8a1ecfac14",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
       ]
     },
     {
@@ -1877,6 +1915,18 @@
       ]
     },
     {
+      "id": "code:app/(workspace)/blog-media/[id]/route.ts",
+      "surfaceFingerprint": "c861d0aec8b67ca916f4bdcbe8a70f574ed7471052aa2bd515fc8db0fb5b72db",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts",
+        "scripts/test-blog-http.mjs",
+        "scripts/test-blog-browser.mjs"
+      ]
+    },
+    {
       "id": "code:app/(workspace)/booking/[token]/actions.ts",
       "surfaceFingerprint": "fed88c27e9657f34c8c1a78fab3bc2b8f719fbd02b90d1aa63bba3ea7f2b723c",
       "status": "controlled",
@@ -2142,6 +2192,26 @@
         "scripts/test-platform-source-templates.mjs",
         "scripts/test-platform-tenant-lifecycle.mjs",
         "scripts/test-platform-support-team.mjs"
+      ]
+    },
+    {
+      "id": "code:app/(workspace)/platform/blog/page.tsx",
+      "surfaceFingerprint": "a72318b218188276b76f0eb0ea13a3329286cfd65340746c0d5df6d341e4ea9f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "code:app/(workspace)/platform/blog/preview/[id]/page.tsx",
+      "surfaceFingerprint": "7d9e740f6e0ec3eafd50a487671c9ebb8361aca178882e5759b96e19a1815df9",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
       ]
     },
     {
@@ -2885,6 +2955,60 @@
         "lib/addresses/form.test.ts",
         "scripts/test-customer-portal.mjs",
         "tests/e2e/login-branding.spec.ts"
+      ]
+    },
+    {
+      "id": "code:lib/blog/admin-api.ts",
+      "surfaceFingerprint": "65554719be5eea87024e83bf9f3ce37be946bd73654d2c6b792d365e81752228",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts",
+        "scripts/test-blog-http.mjs",
+        "scripts/test-blog-browser.mjs"
+      ]
+    },
+    {
+      "id": "code:lib/blog/auth.ts",
+      "surfaceFingerprint": "cd8aca3ee20120405d982c5689f0880856ebf5b00fbff771414ab01be6265e9f",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "code:lib/blog/data.ts",
+      "surfaceFingerprint": "73de3d91d8a44c23bea5bb03fa70f50a1d2cb8c4353779a57b74d4109bb7d4ab",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "code:lib/blog/media.ts",
+      "surfaceFingerprint": "8edb4a39c74d8c9348ceb4c59f9e162fb68ff468fe455dcf5dee9796749c0018",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "code:lib/blog/service-api.ts",
+      "surfaceFingerprint": "c9c7c9c53f2de792fb78920f3f5596805a8a964ed869f2f40e9df1d3bdcb7924",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts",
+        "scripts/test-blog-http.mjs",
+        "scripts/test-blog-browser.mjs"
       ]
     },
     {
@@ -3967,7 +4091,7 @@
     },
     {
       "id": "code:proxy.ts",
-      "surfaceFingerprint": "43c922ea9ceb82f6ecd44689474d022b48f84b3eb0ae8457383b458410bea3eb",
+      "surfaceFingerprint": "2187fda4f0d900b95efb9bc9c6d14113f5161a1aa30670d0c370ab25babd2f40",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#marketing",
@@ -3975,7 +4099,10 @@
         "lib/tenancy/proxy-boundary.test.ts",
         "lib/tenancy/hostname.test.ts",
         "scripts/test-sites-v3-browser.mjs",
-        "scripts/test-sites-v3-chain.mjs"
+        "scripts/test-sites-v3-chain.mjs",
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
       ]
     },
     {
@@ -4574,6 +4701,86 @@
         "scripts/test-payment-security.mjs",
         "scripts/test-customer-payments.mjs",
         "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_assets",
+      "surfaceFingerprint": "df47e12ef623931bce34c10b0dba17ff023a29188a2652898c4b2434944767a4",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_authors",
+      "surfaceFingerprint": "63d05b432176028c5ead3522de4b769b771549a2d2d3038b068968eb0ac4a79e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_categories",
+      "surfaceFingerprint": "c0bcecee79a3ec72aabca1434545ed35e8de01369df25f3ba46478deae6e66ac",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_credentials",
+      "surfaceFingerprint": "33faa201fa3a3eb71bbd4c80087124f36028c6a2f5bd389fd9ce9d5b95a39b4e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_posts",
+      "surfaceFingerprint": "1fcdb3c865796d1993ec104a63070827bf658dcf264e16578082ad3bf3010c31",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_rate",
+      "surfaceFingerprint": "c467002611772a2ebce929e012af58b1bf0f1b6e10a7c9d66ce34c03f251dc94",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_receipts",
+      "surfaceFingerprint": "d63cab5647dd92a5451af44ad4ba1c0c1cda17db33ae3a0ba3be0ae5da619389",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_slugs",
+      "surfaceFingerprint": "530e2eac2689623987bd758b199075cd4e3fa0a44ac7a0b626ebb8689bab31da",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
       ]
     },
     {
@@ -7768,7 +7975,7 @@
     },
     {
       "id": "operation:next.config.ts",
-      "surfaceFingerprint": "b54d2ac5ef43d24af80fa81261319f48f5eba6600fd402355e5f4dfabe0bca94",
+      "surfaceFingerprint": "977cc6dc2d52e646f2e0ec2eb6cfb5b92c4f4e0411c1640734dee462555447c1",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
@@ -7781,19 +7988,26 @@
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
-        "scripts/test-release-artifact.mjs"
+        "scripts/test-release-artifact.mjs",
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
       ]
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "ac53be0a22c744ee686463bd4912cd65b2a8b96f81d193904d8e13ab574841d2",
+      "surfaceFingerprint": "d2f34faf392c4340a4dbb8c403794de8c45fb9c2034da5552c69c5ed62339e9d",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/task-controls-authorization-review.md",
         "docs/architecture/task-controls.md",
         "scripts/test-task-controls.mjs",
         "scripts/test-task-controls-concurrency.mjs",
-        "scripts/test-security-catalog.mjs"
+        "scripts/test-security-catalog.mjs",
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts",
+        "lib/blog/test-database.test.ts"
       ]
     },
     {
@@ -7817,26 +8031,32 @@
     },
     {
       "id": "operation:pnpm-lock.yaml",
-      "surfaceFingerprint": "824ccc2fd429759da5736fb3cf4dc92c0ce3c7f0af2e0f7249aff0034f151f8f",
+      "surfaceFingerprint": "6ad871490b73e7a2829197647d2469434546e4ecc659bb1218cc35e914770d69",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/task-controls-authorization-review.md",
         "docs/architecture/task-controls.md",
         "scripts/test-task-controls.mjs",
         "scripts/test-task-controls-concurrency.mjs",
-        "scripts/test-security-catalog.mjs"
+        "scripts/test-security-catalog.mjs",
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts",
+        "lib/blog/test-database.test.ts"
       ]
     },
     {
       "id": "operation:pnpm-workspace.yaml",
-      "surfaceFingerprint": "d5697adf4eaf587097fb303064ecf69f6422b377fbdef59dbe6454bfb8787904",
+      "surfaceFingerprint": "aa2eddd9f4dc3a955167405da71d9b03d11d77e8a01df1d05f8cac2a0821b121",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/task-controls-authorization-review.md",
         "docs/architecture/task-controls.md",
         "scripts/test-task-controls.mjs",
         "scripts/test-task-controls-concurrency.mjs",
-        "scripts/test-security-catalog.mjs"
+        "scripts/test-security-catalog.mjs",
+        "docs/security/fieldgrid-blog-review.md",
+        "lib/blog/test-database.test.ts"
       ]
     },
     {
@@ -7886,6 +8106,16 @@
         "lib/env/production-runtime.test.ts",
         "scripts/test-production-contract-linux.sh",
         "lib/operations/production-backup.test.ts"
+      ]
+    },
+    {
+      "id": "operation:scripts/blog-credential.ts",
+      "surfaceFingerprint": "a9e6a9b0d4869c1c3a7f5cb65a5a7c0c273f41ed1804652246d4c378d89b576e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "scripts/test-blog-http.mjs"
       ]
     },
     {
@@ -8028,7 +8258,7 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "237e14eb5dd3af183662a9d0be222fcc0f1a1e1729482285d714e7bbbb9dba55",
+      "surfaceFingerprint": "a81804c045c720a765e514d1af3ce41a5bf47b1ccf3c498e9f88f88706d1dfe6",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
@@ -8041,7 +8271,10 @@
         "scripts/test-standalone-materialization.mjs",
         "lib/operations/deployment-broker.test.ts",
         "lib/operations/production-deployment.test.ts",
-        "scripts/test-release-artifact.mjs"
+        "scripts/test-release-artifact.mjs",
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "scripts/test-blog-http.mjs"
       ]
     },
     {
@@ -8230,11 +8463,15 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "572ce7ed083aea734d8ee061b1146fe0485a695ac4051001031fa008d2015d3c",
+      "surfaceFingerprint": "fd8c1c8ee31b29e64c4e2615f9cb077db6f8b2827573a5087b9cf7142e632280",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/task-controls-authorization-review.md: native 183-migration replay preserves all prior 182 statement hashes",
-        "scripts/verify-local-migration-manifest.ts"
+        "scripts/verify-local-migration-manifest.ts",
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts",
+        "scripts/test-blog-http.mjs"
       ]
     },
     {
@@ -10507,6 +10744,68 @@
         "scripts/test-management-finance.mjs",
         "scripts/test-management-finance-concurrency.mjs",
         "scripts/test-source-invoice-list.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_editor()",
+      "surfaceFingerprint": "4bc2817690d829a10b3fa049dfe10246280795c84dfd2cdf71a187c58d30cbcd",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_entry(p private.fieldgrid_blog_posts)",
+      "surfaceFingerprint": "b78c7bb3356c21f1a3f65f2e7589aa1cbda08c96596523cae2a031e495977ab8",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_media_ids(fields jsonb)",
+      "surfaceFingerprint": "9cd936535cefb1391eb0612508d9def4d6dd6a6203804169bd060ba0ec7a131a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_read(operation text, payload jsonb)",
+      "surfaceFingerprint": "c343f681c76d4cc69e6139758eb39778456b822fe444d9d0bafe70ab2fcb35e8",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts",
+        "scripts/test-blog-http.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_validate(fields jsonb, site text, env text)",
+      "surfaceFingerprint": "8ff898d1905b7c800bd8621b2ab25bb2f8e25ba0a6fd1c7893bea303aee5c855",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_write(operation text, payload jsonb)",
+      "surfaceFingerprint": "52114e0ce2ae56095988bc4f7499960fe7fb5d052f7001dfa898aa5a046180c8",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts",
+        "scripts/test-blog-http.mjs"
       ]
     },
     {
@@ -16242,6 +16541,68 @@
         "scripts/test-work-order-reports.mjs",
         "scripts/test-release-security.mjs",
         "scripts/test-security-catalog.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_admin_read(operation text, payload jsonb)",
+      "surfaceFingerprint": "f71a6a9622dd5d101981b59bdc916d376d65117685904a325bdd0cff41e4e88d",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts",
+        "scripts/test-blog-http.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_admin_write(operation text, payload jsonb)",
+      "surfaceFingerprint": "3da7493593616b58e11def8dee18bbe6e2e9adc1b9e2fa071f69e36b84acfc8c",
+      "status": "corrected-and-rechecked",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts",
+        "scripts/test-blog-http.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_authenticate(token_hash text)",
+      "surfaceFingerprint": "bcb9997716df6aeffb8f423c909ec69598e737b0a197d0bb55118fb8cd46a539",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_public_read(operation text, payload jsonb)",
+      "surfaceFingerprint": "f30ce9c63fbb1b55eac9cf1d6507f622c1856c1209014cca1540065d03581e2c",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_read(operation text, payload jsonb)",
+      "surfaceFingerprint": "d9d5588e0e76547b5fcea2a606b9f88801e45d51a75c5da829b50c6576139525",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_write(operation text, payload jsonb)",
+      "surfaceFingerprint": "6de28ac9994b7eba3f53934a181badc98263e9a84bf97f0a0ac0400cd527a09a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/fieldgrid-blog-review.md",
+        "scripts/test-blog-db.mjs",
+        "lib/blog/validation.test.ts"
       ]
     },
     {
