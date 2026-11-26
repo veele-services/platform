@@ -25,21 +25,23 @@ export function PlatformShell({ access, children }: { access: PlatformShellAcces
   const team = path.startsWith("/platform/team"), product = path.startsWith("/platform/productbeheer");
   const knowledge = path.startsWith("/platform/kennisbank");
   const crm = path.startsWith("/platform/crm");
-  const label = crm ? "CRM & aanvragen" : knowledge ? "Kennisbank" : product ? "Productbeheer" : team ? "Supportteam" : support ? settings ? "Supportinstellingen" : "Supportdesk" : notifications ? "Notificaties" : view === "tenants" || view === "detail" ? "Tenants" : view === "templates" ? "Berichttemplates" : view === "onboarding" ? "Nieuwe tenant" : "Overzicht";
+  const blog = path.startsWith("/platform/blog");
+  const label = blog ? "Blogredactie" : crm ? "CRM & aanvragen" : knowledge ? "Kennisbank" : product ? "Productbeheer" : team ? "Supportteam" : support ? settings ? "Supportinstellingen" : "Supportdesk" : notifications ? "Notificaties" : view === "tenants" || view === "detail" ? "Tenants" : view === "templates" ? "Berichttemplates" : view === "onboarding" ? "Nieuwe tenant" : "Overzicht";
   const links = [
     { href: "/platform/kennisbank", label: "Kennisbank", icon: BookOpen, active: knowledge },
     ...(access.canManage ? [
-      { href: "/platform", label: "Overzicht", icon: LayoutDashboard, active: !crm && !knowledge && !product && !team && !support && !notifications && view === "overview" },
+      { href: "/platform", label: "Overzicht", icon: LayoutDashboard, active: !blog && !crm && !knowledge && !product && !team && !support && !notifications && view === "overview" },
+      { href: "/platform/blog", label: "Blogredactie", icon: BookOpen, active: blog },
       { href: "/platform/crm", label: "CRM & aanvragen", icon: UsersRound, active: crm },
-      { href: "/platform?view=tenants", label: "Tenants", icon: Building2, active: !knowledge && !product && !team && !support && !notifications && ["tenants", "detail"].includes(view) },
-      { href: "/platform?view=onboarding", label: "Nieuwe tenant", icon: Plus, active: !knowledge && !product && !team && !support && !notifications && view === "onboarding" },
+      { href: "/platform?view=tenants", label: "Tenants", icon: Building2, active: !blog && !knowledge && !product && !team && !support && !notifications && ["tenants", "detail"].includes(view) },
+      { href: "/platform?view=onboarding", label: "Nieuwe tenant", icon: Plus, active: !blog && !knowledge && !product && !team && !support && !notifications && view === "onboarding" },
       { href: "/platform/productbeheer", label: "Productbeheer", icon: Sparkles, active: product },
       { href: "/platform/team", label: "Supportteam", icon: Users, active: team },
     ] : []),
     ...(access.canSupport ? [{ href: "/platform/support", label: "Supportdesk", icon: Headset, active: support && !settings }] : []),
     ...(access.canConfigureSupport ? [{ href: "/platform/support/instellingen", label: "Supportinstellingen", icon: Settings2, active: settings }] : []),
     ...(access.canNotifications ? [{ href: "/platform/notificaties", label: "Notificaties", icon: Bell, active: notifications }] : []),
-    ...(access.canManage ? [{ href: "/platform?view=templates", label: "Berichttemplates", icon: MessageSquareText, active: !knowledge && !product && !team && !support && !notifications && view === "templates" }] : []),
+    ...(access.canManage ? [{ href: "/platform?view=templates", label: "Berichttemplates", icon: MessageSquareText, active: !blog && !knowledge && !product && !team && !support && !notifications && view === "templates" }] : []),
   ];
   return <DashboardPresentation value="sites"><TenantThemeProvider><div className="sites-cockpit sites-platform"><div className="fg-console ed-platform" style={brandThemeStyle()}>
     <aside className={`fg-sidebar${open ? " open" : ""}`} aria-label="Platformnavigatie"><div className="fg-sidebar-brand"><ProductBrand tone="light"/><small>Platformbeheer</small><button type="button" onClick={() => setOpen(false)} aria-label="Sluit menu"><X/></button></div><nav><span>PLATFORM</span>{links.map(item => <Link key={item.href} href={item.href} className={item.active ? "active" : undefined} aria-current={item.active ? "page" : undefined} prefetch={false} onClick={() => setOpen(false)}><item.icon/>{item.label}</Link>)}</nav><footer className="fg-account-footer"><span className="fg-account-initials" aria-hidden="true">{accountInitials(access.name)}</span><div><strong>{access.name}</strong><small>{access.canManage ? "Platformbeheerder" : "Platform-support"}</small></div></footer></aside>

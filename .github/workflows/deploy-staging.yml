@@ -84,6 +84,7 @@ jobs:
       EXPECTED_SUPABASE_PROJECT_REF: ${{ vars.EXPECTED_SUPABASE_PROJECT_REF }}
       FORBIDDEN_SUPABASE_PROJECT_REF: ${{ vars.FORBIDDEN_SUPABASE_PROJECT_REF }}
       LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+      SOCIALHERO_URL: ${{ vars.SOCIALHERO_URL }}
       RELEASE_SHA: ${{ github.sha }}
       DEPLOYMENT_VERSION: ${{ github.sha }}
     steps:

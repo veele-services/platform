@@ -1,0 +1,101 @@
+{
+  "database": "fieldgrid_blog_upgrade_acceptance_receipt",
+  "source": "read-only copy of existing local Fieldgrid snapshot; no remote or shared source mutation",
+  "tables": [
+    {
+      "table": "auth.users",
+      "before": {
+        "rows": 292,
+        "sha256": "b36fa62926d6567e455c96629c34ab71d008e6670b54eb5ac4571ce6ee7ffd33"
+      },
+      "after": {
+        "rows": 292,
+        "sha256": "b36fa62926d6567e455c96629c34ab71d008e6670b54eb5ac4571ce6ee7ffd33"
+      }
+    },
+    {
+      "table": "auth.sessions",
+      "before": {
+        "rows": 2,
+        "sha256": "00e831f567c910dd7fbab6c9f404147dba66686ee788b6e1a6655efe162357fe"
+      },
+      "after": {
+        "rows": 2,
+        "sha256": "00e831f567c910dd7fbab6c9f404147dba66686ee788b6e1a6655efe162357fe"
+      }
+    },
+    {
+      "table": "public.tenants",
+      "before": {
+        "rows": 248,
+        "sha256": "2811ab33ff96bac90cba1e5dab7f6a75a763070140a338ae4ed7a5b33db5c6d4"
+      },
+      "after": {
+        "rows": 248,
+        "sha256": "2811ab33ff96bac90cba1e5dab7f6a75a763070140a338ae4ed7a5b33db5c6d4"
+      }
+    },
+    {
+      "table": "public.tenant_memberships",
+      "before": {
+        "rows": 376,
+        "sha256": "9067284ef34ceb0c58e2355dd968ca3d83324ea32aa4d99ba77784fa2ff0f0b2"
+      },
+      "after": {
+        "rows": 376,
+        "sha256": "9067284ef34ceb0c58e2355dd968ca3d83324ea32aa4d99ba77784fa2ff0f0b2"
+      }
+    },
+    {
+      "table": "public.customers",
+      "before": {
+        "rows": 152,
+        "sha256": "5fc6481e66de07ce8b0898011ae396a3f06316974437a8509e046e933d980655"
+      },
+      "after": {
+        "rows": 152,
+        "sha256": "5fc6481e66de07ce8b0898011ae396a3f06316974437a8509e046e933d980655"
+      }
+    },
+    {
+      "table": "public.objects",
+      "before": {
+        "rows": 152,
+        "sha256": "e4b8fc48ec3bbf1c435e98ec05fbceacf9b62055b9cb78e552275e311d91b889"
+      },
+      "after": {
+        "rows": 152,
+        "sha256": "e4b8fc48ec3bbf1c435e98ec05fbceacf9b62055b9cb78e552275e311d91b889"
+      }
+    },
+    {
+      "table": "public.work_orders",
+      "before": {
+        "rows": 442,
+        "sha256": "3915bbc0faedbcf353a6ab8bef72379999a51f7fd0b0a226dca21182829976bb"
+      },
+      "after": {
+        "rows": 442,
+        "sha256": "3915bbc0faedbcf353a6ab8bef72379999a51f7fd0b0a226dca21182829976bb"
+      }
+    },
+    {
+      "table": "public.permission_catalog",
+      "before": {
+        "rows": 218,
+        "sha256": "74f82c445190d5b4eae02c2c9734cf333db8e0854925d3b3721ef1dc18abb4e1"
+      },
+      "after": {
+        "rows": 218,
+        "sha256": "74f82c445190d5b4eae02c2c9734cf333db8e0854925d3b3721ef1dc18abb4e1"
+      }
+    }
+  ],
+  "storage": {
+    "existingBucketsUnchanged": true,
+    "addedPrivateBlogBucket": true
+  },
+  "migration": "20261113124643_fieldgrid_blog_socialhero",
+  "migrationSha256": "aa9b5bc070f62ab7416125645d18c55b4fefe2f2b229ae1ad070012e88b6ce26",
+  "result": "passed"
+}

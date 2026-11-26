@@ -916,6 +916,21 @@
       "version": "20261021053000",
       "name": "task_catalogue_rate_unit_access",
       "sha256": "5ad5766dea3076e0da8071c173ef563d1d332e1b82236ff02c6662dfbba7d510"
+    },
+    {
+      "version": "20261113124643",
+      "name": "fieldgrid_blog_socialhero",
+      "sha256": "7f8110722e2ef31e705209312e67f6d9069d3ff948190e0dcab5c7eca93a9d8c"
+    },
+    {
+      "version": "20261126110835",
+      "name": "fieldgrid_blog_connector",
+      "sha256": "25dff633459eaa27509808d849665f153b0e22ae82fba79616f0a285f07cc91d"
+    },
+    {
+      "version": "20261126113033",
+      "name": "fieldgrid_blog_editorial_history",
+      "sha256": "36eb0a6edd0b324ea3ba3dc8c4cc4e207fd11d9135f393218ff4798518259a44"
     }
   ]
 }

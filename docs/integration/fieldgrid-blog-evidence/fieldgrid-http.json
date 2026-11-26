@@ -1,0 +1,36 @@
+{
+  "mode": "Real local Next.js HTTP, real PostgREST/Postgres, explicit local Auth/Storage fixture adapters; no deployment or social delivery.",
+  "origin": "http://127.0.0.1:3307",
+  "externalId": "fieldgrid-http-3e90b404-a800-4fe2-bf97-407ae45dd542",
+  "id": "18338b3f-f1f5-4012-b5eb-fe97b98c7fd7",
+  "revision": 3,
+  "slug": "http-revisie-3e90b404-a800-4fe2-bf97-407ae45dd542-nieuw",
+  "title": "Een nieuwe concepttitel",
+  "checks": [
+    {
+      "name": "Missing and invalid tokens fail closed; capabilities identify the exact local environment",
+      "passed": true
+    },
+    {
+      "name": "Fully decoded image upload replays one asset; invalid bytes and unpublished media remain private",
+      "passed": true
+    },
+    {
+      "name": "Concurrent identical draft writes create revision one and a private draft; publication exposes that exact revision",
+      "passed": true
+    },
+    {
+      "name": "A title edit preserves the public slug and old live revision until publish; stale jobs conflict while an original publish receipt still replays",
+      "passed": true
+    },
+    {
+      "name": "A deliberate slug publication creates a permanent direct redirect, reserves history, rejects conflicting operations and updates the sitemap",
+      "passed": true
+    },
+    {
+      "name": "Unsafe link protocols, excessive payloads, private APIs, internal rewrite paths and unlisted methods are rejected",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

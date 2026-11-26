@@ -1,0 +1,76 @@
+{
+  "passed": true,
+  "run": "6470bef7-6f5a-439c-90e3-b4da9e9ac163",
+  "checkedAt": "2026-11-26T15:23:55.502Z",
+  "mode": "Real Fieldgrid Next.js HTTP + real PostgREST/Postgres; explicit local Auth/Storage adapters and a local SocialHero claim/verify protocol adapter. No hosted claim, provider worker or social delivery.",
+  "source": {
+    "baseCommit": "b68d3f406243def2dcd132d010ba883ba1f6dbb1",
+    "workingTreeChangesIncluded": true
+  },
+  "origins": {
+    "public": "http://127.0.0.1:3307",
+    "platform": "http://localhost:3307",
+    "socialHeroAdapter": "http://127.0.0.1:59424",
+    "canonical": "https://www.fieldgrid.nl"
+  },
+  "providerAcceptanceBoundary": "Capabilities declare the production canonical and retain the local publication origin. This test verifies real Fieldgrid HTTP with a local claim/verify adapter; hosted pairing, provider follow-up and worker publication are covered separately.",
+  "post": {
+    "postId": "c0c83f99-0034-4f50-86f4-da861fc7de12",
+    "externalId": "connector-http-6470bef7-6f5a-439c-90e3-b4da9e9ac163",
+    "slug": "connector-http-6470bef7-6f5a-439c-90e3-b4da9e9ac163-nieuw",
+    "revision": 3,
+    "title": "Connector HTTP gepubliceerde eindtitel"
+  },
+  "otherPost": {
+    "postId": "a41c1cc4-febf-4a05-91ad-af963d22add7",
+    "externalId": "connector-http-6470bef7-6f5a-439c-90e3-b4da9e9ac163",
+    "slug": "other-6470bef7-6f5a-439c-90e3-b4da9e9ac163",
+    "revision": 1
+  },
+  "assertions": 446,
+  "checks": [
+    {
+      "name": "Anonymous administration, marketing private routes and cross-site mutations fail closed",
+      "passed": true
+    },
+    {
+      "name": "Real pending capabilities callback, blocked pending actions and durable resume after a lost verified response",
+      "passed": true
+    },
+    {
+      "name": "Real decoded media, concurrent idempotent draft creation, explicit null wire fields and denied unapproved publication",
+      "passed": true
+    },
+    {
+      "name": "The editor uploads a new hero to the existing machine article; stale machine work conflicts and exact current-revision publication includes the editor image. Independent publish permission allows the existing revision without draft/media writes; disabling publication also blocks old receipts",
+      "passed": true
+    },
+    {
+      "name": "Explicit slug publication creates a direct permanent redirect and keeps production canonical URLs in the sitemap",
+      "passed": true
+    },
+    {
+      "name": "Reconnection preserves destination, article, idempotent receipts and publication opt-out while revoking the old token",
+      "passed": true
+    },
+    {
+      "name": "Explicit draft and publication opt-outs survive reconnection; read stays available and draft/media receipt replays are blocked",
+      "passed": true
+    },
+    {
+      "name": "Another destination gets its own media, article and receipt for the same external ID and keys; explicitly confirmed defaults permit publication",
+      "passed": true
+    },
+    {
+      "name": "Token-specific and local revocation are idempotent; expired/bound codes are safe errors and article history survives",
+      "passed": true
+    }
+  ],
+  "adapter": {
+    "claims": 7,
+    "verifies": 6,
+    "lostVerifiedResponses": 1,
+    "callbackFailures": 0
+  },
+  "finalConnectionState": "disconnected"
+}

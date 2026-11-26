@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "realBackend": [
+    "Authenticated safe status",
+    "Anonymous denial",
+    "Marketing-host private API isolation"
+  ],
+  "explicitMocks": [
+    "All connector mutations and recovery-state scenarios"
+  ],
+  "results": [
+    "Real authenticated safe status, anonymous denial and marketing-host private API isolation",
+    "UI mock: both first-pair permissions default on; a draft opt-out and code survive a temporary failure; retry resumes verification without a duplicate claim",
+    "UI mock: later draft/publication changes take effect only after an explicit policy save",
+    "UI mock: code clears within two minutes and on terminal failure; no code in URL/browser storage or screenshots",
+    "UI mock: disconnect requires confirmation and preserves the saved publication opt-out before reconnect",
+    "UI mocks: disconnected, pending, active and unconfigured states fit desktop and 390/320px mobile"
+  ],
+  "browserErrors": 0
+}

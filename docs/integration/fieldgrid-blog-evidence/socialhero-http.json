@@ -1,0 +1,55 @@
+{
+  "mode": "Real local Fieldgrid HTTP API and persisted SocialHero approval/queue. Controlled SocialHero clock; lost responses simulated after successful real HTTP writes. No AI or social delivery.",
+  "origin": "http://127.0.0.1:3307",
+  "sourceBaseSha": "40d35820215ecdee9b3ddd937d3bd25fb757e09a",
+  "sourceState": "Recorded source base plus isolated working changes tested before this verification update commit.",
+  "checks": [
+    {
+      "name": "Read-only actual local capabilities confirm Fieldgrid site, environment, real author and taxonomy",
+      "passed": true,
+      "siteId": "fieldgrid",
+      "environment": "development",
+      "blogPath": "/blog"
+    },
+    {
+      "name": "Paused actual connection blocks writes and dependent social link",
+      "passed": true
+    },
+    {
+      "name": "Real private draft survives completed-write response loss; public page and production-canonical sitemap exclude it before schedule",
+      "passed": true,
+      "remoteId": "0e8e7296-0fff-4043-9d36-6a29289ef1eb",
+      "remoteRevision": "1"
+    },
+    {
+      "name": "Restart retains prepared media, draft, immutable destination and original keys; publication waits for exact UTC time",
+      "passed": true
+    },
+    {
+      "name": "Actual HTTP publish timeout reconciles from status, verifies anonymous HTML revision and production canonical, then releases only the local tracked link",
+      "passed": true,
+      "publicUrl": "http://127.0.0.1:3307/blog/socialhero-lokale-proef-8b786f7b",
+      "canonicalUrl": "https://www.fieldgrid.nl/blog/socialhero-lokale-proef-8b786f7b",
+      "publishedRevision": "1",
+      "sitemapCanonicalUrl": "https://www.fieldgrid.nl/blog/socialhero-lokale-proef-8b786f7b",
+      "logicalAssets": 2,
+      "workerWriteRequests": {
+        "media": 3,
+        "draft": 2,
+        "publish": 1
+      }
+    },
+    {
+      "name": "Actual idempotent publish replay returns the original revision and changed draft input conflicts",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "campaignId": "fieldgrid-local-8b786f7b",
+  "externalId": "sh_content_332ea6ae-78e2-4926-ac32-f47fd27b50ad",
+  "database": "/tmp/socialhero-fieldgrid-http-HHyw3a/queue.sqlite",
+  "scheduledAt": "2026-11-13T14:22:00.000Z",
+  "publicUrl": "http://127.0.0.1:3307/blog/socialhero-lokale-proef-8b786f7b",
+  "canonicalUrl": "https://www.fieldgrid.nl/blog/socialhero-lokale-proef-8b786f7b",
+  "publishedRevision": "1"
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ArrowRight, ArrowUpRight, Check, CheckCircle2, ChevronLeft, ChevronRight, CalendarDays, ClipboardCheck, MapPin, Monitor, Smartphone, Users, MessageSquare, FileText, Building2, Layers3, CalendarCheck, Plus, Clock3, ShieldCheck, Sparkles } from 'lucide-react';
 import { Reveal, ButtonLink, SectionHeading, FAQ } from '@/components/fieldgrid/marketing/ui';
 import { ProductDemo, PhoneDemo } from '@/components/fieldgrid/marketing/product-demo';
@@ -17,7 +17,7 @@ function PlanningTile() {
   return <div className={s.planningTile}><div className={s.tileTop}><strong>Planning</strong><span>Demogegevens</span></div><div className={s.miniDate}><ChevronLeft size={11} /><span>Woensdag 14 oktober</span><ChevronRight size={11} /></div><div className={s.planPeople}><span /><span><i>SV</i>Sam</span><span><i>NB</i>Noor</span><span><i>MJ</i>Mila</span></div><div className={s.planGrid}><div className={s.times}><span>08:00</span><span>10:00</span><span>12:00</span></div><div><span className={s.planGreen}>Glasbewassing<small>Duinzicht</small></span><span className={s.planBlue}>Onderhoud<small>Havenkwartier</small></span></div><div><span className={s.planMint}>Schoonmaak<small>Westpoint</small></span><span className={s.planGray}>Werkoverleg</span></div><div><span className={s.planBlue}>Inspectie<small>Duinzicht</small></span><span className={s.planGreen}>Groenbeheer<small>Buitenplaats</small></span></div></div></div>;
 }
 
-export default function SignatureHome({ concept }: { concept: string }) {
+export default function SignatureHome({ concept, blog }: { concept: string; blog?: ReactNode }) {
   const [perspective, setPerspective] = useState(0);
   const selected = perspectives[perspective];
   return <>
@@ -87,6 +87,7 @@ export default function SignatureHome({ concept }: { concept: string }) {
       { q: 'Kan ik met mijn eigen logo en kleuren werken?', a: 'Ja. Fieldgrid ondersteunt een herkenbare bedrijfsomgeving met je eigen logo, kleuren en bedrijfsgegevens. Zo sluit de digitale samenwerking met je medewerkers en klanten aan op jouw dienstverlening.' },
       { q: 'Hoe ontdek ik of Fieldgrid bij mijn bedrijf past?', a: 'Je kunt een proefperiode van 30 dagen aanvragen of een afspraak inplannen. Tijdens een kennismaking bespreken we je diensten, team en klantlocaties. Vervolgens kijken we welke processen een goede basis vormen voor jouw start met Fieldgrid.' },
     ]}/></Reveal></div></section>
+    {blog}
     <ClosingCTA concept={concept}/>
   </>;
 }

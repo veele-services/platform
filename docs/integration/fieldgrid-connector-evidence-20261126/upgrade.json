@@ -1,0 +1,165 @@
+{
+  "format": 1,
+  "date": "2026-11-26",
+  "result": "passed",
+  "target": "fresh task-owned acceptance clone with representative records created before the new migrations",
+  "comparison": "Canonical JSON row counts and SHA-256 before/after; no row contents retained",
+  "migrations": [
+    {
+      "version": "20261126110835",
+      "name": "fieldgrid_blog_connector",
+      "sourceSha256": "6b143a105538d447f62ba71d3ef08f9e289b5786c5a60973ca4b009bd970ba68"
+    },
+    {
+      "version": "20261126113033",
+      "name": "fieldgrid_blog_editorial_history",
+      "sourceSha256": "f79ad47a98f4c23f3dc25fbd01743e35134ade4ed84db1f89df136d52c887851"
+    }
+  ],
+  "tables": [
+    {
+      "table": "auth.users",
+      "before": {
+        "rows": 1,
+        "sha256": "4d617a8d15e1a3914e523e9f80776ba3d2cd737db0be433a9badcbeda7d14a23"
+      },
+      "after": {
+        "rows": 1,
+        "sha256": "4d617a8d15e1a3914e523e9f80776ba3d2cd737db0be433a9badcbeda7d14a23"
+      }
+    },
+    {
+      "table": "auth.sessions",
+      "before": {
+        "rows": 1,
+        "sha256": "f892b3d0fc9e32e9567dffc8669f804de2b8dbd59b2399a355c245ea51afb587"
+      },
+      "after": {
+        "rows": 1,
+        "sha256": "f892b3d0fc9e32e9567dffc8669f804de2b8dbd59b2399a355c245ea51afb587"
+      }
+    },
+    {
+      "table": "public.tenants",
+      "before": {
+        "rows": 1,
+        "sha256": "0bdac78466cf2cb962f28acd9653d64b9edc9432eac52cb64eb3e1d98d1a1380"
+      },
+      "after": {
+        "rows": 1,
+        "sha256": "0bdac78466cf2cb962f28acd9653d64b9edc9432eac52cb64eb3e1d98d1a1380"
+      }
+    },
+    {
+      "table": "public.tenant_memberships",
+      "before": {
+        "rows": 1,
+        "sha256": "aaf1583b16bf7aaebd112feb9a073e7529667412d655c6e39a3bd3964c53a10b"
+      },
+      "after": {
+        "rows": 1,
+        "sha256": "aaf1583b16bf7aaebd112feb9a073e7529667412d655c6e39a3bd3964c53a10b"
+      }
+    },
+    {
+      "table": "public.work_orders",
+      "before": {
+        "rows": 1,
+        "sha256": "3404c5b48725f8b3e1d414027ea507f58a19df5274b27225b1200630bdfd88a7"
+      },
+      "after": {
+        "rows": 1,
+        "sha256": "3404c5b48725f8b3e1d414027ea507f58a19df5274b27225b1200630bdfd88a7"
+      }
+    },
+    {
+      "table": "public.permission_catalog",
+      "before": {
+        "rows": 218,
+        "sha256": "ad9cfae078eae05b637110392d5563c6905e083d088d898065284a8c58e7d8f6"
+      },
+      "after": {
+        "rows": 218,
+        "sha256": "ad9cfae078eae05b637110392d5563c6905e083d088d898065284a8c58e7d8f6"
+      }
+    },
+    {
+      "table": "storage.buckets",
+      "before": {
+        "rows": 1,
+        "sha256": "b6cf4c260febd18e7876b6f4fa23e8d336e29792d5f447949ee893f2d18ac377"
+      },
+      "after": {
+        "rows": 1,
+        "sha256": "b6cf4c260febd18e7876b6f4fa23e8d336e29792d5f447949ee893f2d18ac377"
+      }
+    },
+    {
+      "table": "private.fieldgrid_blog_posts",
+      "before": {
+        "rows": 1,
+        "sha256": "887d673f493a616f6972fb71ba433719354c37b347bea44cfd55fdd715ccb9e0"
+      },
+      "after": {
+        "rows": 1,
+        "sha256": "887d673f493a616f6972fb71ba433719354c37b347bea44cfd55fdd715ccb9e0"
+      }
+    },
+    {
+      "table": "private.fieldgrid_blog_assets",
+      "before": {
+        "rows": 1,
+        "sha256": "cacd9f7445caeda1bfa399462e0420cd4d4240d197805eb7e0d1fc80a64d072e"
+      },
+      "after": {
+        "rows": 1,
+        "sha256": "cacd9f7445caeda1bfa399462e0420cd4d4240d197805eb7e0d1fc80a64d072e"
+      }
+    },
+    {
+      "table": "private.fieldgrid_blog_receipts",
+      "before": {
+        "rows": 3,
+        "sha256": "d200af46d72741c33947db2c01dc72be7155e6e41415b53793d18bfb32a21c42"
+      },
+      "after": {
+        "rows": 3,
+        "sha256": "d200af46d72741c33947db2c01dc72be7155e6e41415b53793d18bfb32a21c42"
+      }
+    },
+    {
+      "table": "private.fieldgrid_blog_credentials",
+      "before": {
+        "rows": 1,
+        "sha256": "4b621b6dfd4ea6d74db5c2801e4368408817cc903142e31eb8498cfe1f9c8370"
+      },
+      "after": {
+        "rows": 1,
+        "sha256": "4b621b6dfd4ea6d74db5c2801e4368408817cc903142e31eb8498cfe1f9c8370"
+      }
+    },
+    {
+      "table": "private.fieldgrid_blog_slugs",
+      "before": {
+        "rows": 1,
+        "sha256": "27a2c2adb79b9c617f764f4c624b1dcd380342142086e58b842fbcc4fbc372df"
+      },
+      "after": {
+        "rows": 1,
+        "sha256": "27a2c2adb79b9c617f764f4c624b1dcd380342142086e58b842fbcc4fbc372df"
+      }
+    }
+  ],
+  "historicalReceiptReplay": [
+    "media",
+    "draft",
+    "publish"
+  ],
+  "backfill": {
+    "preservedPresentDraftAndLive": true,
+    "revisionSnapshots": 1,
+    "publishEvents": 1,
+    "historicalActor": "unknown; no actor fabricated"
+  },
+  "limits": "Only draft/live snapshots present at upgrade can be backfilled. Earlier overwritten revisions and their actors cannot be reconstructed; no historical actor is fabricated."
+}

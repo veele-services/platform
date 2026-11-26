@@ -17,3 +17,5 @@ patchedDependencies:
 # Vite is transitive through the development-only Vitest runner.
 overrides:
   vite: 8.3.3
+  # eslint-plugin-react-hooks otherwise retains the vulnerable lockfile copy.
+  zod@4.6.5: 4.6.6

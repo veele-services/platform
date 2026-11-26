@@ -11,6 +11,7 @@ import { cleanupTicketUploads, processTicketScans } from "@/lib/tickets/scan-wor
 import { ticketRpc } from "@/lib/tickets/rpc";
 import { processManagementSignals } from "@/lib/management-cockpit/worker";
 import { ticketWorkerHealthy } from "@/lib/tickets/worker-health";
+import { purgeConnectorProvisioning } from "@/lib/blog/connector-data";
 
 function secretMatches(header: string | null, expected: string | undefined) {
  if (!header || !expected) return false;
@@ -20,6 +21,7 @@ function secretMatches(header: string | null, expected: string | undefined) {
 export async function POST(request:Request){
  const env=getServerEnv();
  if(!secretMatches(request.headers.get("authorization"),env.ADMIN_API_SECRET))return NextResponse.json({error:"Niet geautoriseerd"},{status:401});
+ await purgeConnectorProvisioning();
  const admin=createAdminClient();
  const {data,error}=await admin.rpc("claim_outbox",{batch_size:env.NOTIFICATION_WORKER_LIMIT,lock_seconds:120,include_tickets:true,include_notifications:true});
  if(error)return NextResponse.json({error:"Outbox claim mislukt"},{status:500});
