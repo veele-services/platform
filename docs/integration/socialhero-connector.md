@@ -155,8 +155,9 @@ site/omgeving, ook tussen verschillende bestemmingen.
 De eigenaar heeft expliciet gekozen om de productiecanonical ook op staging te
 behouden. Staging blijft `noindex`. Capabilities geven daarom het afzonderlijke
 `canonicalOrigin: "https://www.fieldgrid.nl"` terug; het geregistreerde `origin`
-en `publicUrl` blijven de stagingmarketinghost. De actuele SocialHero-versie
-`7358b38e1d2e21b97d233ba8833d673520a4a50c` ondersteunt deze expliciete scheiding.
+en `publicUrl` blijven de stagingmarketinghost. SocialHero ondersteunt deze
+expliciete scheiding vanaf de gecontroleerde versie
+`7358b38e1d2e21b97d233ba8833d673520a4a50c`.
 De verifier haalt de stagingpagina op en vergelijkt haar canonical met de
 opgegeven productiecanonical. Hij gebruikt nooit de productiepagina voor een
 stagingpublicatietest. Eerdere versies die beide origins gelijk eisen kunnen
@@ -220,8 +221,9 @@ is geen tweede CMS.
 
 De feitelijke testresultaten worden vastgelegd in het
 [acceptatieverslag](fieldgrid-blog-acceptance.md). Bronreview van het actuele
-SocialHero-protocol is gedaan op de actuele basis met runtimecommit
-`7358b38e1d2e21b97d233ba8833d673520a4a50c`; claim/verify-routes bestaan op beide
+SocialHero-protocol is gedaan op de basis met runtimecommit
+`7358b38e1d2e21b97d233ba8833d673520a4a50c` en de correctie voor onafhankelijke
+rechten in `6697a9b3b72ac55bdb87caef26cf9152cdd07c70`; claim/verify-routes bestaan op beide
 vaste origins. Een read-only bereikbaarheidsproef is geen echte koppeling met
 een hosted project. Lokale contractfixtures, echte databaseproeven en eventuele
 hosted resultaten worden afzonderlijk gerapporteerd.

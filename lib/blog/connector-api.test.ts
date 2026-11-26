@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
-const mocks = vi.hoisted(() => ({ auth: vi.fn(), query: vi.fn(), write: vi.fn(), read: vi.fn(), connectorWrite: vi.fn(), upload: vi.fn(), asset: vi.fn() }));
+const mocks = vi.hoisted(() => ({ auth: vi.fn(), query: vi.fn(), write: vi.fn(), read: vi.fn(), connectorWrite: vi.fn(), upload: vi.fn(), asset: vi.fn(), verify: vi.fn() }));
 vi.mock('./auth', () => ({ requireBlogCredential: mocks.auth }));
 vi.mock('./data', () => ({ blogQuery: mocks.query, blogWrite: mocks.write }));
 vi.mock('./connector-data', () => ({ connectorRead: mocks.read, connectorWrite: mocks.connectorWrite }));
 vi.mock('./media', () => ({ BLOG_MEDIA_LIMIT: 10_485_760, BLOG_MEDIA_TYPES: ['image/jpeg', 'image/png', 'image/webp'], uploadBlogMedia: mocks.upload, getBlogAsset: mocks.asset }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
-vi.mock('./publication-check', () => ({ verifyPublishedBlog: async () => true }));
+vi.mock('./publication-check', () => ({ verifyPublishedBlog: mocks.verify }));
 vi.mock('./origin', () => ({
   blogEnvironment: () => 'staging', blogOrigin: () => 'https://www.staging.fieldgrid.nl', BLOG_CANONICAL_ORIGIN: 'https://www.fieldgrid.nl',
   blogUrl: (path: string, origin = 'https://www.fieldgrid.nl') => new URL(path, origin).href,
@@ -31,6 +31,7 @@ beforeEach(() => {
   mocks.query.mockResolvedValue(taxonomy);
   mocks.read.mockImplementation(async (_credential: unknown, operation: string) => operation === 'capabilities' ? { credential, ...taxonomy, unexpectedPrivateField: 'must-not-escape' } : null);
   mocks.connectorWrite.mockResolvedValue(post);
+  mocks.verify.mockResolvedValue(true);
 });
 
 describe('paired website publication wire contract', () => {
@@ -39,6 +40,7 @@ describe('paired website publication wire contract', () => {
     const body = await response.json();
     expect(body).toMatchObject({ contractVersion: 1, connectionId: credential.connectionId, destinationId: credential.destinationId, credentialState: 'active', origin: 'https://www.staging.fieldgrid.nl', scopes: ['read', 'draft'], authors: taxonomy.authors, media: { mimeTypes: ['image/jpeg', 'image/png', 'image/webp'] } });
     expect(body.canonicalOrigin).toBe('https://www.fieldgrid.nl');
+    expect(body.contentFormats).toEqual(['markdown']);
     expect(body).not.toHaveProperty('tokenHash');
     expect(body).not.toHaveProperty('unexpectedPrivateField');
     expect(response.headers.get('cache-control')).toContain('no-store');
@@ -79,6 +81,23 @@ describe('paired website publication wire contract', () => {
     expect(response.status).toBe(403);
     expect(await response.json()).toMatchObject({ code: 'PERMISSION_DENIED', message: 'De website staat deze actie niet toe.', requestId: expect.any(String) });
     expect(mocks.connectorWrite).not.toHaveBeenCalled();
+  });
+  it('keeps a completed write in HTTP 202 until the public revision is confirmed and reconciles through status', async () => {
+    const published = { ...fields, excerpt: 'Een complete publicatie voor deze contractproef.', hero: { src: `/blog-media/${post.id}`, alt: 'Een planner controleert de publicatie.', x: 0.5, y: 0.5 } };
+    const live = { ...post, draft: published, published, publishedRevision: 1, publishedAt: '2026-11-26T10:00:00.000Z' };
+    mocks.connectorWrite.mockResolvedValue(live);
+    mocks.read.mockResolvedValue(live);
+    mocks.verify.mockResolvedValue(false);
+    const path = ['posts', 'article-1', 'publish'];
+    const pending = await socialHeroApi(request('POST', path, { revision: 1 }), path);
+    expect(pending.status).toBe(202);
+    expect(pending.headers.get('retry-after')).toBe('5');
+    expect(await pending.json()).toMatchObject({ state: 'publishing', publishedRevision: 1, publicUrl: 'https://www.staging.fieldgrid.nl/blog/werk-plannen' });
+    mocks.verify.mockResolvedValue(true);
+    const confirmed = await socialHeroApi(request('GET', ['posts', 'article-1']), ['posts', 'article-1']);
+    expect(confirmed.status).toBe(200);
+    expect(await confirmed.json()).toMatchObject({ state: 'published', publishedRevision: 1 });
+    expect(mocks.connectorWrite).toHaveBeenCalledTimes(1);
   });
   it('revokes only the authenticated credential with an empty no-store 204 response', async () => {
     const response = await socialHeroApi(request('DELETE', ['connection']), ['connection']);

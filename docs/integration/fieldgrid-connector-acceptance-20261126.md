@@ -61,7 +61,7 @@ zijn de fixture-identiteit en keys niet geroteerd.
 
 | Controle | Resultaat |
 | --- | --- |
-| Volledige unit-/regressiesuite | 221 bestanden, 2.141 tests geslaagd |
+| Volledige unit-/regressiesuite | 221 bestanden, 2.142 tests geslaagd |
 | Volledige lintcontrole | 0 fouten; 49 bestaande waarschuwingen |
 | TypeScript | `pnpm typecheck` en de TypeScript-stap van `pnpm build` geslaagd |
 | Productiebuild | Next.js 16.4.6 Turbopack geslaagd |
@@ -92,6 +92,19 @@ met uitsluitend `read` of `read,publish` toe. Concept-/mediarechten blijven apar
 gecontroleerd. Op de actuele bronbasis slagen 354 tests en TypeScript; vijf
 nieuwe tests dekken juist die onafhankelijke rechten en het campagnebeleid.
 
+SocialHero is daarna via het bestaande releaseproces op staging en productie
+uitgerold met exact `6697a9b3b72ac55bdb87caef26cf9152cdd07c70`.
+Beide readinessroutes geven HTTP 200, de exacte SHA en een actieve worker.
+De publieke HTTPS-/browseracceptatie slaagt met 28 controles per omgeving.
+Staging: [build 45848780106](https://github.com/socialherodgweb/platform/actions/runs/45848780106),
+[activatie 45849059372](https://github.com/socialherodgweb/platform/actions/runs/45849059372).
+Productie: [build 45849907212](https://github.com/socialherodgweb/platform/actions/runs/45849907212),
+[activatie 45850131630](https://github.com/socialherodgweb/platform/actions/runs/45850131630).
+Een eerdere productiebouw stopte gecontroleerd met exit 75 vanwege een tijdelijke
+gedeelde buildlock. Na read-only vaststelling dat die vrij was, slaagde dezelfde
+workflow voor dezelfde bron-SHA; de lock is niet gewist of omzeild.
+Deze applicatie-uitrol heeft geen hosted Fieldgrid-koppeling aangemaakt.
+
 Bewijs: [database](fieldgrid-connector-evidence-20261126/database.json),
 [upgrade](fieldgrid-connector-evidence-20261126/upgrade.json),
 [moderne HTTP-keten](fieldgrid-connector-evidence-20261126/connector-http.json),
@@ -116,11 +129,24 @@ preflight en broker-allowlists geven uitsluitend deze vaste omgevingsconfigurati
 door. De connector gebruikt de bestaande server-encryptiesleutel; er is geen
 nieuwe API-key nodig. Geheime configuratiewaarden zijn niet opgevraagd of gelogd.
 
-Fieldgrid is nog niet als nieuwe release op staging of productie bevestigd.
-De eerdere verplichte CI-run op de PR werd vóór het uitvoeren van stappen
-geweigerd wegens een billingblokkade van het GitHub-account. De actuele
-commitchecks en eventuele daaropvolgende release worden hier na de bronpush
-vastgelegd. Er worden geen verplichte controles overgeslagen.
+De implementatie is gepusht als broncommit
+`eb1e278353a1f38234e48b14d6aedba8f8bbc894` in PR 605, gevolgd door een gerichte
+controle van de HTTP-202-herstelroute en uitsluitend Markdown voor het nieuwe
+machinecontract. De verplichte
+[CI-run 45849339108](https://github.com/veele-services/platform/actions/runs/45849339108)
+werd opnieuw geweigerd voordat stappen konden starten: “The job was not started
+because your account is locked due to a billing issue.” GitGuardian heeft beide
+featurecommits wel succesvol op geheimen gecontroleerd.
+
+Fieldgrid is daarom niet naar main, staging of productie gepromoveerd.
+Op 26 november gaven beide bestaande healthroutes HTTP 200 met de ongewijzigde
+staging-SHA `34d649e2d66e2dc2508289f25c846c26860c1447` en productie-SHA
+`7398d6cb7f2a2cf75eb22a8b33aa7726fa827eb6`. Beide publieke `/blog`-routes geven
+nog HTTP 404; staging behoudt `X-Robots-Tag: noindex, nofollow`.
+Na herstel van billing moeten de vereiste PR-/mainchecks slagen, vervolgens
+staging met hosted acceptatie en daarna dezelfde SHA naar productie. Er worden
+geen verplichte controles overgeslagen. Een hosted Fieldgrid↔SocialHero-koppeling
+is nog niet gemaakt of getest.
 
 Herhaal de lokale proeven met `scripts/test-blog-connector-db.mjs`,
 `scripts/blog-test-runtime.mjs`, `scripts/test-blog-connector-http.mjs`,

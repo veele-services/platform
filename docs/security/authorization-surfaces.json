@@ -3174,7 +3174,7 @@
         "verifyPublishedBlog"
       ],
       "resources": [],
-      "source_sha256": "46e2b3da966688efa5ee2a4421b78de57a94c49061614e42aedda6ff2ab537f9"
+      "source_sha256": "95119e35a93269693fafac063e2a57f1fb79a9afa0473930d34e295382f0e65a"
     },
     {
       "id": "code:lib/branding/house-style-actions.ts",

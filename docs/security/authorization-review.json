@@ -3094,7 +3094,7 @@
     },
     {
       "id": "code:lib/blog/service-api.ts",
-      "surfaceFingerprint": "488e8075ee34e8b31e530362767d054442fcab590419732a8e1ddeaef6c8e8d6",
+      "surfaceFingerprint": "a86e780ff54b41c2c59cbef504c5815c2924971d2a4cd0ecbdb592cf1e558cf1",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",

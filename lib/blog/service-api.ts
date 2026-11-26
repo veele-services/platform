@@ -61,7 +61,7 @@ export async function socialHeroApi(request: Request, path: string[]) {
           credentialState: actual.state, siteId: configuration.siteId, siteName: configuration.siteName,
           origin: configuration.origin, canonicalOrigin: BLOG_CANONICAL_ORIGIN, environment: configuration.environment, blogPath: '/blog',
           contentTypes: ['blog', 'article'], locales: ['nl-NL'], scopes: actual.scopes,
-          contentFormats: ['markdown', 'tiptap'], media: { mimeTypes: BLOG_MEDIA_TYPES, maxBytes: BLOG_MEDIA_LIMIT, maxWidth: 8192, maxHeight: 8192, maxPixels: 24_000_000 },
+          contentFormats: ['markdown'], media: { mimeTypes: BLOG_MEDIA_TYPES, maxBytes: BLOG_MEDIA_LIMIT, maxWidth: 8192, maxHeight: 8192, maxPixels: 24_000_000 },
           authors: taxonomy.authors, categories: taxonomy.categories });
       }
       const taxonomy = await blogQuery<BlogTaxonomy>('taxonomy');
