@@ -1,0 +1,10 @@
+{
+  "results": [
+    "Original HTML metadata, JSON-LD, canonical, media and sitemap",
+    "desktop: public overview and detail rendered without horizontal overflow",
+    "mobile: public overview and detail rendered without horizontal overflow"
+  ],
+  "browserErrors": 0,
+  "mode": "Read-only real local Next.js HTML/browser and database; explicit local Auth/Storage transport; no mocks or writes",
+  "passed": true
+}

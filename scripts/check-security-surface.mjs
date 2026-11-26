@@ -150,7 +150,10 @@ export function codeSurfaces(path, source) {
   // This pure request-origin guard has no database/Auth calls of its own.
   // Its full source still belongs to the upload authorization review.
   const isUploadOriginBoundary = path === "lib/tickets/files-origin.ts";
-  if (!isAction && !isRoute && !resources.size && !controls.size && !isUploadOriginBoundary) return [];
+  // Provider origin, provisioning encryption and public publication proof are
+  // authorization boundaries even when their generic modules have no DB call.
+  const isBlogConnectorBoundary = path.startsWith("lib/socialhero-connector/") || path === "lib/blog/connector-config.ts" || path === "lib/blog/publication-check.ts";
+  if (!isAction && !isRoute && !resources.size && !controls.size && !isUploadOriginBoundary && !isBlogConnectorBoundary) return [];
   const exports = new Set();
   for (const statement of file.statements) {
     if (ts.isExportDeclaration(statement) && statement.exportClause && ts.isNamedExports(statement.exportClause)) {

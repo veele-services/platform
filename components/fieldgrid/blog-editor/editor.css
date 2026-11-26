@@ -128,6 +128,12 @@
   font-size: 12px;
 }
 .fg-editor-filter button[aria-pressed=true], .fg-editor-filter button:hover { color: #206835; border-color: #d8e9d9; background: #e8f3e9; }
+.fg-editor-category-filter { display: flex; align-items: center; gap: 7px; margin-left: auto; color: #6b7f87; font-size: 11px; }
+.fg-editor-category-filter select { min-width: 140px; max-width: 220px; padding: 7px 9px; border: 1px solid #dce6e0; border-radius: 7px; color: #345348; background: white; font: inherit; }
+.fg-editor-result-count { margin: 0; padding: 0 20px 12px; color: #82918c; font-size: 11px; }
+.fg-editor-status[data-status="Publicatie controleren"] { background: #fff4dc; color: #8b6a20; }
+.fg-editor-flash.pending { color: #88651e; border: 1px solid #ead9b2; background: #fffaee; }
+@media (max-width: 650px) { .fg-editor-category-filter { flex: 1 1 100%; margin: 7px 0 0; } .fg-editor-category-filter select { flex: 1; max-width: 100%; } .fg-editor-result-count { padding-inline: 10px; } }
 .fg-editor-rows { border-top: 1px solid var(--line); }
 .fg-editor-row {
   width: 100%;

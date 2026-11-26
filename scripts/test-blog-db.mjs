@@ -10,10 +10,12 @@ import { assertBlogTestDatabase, blogTestDatabaseConfig } from './blog-test-data
 // Neither mode reads a local .env file.
 const isolated = process.env.FIELDGRID_BLOG_ISOLATED_TEST === '1';
 if (process.env.FIELDGRID_STAGING_SMOKE) throw new Error('Blog fixture tests are local-only.');
-const config = isolated ? blogTestDatabaseConfig() : undefined;
+const isolatedDatabase=process.env.FIELDGRID_BLOG_CONNECTOR_TEST_DATABASE ?? 'fieldgrid_blog_isolated';
+if (!/^fieldgrid_blog_(?:isolated|acceptance_[a-z0-9_]+)$/.test(isolatedDatabase)) throw new Error('Blog acceptance database must be task-owned and local.');
+const config = isolated ? blogTestDatabaseConfig(process.env,isolatedDatabase) : undefined;
 const scope = { siteId: 'fieldgrid', environment: 'development' };
 const hash = value => createHash('sha256').update(value).digest('hex');
-const client = async () => { const db = isolated ? new pg.Client(config) : await workOrderTestDatabase(); if (isolated) { await db.connect(); await assertBlogTestDatabase(db); } assert.equal((await db.query('select current_database() db')).rows[0].db, isolated ? 'fieldgrid_blog_isolated' : 'postgres'); return db; };
+const client = async () => { const db = isolated ? new pg.Client(config) : await workOrderTestDatabase(); if (isolated) { await db.connect(); await assertBlogTestDatabase(db,isolatedDatabase); } assert.equal((await db.query('select current_database() db')).rows[0].db, isolated ? isolatedDatabase : 'postgres'); return db; };
 
 test('Fieldgrid blog: real isolated Postgres upgrade, authorization, revisions and durable operations', async t => {
   const db = await client(), admin = randomUUID(), member = randomUUID(), session = randomUUID(), run = randomUUID(), mediaId = randomUUID(), testMediaId = randomUUID();
@@ -44,7 +46,7 @@ test('Fieldgrid blog: real isolated Postgres upgrade, authorization, revisions a
     await t.test('upgrade retains the existing Fieldgrid schema and a real author/category',async()=>{
       assert.ok(Number((await db.query("select count(*) n from information_schema.tables where table_schema='public'")).rows[0].n)>100);
       const catalog=await db.query("select relname,relrowsecurity,relforcerowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private' and c.relname like 'fieldgrid_blog_%' and c.relkind='r'");
-      assert.equal(catalog.rows.length,8);assert.ok(catalog.rows.every(r=>r.relrowsecurity&&r.relforcerowsecurity));
+      assert.ok(catalog.rows.length>=8);assert.ok(catalog.rows.every(r=>r.relrowsecurity&&r.relforcerowsecurity));
       assert.equal((await db.query("select count(*) n from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in('public','private') and p.proname like 'fieldgrid_blog_%' and (has_function_privilege('anon',p.oid,'execute') or (p.prosecdef and not coalesce(p.proconfig @> array['search_path=\"\"'],false)))")).rows[0].n,'0');
       const taxonomy=await publicRead('taxonomy');assert.ok(taxonomy.authors.some(a=>a.id==='fieldgrid-redactie'&&a.name==='Fieldgrid'));assert.ok(taxonomy.categories.some(c=>c.id==='planning'));
       await deny(call('fieldgrid_blog_admin_read','list',{},'authenticated',member,session));

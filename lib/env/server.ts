@@ -46,6 +46,7 @@ const serverSchema = z.object({
   VAPID_SUBJECT: z.string().min(3).optional(),
   ADMIN_API_SECRET: z.string().min(32).optional(),
   NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: z.string().min(24).optional(),
+  SOCIALHERO_URL: z.preprocess(v => v === '' ? undefined : v, z.string().max(2048).optional()),
   NOTIFICATION_WORKER_LIMIT: z.coerce.number().int().min(1).max(100).default(25),
   NOTIFICATION_WORKER_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(50).default(8),
   NOTIFICATION_WORKER_BASE_RETRY_SECONDS: z.coerce.number().int().min(1).max(3600).default(30),

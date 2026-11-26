@@ -67,7 +67,7 @@ export async function verifyBlogBrowser(config) {
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${size} article fits its viewport`);
       await page.screenshot({ path: `${directory}/article-${size}.png`, fullPage: true });
       await page.goto(`${publicOrigin}/blog`, { waitUntil: 'networkidle' });
-      assert.ok(await page.getByRole('heading', { name: config.title }).isVisible());
+      assert.ok(await page.locator(`a[href="/blog/${config.slug}"]`).getByRole('heading', { name: config.title, exact: true }).isVisible());
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${size} overview fits its viewport`);
       await page.screenshot({ path: `${directory}/overview-${size}.png`, fullPage: true });
       results.push(`${size}: public overview and detail rendered without horizontal overflow`);

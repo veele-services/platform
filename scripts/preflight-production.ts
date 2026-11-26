@@ -1,8 +1,10 @@
 import { assertProductionRuntime } from "../lib/env/production-runtime";
 import { productionDatabaseUrl } from "../lib/env/production-database";
+import { fieldgridConnectorConfiguration } from "../lib/blog/connector-config";
 
 try {
   assertProductionRuntime(process.env);
+  fieldgridConnectorConfiguration(process.env);
   const fixed = { DEPLOY_ROOT: "/opt/fieldgrid/production", SERVICE_NAME: "fieldgrid@production.service", HEALTHCHECK_URL: "https://fieldgrid.nl/api/healthz", NODE_ENV: "production" };
   for (const [name, value] of Object.entries(fixed)) if (process.env[name] !== value) throw new Error();
   if (!/^[0-9a-f]{40}$/.test(process.env.RELEASE_SHA ?? "") || process.env.RELEASE_SHA !== process.env.DEPLOYMENT_VERSION || process.env.RELEASE_SHA !== process.env.ACCEPTED_RELEASE_SHA) throw new Error();

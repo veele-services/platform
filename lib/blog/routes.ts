@@ -2,6 +2,7 @@
 export function isBlogServiceRequest(path: string, method: string): boolean {
   if (path === '/api/socialhero/v1/capabilities') return method === 'GET';
   if (path === '/api/socialhero/v1/media') return method === 'POST';
+  if (path === '/api/socialhero/v1/connection') return method === 'DELETE';
   if (/^\/api\/socialhero\/v1\/posts\/[^/]{1,600}$/.test(path)) return method === 'GET' || method === 'PUT';
   return /^\/api\/socialhero\/v1\/posts\/[^/]{1,600}\/publish$/.test(path) && method === 'POST';
 }

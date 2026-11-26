@@ -23,7 +23,7 @@ await db.query('insert into auth.sessions(id,user_id,created_at,updated_at) valu
 await db.query('insert into public.platform_admins(user_id) values($1)',[admin]);
 await db.query("insert into private.fieldgrid_blog_credentials(site_id,environment,label,token_hash,scopes,expires_at) values('fieldgrid','development','Local acceptance fixture',$1,array['read','media:write','draft:write','publish'],now()+interval '1 day')",[createHash('sha256').update(token).digest('hex')]);
 // Schema-only restore omitted ACLs. Reconstitute only the existing protected editor reads.
-execFileSync('docker',['exec','fieldgrid-blog-isolated-db','psql','-U','supabase_admin','-d','fieldgrid_blog_isolated','-v','ON_ERROR_STOP=1','-c','grant select on public.platform_admins,public.tenant_memberships to authenticated'],{stdio:'ignore'});
+await db.query('grant select on public.platform_admins,public.tenant_memberships to authenticated; grant select on public.tenants to service_role');
 const databaseHost=execFileSync('docker',['inspect','fieldgrid-blog-isolated-db','--format','{{(index .NetworkSettings.Networks "bridge").IPAddress}}'],{encoding:'utf8'}).trim();
 if(!/^172\.[0-9.]+$/.test(databaseHost))throw Error('Invalid local Docker database address');
 const postgrestDatabaseUrl=await configureBlogTestAuthenticator(db,databaseHost);
@@ -32,9 +32,9 @@ await writeFile(`${directory}/postgrest.env`,restEnv,{mode:0o600});
 try{execFileSync('docker',['rm','-f','fieldgrid-blog-test-rest'],{stdio:'ignore'});}catch{/* First run. */}
 execFileSync('docker',['run','-d','--name','fieldgrid-blog-test-rest','--publish','127.0.0.1:59422:3000','--env-file',`${directory}/postgrest.env`,'public.ecr.aws/supabase/postgrest:v16.2'],{stdio:'ignore'});
 const fixtureSession={access_token:adminJwt,refresh_token:randomBytes(32).toString('hex'),token_type:'bearer',expires_in:86400,expires_at:Math.floor(Date.now()/1000)+86400,user};
-const env={APP_ENV:'development',DEPLOY_TARGET:'local',APP_URL:'http://127.0.0.1:3301',HOSTNAME:'127.0.0.1',PORT:'3301',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:59421',NEXT_PUBLIC_SUPABASE_ANON_KEY:anon,SUPABASE_URL:'http://127.0.0.1:59421',SUPABASE_SERVICE_ROLE_KEY:service,FIELDGRID_BLOG_LOCAL_ORIGIN:'http://www.localhost:3301'};
+const env={APP_ENV:'development',DEPLOY_TARGET:'local',APP_URL:'http://localhost:3307',HOSTNAME:'127.0.0.1',PORT:'3307',NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:59421',NEXT_PUBLIC_SUPABASE_ANON_KEY:anon,SUPABASE_URL:'http://127.0.0.1:59421',SUPABASE_SERVICE_ROLE_KEY:service,FIELDGRID_BLOG_LOCAL_ORIGIN:'http://127.0.0.1:3307',NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:randomBytes(32).toString('base64'),SOCIALHERO_URL:'http://127.0.0.1:59424',FIELDGRID_SOCIALHERO_LOCAL_TEST:'1'};
 await writeFile(`${directory}/env.json`,JSON.stringify(env),{mode:0o600});
-await writeFile(`${directory}/fixture.json`,JSON.stringify({siteToken:token,admin,session,sessionData:fixtureSession,publicOrigin:'http://www.localhost:3301',platformOrigin:'http://127.0.0.1:3301'}),{mode:0o600});
+await writeFile(`${directory}/fixture.json`,JSON.stringify({siteToken:token,admin,session,sessionData:fixtureSession,publicOrigin:'http://127.0.0.1:3307',platformOrigin:'http://localhost:3307'}),{mode:0o600});
 const storage=new Map();
 function claims(request){try{const value=(request.headers.authorization??'').replace(/^Bearer /,'');const [h,p,s]=value.split('.');const expected=createHmac('sha256',secret).update(`${h}.${p}`).digest();const actual=Buffer.from(s,'base64url');if(actual.length!==expected.length||!timingSafeEqual(actual,expected))return null;const c=JSON.parse(Buffer.from(p,'base64url'));return c.exp>Date.now()/1000?c:null;}catch{return null;}}
 const json=(res,status,data)=>{res.writeHead(status,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(data));};

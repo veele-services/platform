@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "realBackend": [
+    "Taxonomy create/update/archive/reactivate",
+    "Two draft saves and immutable revision history",
+    "Authenticated page reads and filters"
+  ],
+  "explicitMocks": [
+    "Only publication HTTP202/200 UI feedback; no real publication performed by this runner"
+  ],
+  "results": [
+    "Real taxonomy API: author/category created and category renamed without changing its ID",
+    "Real editor saved two independent draft snapshots; API and rendered history preserve both titles",
+    "Search by author combines with category/status filters; clearing filters restores the article list",
+    "Explicit UI-only publication mock: HTTP202 stays pending; recheck uses the same ID/revision without a new save; HTTP200 confirms",
+    "Real archive/reactivate keeps IDs and referenced draft/history intact; archived items remain visible on the existing draft",
+    "Settings, filtered list and editor/history fit 390px mobile without horizontal overflow"
+  ],
+  "draftId": "dd1a7399-7d55-4ed1-ab57-0a3df1164df3",
+  "browserErrors": 0
+}

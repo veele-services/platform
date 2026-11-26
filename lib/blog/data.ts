@@ -39,6 +39,8 @@ async function publicQuery<T>(operation: string, payload: Payload = {}): Promise
   return await ticketRpc(createAdminClient(), 'fieldgrid_blog_public_read', { operation, payload: scope(payload) }) as T;
 }
 export async function getPublishedBlog(): Promise<BlogEntry[]> { return publicQuery('public.list'); }
+export type BlogPage = { posts: BlogEntry[]; total: number; page: number; pages: number; categories: string[] };
+export async function getPublishedBlogPage(payload: { page?: number; pageSize?: number; query?: string; category?: string } = {}): Promise<BlogPage> { return publicQuery('public.page', payload); }
 export async function getPublicBlog(slug: string): Promise<{ entry: BlogEntry } | { redirect: string } | null> { return publicQuery('resolve', { slug }); }
 export async function getBlog(id: string): Promise<BlogEntry | null> { return blogAdminQuery('get', { id }); }
 export async function listBlogEntries(): Promise<BlogEntry[]> { return blogAdminQuery('list'); }

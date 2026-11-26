@@ -113,6 +113,7 @@ jobs:
       STAGING_SUPABASE_PROJECT_REF: ${{ vars.STAGING_SUPABASE_PROJECT_REF }}
       ACCEPTED_RELEASE_SHA: ${{ vars.ACCEPTED_RELEASE_SHA }}
       LOG_LEVEL: ${{ vars.LOG_LEVEL }}
+      SOCIALHERO_URL: ${{ vars.SOCIALHERO_URL }}
       RELEASE_SHA: ${{ github.sha }}
       DEPLOYMENT_VERSION: ${{ github.sha }}
     steps:

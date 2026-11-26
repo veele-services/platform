@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "mode": "Read-only real backend and browser; no mocks or writes",
+  "results": [
+    "Read-only settings/editor/list captures after the existing mobile menu transition has completed; menu closed via real UI if needed",
+    "Real independently published SocialHero article: current verified live revision and immutable publication events render on desktop/mobile; no mocks or writes"
+  ],
+  "browserErrors": 0
+}

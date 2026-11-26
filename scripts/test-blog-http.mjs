@@ -22,7 +22,7 @@ async function api(path, method = 'GET', payload, key, revision, authorization =
 }
 const postPath = `/posts/${xid}`;
 assert.equal((await api('/capabilities', 'GET', undefined, undefined, undefined, null)).status, 401);
-assert.equal((await api('/capabilities', 'GET', undefined, undefined, undefined, 'x'.repeat(40))).status, 403);
+assert.equal((await api('/capabilities', 'GET', undefined, undefined, undefined, 'x'.repeat(40))).status, 401);
 const capabilities = await api('/capabilities');
 assert.equal(capabilities.body.siteId, 'fieldgrid');assert.equal(capabilities.body.canonicalOrigin, 'https://www.fieldgrid.nl');
 note('Missing and invalid tokens fail closed; capabilities identify the exact local environment');

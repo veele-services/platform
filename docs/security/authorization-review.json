@@ -4,7 +4,7 @@
   "entries": [
     {
       "id": "code:app/(marketing)/fieldgrid-site/[[...path]]/page.tsx",
-      "surfaceFingerprint": "1c4ce45ce020c194b9c14ae73bce93927f99fd62043e60e6e8057f768e57b500",
+      "surfaceFingerprint": "773ee09ef8dd3467d1043134202ac34c6001b107f209e8293493490272dc9085",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#marketing",
@@ -15,7 +15,11 @@
         "scripts/test-sites-v3-chain.mjs",
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "lib/blog/validation.test.ts"
+        "lib/blog/validation.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -824,12 +828,16 @@
     },
     {
       "id": "code:app/(workspace)/api/socialhero/v1/[...path]/route.ts",
-      "surfaceFingerprint": "0089b6a2fc52c5be1fb0e9bdc8a7bfec8e81dadba586ad17e940bd8a1ecfac14",
-      "status": "controlled",
+      "surfaceFingerprint": "8c6acd2c5a1afc1520866c19f4335ecc9adb357f3b1d3c451c2a1592b0eae391",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "lib/blog/validation.test.ts"
+        "lib/blog/validation.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -883,14 +891,18 @@
     },
     {
       "id": "code:app/(workspace)/api/worker/route.ts",
-      "surfaceFingerprint": "78d6fe694cf1d41c610b7c270376606cc667648a9c93c4e12030b0b943a9129f",
+      "surfaceFingerprint": "b3f79d09ffc69daa6c0d695bd6d030b67d4ae08e9b6c203e3237cedb773353e1",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/operational-chain-review-2026-10-18.md#contractreeksen-en-opvolging",
         "supabase/migrations/20261017232527_operational_chain_completion.sql",
         "scripts/test-operational-chain.mjs",
         "scripts/test-operational-chain-upgrade.mjs",
-        "lib/work-orders/recurrence.test.ts"
+        "lib/work-orders/recurrence.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -2195,6 +2207,17 @@
       ]
     },
     {
+      "id": "code:app/(workspace)/platform/blog/instellingen/page.tsx",
+      "surfaceFingerprint": "266e044fd88700e473312e93c1af2266dc37de7125984934b337514a64e92f0d",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
+      ]
+    },
+    {
       "id": "code:app/(workspace)/platform/blog/page.tsx",
       "surfaceFingerprint": "a72318b218188276b76f0eb0ea13a3329286cfd65340746c0d5df6d341e4ea9f",
       "status": "controlled",
@@ -2212,6 +2235,17 @@
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
         "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "code:app/(workspace)/platform/blog/socialhero/page.tsx",
+      "surfaceFingerprint": "79e032fdb753414bb1fc5cdcce3678a821dbf83f95087ed6432f072220a58018",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -2959,56 +2993,119 @@
     },
     {
       "id": "code:lib/blog/admin-api.ts",
-      "surfaceFingerprint": "65554719be5eea87024e83bf9f3ce37be946bd73654d2c6b792d365e81752228",
+      "surfaceFingerprint": "31da137b9664695c45be8bf5254d1d0a5d2540d7318e081c42dfa9aeb326d055",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
         "lib/blog/validation.test.ts",
         "scripts/test-blog-http.mjs",
-        "scripts/test-blog-browser.mjs"
+        "scripts/test-blog-browser.mjs",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
       "id": "code:lib/blog/auth.ts",
-      "surfaceFingerprint": "cd8aca3ee20120405d982c5689f0880856ebf5b00fbff771414ab01be6265e9f",
-      "status": "controlled",
+      "surfaceFingerprint": "dadeca579dcc08bb3c0ef47fe552bb6083838c8d238c26f5a1297b9bcfef4987",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "lib/blog/validation.test.ts"
+        "lib/blog/validation.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
+      ]
+    },
+    {
+      "id": "code:lib/blog/connector-admin.ts",
+      "surfaceFingerprint": "6da967127dd21447508057e7b335647458201a935516083af17cbf65aa9cbb9a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
+      ]
+    },
+    {
+      "id": "code:lib/blog/connector-config.ts",
+      "surfaceFingerprint": "6313a5f067b87c5f543faeedf1c5887e29ef5f5480dbf040523dd91697870b8b",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
+      ]
+    },
+    {
+      "id": "code:lib/blog/connector-data.ts",
+      "surfaceFingerprint": "b425ec4ec5900cb7862045e75c56ae27ec00146a3eb24264140a65d64e89d9d0",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
       "id": "code:lib/blog/data.ts",
-      "surfaceFingerprint": "73de3d91d8a44c23bea5bb03fa70f50a1d2cb8c4353779a57b74d4109bb7d4ab",
-      "status": "controlled",
+      "surfaceFingerprint": "ca057f77b07faa4d9360275bc8181958c852062c8d323b7323524e55c85826b1",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "lib/blog/validation.test.ts"
+        "lib/blog/validation.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
       "id": "code:lib/blog/media.ts",
-      "surfaceFingerprint": "8edb4a39c74d8c9348ceb4c59f9e162fb68ff468fe455dcf5dee9796749c0018",
-      "status": "controlled",
+      "surfaceFingerprint": "443e3f3373e3120f65bb4b4252ddd8328349b123b1105e64f63ff03f8c386c2d",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "lib/blog/validation.test.ts"
+        "lib/blog/validation.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
+      ]
+    },
+    {
+      "id": "code:lib/blog/publication-check.ts",
+      "surfaceFingerprint": "12eebc71989ad7d6da65004c6dc7a29a167bf66bcc742362d602e5efc6623adc",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/publication-check.test.ts"
       ]
     },
     {
       "id": "code:lib/blog/service-api.ts",
-      "surfaceFingerprint": "c9c7c9c53f2de792fb78920f3f5596805a8a964ed869f2f40e9df1d3bdcb7924",
+      "surfaceFingerprint": "488e8075ee34e8b31e530362767d054442fcab590419732a8e1ddeaef6c8e8d6",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
         "lib/blog/validation.test.ts",
         "scripts/test-blog-http.mjs",
-        "scripts/test-blog-browser.mjs"
+        "scripts/test-blog-browser.mjs",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -3815,6 +3912,47 @@
         "docs/security/staff-pwa-verification-2026-10-09.md",
         "lib/pwa/staff.test.ts",
         "lib/tenancy/proxy-boundary.test.ts"
+      ]
+    },
+    {
+      "id": "code:lib/socialhero-connector/contract.ts",
+      "surfaceFingerprint": "08645b7b33d39bc764af0a9cd89fc46535c263e996a2e52be991518872b81950",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
+      ]
+    },
+    {
+      "id": "code:lib/socialhero-connector/pairing.ts",
+      "surfaceFingerprint": "33fbb852ccf9f4cbf0bdc68aa2e6dbbcaa6c51387e290bdc73e2729b67fc2cdd",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/socialhero-connector/pairing.test.ts"
+      ]
+    },
+    {
+      "id": "code:lib/socialhero-connector/secrets.ts",
+      "surfaceFingerprint": "bd478136a348ed61bb5a479596a2f60b45578d398fc6044cfe4077cc9c5519b6",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/socialhero-connector/secrets.test.ts"
+      ]
+    },
+    {
+      "id": "code:lib/socialhero-connector/transport.ts",
+      "surfaceFingerprint": "446e3ba1414f5468748b58896cc49749b3a25643eaee29a45b37176bb21a0641",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/socialhero-connector/transport.test.ts"
       ]
     },
     {
@@ -4744,13 +4882,82 @@
       ]
     },
     {
-      "id": "db:private.fieldgrid_blog_posts",
-      "surfaceFingerprint": "1fcdb3c865796d1993ec104a63070827bf658dcf264e16578082ad3bf3010c31",
+      "id": "db:private.fieldgrid_blog_destinations",
+      "surfaceFingerprint": "175b9137d779b61018ced39f169964612896b1167ceeafce5cbc7c5baf8e3fb0",
       "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_installations",
+      "surfaceFingerprint": "075e6013f68f7f858a8480d404272475aa44d3de7344c40fb413bb9a5cee3282",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_pairings",
+      "surfaceFingerprint": "3c717ff3bae99d8fc8dbbe549967192efc6251c93b8d9693239069e8aa6d8f14",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_policy_audit",
+      "surfaceFingerprint": "4e2aa6997ce6323a5141252c158a4d62c9ebecfa4208986cae647818672b3138",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_posts",
+      "surfaceFingerprint": "381033aa352daee38767e77bc576daae2cddd78f6691fb1223885f16ed433d3b",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "lib/blog/validation.test.ts"
+        "lib/blog/validation.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_publication_checks",
+      "surfaceFingerprint": "199dcc2fe1ceeb682ebee6d120121e436cf7764d31514a1f081de1af006f30bd",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_publish_events",
+      "surfaceFingerprint": "390e205f21474e0bc93392a84f42e42a8f68e563d7f3cd5b2b21351654a3aa36",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
       ]
     },
     {
@@ -4771,6 +4978,17 @@
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
         "lib/blog/validation.test.ts"
+      ]
+    },
+    {
+      "id": "db:private.fieldgrid_blog_revisions",
+      "surfaceFingerprint": "659c9dfba42aa3386b45ad9938bb157312ea723e515d46ee6f94e70c9f667234",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
       ]
     },
     {
@@ -7553,23 +7771,31 @@
     },
     {
       "id": "operation:.github/workflows/deploy-production.yml",
-      "surfaceFingerprint": "685cef063f7d829bbae9371c78bb915547798975a2fabff17117f9444d069527",
-      "status": "controlled",
+      "surfaceFingerprint": "029d9081da2a88cb6bedbf81c0785d0ddcfd4018e2bc56ac70aced8f26c67b0e",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
         "docs/security/routing-preflight-resilience-2026-10-18.md",
         "lib/operations/production-deployment.test.ts",
-        "lib/travel/provider-smoke.test.ts"
+        "lib/travel/provider-smoke.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
       "id": "operation:.github/workflows/deploy-staging.yml",
-      "surfaceFingerprint": "ba700ccbc2c48e9b41cc9c1fb7cd8f84671615dc6484013e5d6d49bc3d5e1519",
-      "status": "controlled",
+      "surfaceFingerprint": "49cf8c43d2c21a6f8f4fcd69b2f385b6ebe098ff769e4962b0e9e7ff518e6931",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/architecture/addresses-and-travel.md",
         "docs/security/routing-preflight-resilience-2026-10-18.md",
-        "lib/travel/provider-smoke.test.ts"
+        "lib/travel/provider-smoke.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -7666,25 +7892,33 @@
     },
     {
       "id": "operation:deploy/fieldgrid-install-production-release",
-      "surfaceFingerprint": "8e5d76492bbd90a419c2209dc246e629bc5f9a609459c44acf58d86577130f18",
-      "status": "controlled",
+      "surfaceFingerprint": "bd9b3366542bc9f6b97895caf256c81e117fe70a008fea907cac2c50dbd0b1f0",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
         "lib/operations/production-deployment.test.ts",
         "lib/env/production-database.test.ts",
         "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "scripts/test-production-contract-linux.sh",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
       "id": "operation:deploy/fieldgrid-install-staging-release",
-      "surfaceFingerprint": "0c6b115c17af71dded92b178a2259c375076efa86432c18c918451e81730f19a",
+      "surfaceFingerprint": "1c97b04e8b777103331ae1f3b7d51d05771602a5c5dde35e2e940f8054070eaa",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
         "lib/env/staging-database.test.ts",
         "lib/env/server-isolation.test.ts",
-        "lib/operations/deployment-broker.test.ts"
+        "lib/operations/deployment-broker.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -7835,13 +8069,17 @@
     },
     {
       "id": "operation:lib/env/server.ts",
-      "surfaceFingerprint": "1be6d42b0425ce6009e9aaf76a55cf157003d5ee3702243597ea065ee3973b77",
+      "surfaceFingerprint": "ed5320dd10b23cbb489ae27acb6a3803cb3139058a84a9be538530424d67b9f3",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
         "lib/env/staging-database.test.ts",
         "lib/env/server-isolation.test.ts",
-        "lib/operations/deployment-broker.test.ts"
+        "lib/operations/deployment-broker.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -7996,7 +8234,7 @@
     },
     {
       "id": "operation:package.json",
-      "surfaceFingerprint": "d2f34faf392c4340a4dbb8c403794de8c45fb9c2034da5552c69c5ed62339e9d",
+      "surfaceFingerprint": "e4c4d33d40746c5ee2b6ad638800ac62a5c63788fe99d973c8ecfb6f268773ee",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/task-controls-authorization-review.md",
@@ -8007,7 +8245,11 @@
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
         "lib/blog/validation.test.ts",
-        "lib/blog/test-database.test.ts"
+        "lib/blog/test-database.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -8110,12 +8352,16 @@
     },
     {
       "id": "operation:scripts/blog-credential.ts",
-      "surfaceFingerprint": "a9e6a9b0d4869c1c3a7f5cb65a5a7c0c273f41ed1804652246d4c378d89b576e",
-      "status": "controlled",
+      "surfaceFingerprint": "834f4abba0b5f3931d6c7a7459b1d6405ac2983a987604eee204c78bd631b715",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "scripts/test-blog-http.mjs"
+        "scripts/test-blog-http.mjs",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -8258,7 +8504,7 @@
     },
     {
       "id": "operation:scripts/check-security-surface.mjs",
-      "surfaceFingerprint": "a81804c045c720a765e514d1af3ce41a5bf47b1ccf3c498e9f88f88706d1dfe6",
+      "surfaceFingerprint": "4cccaf9c682b6c0d707fda540d5b9876f3f5efacf204e3c8f496de9e249c9cd4",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/sites-v3-authorization-review-2026-10-16.md#operations",
@@ -8274,7 +8520,11 @@
         "scripts/test-release-artifact.mjs",
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "scripts/test-blog-http.mjs"
+        "scripts/test-blog-http.mjs",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -8463,7 +8713,7 @@
     },
     {
       "id": "operation:scripts/migration-manifest.json",
-      "surfaceFingerprint": "fd8c1c8ee31b29e64c4e2615f9cb077db6f8b2827573a5087b9cf7142e632280",
+      "surfaceFingerprint": "8a7ec8e9c515e60db8a478e2e87be874e790f9afac0f2675bad6a8a8710ffdc0",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/task-controls-authorization-review.md: native 183-migration replay preserves all prior 182 statement hashes",
@@ -8471,7 +8721,11 @@
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
         "lib/blog/validation.test.ts",
-        "scripts/test-blog-http.mjs"
+        "scripts/test-blog-http.mjs",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -8505,25 +8759,33 @@
     },
     {
       "id": "operation:scripts/preflight-production.ts",
-      "surfaceFingerprint": "b2972356b41a88bb8a53ca60c330bdfe0388d86c7603f1cf139c0442dfc8ded6",
-      "status": "controlled",
+      "surfaceFingerprint": "122b9d3ee5990004174ff68a0959e8095a9d77b782825044337b753cca56cd88",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
         "lib/operations/production-deployment.test.ts",
         "lib/env/production-database.test.ts",
         "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "scripts/test-production-contract-linux.sh",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
       "id": "operation:scripts/preflight.ts",
-      "surfaceFingerprint": "8dc3119d86f400629f33906513879c591850d484973cf280ba7a4379ca15d2ed",
-      "status": "controlled",
+      "surfaceFingerprint": "eb7970bff6fa98433b801b5edd09f05cdfe1407ec881bc4ee533b310f43b96d2",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "manual-completion-audit:2026-10-01",
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/deployment/staging-runbook.md",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -8753,25 +9015,33 @@
     },
     {
       "id": "operation:scripts/write-production-runtime-env.sh",
-      "surfaceFingerprint": "71f53dd88751814c812c19422affc8dc9aa00b2562fe908c82fdef629a383518",
-      "status": "controlled",
+      "surfaceFingerprint": "99abb4e08d564e58fd7c4e6f4b8512a665d251e3c7059a747c27fe3984dcabf9",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/production-release-boundaries-2026-10-07.md",
         "lib/operations/production-deployment.test.ts",
         "lib/env/production-database.test.ts",
         "lib/env/production-runtime.test.ts",
-        "scripts/test-production-contract-linux.sh"
+        "scripts/test-production-contract-linux.sh",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
       "id": "operation:scripts/write-runtime-env.sh",
-      "surfaceFingerprint": "e1a5878fbc44f2bf6f0adcdc19c052dbdee6e46cc6d08256efc0f4cac57eeb68",
-      "status": "controlled",
+      "surfaceFingerprint": "b3bccf285611f96b246c069f8ffe297e6010a002fa0e523dd6c26e6e8db53c22",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "manual-completion-audit:2026-10-01",
         "lib/operations/workflow-security.test.ts",
         "lib/auth/authorization-review.test.ts",
-        "docs/deployment/staging-runbook.md"
+        "docs/deployment/staging-runbook.md",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "lib/blog/connector-api.test.ts",
+        "scripts/test-blog-connector-http.mjs"
       ]
     },
     {
@@ -10747,6 +11017,61 @@
       ]
     },
     {
+      "id": "rpc:private.fieldgrid_blog_connector_credential_json(c private.fieldgrid_blog_credentials)",
+      "surfaceFingerprint": "3636ac531d908d14804bc22256fc111c13945bd982eea77f2fdca244ac2194dc",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_connector_credential(payload jsonb, pending boolean)",
+      "surfaceFingerprint": "9c638db55400cb8799541ed0b2ec3fb06c6e60fa042b3ad56d69e84ae25c627a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_connector_purge(site text, env text)",
+      "surfaceFingerprint": "4c85f2cb44d410bac09cbe65887a0359e0be8fcc9bf954c367269303496156b6",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_connector_scope(payload jsonb)",
+      "surfaceFingerprint": "6b437ff8f564afea9a1062d6de8b264c89fa33a0d2b1bcefc8fad2ac3e9eb3ab",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_connector_status(site text, env text)",
+      "surfaceFingerprint": "258cf0e5a648eebd43e9b90fbcf687ce4208de6aa2fa49ed0e27ff1049b49dad",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
       "id": "rpc:private.fieldgrid_blog_editor()",
       "surfaceFingerprint": "4bc2817690d829a10b3fa049dfe10246280795c84dfd2cdf71a187c58d30cbcd",
       "status": "controlled",
@@ -10758,12 +11083,37 @@
     },
     {
       "id": "rpc:private.fieldgrid_blog_entry(p private.fieldgrid_blog_posts)",
-      "surfaceFingerprint": "b78c7bb3356c21f1a3f65f2e7589aa1cbda08c96596523cae2a031e495977ab8",
-      "status": "controlled",
+      "surfaceFingerprint": "297662a0d8540376c9e4983752bf78b81cdc3e23fe158662d50663d28d5aab24",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "lib/blog/validation.test.ts"
+        "lib/blog/validation.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_history_capture()",
+      "surfaceFingerprint": "f0bc7225b2a97761d170f6ae965d591a70852eb8e83aa26e5863c7aba3361607",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_history_immutable()",
+      "surfaceFingerprint": "e3bfe46e4240daab1701ca78a518fbc565fc7e54a41eb6d13460b5721d287a06",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
       ]
     },
     {
@@ -10777,14 +11127,61 @@
       ]
     },
     {
+      "id": "rpc:private.fieldgrid_blog_public_page(payload jsonb)",
+      "surfaceFingerprint": "ecf9c0846a107707881fecc2e7ac32f5b3dfdc930567f1b532cf25f48fd21abe",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_publication_projection(entry jsonb)",
+      "surfaceFingerprint": "5589232215c1df3143d425a6b32b4d11730cdb7f0755ee80511c8ed1f6389b74",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
       "id": "rpc:private.fieldgrid_blog_read(operation text, payload jsonb)",
-      "surfaceFingerprint": "c343f681c76d4cc69e6139758eb39778456b822fe444d9d0bafe70ab2fcb35e8",
+      "surfaceFingerprint": "f1e29bf8dbbcbd8f8188695a659e6e9e5ff683a8537035b0314bd17bc73fbb71",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
         "lib/blog/validation.test.ts",
-        "scripts/test-blog-http.mjs"
+        "scripts/test-blog-http.mjs",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_taxonomy_manage()",
+      "surfaceFingerprint": "ca4db655cd5476cd5846e25a931284af7358e2ccb5c98f5cb6449e2fb8fadef0",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:private.fieldgrid_blog_taxonomy_write(operation text, payload jsonb)",
+      "surfaceFingerprint": "e57cda4c625e1dcc07f807576639bd28ff429ba5083e05b1aadf72e66257f024",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
       ]
     },
     {
@@ -10799,13 +11196,16 @@
     },
     {
       "id": "rpc:private.fieldgrid_blog_write(operation text, payload jsonb)",
-      "surfaceFingerprint": "52114e0ce2ae56095988bc4f7499960fe7fb5d052f7001dfa898aa5a046180c8",
+      "surfaceFingerprint": "5ff499af5b7a05712bcd87c6a5beed8fd8f2d4e16171edf3381ecffe4b967c39",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
         "lib/blog/validation.test.ts",
-        "scripts/test-blog-http.mjs"
+        "scripts/test-blog-http.mjs",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs"
       ]
     },
     {
@@ -16545,64 +16945,148 @@
     },
     {
       "id": "rpc:public.fieldgrid_blog_admin_read(operation text, payload jsonb)",
-      "surfaceFingerprint": "f71a6a9622dd5d101981b59bdc916d376d65117685904a325bdd0cff41e4e88d",
+      "surfaceFingerprint": "cf1f0b1e3a079f01c3a0fea14ade3dcccc0b5b105ef571cc3ba8ed3040b03cd2",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
         "lib/blog/validation.test.ts",
-        "scripts/test-blog-http.mjs"
+        "scripts/test-blog-http.mjs",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs"
       ]
     },
     {
       "id": "rpc:public.fieldgrid_blog_admin_write(operation text, payload jsonb)",
-      "surfaceFingerprint": "3da7493593616b58e11def8dee18bbe6e2e9adc1b9e2fa071f69e36b84acfc8c",
+      "surfaceFingerprint": "55b3ccbb9b35277c0cb6d98acb1589c1dd64417fd631a0a01640cb0b536fa1d0",
       "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
         "lib/blog/validation.test.ts",
-        "scripts/test-blog-http.mjs"
+        "scripts/test-blog-http.mjs",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs"
       ]
     },
     {
       "id": "rpc:public.fieldgrid_blog_authenticate(token_hash text)",
-      "surfaceFingerprint": "bcb9997716df6aeffb8f423c909ec69598e737b0a197d0bb55118fb8cd46a539",
-      "status": "controlled",
+      "surfaceFingerprint": "5ab5380319e23682cc3646d29947e1afb2b72d8c8d43f529f634cc094499fb1c",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "lib/blog/validation.test.ts"
+        "lib/blog/validation.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_connector_admin_read(operation text, payload jsonb)",
+      "surfaceFingerprint": "42453337c8b0286470697bf9abb33f02c14fe89f5fd0ca7c222553cdcab7118a",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_connector_admin_write(operation text, payload jsonb)",
+      "surfaceFingerprint": "6969c6f2e8f9aa01895cfc9ebbaca16f968b6d0c236d491da8765f5189bd7cb3",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_connector_authenticate(token_hash text)",
+      "surfaceFingerprint": "371fea2e19d02832e36f4e560cccf3eb2a666931c3db3df2eb47636c1e54fd1e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_connector_read(operation text, payload jsonb)",
+      "surfaceFingerprint": "d7f38579012ad37463d5bf88066cd33674a4ef01db5bedd56a752df86a61995e",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_connector_server_read(operation text, payload jsonb)",
+      "surfaceFingerprint": "278dea16f19af0f9b2d310e24fc75d46c1c312d90f25d55631a6722721653cca",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
+      ]
+    },
+    {
+      "id": "rpc:public.fieldgrid_blog_connector_write(operation text, payload jsonb)",
+      "surfaceFingerprint": "96dbf3c5e5e6b4fa677b06a9331fdc252901ae6477ba43fd394c8a02f3d2e551",
+      "status": "controlled",
+      "evidence": [
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs",
+        "scripts/test-blog-db.mjs"
       ]
     },
     {
       "id": "rpc:public.fieldgrid_blog_public_read(operation text, payload jsonb)",
-      "surfaceFingerprint": "f30ce9c63fbb1b55eac9cf1d6507f622c1856c1209014cca1540065d03581e2c",
-      "status": "controlled",
+      "surfaceFingerprint": "289244829d29806d905415b94d19916953f4e85f1ddc5bff2492d8c79a468546",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "lib/blog/validation.test.ts"
+        "lib/blog/validation.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs"
       ]
     },
     {
       "id": "rpc:public.fieldgrid_blog_read(operation text, payload jsonb)",
-      "surfaceFingerprint": "d9d5588e0e76547b5fcea2a606b9f88801e45d51a75c5da829b50c6576139525",
-      "status": "controlled",
+      "surfaceFingerprint": "a902faaa222f356f9ec06b30a7ba5274bed1c3797a845fe7e7dd7fe65e9cce46",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "lib/blog/validation.test.ts"
+        "lib/blog/validation.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs"
       ]
     },
     {
       "id": "rpc:public.fieldgrid_blog_write(operation text, payload jsonb)",
-      "surfaceFingerprint": "6de28ac9994b7eba3f53934a181badc98263e9a84bf97f0a0ac0400cd527a09a",
-      "status": "controlled",
+      "surfaceFingerprint": "ae6d718424cf976c0c87e3e15e2cea03588b180c2a8a239011e330cffa122d3f",
+      "status": "corrected-and-rechecked",
       "evidence": [
         "docs/security/fieldgrid-blog-review.md",
         "scripts/test-blog-db.mjs",
-        "lib/blog/validation.test.ts"
+        "lib/blog/validation.test.ts",
+        "docs/security/socialhero-connector-review.md",
+        "docs/integration/socialhero-connector.md",
+        "scripts/test-blog-connector-db.mjs"
       ]
     },
     {

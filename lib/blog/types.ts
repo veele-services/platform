@@ -44,6 +44,7 @@ export type BlogEntry = {
   publishedRevision: number | null;
   publishedAt: string | null;
   publishedUpdatedAt?: string | null;
+  publicationVerified?: boolean;
   updatedAt: string;
   createdAt: string;
 };

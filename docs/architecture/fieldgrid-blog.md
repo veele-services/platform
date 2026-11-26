@@ -10,8 +10,10 @@ De bestaande marketingdispatch (`proxy.ts`, `/fieldgrid-site`), Signature Grid,
 Poppins/Inter, platformshell, actuele platformadminregistratie en Supabase Auth
 blijven de basis. `/app/nieuws` is tenantnieuws en gebruikt dit model niet.
 Er bestond geen publieke artikelen-CMS of geschikte publicatie-API in Fieldgrid.
-SocialHero heeft een geschikte generieke v1-client; onderstaande routes volgen
-dat bestaande contract, met aanvullende origininformatie voor staging.
+Het leidende gedeelde koppelcodecontract v1 van 26 november 2026 staat in
+[de connectorhandleiding](../integration/socialhero-connector.md), inclusief
+de exacte moderne routes, velden, rechten en herstelprocedure. De eerdere
+operator-API hieronder blijft uitsluitend een compatibiliteitslaag.
 
 | Omgeving | Marketing/publicatiecontrole | SEO-canonical | Bestaand deploymentpad |
 | --- | --- | --- | --- |
@@ -38,6 +40,13 @@ Eén aggregate bewaart `draft`, `revision`, `live`, `live_revision`, de eerste
 publicatiedatum en de wijzigingsdatum van de live revisie. Een conceptwijziging
 verandert de bestaande live inhoud en live wijzigingsdatum niet. De server
 controleert de verwachte revisie; publiceren wisselt de live snapshot atomair.
+Onveranderlijke revisies en publicatiegebeurtenissen bewaren daarnaast de actor
+en het tijdstip. Het redactieoverzicht en de connector gebruiken dezelfde
+blogservice. Auteurs en categorieën zijn bewerkbaar onder
+`/platform/blog/instellingen`; archiveren behoudt bestaande verwijzingen.
+De nieuwe connector staat op `/platform/blog/socialhero` en bewaart lokale
+toestemmingen per stabiele bestemming en omgeving. Nieuwe koppelingen tonen
+beide rechten aangevinkt vóór bevestiging; opgeslagen opt-outs blijven behouden.
 
 Artikelvelden: type `blog|article`, `locale=nl-NL`, titel, slug, `slugManual`,
 samenvatting, TipTap-document, SEO-titel/-omschrijving, `authorId`, `categoryId`,
@@ -59,7 +68,7 @@ scope `(site, environment, /blog)`, inclusief historische publieke slugs. Een
 oude slug verwijst rechtstreeks naar de actuele live slug van hetzelfde artikel,
 met HTTP 308, zodat geen redirectketens of -lussen ontstaan.
 
-## API en mapping
+## Eerdere operator-API en mapping
 
 Basis op de marketinghost: `/api/socialhero/v1`. Alleen de volgende methoden
 zijn in de proxy toegestaan; onbekende API-paden en methoden blijven gesloten.
@@ -78,7 +87,7 @@ een afzonderlijke `Idempotency-Key` (1–240 ASCII-tekens); updates hebben een
 verwachte revisie. Externe IDs zijn stabiel per SocialHero-artikel en bestemming
 en uniek binnen site/omgeving. `GET` geeft ook `ETag: "{revision}"`.
 
-Een conceptpayload volgt het bestaande SocialHero-contract:
+Een conceptpayload voor deze compatibiliteitslaag:
 
 ```json
 {

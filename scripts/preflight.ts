@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createPublicKey } from "node:crypto";
 import { isStagingTicketScannerPath } from "../lib/tickets/scanner-path";
 import { stagingDatabaseUrl } from "../lib/env/staging-database";
+import { fieldgridConnectorConfiguration } from "../lib/blog/connector-config";
 
 const schema = z.object({
   DEPLOY_TARGET: z.literal("staging"),
@@ -48,6 +49,7 @@ const schema = z.object({
 const parsed = schema.safeParse(process.env);
 if (!parsed.success) throw new Error(`Preflightconfiguratie ontbreekt of is ongeldig: ${[...new Set(parsed.error.issues.map(issue => issue.path.join(".")))].join(", ")}. Waarden worden niet gelogd.`);
 const env = parsed.data;
+fieldgridConnectorConfiguration(process.env);
 try {
   const key = env.SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY;
   const parsedKey = key.includes("BEGIN PUBLIC KEY") ? createPublicKey(key) : createPublicKey({ key: Buffer.from(key, "base64"), format: "der", type: "spki" });

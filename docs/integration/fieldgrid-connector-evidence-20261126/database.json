@@ -1,0 +1,63 @@
+{
+  "format": 1,
+  "date": "2026-11-26",
+  "result": "passed",
+  "target": "dedicated local PostgreSQL 17; isolated acceptance database; no hosted or shared-source mutations",
+  "configuration": "Explicit server-side FIELDGRID_BLOG_TEST_DATABASE_URL; value intentionally omitted; no local .env files loaded",
+  "tests": {
+    "command": "node --test --test-concurrency=1 scripts/test-blog-db.mjs scripts/test-blog-connector-db.mjs",
+    "isolatedOptIn": "FIELDGRID_BLOG_ISOLATED_TEST=1",
+    "passed": 31,
+    "failed": 0,
+    "skipped": 0,
+    "connectorEditorialAndUpgrade": 20,
+    "existingBlog": 11,
+    "logSha256": "0e4dc23d077689b399f788005547866ff1856d040bc23dca4e8235ca997467a1"
+  },
+  "coverage": [
+    "current-session platform-admin authorization and RPC grants",
+    "durable code/claim/pending/active retries and ciphertext purge",
+    "destination-scoped posts, media and receipts; legacy-token separation",
+    "reconnect identity, explicit opt-out preservation and audited permissions",
+    "live draft/publish permission locks and in-flight revocation",
+    "immutable revision and publication events with real actor context",
+    "editable/archiveable taxonomy, empty public arrays and create conflict",
+    "paired article CMS media binding and wrong-scope denial",
+    "bounded public pagination at sizes 1, 3, 4 and 12; test/draft exclusion",
+    "durable per-revision public HTML confirmation status",
+    "representative existing Auth/tenant/work-order/blog upgrade with historical receipt replay"
+  ],
+  "migrationReplay": {
+    "cliVersion": "2.117.0",
+    "engine": "repository-pinned Supabase CLI migration up against a separate isolated database",
+    "algorithm": "sha256-json-statements",
+    "olderManifestEntriesUnchanged": true,
+    "original20261113MigrationUnchanged": true,
+    "migrations": [
+      {
+        "version": "20261126110835",
+        "name": "fieldgrid_blog_connector",
+        "statements": 42,
+        "manifestSha256": "25dff633459eaa27509808d849665f153b0e22ae82fba79616f0a285f07cc91d",
+        "sourceSha256": "6b143a105538d447f62ba71d3ef08f9e289b5786c5a60973ca4b009bd970ba68"
+      },
+      {
+        "version": "20261126113033",
+        "name": "fieldgrid_blog_editorial_history",
+        "statements": 27,
+        "manifestSha256": "36eb0a6edd0b324ea3ba3dc8c4cc4e207fd11d9135f393218ff4798518259a44",
+        "sourceSha256": "f79ad47a98f4c23f3dc25fbd01743e35134ade4ed84db1f89df136d52c887851"
+      }
+    ]
+  },
+  "security": {
+    "privateBlogTables": 15,
+    "rlsAndForcedRlsTables": 15,
+    "tablesWithDirectAnonymousAuthenticatedOrServiceAccess": 0,
+    "advisors": {
+      "type": "security",
+      "minimumLevel": "warn",
+      "issues": 0
+    }
+  }
+}

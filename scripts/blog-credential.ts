@@ -30,7 +30,7 @@ async function main() {
     if (!Number.isFinite(expiresAt.valueOf()) || expiresAt.valueOf() <= Date.now() || expiresAt.valueOf() > Date.now() + 366 * 86400_000) throw new Error('Kies een toekomstige vervaltijd binnen een jaar.');
     const label = identifier?.trim();
     if (!label || label.length > 160) throw new Error('Een label is vereist.');
-    const scopes = (process.env.FIELDGRID_BLOG_TOKEN_SCOPES ?? 'read,media:write,draft:write,publish').split(',');
+    const scopes = (process.env.FIELDGRID_BLOG_TOKEN_SCOPES ?? 'read,media:write,draft:write').split(',');
     if (!scopes.length || scopes.some(s => !['read', 'media:write', 'draft:write', 'publish'].includes(s))) throw new Error('Ongeldige scopes.');
     Object.assign(payload, { label, tokenHash: createHash('sha256').update(token).digest('hex'), scopes, expiresAt: expiresAt.toISOString() });
   } else {

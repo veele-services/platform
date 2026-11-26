@@ -1,7 +1,8 @@
 import { ArrowRight, ArrowUpRight, Clock3, FileText, Search } from 'lucide-react';
 import type { BlogEntry } from '@/lib/blog/types';
 import { CoverImage, formatBlogDate } from './article';
-import { articleText, readingTime } from './body';
+import { readingTime } from './body';
+import type { BlogPage } from '@/lib/blog/data';
 import styles from './blog.module.css';
 
 function PostCard({ post }: { post: BlogEntry }) {
@@ -62,22 +63,18 @@ export function RelatedPosts({ posts }: { posts: BlogEntry[] }) {
   </section>;
 }
 
-function filterLink(category: string, query: string) {
+function filterLink(category: string, query: string, page = 1) {
   const params = new URLSearchParams();
   if (query) params.set('q', query);
   if (category) params.set('categorie', category);
+  if (page > 1) params.set('pagina', String(page));
   const search = params.toString();
   return search ? `/blog?${search}` : '/blog';
 }
 
-export function BlogOverview({ posts, query, category }: { posts: BlogEntry[]; query: string; category: string }) {
-  const categories = [...new Set(posts.flatMap(post => post.published?.category || []))].sort((a, b) => a.localeCompare(b, 'nl'));
-  const normalizedQuery = query.toLocaleLowerCase('nl-NL');
-  const filtered = posts.filter(({ published }) => {
-    if (!published || (category && published.category !== category)) return false;
-    const searchable = [published.title, published.excerpt, published.author, published.category, ...published.tags, articleText(published.content)].join(' ').toLocaleLowerCase('nl-NL');
-    return normalizedQuery.split(/\s+/).every(word => searchable.includes(word));
-  });
+export function BlogOverview({ posts, query, category, pagination }: { posts: BlogEntry[]; query: string; category: string; pagination: Omit<BlogPage, 'posts'> }) {
+  const { categories, total, page, pages } = pagination;
+  const filtered = posts.filter(post => post.published);
 
   return <>
     <section className={styles.overviewHero}>
@@ -106,7 +103,7 @@ export function BlogOverview({ posts, query, category }: { posts: BlogEntry[]; q
       </div>
       <div className={styles.resultsHead}>
         <h2 id="fieldgrid-article-list">{query ? `Resultaten voor ‘${query}’` : category || 'Laatste artikelen'}</h2>
-        <p>{filtered.length} {filtered.length === 1 ? 'artikel' : 'artikelen'}</p>
+        <p>{total} {total === 1 ? 'artikel' : 'artikelen'}</p>
       </div>
       {filtered.length ? <PostCards posts={filtered} /> : <div className={styles.empty}>
         <FileText size={25} aria-hidden="true" />
@@ -114,6 +111,11 @@ export function BlogOverview({ posts, query, category }: { posts: BlogEntry[]; q
         <p>{query || category ? 'Probeer een ander zoekwoord of bekijk alle artikelen.' : 'Kom later terug voor nieuwe artikelen over werken op locatie.'}</p>
         {(query || category) && <a className={styles.textLink} href="/blog">Wis filters <ArrowRight size={16} aria-hidden="true" /></a>}
       </div>}
+      {pages > 1 && <nav className={styles.pagination} aria-label="Blogpagina's">
+        {page > 1 && <a href={filterLink(category, query, page - 1)} rel="prev">Vorige pagina</a>}
+        <span aria-current="page">Pagina {page} van {pages}</span>
+        {page < pages && <a href={filterLink(category, query, page + 1)} rel="next">Volgende pagina <ArrowRight size={16} aria-hidden="true" /></a>}
+      </nav>}
     </section>
   </>;
 }

@@ -1,5 +1,9 @@
 # Fieldgrid en SocialHero: feitelijke acceptatie
 
+De oorspronkelijke proeven en uitrol hieronder zijn van 13 november 2026.
+De actuele uitbreiding met koppelcodes, beide toestemmingen, revisiehistorie en
+taxonomiebeheer staat in het [verslag van 26 november 2026](fieldgrid-connector-acceptance-20261126.md).
+
 Uitgevoerd op 13 november 2026. Fieldgrid-bronbasis
 `34d649e2d66e2dc2508289f25c846c26860c1447`, branch
 `codex/fieldgrid-blog-socialhero`. SocialHero-bronbasis

@@ -24,7 +24,49 @@ The marketing origin exposes only these additional service methods:
 | `/api/socialhero/v1/media` | POST |
 | `/api/socialhero/v1/posts/{externalId}` | GET, PUT |
 | `/api/socialhero/v1/posts/{externalId}/publish` | POST |
+| `/api/socialhero/v1/connection` | DELETE |
 | `/blog-media/{assetId}` | GET, HEAD |
+
+### SocialHero pairing contract (26 November 2026)
+
+Platform administrators manage the marketing site's connection at
+`/platform/blog/socialhero`, through the platform-only
+`/api/blog-admin/connection`. Its mutations require the current Auth session,
+platform-admin authorization and an exact same-origin request. A one-time code
+is claimed only by the server against the configured `SOCIALHERO_URL`.
+Staging trusts `https://socialhero-staging.dgwebservices.nl`; production trusts
+`https://socialhero.dgwebservices.nl`. Neither browser input nor a provider
+response may select the destination server or the site's deployment identity.
+
+The pairing transaction stores the credential hash and pending state before
+verification starts. Pending credentials can read capabilities only. Activation
+requires SocialHero's matching verification receipt; interrupted provisioning
+can resume within its ten-minute term. Temporary provisioning secrets are
+encrypted server-side using a domain-separated key derived from the existing
+`NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`, and removed after completion or expiry.
+No pairing secret enters browser responses, logs or analytics.
+
+Paired article, media and idempotency scopes include the stable SocialHero
+`destinationId`. Reconnecting the same destination retains its history; another
+destination cannot read or change those records. Before pairing, administrators
+see separate draft and automatic-publication permissions, both checked for a
+new destination. Pairing confirms those choices. Explicit saved opt-outs survive
+reconnect; authorized policy changes record the actor, date and choice per
+destination/environment. Every mutation checks the current local policy.
+Disconnecting revokes
+the selected credential immediately while retaining articles and history.
+Capabilities and responses follow shared API contract v1, with the legacy
+editorial service retained behind the adapter. Staging verification uses the
+staging marketing origin; production SEO canonicals and staging noindex remain
+as specified above. The release and GitHub Environment configuration gates are
+unchanged.
+
+Immutable revision snapshots and publication events record the acting editor
+or machine credential. Authors and categories are managed within the same
+protected editorial context. Public listing queries are paginated. Publication
+completion requires an unauthenticated response containing the expected article
+and revision in the original HTML head; until then APIs expose `publishing` and
+allow status reconciliation without repeating the content mutation.
 
 Each service call requires an independently revocable, scoped site/environment
 credential. The proxy rejects all other service paths and methods before
@@ -35,12 +77,17 @@ served without editorial authorization. These are application routes in the
 existing runtime, with no additional DNS, port, service or deployment.
 
 The production SEO canonical remains `https://www.fieldgrid.nl/blog/{slug}`.
-Staging receipts return `publicUrl` on `https://www.staging.fieldgrid.nl` and a
-separate `canonicalUrl`; SocialHero verifies the expected article/revision on
+Staging receipts return `publicUrl` on `https://www.staging.fieldgrid.nl` (the
+legacy adapter also returns a separate `canonicalUrl`). Fieldgrid verifies the expected article/revision on
 the former without credentials. Staging responses retain `noindex, nofollow`.
 Only live revisions appear in lists and the sitemap; explicit test records do
 not. Runtime reads plus invalidation of the internal rewrite destination avoid
 requiring a build hook. Social posts wait for an unauthenticated revision check.
+Capabilities declare the separate production `canonicalOrigin`, as supported by
+the current SocialHero verifier. It fetches the staging `publicUrl` and compares
+its HTML canonical with that declared origin. Older verifiers may remain waiting;
+source compatibility and local fixtures must not be reported as confirmed hosted
+staging publication. Production origin and canonical agree.
 
 For isolated local acceptance only, `FIELDGRID_BLOG_LOCAL_ORIGIN` can select an
 HTTP loopback origin different from `APP_URL`. Only the listed service/media

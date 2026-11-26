@@ -12,7 +12,7 @@ import { makeMetadata, pageMeta, pageSchema, schemaText } from '@/lib/marketing/
 import { BlogOverview, HomeBlogSection, RelatedPosts } from '@/components/fieldgrid/blog-public';
 import { BlogArticle } from '@/components/fieldgrid/blog-public/article';
 import { articleImages, getBlogImages } from '@/components/fieldgrid/blog-public/seo';
-import { getPublicBlog, getPublishedBlog } from '@/lib/blog/data';
+import { getPublicBlog, getPublishedBlogPage } from '@/lib/blog/data';
 import { blogOrigin, blogUrl } from '@/lib/blog/origin';
 
 export const dynamic = 'force-dynamic';
@@ -24,6 +24,12 @@ const lookupBlog = cache(getPublicBlog);
 const blogTitle = 'Fieldgrid Blog | Praktische kennis voor servicebedrijven';
 const blogDescription = 'Lees praktische artikelen over planning, digitale werkbonnen, klantportalen en samenwerken op locatie.';
 const indexable = () => process.env.DEPLOY_TARGET === 'production';
+const blogPage = (value: unknown) => typeof value === 'string' && /^[1-9][0-9]{0,5}$/.test(value) ? Number(value) : 1;
+const lookupBlogPage = cache((page: number, query: string, category: string) => getPublishedBlogPage({ page, pageSize: 12, query, category }));
+const blogFilters = (search: Record<string, string | string[] | undefined>) => ({
+  query: typeof search.q === 'string' ? search.q.trim().slice(0, 100) : '',
+  category: typeof search.categorie === 'string' ? search.categorie.trim().slice(0, 80) : '',
+});
 
 function resolve(path: string[]) {
   const key = path.join('/');
@@ -45,11 +51,14 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   if (legacy.includes(path[0])) path = path.slice(1);
   if (path[0] === 'blog' && path.length === 1) {
     const search = await searchParams;
+    const { query, category } = blogFilters(search);
+    const { page } = await lookupBlogPage(blogPage(search.pagina), query, category);
+    const canonical = blogUrl(page > 1 ? `/blog?pagina=${page}` : '/blog');
     const images = [{ url: blogUrl('/fieldgrid-site-assets/images/kantoor-planning.webp', blogOrigin()), alt: 'Een team werkt samen aan de planning op kantoor' }];
     return {
-      title: blogTitle, description: blogDescription, alternates: { canonical: blogUrl('/blog') },
+      title: blogTitle, description: blogDescription, alternates: { canonical },
       robots: { index: indexable() && !search.q && !search.categorie, follow: indexable() },
-      openGraph: { type: 'website', siteName: 'Fieldgrid', locale: 'nl_NL', title: blogTitle, description: blogDescription, url: blogUrl('/blog'), images },
+      openGraph: { type: 'website', siteName: 'Fieldgrid', locale: 'nl_NL', title: blogTitle, description: blogDescription, url: canonical, images },
       twitter: { card: 'summary_large_image', title: blogTitle, description: blogDescription, images },
     };
   }
@@ -83,10 +92,18 @@ export default async function Page({ params, searchParams }: Props) {
   }
   const nonce = (await headers()).get('x-nonce') ?? undefined;
   if (path[0] === 'blog' && path.length === 1) {
-    const [posts, search] = await Promise.all([getPublishedBlog(), searchParams]);
-    const query = typeof search.q === 'string' ? search.q.trim().slice(0, 100) : '';
-    const category = typeof search.categorie === 'string' ? search.categorie.trim().slice(0, 80) : '';
-    return <SiteChrome><BlogOverview posts={posts} query={query} category={category} /></SiteChrome>;
+    const search = await searchParams;
+    const { query, category } = blogFilters(search);
+    const requestedPage = blogPage(search.pagina);
+    const { posts, ...pagination } = await lookupBlogPage(requestedPage, query, category);
+    if (requestedPage !== pagination.page) {
+      const target = new URLSearchParams();
+      if (query) target.set('q', query);
+      if (category) target.set('categorie', category);
+      if (pagination.page > 1) target.set('pagina', String(pagination.page));
+      permanentRedirect(`/blog${target.size ? `?${target}` : ''}`);
+    }
+    return <SiteChrome><BlogOverview posts={posts} query={query} category={category} pagination={pagination} /></SiteChrome>;
   }
   if (path[0] === 'blog' && path.length === 2) {
     const result = await lookupBlog(path[1]);
@@ -98,7 +115,8 @@ export default async function Page({ params, searchParams }: Props) {
     const { entry } = result;
     const fields = entry.published;
     if (!fields) notFound();
-    const otherPosts = (await getPublishedBlog()).filter(post => post.id !== entry.id);
+    const categoryPosts = (await getPublishedBlogPage({ pageSize: 4, category: fields.category })).posts;
+    const otherPosts = [...categoryPosts, ...(categoryPosts.length < 4 ? (await getPublishedBlogPage({ pageSize: 4 })).posts : [])].filter((post, index, all) => post.id !== entry.id && all.findIndex(item => item.id === post.id) === index);
     const related = [...otherPosts.filter(post => post.published?.categoryId === fields.categoryId), ...otherPosts.filter(post => post.published?.categoryId !== fields.categoryId)];
     const schema = {
       '@context': 'https://schema.org', '@type': fields.type === 'article' ? 'Article' : 'BlogPosting',
@@ -115,7 +133,7 @@ export default async function Page({ params, searchParams }: Props) {
   if (!metadata) notFound();
   let content: React.ReactNode;
   let category: { name: string; path: string } | undefined;
-  if (path.length === 0) content = <SignatureHome concept="signature" blog={<HomeBlogSection posts={await getPublishedBlog()} />} />;
+  if (path.length === 0) content = <SignatureHome concept="signature" blog={<HomeBlogSection posts={(await getPublishedBlogPage({ pageSize: 3 })).posts} />} />;
   else if ('sector' in metadata && metadata.sector) { content = <SectorPage sector={metadata.sector} concept="signature" />; category = { name: 'Branches', path: '/branches' }; }
   else if ('product' in metadata && metadata.product) { content = <ProductPage product={metadata.product} concept="signature" />; category = { name: 'Het platform', path: '/platform' }; }
   else if (path[0] === 'proberen') content = <TrialPage />;

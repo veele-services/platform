@@ -2,18 +2,22 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   ArrowLeft, BookOpen, Check, ChevronRight, CircleHelp,
-  CloudUpload, ExternalLink, Eye, FileText, ImageIcon, Link2, Plus, Search,
+  CloudUpload, ExternalLink, Eye, FileText, ImageIcon, Link2, Plus, Search, Settings2,
 } from 'lucide-react';
 import { emptyBlogFields, normalizeSlug, type BlogEntry, type BlogFields } from '@/lib/blog/types';
 import { blogAdmin, type BlogTaxonomy } from './admin-api';
 import { MediaField } from './media-field';
 import { RichEditor } from './rich-editor';
+import { RevisionHistory } from './revision-history';
 
 const emptyFields = emptyBlogFields();
+const publicationPendingNotice = 'Publicatie wordt gecontroleerd. De openbare bevestiging volgt.';
 const statusOf = (entry: BlogEntry) => {
   if (!entry.published) return 'Concept';
+  if (entry.publicationVerified === false) return 'Publicatie controleren';
   if (entry.revision !== entry.publishedRevision) return 'Revisie open';
   return 'Live';
 };
@@ -28,18 +32,21 @@ function StatusChip({ entry }: { entry?: BlogEntry }) {
   return <span className="fg-editor-status" data-status={status}><i />{status}</span>;
 }
 
-function BlogIndex({ posts, onOpen, onCreate }: { posts: BlogEntry[]; onOpen: (entry: BlogEntry) => void; onCreate: () => void }) {
+function BlogIndex({ posts, taxonomy, onOpen, onCreate }: { posts: BlogEntry[]; taxonomy: BlogTaxonomy; onOpen: (entry: BlogEntry) => void; onCreate: () => void }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Status>('Alle');
-  const filters: Status[] = ['Alle', 'Concept', 'Revisie open', 'Live'];
+  const [category, setCategory] = useState('');
+  const categories = [...new Map([...taxonomy.categories, ...posts.map(post => ({ id: post.draft.categoryId, name: post.draft.category }))].map(item => [item.id, item])).values()].sort((a, b) => a.name.localeCompare(b.name, 'nl-NL'));
+  const filters: Status[] = ['Alle', 'Concept', 'Revisie open', 'Publicatie controleren', 'Live'];
   const normalized = query.trim().toLocaleLowerCase('nl-NL');
   const visible = posts.filter((post) => (filter === 'Alle' || statusOf(post) === filter)
-    && [post.draft.title, post.draft.category, ...post.draft.tags].some((text) => text.toLocaleLowerCase('nl-NL').includes(normalized)));
+    && (!category || post.draft.categoryId === category)
+    && [post.draft.title, post.draft.excerpt, post.draft.author, post.draft.category, ...post.draft.tags].some((text) => text.toLocaleLowerCase('nl-NL').includes(normalized)));
 
   return <>
     <div className="fg-editor-intro">
       <div><h1>Blogbeheer</h1><p>Schrijf, bewerk en publiceer artikelen voor de Fieldgrid-website.</p></div>
-      <button type="button" className="fg-editor-btn primary" onClick={onCreate}><Plus size={17} /> Nieuw artikel</button>
+      <div className="fg-editor-actions"><Link href="/platform/blog/instellingen" className="fg-editor-btn" prefetch={false}><Settings2 size={16} /> Instellingen</Link><Link href="/platform/blog/socialhero" className="fg-editor-btn" prefetch={false}><Link2 size={16} /> SocialHero</Link><button type="button" className="fg-editor-btn primary" onClick={onCreate}><Plus size={17} /> Nieuw artikel</button></div>
     </div>
     <div className="fg-editor-metrics" aria-label="Artikelstatussen">
       {([
@@ -53,25 +60,27 @@ function BlogIndex({ posts, onOpen, onCreate }: { posts: BlogEntry[]; onOpen: (e
     <section className="fg-editor-card fg-editor-list">
       <div className="fg-editor-list-header">
         <h2>Artikelen</h2>
-        <label className="fg-editor-search"><Search size={17} /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Zoek op titel, categorie of tag" aria-label="Zoek op titel, categorie of tag" /></label>
+        <label className="fg-editor-search"><Search size={17} /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Zoek op titel, auteur of tag" aria-label="Zoek in artikelen" /></label>
       </div>
       <div className="fg-editor-filter" aria-label="Filter op status">
         {filters.map((value) => <button key={value} type="button" aria-pressed={filter === value} onClick={() => setFilter(value)}>{value}</button>)}
+        <label className="fg-editor-category-filter">Categorie<select value={category} aria-label="Filter op categorie" onChange={event => setCategory(event.target.value)}><option value="">Alle categorieën</option>{categories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       </div>
+      <p className="fg-editor-result-count" aria-live="polite">{visible.length} van {posts.length} {posts.length === 1 ? 'artikel' : 'artikelen'}</p>
       {visible.length ? <div className="fg-editor-rows" aria-label="Artikelen">
         {visible.map((entry) => <button type="button" className="fg-editor-row" key={entry.id} onClick={() => onOpen(entry)}>
           <div className="fg-editor-row-image">{entry.draft.hero ? <img src={entry.draft.hero.src} alt="" /> : <FileText size={21} />}</div>
           <div className="fg-editor-row-name">
             <strong>{entry.draft.title || 'Naamloos artikel'}</strong>
-            <small>{entry.draft.category || 'Zonder categorie'} <span>·</span> {sourceOf(entry)}</small>
+            <small>{entry.draft.author || 'Fieldgrid'} <span>·</span> {entry.draft.category || 'Zonder categorie'} <span>·</span> {sourceOf(entry)}</small>
           </div>
           <StatusChip entry={entry} />
           <time dateTime={entry.updatedAt}>{dateText(entry.updatedAt)}</time>
           <ChevronRight size={18} aria-hidden="true" />
         </button>)}
       </div> : <div className="fg-editor-empty"><Search size={23} /><h3>{posts.length ? 'Geen artikelen gevonden' : 'Nog geen artikelen'}</h3>
-        <p>{posts.length ? 'Probeer een andere zoekterm of status.' : 'Maak een eerste artikel aan om te beginnen.'}</p>
-        <button className="fg-editor-btn" type="button" onClick={posts.length ? () => { setQuery(''); setFilter('Alle'); } : onCreate}>{posts.length ? 'Filters wissen' : 'Nieuw artikel'}</button>
+        <p>{posts.length ? 'Probeer een andere zoekterm, status of categorie.' : 'Maak een eerste artikel aan om te beginnen.'}</p>
+        <button className="fg-editor-btn" type="button" onClick={posts.length ? () => { setQuery(''); setFilter('Alle'); setCategory(''); } : onCreate}>{posts.length ? 'Filters wissen' : 'Nieuw artikel'}</button>
       </div>}
     </section>
   </>;
@@ -118,7 +127,12 @@ function SeoChecklist({ fields, onTab }: { fields: BlogFields; onTab: (tab: Tab)
 function EditArticle({ entry, onBack, onSaved, blogBase, taxonomy }: { entry?: BlogEntry; onBack: () => void; onSaved: (entry: BlogEntry) => void; blogBase: string; taxonomy: BlogTaxonomy }) {
   const router = useRouter();
   const [record, setRecord] = useState(entry);
-  const [fields, setFields] = useState<BlogFields>(entry?.draft ?? emptyFields);
+  const activeAuthors = taxonomy.authors.filter(item => item.active !== false);
+  const activeCategories = taxonomy.categories.filter(item => item.active !== false);
+  const author = activeAuthors.find(item => item.id === emptyFields.authorId) ?? activeAuthors[0];
+  const category = activeCategories.find(item => item.id === emptyFields.categoryId) ?? activeCategories[0];
+  const defaults = { ...emptyFields, ...(author ? { authorId: author.id, author: author.name } : {}), ...(category ? { categoryId: category.id, category: category.name } : {}) };
+  const [fields, setFields] = useState<BlogFields>(entry?.draft ?? defaults);
   const [tagText, setTagText] = useState(entry?.draft.tags.join(', ') ?? '');
   const [tab, setTab] = useState<Tab>('content');
   const [slugEdited, setSlugEdited] = useState(entry?.draft.slugManual ?? Boolean(entry?.draft.slug && entry.draft.slug !== normalizeSlug(entry.draft.title)));
@@ -133,9 +147,10 @@ function EditArticle({ entry, onBack, onSaved, blogBase, taxonomy }: { entry?: B
 
   const change = <K extends keyof BlogFields,>(key: K, value: BlogFields[K]) => setFields((current) => ({ ...current, [key]: value }));
   const payload: BlogFields = { ...fields, tags: [...new Set(tagText.split(',').map((tag) => tag.trim()).filter(Boolean))] };
-  const dirty = JSON.stringify(payload) !== JSON.stringify(record?.draft ?? emptyFields);
+  const dirty = JSON.stringify(payload) !== JSON.stringify(record?.draft ?? defaults);
   const urlWillChange = Boolean(record?.published && normalizeSlug(fields.slug || fields.title) !== record.published.slug);
   const canonical = blogBase + '/' + normalizeSlug(fields.slug || fields.title);
+  const publicationPending = Boolean(record?.published && record.publicationVerified === false);
 
   useEffect(() => {
     if (confirmPublish) publishConfirm.current?.focus();
@@ -163,7 +178,7 @@ function EditArticle({ entry, onBack, onSaved, blogBase, taxonomy }: { entry?: B
 
   async function upload(file: File) {
     setUploading(true);
-    try { return await blogAdmin.upload(file); }
+    try { return await blogAdmin.upload(file, record?.id); }
     finally { setUploading(false); }
   }
 
@@ -198,7 +213,7 @@ function EditArticle({ entry, onBack, onSaved, blogBase, taxonomy }: { entry?: B
         allowNavigation.current = true;
         router.push('/platform/blog/preview/' + encodeURIComponent(post.id));
       } else {
-        setNotice(mode === 'publish' ? 'Artikel gepubliceerd.'
+        setNotice(mode === 'publish' ? post.publicationVerified === false ? publicationPendingNotice : 'Artikel gepubliceerd.'
           : dirty && post.published ? 'Revisie opgeslagen.' : 'Concept opgeslagen.');
       }
     } catch (failure) {
@@ -218,17 +233,18 @@ function EditArticle({ entry, onBack, onSaved, blogBase, taxonomy }: { entry?: B
     <div className="fg-editor-intro fg-editor-edit-intro">
       <div><div className="fg-editor-edit-label"><StatusChip entry={record} />{record?.source === 'socialhero' && <span>SocialHero</span>}{record && <span>Revisie {record.revision}</span>}</div>
         <h1>{fields.title || 'Nieuw artikel'}</h1>
-        {record?.published && <a className="fg-editor-live-link" href={`${blogBase}/${record.published.slug}`} target="_blank" rel="noreferrer">Bekijk live versie <ExternalLink size={14} /></a>}
+        {record?.published && <a className="fg-editor-live-link" href={`${blogBase}/${record.published.slug}`} target="_blank" rel="noreferrer">{publicationPending ? 'Bekijk openbare pagina' : 'Bekijk live versie'} <ExternalLink size={14} /></a>}
       </div>
       <div className="fg-editor-actions">
         <button className="fg-editor-btn" type="button" disabled={Boolean(busy) || uploading} onClick={() => void apply('preview')}><Eye size={16} />{busy === 'preview' ? 'Laden…' : 'Voorbeeld'}</button>
         <button className="fg-editor-btn" type="submit" disabled={Boolean(busy) || uploading || (!dirty && Boolean(record))}>{busy === 'save' ? 'Opslaan…' : record?.published ? 'Revisie opslaan' : 'Concept opslaan'}</button>
-        <button className="fg-editor-btn primary" type="button" disabled={Boolean(busy) || uploading || Boolean(record?.published && !dirty && record.revision === record.publishedRevision)}
-          onClick={() => setConfirmPublish(true)}><CloudUpload size={17} />{busy === 'publish' ? 'Publiceren…' : 'Publiceren'}</button>
+        <button className="fg-editor-btn primary" type="button" disabled={Boolean(busy) || uploading || Boolean(record?.published && !dirty && record.revision === record.publishedRevision && !publicationPending)}
+          onClick={() => { if (publicationPending && !dirty) void apply('publish'); else setConfirmPublish(true); }}><CloudUpload size={17} />{busy === 'publish' ? publicationPending && !dirty ? 'Controleren…' : 'Publiceren…' : publicationPending && !dirty ? 'Publicatie controleren' : 'Publiceren'}</button>
       </div>
     </div>
     {error && <p role="alert" className="fg-editor-flash error">{error}</p>}
-    {notice && <p role="status" className="fg-editor-flash success"><Check size={17} /> {notice}</p>}
+    {notice && <p role="status" className={`fg-editor-flash ${notice === publicationPendingNotice ? 'pending' : 'success'}`}><Check size={17} /> {notice}</p>}
+    {publicationPending && notice !== publicationPendingNotice && <p role="status" className="fg-editor-flash pending">{publicationPendingNotice} Gebruik ‘Publicatie controleren’ om opnieuw te controleren.</p>}
     {confirmPublish && <div ref={publishConfirm} tabIndex={-1} className="fg-editor-flash confirm" aria-label="Publicatie bevestigen"
       onKeyDown={(event) => { if (event.key === 'Escape') setConfirmPublish(false); }}>
       <div><strong>{urlWillChange ? 'Publiceren en de URL wijzigen?' : 'Artikel publiceren?'}</strong><p>{urlWillChange ? `/blog/${record?.published?.slug} verwijst na publicatie permanent door naar /blog/${fields.slug}.` : 'Deze revisie wordt zichtbaar op de blog.'}</p></div>
@@ -256,8 +272,8 @@ function EditArticle({ entry, onBack, onSaved, blogBase, taxonomy }: { entry?: B
             <div className="fg-editor-form-grid">
               <label className="fg-editor-label">Type<select aria-label="Type" value={fields.type} onChange={(event) => change('type', event.target.value as BlogFields['type'])}><option value="blog">Blog</option><option value="article">Artikel</option></select></label>
               <label className="fg-editor-label">Taal<select aria-label="Taal" value={fields.locale} onChange={(event) => change('locale', event.target.value)}><option value="nl-NL">Nederlands (Nederland)</option><option value="en-GB">Engels (Verenigd Koninkrijk)</option><option value="nl-BE">Nederlands (België)</option>{!['nl-NL', 'nl-BE', 'en-GB'].includes(fields.locale) && <option value={fields.locale}>{fields.locale}</option>}</select></label>
-              <label className="fg-editor-label">Auteur<select aria-label="Auteur" value={fields.authorId} onChange={(event) => { const author = taxonomy.authors.find(item => item.id === event.target.value); if (author) setFields(current => ({ ...current, authorId: author.id, author: author.name })); }}>{taxonomy.authors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}</select></label>
-              <label className="fg-editor-label">Categorie<select aria-label="Categorie" value={fields.categoryId} onChange={(event) => { const category = taxonomy.categories.find(item => item.id === event.target.value); if (category) setFields(current => ({ ...current, categoryId: category.id, category: category.name })); }}>{taxonomy.categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+              <label className="fg-editor-label">Auteur<select aria-label="Auteur" value={fields.authorId} onChange={(event) => { const author = activeAuthors.find(item => item.id === event.target.value); if (author) setFields(current => ({ ...current, authorId: author.id, author: author.name })); }}>{!activeAuthors.some(item => item.id === fields.authorId) && <option value={fields.authorId} disabled>{fields.author} (gearchiveerd)</option>}{activeAuthors.map(author => <option key={author.id} value={author.id}>{author.name}</option>)}</select></label>
+              <label className="fg-editor-label">Categorie<select aria-label="Categorie" value={fields.categoryId} onChange={(event) => { const category = activeCategories.find(item => item.id === event.target.value); if (category) setFields(current => ({ ...current, categoryId: category.id, category: category.name })); }}>{!activeCategories.some(item => item.id === fields.categoryId) && <option value={fields.categoryId} disabled>{fields.category} (gearchiveerd)</option>}{activeCategories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
             </div>
             <label className="fg-editor-label">Tags<input value={tagText} maxLength={300} onChange={(event) => setTagText(event.target.value)} placeholder="planning, werkbonnen, uitvoering" /></label>
             <p className="fg-editor-field-hint">Scheid maximaal 15 tags met een komma.</p>
@@ -281,6 +297,7 @@ function EditArticle({ entry, onBack, onSaved, blogBase, taxonomy }: { entry?: B
         <SeoChecklist fields={fields} onTab={setTab} />
       </aside>
     </div>
+    <RevisionHistory id={record?.id} revision={record?.revision} publishedRevision={record?.publishedRevision} publicationVerified={record?.publicationVerified} />
   </form>;
 }
 
@@ -309,7 +326,7 @@ export function BlogEditorDashboard({ initialId, blogBase, initialPosts, taxonom
         setSelected(null);
         if (window.location.search) window.history.replaceState(null, '', '/platform/blog');
       }} onSaved={post => { save(post); selectUrl(post); }} /> :
-        <BlogIndex posts={posts} onOpen={open} onCreate={() => { setSelected('new'); window.scrollTo({ top: 0, behavior: 'instant' }); }} />}
+        <BlogIndex posts={posts} taxonomy={taxonomy} onOpen={open} onCreate={() => { setSelected('new'); window.scrollTo({ top: 0, behavior: 'instant' }); }} />}
     </div>
   </section>;
 }
